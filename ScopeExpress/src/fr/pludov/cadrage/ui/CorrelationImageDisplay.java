@@ -3,10 +3,16 @@ package fr.pludov.cadrage.ui;
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
+import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Panel;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.RescaleOp;
@@ -16,6 +22,7 @@ import java.util.IdentityHashMap;
 import javax.imageio.ImageIO;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.MouseInputListener;
 
 import fr.pludov.cadrage.Correlation;
 import fr.pludov.cadrage.Correlation.ImageStatus;
@@ -23,7 +30,7 @@ import fr.pludov.cadrage.CorrelationListener;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 
-public class CorrelationImageDisplay extends Panel implements CorrelationListener, ListSelectionListener {
+public class CorrelationImageDisplay extends Panel implements CorrelationListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
 	BufferedImage image;
 
 	Correlation correlation;
@@ -49,6 +56,9 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		setBackground(Color.BLACK);
 		
 		list.getSelectionModel().addListSelectionListener(this);
+		addMouseMotionListener(this);
+		addMouseWheelListener(this);
+		addMouseListener(this);
 	}
 	
 	private double[] globalToDisplay(double x, double y, double [] result)
@@ -68,6 +78,17 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		result[1] = y;
 		
 		return result;
+	}
+	
+	private AffineTransform getGlobalToScreenTransform()
+	{
+		AffineTransform transform = new AffineTransform();
+		
+		transform.preConcatenate(AffineTransform.getTranslateInstance(-centerx, -centery));
+		transform.preConcatenate(AffineTransform.getScaleInstance(zoom, zoom));
+		transform.preConcatenate(AffineTransform.getTranslateInstance(getWidth() / 2.0, getHeight() / 2.0));
+		
+		return transform;
 	}
 	
 	private void drawImage(Graphics g, int imageId, int selectionLevel)
@@ -102,9 +123,12 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		transform.preConcatenate(AffineTransform.getRotateInstance(status.getCs(), -status.getSn()));
 		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
 		transform.preConcatenate(AffineTransform.getTranslateInstance(status.getTx(), status.getTy()));
-		transform.preConcatenate(AffineTransform.getTranslateInstance(-centerx, -centery));
-		transform.preConcatenate(AffineTransform.getScaleInstance(zoom, zoom));
-		transform.preConcatenate(AffineTransform.getTranslateInstance(getWidth() / 2.0, getHeight() / 2.0));
+		
+		transform.preConcatenate(getGlobalToScreenTransform());
+		
+//		transform.preConcatenate(AffineTransform.getTranslateInstance(-centerx, -centery));
+//		transform.preConcatenate(AffineTransform.getScaleInstance(zoom, zoom));
+//		transform.preConcatenate(AffineTransform.getTranslateInstance(getWidth() / 2.0, getHeight() / 2.0));
 		
 		double [] srcPts = new double [] {0, 0, imgWidth, imgHeight};
 		double [] dstPts = new double [srcPts.length];
@@ -233,6 +257,85 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 
 	@Override
 	public void valueChanged(ListSelectionEvent e) {
+		repaint();
+	}
+
+	
+	boolean draging = false;
+	int draging_x, draging_y;
+	
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		if (draging) {
+			int nvx = e.getPoint().x;
+			int nvy = e.getPoint().y;
+			
+			AffineTransform affine = getGlobalToScreenTransform();
+			try {
+				affine.invert();
+			} catch(NoninvertibleTransformException exc) {
+				exc.printStackTrace();
+			}
+			
+			double []vector = new double [] {nvx, nvy, draging_x, draging_y };
+			double [] transfo = new double[4];
+			
+			affine.transform(vector, 0, transfo, 0, 2);
+			
+			centerx -= transfo[0] - transfo[2];
+			centery -= transfo[1] - transfo[3];
+			
+			draging_x = nvx;
+			draging_y = nvy;
+			
+			repaint(100);
+		}
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {
+		
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+		if (e.getButton() == MouseEvent.BUTTON1) {
+			setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+	
+			draging = true;
+			draging_x = e.getX();
+			draging_y = e.getY();
+		}
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+		setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+		draging = false;
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseWheelMoved(MouseWheelEvent e) {
+		zoom *= Math.pow(2, e.getWheelRotation() / 4.0);
 		repaint();
 	}
 }
