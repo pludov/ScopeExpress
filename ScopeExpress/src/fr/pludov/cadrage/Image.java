@@ -10,6 +10,15 @@ public class Image {
 	
 	File file;
 	
+	// Est-ce que cette image va participer à la calibration ?
+	boolean calibration;
+	
+	
+	// Position du téléscope ?
+	boolean scopePosition;
+	double ra, dec;
+	
+	
 	// Les étoiles détéctées
 	private List<ImageStar> stars;
 	
@@ -53,6 +62,38 @@ public class Image {
 
 	void setStars(List<ImageStar> stars) {
 		this.stars = stars;
+	}
+
+	public boolean isCalibration() {
+		return calibration;
+	}
+
+	public void setCalibration(boolean calibration) {
+		this.calibration = calibration;
+	}
+
+	public boolean isScopePosition() {
+		return scopePosition;
+	}
+
+	public void setScopePosition(boolean scopePosition) {
+		this.scopePosition = scopePosition;
+	}
+
+	public double getRa() {
+		return ra;
+	}
+
+	public void setRa(double ra) {
+		this.ra = ra;
+	}
+
+	public double getDec() {
+		return dec;
+	}
+
+	public void setDec(double dec) {
+		this.dec = dec;
 	}
 	
 }

@@ -6,14 +6,13 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
 
-import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTable;
-import javax.swing.plaf.multi.MultiSplitPaneUI;
 
 import fr.pludov.cadrage.async.AsyncOperation;
+import fr.pludov.cadrage.scope.Scope;
+import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.ImageList;
 
@@ -21,11 +20,52 @@ public class Cadrage {
 
 	public static StarDetection defaultParameter;
 	public static JFrame mainFrame;
+	public static Correlation correlation;
+	public static Scope scopeInterface;
+	public static boolean calibration;
+	
+	public static void setScopeInterface(Scope newScope)
+	{
+		if (scopeInterface != null) {
+			scopeInterface.close();
+		}
+		scopeInterface = newScope;
+	}
+
+	private static void newFileDetected(File file, boolean fresh)
+	{
+		AsyncOperation a1;
+		
+		Image image = new Image(file);
+		
+		if (fresh && scopeInterface != null && scopeInterface.isConnected())
+		{
+			image.scopePosition = true;
+			
+			image.ra = scopeInterface.getRightAscension();
+			image.dec = scopeInterface.getDeclination();
+			
+			if (calibration) {
+				image.calibration = true;
+			}
+		} else {
+			image.scopePosition = false;
+			image.calibration = false;
+		}
+		
+		correlation.addImage(image);
+		a1 = correlation.detectStars(image);
+		a1.queue(correlation.place(image));
+		
+		// FIXME : mettre à jour la calibration ?
+		a1.start();
+	}
 	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
+
 		// TODO Auto-generated method stub
 		try {
 			
@@ -44,7 +84,7 @@ public class Cadrage {
 			
 			
 			
-			Correlation correlation = new Correlation();
+			correlation = new Correlation();
 			
 			mainFrame = new JFrame("Display image");
 			mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -82,23 +122,43 @@ public class Cadrage {
 			// Pour appairer des triangles, choisir ceux qui ont des tailles proches
 			// Pour chaque etoile de l'ensemble a, repérer celles qui sont à distance 
 			
-			Image image = correlation.addImage(new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"));
+//			Image image = correlation.addImage(new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"));
+//			
+//			AsyncOperation a1 = correlation.detectStars(image);
+//			a1.queue(correlation.place(image));
+//			
+//			image = correlation.addImage(new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"));
+//			a1.queue(correlation.detectStars(image));
+//			a1.queue(correlation.place(image));
+//			
+//			image = correlation.addImage(new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG"));
+//			a1.queue(correlation.detectStars(image));
+//			a1.queue(correlation.place(image));
+//	
+//			
+//			
+//			a1.start();
 			
-			AsyncOperation a1 = correlation.detectStars(image);
-			a1.queue(correlation.place(image));
+			AscomScope.connectScope();
 			
-			image = correlation.addImage(new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"));
-			a1.queue(correlation.detectStars(image));
-			a1.queue(correlation.place(image));
+			// Tant qu'il y a de nouveaux fichiers dans le répertoire...
 			
-			image = correlation.addImage(new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG"));
-			a1.queue(correlation.detectStars(image));
-			a1.queue(correlation.place(image));
+			Object [] scenario = {
 			
+					3000, new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"),
+					3000, new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"),
+					3000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
+			};
 			
-			
-			a1.start();
-			
+			for(Object o : scenario)			
+			{
+				if (o instanceof Integer) {
+					Thread.sleep((Integer)o);
+				} else if (o instanceof File) {
+					newFileDetected((File)o, true);
+				}
+				
+			}
 			
 		} catch(Exception e) {
 			e.printStackTrace();

@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import fr.pludov.cadrage.Correlation;
@@ -78,10 +80,18 @@ public class ImageList extends JTable implements CorrelationListener {
 	private abstract static class ColumnDefinition {
 		String title;
 		Class clazz;
+		DefaultTableCellRenderer renderer;
 		
 		ColumnDefinition(String title, Class clazz) {
 			this.title = title;
 			this.clazz = clazz;
+			this.renderer = null;
+		}
+		
+		ColumnDefinition(String title, Class clazz, DefaultTableCellRenderer renderer) {
+			this.title = title;
+			this.clazz = clazz;
+			this.renderer = renderer;
 		}
 		
 		abstract Object getValue(ImageListEntry ile);
@@ -105,7 +115,18 @@ public class ImageList extends JTable implements CorrelationListener {
 				List<ImageStar> stars = ile.image.getStars();
 				return stars != null ? stars.size() : null;
 			}
-		}
+		},
+		new ColumnDefinition("ra", Double.class, new DegresRenderer()) {
+			Object getValue(ImageListEntry ile) {
+				return ile.image.isScopePosition() ? ile.image.getRa() : null;
+			}
+		},
+		new ColumnDefinition("dec", Double.class, new DegresRenderer()) {
+			Object getValue(ImageListEntry ile) {
+				return ile.image.isScopePosition() ? ile.image.getDec() : null;
+			}
+		},
+		
 	};
 	
 	final Correlation correlation;
@@ -139,7 +160,6 @@ public class ImageList extends JTable implements CorrelationListener {
 					public Object getValueAt(int rowIndex, int columnIndex) {
 						ImageListEntry ile = images.get(rowIndex);
 						return columns[columnIndex].getValue(ile);
-						
 					}
 					
 					@Override
@@ -158,6 +178,14 @@ public class ImageList extends JTable implements CorrelationListener {
 		
 		
 		this.correlation.listeners.addListener(this);
+	}
+	
+	@Override
+	public TableCellRenderer getCellRenderer(int row, int column) {
+		if (columns[column].renderer != null) {
+			return columns[column].renderer;
+		}
+		return super.getCellRenderer(row, column);
 	}
 	
 	@Override

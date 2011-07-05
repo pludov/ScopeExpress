@@ -13,11 +13,14 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.RescaleOp;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.event.ListSelectionEvent;
@@ -31,8 +34,6 @@ import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 
 public class CorrelationImageDisplay extends Panel implements CorrelationListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
-	BufferedImage image;
-
 	Correlation correlation;
 	ImageList list;
 	
@@ -91,6 +92,75 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		return transform;
 	}
 	
+	private AffineTransform getImageToScreenTransform(int imageId)
+	{
+		ImageList.ImageListEntry entry = list.getImages().get(imageId);
+		Image image = entry.image;
+		
+		ImageStatus status = correlation.getImageStatus(image);
+
+		if (!status.isPlacee()) {
+			return null;
+		}
+		if (image.getStars() == null) {
+			return null;
+		}
+
+		double imgWidth = image.getWidth();
+		double imgHeight = image.getHeight();
+		
+		AffineTransform transform = new AffineTransform();
+		
+		double scale = Math.sqrt(status.getSn() * status.getSn() + status.getCs() * status.getCs());
+		
+		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
+		transform.preConcatenate(AffineTransform.getRotateInstance(status.getCs(), -status.getSn()));
+		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
+		transform.preConcatenate(AffineTransform.getTranslateInstance(status.getTx(), status.getTy()));
+		
+		transform.preConcatenate(getGlobalToScreenTransform());
+		
+		return transform;
+	}
+	
+	private List<Integer> getImageIdUnder(Point2D where)
+	{
+		// Changer la sélection
+		Integer first = null;
+		boolean wantNext;
+		
+		List<Integer> resultList = new ArrayList<Integer>(); 
+		
+		for(int imageId = 0; imageId < list.getImages().size(); ++imageId)
+		{
+			
+			AffineTransform transform = getImageToScreenTransform(imageId);
+			if (transform == null) continue;
+			try {
+				transform.invert();
+			} catch(NoninvertibleTransformException exception) {
+				exception.printStackTrace();
+				continue;
+			}
+			
+			ImageList.ImageListEntry entry = list.getImages().get(imageId);
+			Image image = entry.image;
+			
+			Point2D result = transform.transform(where, null);
+			
+			// si result est dans l'image, on le garde
+			if (result.getX() < 0 || result.getY() < 0 || 
+					result.getX() >= image.getWidth() || result.getY() >= image.getHeight())
+			{
+				continue;
+			}
+
+			resultList.add(imageId);
+		}
+		
+		return resultList;
+	}
+	
 	private void drawImage(Graphics g, int imageId, int selectionLevel)
 	{
 		double [] xySource = null;
@@ -110,26 +180,10 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		double imgWidth = image.getWidth();
 		double imgHeight = image.getHeight();
 		
-		
-	
-
 		// On le dessine sur ces quatres points
 		
-		AffineTransform transform = new AffineTransform();
-		
-		double scale = Math.sqrt(status.getSn() * status.getSn() + status.getCs() * status.getCs());
-		
-		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
-		transform.preConcatenate(AffineTransform.getRotateInstance(status.getCs(), -status.getSn()));
-		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
-		transform.preConcatenate(AffineTransform.getTranslateInstance(status.getTx(), status.getTy()));
-		
-		transform.preConcatenate(getGlobalToScreenTransform());
-		
-//		transform.preConcatenate(AffineTransform.getTranslateInstance(-centerx, -centery));
-//		transform.preConcatenate(AffineTransform.getScaleInstance(zoom, zoom));
-//		transform.preConcatenate(AffineTransform.getTranslateInstance(getWidth() / 2.0, getHeight() / 2.0));
-		
+		AffineTransform transform = getImageToScreenTransform(imageId);
+
 		double [] srcPts = new double [] {0, 0, imgWidth, imgHeight};
 		double [] dstPts = new double [srcPts.length];
 		
@@ -299,13 +353,39 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		// TODO Auto-generated method stub
+		// Sélectionner
 		
+		if (e.getButton() == MouseEvent.BUTTON1) {
+			List<Integer> ids = getImageIdUnder(e.getPoint());
+			if (ids.isEmpty()) {
+				// Déselctionner
+				list.clearSelection();
+				return;
+			}
+			
+			// Si dans ids il y en a une sélectionné
+			int lastSelected = -1;
+			for(int i = 0; i < ids.size(); ++i)
+			{
+				Integer id = ids.get(i);
+				if (list.isRowSelected(id)) {
+					lastSelected = i;
+				}
+			}
+			
+			lastSelected++;
+			if (lastSelected >= ids.size()) {
+				lastSelected = 0;
+			}
+			
+			// Déselectionner tous sauf lastSelected...
+			list.getSelectionModel().setSelectionInterval(ids.get(lastSelected), ids.get(lastSelected));
+		}
 	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
-		if (e.getButton() == MouseEvent.BUTTON1) {
+		if (e.getButton() == MouseEvent.BUTTON2) {
 			setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
 	
 			draging = true;

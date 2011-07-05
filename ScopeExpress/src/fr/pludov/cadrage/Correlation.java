@@ -762,9 +762,8 @@ public class Correlation {
 		};
 	}
 	
-	Image addImage(final File file) throws InvocationTargetException, InterruptedException
+	Image addImage(final Image image)
 	{
-		Image image = new Image(file);
 		ImageStatus status = new ImageStatus();
 		
 		status.placee = false;
