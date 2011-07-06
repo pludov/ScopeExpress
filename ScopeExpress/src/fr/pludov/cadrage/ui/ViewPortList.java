@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -23,7 +24,7 @@ import fr.pludov.cadrage.utils.IdentityBijection;
 
 
 public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortListEntry> implements CorrelationListener {
-
+	protected final CorrelationUi correlationUi;
 	Correlation target;
 	
 	
@@ -46,6 +47,11 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 
 		public void setVisible(boolean visible) {
 			this.visible = visible;
+		}
+		
+		@Override
+		public void viewPortMoved(ViewPort vp) {
+			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
 	}
 	
@@ -85,14 +91,20 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 	
 	final Correlation correlation;
 	
-	public ViewPortList(Correlation correlation) {
+	public ViewPortList(CorrelationUi correlationUi) {
 		super();
 		
 		setColumnDefinitions(columns);
 		
-		this.correlation = correlation;
+		this.correlationUi = correlationUi;
+		this.correlation = correlationUi.getCorrelation();
 		
 		this.correlation.listeners.addListener(this);
+	}
+	
+	@Override
+	protected JPopupMenu createContextMenu(List<ViewPortListEntry> entries) {
+		return correlationUi.getDynamicMenuForViewPortList(entries);
 	}
 	
 	@Override

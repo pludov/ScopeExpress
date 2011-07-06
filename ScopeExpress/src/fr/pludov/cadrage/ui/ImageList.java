@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -21,7 +22,8 @@ import fr.pludov.cadrage.utils.IdentityBijection;
 
 
 public class ImageList extends GenericList<Image, ImageList.ImageListEntry> implements CorrelationListener {
-
+	protected final CorrelationUi correlationUi;
+	
 	public class ImageListEntry 
 			extends GenericList<Image, ImageList.ImageListEntry>.ListEntry 
 			implements ImageListener
@@ -91,12 +93,18 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 	
 	final Correlation correlation;
 
-	public ImageList(Correlation correlation) {
+	public ImageList(CorrelationUi correlationUi) {
 		super();
 		setColumnDefinitions(columns);
 		
-		this.correlation = correlation;
+		this.correlationUi = correlationUi;
+		this.correlation = correlationUi.getCorrelation();
 		this.correlation.listeners.addListener(this);
+	}
+	
+	@Override
+	protected JPopupMenu createContextMenu(List<ImageListEntry> entries) {
+		return correlationUi.getDynamicMenuForImageList(entries);
 	}
 	
 	

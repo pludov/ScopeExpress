@@ -33,13 +33,14 @@ import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
+import fr.pludov.cadrage.correlation.ViewPortListener;
 import fr.pludov.cadrage.ui.GenericList.ListEntry;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 
-public class CorrelationImageDisplay extends Panel implements CorrelationListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
+public class CorrelationImageDisplay extends Panel implements CorrelationListener, ViewPortListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
 	Correlation correlation;
 	final ImageList imageList;
 	final ViewPortList viewPortList;
@@ -99,8 +100,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		{
 			if (vp.isVisible())
 			{
-				boolean isSelected = viewPortList.isRowSelected(vp.getRowId());
-				if (isSelected) {
+				if (viewPortList.isEntrySelected(vp)) {
 					result.add(vp);
 				}
 				
@@ -394,11 +394,28 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 
 	}
 	
-	public void paint(Graphics g)
+	
+	private java.awt.Image offscreen = null;
+	
+	public void paint(Graphics gPaint)
 	{
 		// Afficher d'abord les images séléctionnées
 		
-		
+        int w = getWidth();
+        int h = getHeight();
+        
+        if (offscreen == null || offscreen.getWidth(null) != w || offscreen.getHeight(null) != h)
+        {
+        	offscreen = createImage(w, h);
+        
+        }
+        
+        // Get a reference to offscreens graphics context
+        // which we use for drawing in/on the image.
+        Graphics g = offscreen.getGraphics();
+        g.setColor(Color.black);
+        g.fillRect(0,0,w,h);
+        
 		for(ImageListEntry ile : imageList.getEntryList())
 		{
 			if (!imageList.isRowSelected(ile.getRowId())) {
@@ -421,12 +438,21 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		{
 			if (vp.isVisible())
 			{
-				boolean isSelected = viewPortList.isRowSelected(vp.getRowId());
+				boolean isSelected = viewPortList.isEntrySelected(vp);
 				drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
-				
 			}
-		}		
+		}
+		
+		// Draw offscreen.
+        gPaint.drawImage(offscreen, 0, 0, this);
 	}
+	
+	@Override
+	public void update(Graphics g) {
+		// TODO Auto-generated method stub
+		paint(g);
+		// super.update(g);
+	} 
 
 	@Override
 	public void imageAdded(Image image) 
@@ -467,6 +493,12 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			int nvx = e.getPoint().x;
 			int nvy = e.getPoint().y;
 			
+			if (nvx == draging_x && nvy == draging_y) {
+				return;
+			}
+
+			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
 			AffineTransform affine = getGlobalToScreenTransform();
 			try {
 				affine.invert();
@@ -483,6 +515,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			draging_y = nvy;
 			
 			if (draging_item) {
+				boolean change = false;
 				for(ListEntry item : getCurrentVisibleSelection())
 				{
 					if (item.getTarget() instanceof ViewPort) {
@@ -497,20 +530,31 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 							ViewPortListEntry newEntry = viewPortList.getEntryFor(viewPort);
 							newEntry.setVisible(true);
 							
-							viewPortList.getSelectionModel().setSelectionInterval(newEntry.getRowId(), newEntry.getRowId());
+							viewPortList.selectEntry(newEntry);
 						}
 						
 						viewPort.setTx(viewPort.getTx() + (transfo[0] - transfo[2]));
 						viewPort.setTy(viewPort.getTy() + (transfo[1] - transfo[3]));
+						change = true;
 					}
+				}
+				
+				if (change) {
+					repaint(100);
 				}
 			} else {
 				centerx -= transfo[0] - transfo[2];
 				centery -= transfo[1] - transfo[3];
+				
+				repaint(100);
 			}
 			
-			repaint(100);
 		}
+	}
+	
+	@Override
+	public boolean isOpaque() {
+		return super.isOpaque() || true;
 	}
 
 	@Override
@@ -553,7 +597,9 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			{
 				if (list == getListOfEntry(wanted))
 				{
-					list.getSelectionModel().setSelectionInterval(wanted.getRowId(), wanted.getRowId());
+					if (!list.selectEntry(wanted)) {
+						list.clearSelection();
+					}
 				} else {
 					list.clearSelection();
 				}
@@ -573,8 +619,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			draging_x = e.getX();
 			draging_y = e.getY();
 		} else if (e.getButton() == MouseEvent.BUTTON1) {
-			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
+			
 			draging = true;
 			draging_item = true;
 			draging_x = e.getX();
@@ -602,6 +647,12 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	}
 
 	@Override
+	public void viewPortMoved(ViewPort vp) {
+		// FIXME : si il n'est pas visible...
+		repaint();
+	}
+	
+	@Override
 	public void mouseWheelMoved(MouseWheelEvent e) {
 		zoom *= Math.pow(2, e.getWheelRotation() / 4.0);
 		repaint();
@@ -609,12 +660,14 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 
 	@Override
 	public void viewPortAdded(ViewPort viewPort) {
+		viewPort.listeners.addListener(this);
 		repaint();
 		
 	}
 
 	@Override
 	public void viewPortRemoved(ViewPort viewPort) {
+		viewPort.listeners.removeListener(this);
 		repaint();
 	}
 

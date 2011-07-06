@@ -46,12 +46,13 @@ public class AscomScope extends WorkThread implements Scope {
 	// Bloque l'appelant
 	public void slew(final double ra, final double dec) throws ScopeException
 	{
+		System.err.println("Slew to ra=" + ra + ", dec=" + dec);
 		try {
 			exec(new AsyncOrder() {
 				
 				@Override
 				public Object run() throws Throwable {
-					scope.invoke("SlewToCoordinates", ra, dec);
+					scope.invoke("SlewToCoordinatesAsync", ra, dec);
 					return null;
 				}
 			});

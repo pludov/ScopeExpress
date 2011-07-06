@@ -18,6 +18,7 @@ import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
+import fr.pludov.cadrage.ui.CorrelationUi;
 import fr.pludov.cadrage.ui.ImageList;
 import fr.pludov.cadrage.ui.ViewPortList;
 
@@ -43,10 +44,13 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *  - calibration : 
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
  * 
- * Step 1 : afficher des viewport sur la fenêtre de sortie
- * Step 2 : liste des viewport à droite
- * 
- * 
+ * Courbe de visualisation
+ * Améliorer la visualisation (permettre de choisir les images qui sont gardées en fond.
+ * Sauvegarder/restaurer
+ *
+ * Retirer des viewport de la liste (sauf téléscope)
+ * Calibration (à partir d'une sélection d'image; menu contextuel sur les images)
+ * Déplacement vers une cible (menu contextuel)
  * 
  * @author Ludovic POLLET
  *
@@ -165,16 +169,18 @@ public class Cadrage {
 			correlation = new Correlation();
 			
 			mainFrame = new JFrame("Display image");
+			
 			mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			 
-			ImageList imageTable = new ImageList(correlation);
+			CorrelationUi correlationUi = new CorrelationUi(correlation);
+			
+			ImageList imageTable = correlationUi.getImageTable();
 	        imageTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
 	        imageTable.setFillsViewportHeight(true);
 
 	        //Create the scroll pane and add the table to it.
 	        JScrollPane imageListScrollPane = new JScrollPane(imageTable);
 			
-	        ViewPortList viewPortTable = new ViewPortList(correlation);
+	        ViewPortList viewPortTable = correlationUi.getViewPortTable();
 	        viewPortTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
 	        viewPortTable.setFillsViewportHeight(true);
 
@@ -188,8 +194,7 @@ public class Cadrage {
 	        imageListScrollPane.setMinimumSize(minimumListSize);
 	        viewPortListScrollPane.setMinimumSize(minimumListSize);
 	        
-	        CorrelationImageDisplay display = new CorrelationImageDisplay(correlation, imageTable, viewPortTable);
-	        display.setVisible(true);
+	        CorrelationImageDisplay display = correlationUi.getDisplay();
 	        
 	        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
 	        		display, listSplitPane);
@@ -237,9 +242,9 @@ public class Cadrage {
 			
 			Object [] scenario = {
 			
-					3000, new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"),
-					3000, new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"),
-					3000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
+					5000, new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"),
+					5000, new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"),
+					5000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
 			};
 			
 			for(final Object o : scenario)			

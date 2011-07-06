@@ -735,6 +735,27 @@ public class Correlation {
 		return image;
 	}
 
+	public void removeImage(final Image image)
+	{
+		if (this.images.containsKey(image)) {
+			clearMatchingForImage(image);
+			this.images.remove(image);
+			listeners.getTarget().imageRemoved(image);
+		}
+	}
+	
+	public void removeViewPort(final ViewPort viewPort)
+	{
+		if (this.viewPorts.contains(viewPort)) {
+			this.viewPorts.remove(viewPort);
+			if (currentScopePosition == viewPort) {
+				currentScopePosition = null;
+				listeners.getTarget().scopeViewPortChanged();
+			}
+			listeners.getTarget().viewPortRemoved(viewPort);
+		}
+	}
+	
 	public Collection<ViewPort> getViewPorts() {
 		return viewPorts;
 	}

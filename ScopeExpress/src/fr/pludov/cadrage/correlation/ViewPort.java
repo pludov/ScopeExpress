@@ -62,7 +62,10 @@ public class ViewPort implements Area {
 	}
 
 	public void setTx(double tx) {
-		this.tx = tx;
+		if (this.tx != tx) {
+			this.tx = tx;
+			listeners.getTarget().viewPortMoved(this);
+		}
 	}
 
 	public double getTy() {
@@ -70,7 +73,10 @@ public class ViewPort implements Area {
 	}
 
 	public void setTy(double ty) {
-		this.ty = ty;
+		if (this.ty != ty) {
+			this.ty = ty;
+			listeners.getTarget().viewPortMoved(this);
+		}
 	}
 
 	public double getCs() {
@@ -78,7 +84,10 @@ public class ViewPort implements Area {
 	}
 
 	public void setCs(double cs) {
-		this.cs = cs;
+		if (this.cs != cs) {
+			this.cs = cs;
+			listeners.getTarget().viewPortMoved(this);
+		}
 	}
 
 	public double getSn() {
@@ -86,6 +95,9 @@ public class ViewPort implements Area {
 	}
 
 	public void setSn(double sn) {
-		this.sn = sn;
+		if (this.sn != sn) {
+			this.sn = sn;
+			listeners.getTarget().viewPortMoved(this);
+		}
 	}
 }
