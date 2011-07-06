@@ -7,4 +7,9 @@ public interface Area {
 	public double getTy();
 	public double getCs();
 	public double getSn();
+	
+	public void setTx(double a);
+	public void setTy(double a);
+	public void setCs(double a);
+	public void setSn(double a);
 }

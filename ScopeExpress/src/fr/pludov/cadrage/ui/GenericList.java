@@ -2,6 +2,7 @@ package fr.pludov.cadrage.ui;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -167,7 +168,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	}
 
 	public List<EffectiveListEntry> getEntryList() {
-		return images;
+		return Collections.unmodifiableList(images);
 	}
 	
 	
@@ -206,6 +207,15 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		listEntries.put((ListKey)ile, ile);
 		ile.rowId = images.size() - 1;
 		tableModel.fireTableRowsInserted(ile.rowId, ile.rowId);
+	}
+	
+	public EffectiveListEntry getEntryFor(Target target)
+	{
+		ListKey key = new ListKey(target);
+		
+		EffectiveListEntry entry = listEntries.remove(key);
+		
+		return entry;
 	}
 
 	public AbstractTableModel getTableModel() {

@@ -18,6 +18,17 @@ public class ViewPort implements Area {
 	private double cs;
 	private double sn;
 
+	public ViewPort(ViewPort copy)
+	{
+		this.viewPortName = copy.viewPortName;
+		this.width = copy.width;
+		this.height = copy.height;
+		this.tx = copy.tx;
+		this.ty = copy.ty;
+		this.cs = copy.cs;
+		this.sn = copy.sn;
+
+	}
 	
 	public ViewPort() {
 	}

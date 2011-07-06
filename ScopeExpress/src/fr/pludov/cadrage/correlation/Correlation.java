@@ -743,6 +743,11 @@ public class Correlation {
 		return currentScopePosition;
 	}
 
+	public void addViewPort(ViewPort currentScopePosition) {
+		viewPorts.add(currentScopePosition);
+		listeners.getTarget().viewPortAdded(currentScopePosition);
+	}
+	
 	public void setCurrentScopePosition(ViewPort currentScopePosition) {
 		
 		if (!viewPorts.contains(currentScopePosition)) {

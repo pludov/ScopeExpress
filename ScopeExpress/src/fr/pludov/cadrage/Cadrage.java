@@ -9,6 +9,7 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
 
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.Correlation;
@@ -241,12 +242,17 @@ public class Cadrage {
 					3000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
 			};
 			
-			for(Object o : scenario)			
+			for(final Object o : scenario)			
 			{
 				if (o instanceof Integer) {
 					Thread.sleep((Integer)o);
 				} else if (o instanceof File) {
-					newFileDetected((File)o, true);
+					SwingUtilities.invokeAndWait(new Runnable() {
+						@Override
+						public void run() {
+							newFileDetected((File)o, true);	
+						}
+					});
 				}
 				
 			}

@@ -57,6 +57,14 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 				Object getValue(ViewPortListEntry ile) {
 					return ile.getTarget().getViewPortName();
 				}
+				
+				void setValue(ViewPortListEntry ile, Object value) {
+					ile.getTarget().setViewPortName((String)value);
+				}
+				
+				{
+					setEditable(true);
+				}
 			},
 			
 			new ColumnDefinition("Voir", Boolean.class) {
