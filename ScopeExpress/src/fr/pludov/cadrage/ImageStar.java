@@ -3,11 +3,11 @@ package fr.pludov.cadrage;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
 
 public class ImageStar implements DynamicGridPoint {
-	double x, y;
-	double energy;
-	double fwhm;
+	public double x, y;
+	public double energy;
+	public double fwhm;
 	
-	int count;
+	public int count;
 	
 	public ImageStar()
 	{

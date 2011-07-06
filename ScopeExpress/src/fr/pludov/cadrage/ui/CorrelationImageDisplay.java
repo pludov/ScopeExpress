@@ -4,6 +4,7 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Cursor;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Panel;
@@ -27,9 +28,11 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MouseInputListener;
 
-import fr.pludov.cadrage.Correlation;
-import fr.pludov.cadrage.Correlation.ImageStatus;
-import fr.pludov.cadrage.CorrelationListener;
+import fr.pludov.cadrage.correlation.Area;
+import fr.pludov.cadrage.correlation.Correlation;
+import fr.pludov.cadrage.correlation.CorrelationListener;
+import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 
@@ -92,12 +95,31 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		return transform;
 	}
 	
+	private AffineTransform getImageToScreenTransform(Area area)
+	{
+		double imgWidth = area.getWidth();
+		double imgHeight = area.getHeight();
+		
+		AffineTransform transform = new AffineTransform();
+		
+		double scale = Math.sqrt(area.getSn() * area.getSn() + area.getCs() * area.getCs());
+		
+		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
+		transform.preConcatenate(AffineTransform.getRotateInstance(area.getCs(), -area.getSn()));
+		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
+		transform.preConcatenate(AffineTransform.getTranslateInstance(area.getTx(), area.getTy()));
+		
+		transform.preConcatenate(getGlobalToScreenTransform());
+		
+		return transform;
+	}
+	
 	private AffineTransform getImageToScreenTransform(int imageId)
 	{
 		ImageList.ImageListEntry entry = list.getImages().get(imageId);
 		Image image = entry.image;
 		
-		ImageStatus status = correlation.getImageStatus(image);
+		ImageCorrelation status = correlation.getImageCorrelation(image);
 
 		if (!status.isPlacee()) {
 			return null;
@@ -106,21 +128,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			return null;
 		}
 
-		double imgWidth = image.getWidth();
-		double imgHeight = image.getHeight();
-		
-		AffineTransform transform = new AffineTransform();
-		
-		double scale = Math.sqrt(status.getSn() * status.getSn() + status.getCs() * status.getCs());
-		
-		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
-		transform.preConcatenate(AffineTransform.getRotateInstance(status.getCs(), -status.getSn()));
-		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
-		transform.preConcatenate(AffineTransform.getTranslateInstance(status.getTx(), status.getTy()));
-		
-		transform.preConcatenate(getGlobalToScreenTransform());
-		
-		return transform;
+		return getImageToScreenTransform(status);
 	}
 	
 	private List<Integer> getImageIdUnder(Point2D where)
@@ -161,6 +169,82 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		return resultList;
 	}
 	
+	private void drawViewPort(Graphics g, Area area, int selectionLevel, String title, int align)
+	{
+		double imgWidth = area.getWidth();
+		double imgHeight = area.getHeight();
+		
+		AffineTransform transform = getImageToScreenTransform(area);
+		
+		switch(selectionLevel)
+		{
+		case 2:
+			g.setColor(Color.GREEN);
+			break;
+		case 1:
+			g.setColor(Color.YELLOW);
+			break;
+		default:
+			g.setColor(Color.GRAY);
+		}
+		double [] [] polys = {
+				{
+					0, 0,
+					imgWidth - 1, 0,
+					imgWidth - 1, imgHeight - 1,
+					0, imgHeight - 1
+				}
+		};
+		double [] xySource = null;
+		double [] xyDest = null;
+		for(double[] poly : polys)
+		{
+			double [] xyTarget = new double[poly.length]; 
+			transform.transform(poly, 0, xyTarget, 0, poly.length / 2);
+			for(int i = 0; i < poly.length / 2; ++i)
+			{
+				int nexti = i+1 < poly.length / 2 ? i+1 : 0;
+				
+				g.drawLine(
+						(int)Math.round(xyTarget[2 * i]),
+						(int)Math.round(xyTarget[2 * i + 1]),
+						(int)Math.round(xyTarget[2 * nexti]),
+						(int)Math.round(xyTarget[2 * nexti + 1]));
+			}
+		}
+		
+		if (title != null) {
+			
+			double m00 = transform.getScaleX();
+			double m01 = transform.getShearX();
+			double m11 = transform.getScaleY();
+			double m10 = transform.getShearY();
+			
+			double delta = Math.sqrt((m00 * m11) + (m01*m10));
+			
+			
+			double [] textPoint = {(1 + align) / 2.0 * area.getWidth(), 0};
+			double [] target = new double[2];
+			
+			transform.transform(textPoint, 0, target, 0, 1);
+			
+			m00 /= delta; m01 /= delta; m10 /= delta; m11 /= delta;
+			
+			AffineTransform textTransform = new AffineTransform();
+			textTransform.setTransform(m00, m10, m01, m11, target[0], target[1]);
+			
+			
+			AffineTransform org = ((Graphics2D)g).getTransform();
+			((Graphics2D)g).setTransform(textTransform);
+			
+			FontMetrics fm = g.getFontMetrics();
+			int textWidth = fm.stringWidth(title);
+			
+			g.drawString(title, 0 - textWidth * (align + 1) / 2, -fm.getDescent());
+			((Graphics2D)g).setTransform(org);
+		}
+	}
+	
 	private void drawImage(Graphics g, int imageId, int selectionLevel)
 	{
 		double [] xySource = null;
@@ -168,7 +252,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		ImageList.ImageListEntry entry = list.getImages().get(imageId);
 		Image image = entry.image;
 		
-		ImageStatus status = correlation.getImageStatus(image);
+		ImageCorrelation status = correlation.getImageCorrelation(image);
 		
 		if (!status.isPlacee()) {
 			return;
@@ -189,8 +273,6 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		
 		transform.transform(srcPts, 0, dstPts, 0, srcPts.length / 2);
 		
-		float[] scales = { 1f, 1f, 1f, 0.5f };
-		float[] offsets = new float[4];
 
 		BufferedImage buffer = images.get(image);
 		if (buffer != null) {
@@ -234,36 +316,9 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			}
 		}
 		
-		double [] [][] polys = {
-				{
-					{-imgWidth/2, -imgHeight/2},
-					{imgWidth/2, -imgHeight/2},
-					{imgWidth/2, imgHeight/2},
-					{-imgWidth/2, imgHeight/2}
-				}
-		};
 		
-		for(double[][] poly : polys)
-		{
-			for(int i = 0; i < poly.length; ++i)
-			{
-				int nexti = i+1 < poly.length ? i+1 : 0;
-				double [] src = poly[i];
-				double [] dst = poly[nexti];
-				
-				xySource = status.imageToGlobal(src[0], src[1], xySource);
-				xyDest = status.imageToGlobal(dst[0], dst[1], xyDest);
-				
-				xySource = globalToDisplay(xySource[0], xySource[1], xySource);
-				xyDest = globalToDisplay(xyDest[0], xyDest[1], xyDest);
-				
-				g.drawLine(
-						(int)Math.round(xySource[0]),
-						(int)Math.round(xySource[1]),
-						(int)Math.round(xyDest[0]),
-						(int)Math.round(xyDest[1]));
-			}
-		}
+		drawViewPort(g, status, selectionLevel, selectionLevel > 0 ? image.getFile().getName() : null, 1);
+
 	}
 	
 	public void paint(Graphics g)
@@ -283,6 +338,14 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			if (list.isRowSelected(imageId)) {
 				drawImage(g, imageId, 2);	
 			}
+		}
+		
+		// Désinner les viewports
+		ViewPort scopePosition;
+		
+		for(ViewPort vp : correlation.getViewPorts())
+		{
+			drawViewPort(g, vp, 2, vp.getViewPortName(), -1);
 		}
 		
 	}
@@ -416,6 +479,22 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent e) {
 		zoom *= Math.pow(2, e.getWheelRotation() / 4.0);
+		repaint();
+	}
+
+	@Override
+	public void viewPortAdded(ViewPort viewPort) {
+		repaint();
+		
+	}
+
+	@Override
+	public void viewPortRemoved(ViewPort viewPort) {
+		repaint();
+	}
+
+	@Override
+	public void scopeViewPortChanged() {
 		repaint();
 	}
 }

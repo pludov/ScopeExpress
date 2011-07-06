@@ -1,0 +1,76 @@
+package fr.pludov.cadrage.correlation;
+
+/**
+ * 	Les viewports sont des endroits que l'on souhaite conserver indépendemment des photos
+ * @author Ludovic POLLET
+ *
+ */
+public class ViewPort implements Area {
+	private String viewPortName;
+	private double width;
+	private double height;
+	private double tx;
+	private double ty;
+	private double cs;
+	private double sn;
+
+	
+	public ViewPort() {
+	}
+
+	public String getViewPortName() {
+		return viewPortName;
+	}
+
+	public void setViewPortName(String viewPortName) {
+		this.viewPortName = viewPortName;
+	}
+
+	public double getWidth() {
+		return width;
+	}
+
+	public void setWidth(double width) {
+		this.width = width;
+	}
+
+	public double getHeight() {
+		return height;
+	}
+
+	public void setHeight(double height) {
+		this.height = height;
+	}
+
+	public double getTx() {
+		return tx;
+	}
+
+	public void setTx(double tx) {
+		this.tx = tx;
+	}
+
+	public double getTy() {
+		return ty;
+	}
+
+	public void setTy(double ty) {
+		this.ty = ty;
+	}
+
+	public double getCs() {
+		return cs;
+	}
+
+	public void setCs(double cs) {
+		this.cs = cs;
+	}
+
+	public double getSn() {
+		return sn;
+	}
+
+	public void setSn(double sn) {
+		this.sn = sn;
+	}
+}

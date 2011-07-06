@@ -10,11 +10,12 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
-import fr.pludov.cadrage.Correlation;
-import fr.pludov.cadrage.CorrelationListener;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
+import fr.pludov.cadrage.correlation.Correlation;
+import fr.pludov.cadrage.correlation.CorrelationListener;
+import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
 
@@ -211,12 +212,24 @@ public class ImageList extends JTable implements CorrelationListener {
 			((AbstractTableModel)getModel()).fireTableRowsDeleted(pos, pos);
 		}
 	}
+
+	public List<ImageListEntry> getImages() {
+		return images;
+	}
 	
 	@Override
 	public void correlationUpdated() {
 	}
 
-	public List<ImageListEntry> getImages() {
-		return images;
+	@Override
+	public void viewPortAdded(ViewPort viewPort) {
+	}
+
+	@Override
+	public void viewPortRemoved(ViewPort viewPort) {
+	}
+
+	@Override
+	public void scopeViewPortChanged() {
 	}
 }

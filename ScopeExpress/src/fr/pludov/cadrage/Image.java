@@ -60,7 +60,7 @@ public class Image {
 		this.height = height;
 	}
 
-	void setStars(List<ImageStar> stars) {
+	public void setStars(List<ImageStar> stars) {
 		this.stars = stars;
 	}
 

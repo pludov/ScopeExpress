@@ -11,11 +11,44 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 
 import fr.pludov.cadrage.async.AsyncOperation;
+import fr.pludov.cadrage.correlation.Correlation;
+import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.ImageList;
 
+/**
+ * A gauche : visualisation des images
+ * 
+ * A droite (haut): controle du téléscope
+ * 
+ * A droite (bas) : liste des images
+ * 
+ * 
+ * Actions:
+ * 	- supprimer une image (la retirer de la liste)
+ * 	- modifier les paramètres de détection d'étoile pour une image (ce qui refait la détection, ...)
+ *  - modifier les paramètres globaux pour la détection d'étoiles (pour les prochaines images)
+ *  - rotation de la vue
+ *  - centrer sur une image (clic droit)
+ *  
+ *  - afficher des viewports
+ *  - déplacement du viewport à la souris, au clavier
+ *  - goto viewport : déplacer le téléscope sur le viewport
+ * 
+ *  - calibration : 
+ *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
+ * 
+ * Step 1 : afficher des viewport sur la fenêtre de sortie
+ * 
+ * 
+ * 
+ * 
+ * @author Ludovic POLLET
+ *
+ */
 public class Cadrage {
 
 	public static StarDetection defaultParameter;
@@ -36,7 +69,7 @@ public class Cadrage {
 	{
 		AsyncOperation a1;
 		
-		Image image = new Image(file);
+		final Image image = new Image(file);
 		
 		if (fresh && scopeInterface != null && scopeInterface.isConnected())
 		{
@@ -48,6 +81,9 @@ public class Cadrage {
 			if (calibration) {
 				image.calibration = true;
 			}
+			
+			// Si la calibration est dispo, on doit pouvoir placer l'image à partir de la précédente
+			
 		} else {
 			image.scopePosition = false;
 			image.calibration = false;
@@ -56,8 +92,48 @@ public class Cadrage {
 		correlation.addImage(image);
 		a1 = correlation.detectStars(image);
 		a1.queue(correlation.place(image));
-		
+
 		// FIXME : mettre à jour la calibration ?
+		
+		// Si fresh, mettre à jour la position du téléscope
+		if (fresh) {
+			a1.queue(new AsyncOperation("Mise à jour de la position du téléscope") {
+				@Override
+				public void init() throws Exception {
+				}
+				
+				@Override
+				public void async() throws Exception {
+				}
+				
+				@Override
+				public void terminate() throws Exception {
+					ImageCorrelation status = correlation.getImageCorrelation(image);
+					if (status == null) {
+						return;
+					}
+					
+					if (status.isPlacee()) {
+						// Mettre à jour le viewport du telescope
+						
+						ViewPort scopePosition = correlation.getCurrentScopePosition();
+						if (scopePosition == null) {
+							scopePosition = new ViewPort();
+							scopePosition.setViewPortName("Champ du téléscope");
+							correlation.setCurrentScopePosition(scopePosition);
+						}
+						
+						scopePosition.setTx(status.getTx());
+						scopePosition.setTy(status.getTy());
+						scopePosition.setCs(status.getCs());
+						scopePosition.setSn(status.getSn());
+						scopePosition.setWidth(status.getWidth());
+						scopePosition.setHeight(status.getHeight());
+					}
+				}
+			});
+		}
+		
 		a1.start();
 	}
 	

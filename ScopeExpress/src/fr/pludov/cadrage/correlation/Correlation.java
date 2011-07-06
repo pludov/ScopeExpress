@@ -1,10 +1,11 @@
-package fr.pludov.cadrage;
+package fr.pludov.cadrage.correlation;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -16,6 +17,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import fr.pludov.cadrage.Cadrage;
+import fr.pludov.cadrage.Image;
+import fr.pludov.cadrage.ImageStar;
+import fr.pludov.cadrage.StarDetection;
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
@@ -38,79 +43,26 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
 public class Correlation {
 	public final WeakListenerCollection<CorrelationListener> listeners;
 	
-	// List<Image> images;
-	
-	public static class ImageStatus
-	{
-		Image image;
-		
-		// Est-ce que l'image est placée
-		boolean placee;
-		
-		// Translation
-		double tx, ty;
-		// Rotation et scaling.
-		double cs, sn;
-		
-		// Etoile locale => etoile de l'image. Null si pas corellées
-		IdentityBijection<ImageStar, ImageStar> starParImage;
-		
-		public double [] imageToGlobal(double x, double y, double [] xy)
-		{
-			if (xy == null || xy.length != 2) {
-				xy = new double[2];
-			}
-			
-			double tmpx, tmpy;
-			
-			xy[0] = tx + x * cs + y * sn;
-			xy[1] = ty + y * cs - x * sn;
-			
-			return xy;
-		}
-
-		public boolean isPlacee() {
-			return placee;
-		}
-
-		public Image getImage() {
-			return image;
-		}
-
-		public double getTx() {
-			return tx;
-		}
-
-		public double getTy() {
-			return ty;
-		}
-
-		public double getCs() {
-			return cs;
-		}
-
-		public double getSn() {
-			return sn;
-		}
-
-		public IdentityBijection<ImageStar, ImageStar> getStarParImage() {
-			return starParImage;
-		}
-	}
-	
-	
 	// Chaque ImageStar doit avoir une correspondante dans chaque image
-	IdentityHashSet<ImageStar> etoiles;
+	final IdentityHashSet<ImageStar> etoiles;
+	
+	final IdentityHashSet<ViewPort> viewPorts;
 	
 	// Map : Image => ImageStar locale => ImageStar de l'image
 	// Pour chaque image, on garde un bijection des images de la correlation avec celles de l'image
-	IdentityHashMap<Image, ImageStatus> images;
+	final IdentityHashMap<Image, ImageCorrelation> images;
+	
+	ViewPort currentScopePosition;
 	
 	public Correlation()
 	{
 		etoiles = new IdentityHashSet<ImageStar>();
-		images = new IdentityHashMap<Image, ImageStatus>();
+		images = new IdentityHashMap<Image, ImageCorrelation>();
+		viewPorts = new IdentityHashSet<ViewPort>();
+		
 		listeners = new WeakListenerCollection<CorrelationListener>(CorrelationListener.class);
+		
+		currentScopePosition = null;
 	}
 	
 	private void evaluateLocalStar(ImageStar s)
@@ -121,11 +73,11 @@ public class Correlation {
 		s.energy = 0;
 		s.fwhm = 0;
 		
-		for(Map.Entry<Image, ImageStatus> entry : images.entrySet())
+		for(Map.Entry<Image, ImageCorrelation> entry : images.entrySet())
 		{
 			double [] xy = null;
 			Image i = entry.getKey();
-			ImageStatus status = entry.getValue();
+			ImageCorrelation status = entry.getValue();
 			
 			IdentityBijection<ImageStar, ImageStar> mapping = status.starParImage;
 			if (mapping == null) continue;
@@ -157,7 +109,7 @@ public class Correlation {
 	private void clearMatchingForImage(Image image)
 	{
 		// Supprimmer les matchings d'une image.
-		ImageStatus status = images.get(image);
+		ImageCorrelation status = images.get(image);
 		
 		IdentityBijection<ImageStar, ImageStar> localToImage = status.starParImage;
 		
@@ -186,14 +138,14 @@ public class Correlation {
 		
 	}
 	
-	public ImageStatus getImageStatus(Image image)
+	public ImageCorrelation getImageCorrelation(Image image)
 	{
 		return images.get(image);
 	}
 	
 	private void calcMatching(Image image)
 	{
-		ImageStatus status = images.get(image);
+		ImageCorrelation status = images.get(image);
 		
 		if (!status.placee) {
 			throw new RuntimeException("Image pas placée");
@@ -560,7 +512,7 @@ public class Correlation {
 			@Override
 			public void init() throws Exception {
 				// Vérifier que l'image est encore dans la correlation
-				ImageStatus status = images.get(image);
+				ImageCorrelation status = images.get(image);
 				if (status == null) {
 					throw new Exception("Opération annulée");
 				}
@@ -570,7 +522,7 @@ public class Correlation {
 				
 				// Compter le nombre d'image déjà placées... Si il n'y en a pas, on est directement placé
 				boolean isFirst = true;
-				for(ImageStatus otherStatus : images.values())
+				for(ImageCorrelation otherStatus : images.values())
 				{
 					if (otherStatus == status) continue;
 					if (otherStatus.placee) {
@@ -745,7 +697,7 @@ public class Correlation {
 				if (!work) return;
 				
 				// Vérifier que l'image est encore dans la correlation
-				ImageStatus status = images.get(image);
+				ImageCorrelation status = images.get(image);
 				if (status == null) {
 					throw new Exception("Opération annulée");
 				}
@@ -762,9 +714,9 @@ public class Correlation {
 		};
 	}
 	
-	Image addImage(final Image image)
+	public Image addImage(final Image image)
 	{
-		ImageStatus status = new ImageStatus();
+		ImageCorrelation status = new ImageCorrelation(image);
 		
 		status.placee = false;
 		status.starParImage = null;
@@ -781,5 +733,22 @@ public class Correlation {
 		
 		listeners.getTarget().imageAdded(image);
 		return image;
+	}
+
+	public Collection<ViewPort> getViewPorts() {
+		return viewPorts;
+	}
+
+	public ViewPort getCurrentScopePosition() {
+		return currentScopePosition;
+	}
+
+	public void setCurrentScopePosition(ViewPort currentScopePosition) {
+		
+		if (!viewPorts.contains(currentScopePosition)) {
+			viewPorts.add(currentScopePosition);
+		}
+		this.currentScopePosition = currentScopePosition;
+		listeners.getTarget().scopeViewPortChanged();
 	}
 }

@@ -529,7 +529,7 @@ public class StarDetection {
 	}
 	
 	// Double adu255 : valeur d'adu pour 255.
-	List<ImageStar> proceed(BufferedImage img, double adu255, int nbStarMax)
+	public List<ImageStar> proceed(BufferedImage img, double adu255, int nbStarMax)
 	{
 		// Construire un tableau avec les valeurs  
 		double mul = adu255 / (255.0 * binFactor * binFactor);
