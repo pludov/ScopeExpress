@@ -747,6 +747,7 @@ public class Correlation {
 		
 		if (!viewPorts.contains(currentScopePosition)) {
 			viewPorts.add(currentScopePosition);
+			listeners.getTarget().viewPortAdded(currentScopePosition);
 		}
 		this.currentScopePosition = currentScopePosition;
 		listeners.getTarget().scopeViewPortChanged();

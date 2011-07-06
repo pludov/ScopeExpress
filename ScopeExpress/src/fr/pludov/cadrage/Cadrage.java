@@ -18,6 +18,7 @@ import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.ImageList;
+import fr.pludov.cadrage.ui.ViewPortList;
 
 /**
  * A gauche : visualisation des images
@@ -42,7 +43,7 @@ import fr.pludov.cadrage.ui.ImageList;
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
  * 
  * Step 1 : afficher des viewport sur la fenêtre de sortie
- * 
+ * Step 2 : liste des viewport à droite
  * 
  * 
  * 
@@ -165,22 +166,36 @@ public class Cadrage {
 			mainFrame = new JFrame("Display image");
 			mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			 
-			ImageList table = new ImageList(correlation);
-	        table.setPreferredScrollableViewportSize(new Dimension(500, 70));
-	        table.setFillsViewportHeight(true);
+			ImageList imageTable = new ImageList(correlation);
+	        imageTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
+	        imageTable.setFillsViewportHeight(true);
 
 	        //Create the scroll pane and add the table to it.
-	        JScrollPane scrollPane = new JScrollPane(table);
+	        JScrollPane imageListScrollPane = new JScrollPane(imageTable);
 			
-	        CorrelationImageDisplay display = new CorrelationImageDisplay(correlation, table);
+	        ViewPortList viewPortTable = new ViewPortList(correlation);
+	        viewPortTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
+	        viewPortTable.setFillsViewportHeight(true);
+
+	        JScrollPane viewPortListScrollPane = new JScrollPane(viewPortTable);
+	        
+	        
+	        JSplitPane listSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+	        		imageListScrollPane, viewPortListScrollPane);
+	        listSplitPane.setResizeWeight(0.75);
+	        Dimension minimumListSize = new Dimension(100, 100);
+	        imageListScrollPane.setMinimumSize(minimumListSize);
+	        viewPortListScrollPane.setMinimumSize(minimumListSize);
+	        
+	        CorrelationImageDisplay display = new CorrelationImageDisplay(correlation, imageTable, viewPortTable);
 	        display.setVisible(true);
 	        
 	        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-	        		display, scrollPane);
+	        		display, listSplitPane);
 	        splitPane.setResizeWeight(1.0);
-	        Dimension minimumSize = new Dimension(100, 50);
+	        Dimension minimumSize = new Dimension(100, 100);
 	        display.setMinimumSize(minimumSize);
-	        scrollPane.setMinimumSize(minimumSize);
+	        listSplitPane.setMinimumSize(minimumSize);
 	        
 	        
 			// ShowImage panel = new ShowImage();

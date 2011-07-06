@@ -33,12 +33,14 @@ import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
+import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 
 public class CorrelationImageDisplay extends Panel implements CorrelationListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
 	Correlation correlation;
-	ImageList list;
+	final ImageList list;
+	final ViewPortList viewPortList;
 	
 	double centerx;
 	double centery;
@@ -47,10 +49,11 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	
 	IdentityHashMap<Image, BufferedImage> images = new IdentityHashMap<Image, BufferedImage>();
 	
-	public CorrelationImageDisplay(Correlation correlation, ImageList list)
+	public CorrelationImageDisplay(Correlation correlation, ImageList list, ViewPortList viewPortList)
 	{
 		correlation.listeners.addListener(this);
 		this.list = list;
+		this.viewPortList = viewPortList;
 		this.correlation = correlation;
 		this.centerx = 0;
 		this.centery = 0;
@@ -60,6 +63,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		setBackground(Color.BLACK);
 		
 		list.getSelectionModel().addListSelectionListener(this);
+		viewPortList.getSelectionModel().addListSelectionListener(this);
 		addMouseMotionListener(this);
 		addMouseWheelListener(this);
 		addMouseListener(this);
@@ -116,8 +120,8 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	
 	private AffineTransform getImageToScreenTransform(int imageId)
 	{
-		ImageList.ImageListEntry entry = list.getImages().get(imageId);
-		Image image = entry.image;
+		ImageList.ImageListEntry entry = list.getEntryList().get(imageId);
+		Image image = entry.getTarget();
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 
@@ -139,7 +143,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		
 		List<Integer> resultList = new ArrayList<Integer>(); 
 		
-		for(int imageId = 0; imageId < list.getImages().size(); ++imageId)
+		for(int imageId = 0; imageId < list.getEntryList().size(); ++imageId)
 		{
 			
 			AffineTransform transform = getImageToScreenTransform(imageId);
@@ -151,8 +155,8 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 				continue;
 			}
 			
-			ImageList.ImageListEntry entry = list.getImages().get(imageId);
-			Image image = entry.image;
+			ImageList.ImageListEntry entry = list.getEntryList().get(imageId);
+			Image image = entry.getTarget();
 			
 			Point2D result = transform.transform(where, null);
 			
@@ -249,8 +253,8 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	{
 		double [] xySource = null;
 		double [] xyDest = null;
-		ImageList.ImageListEntry entry = list.getImages().get(imageId);
-		Image image = entry.image;
+		ImageList.ImageListEntry entry = list.getEntryList().get(imageId);
+		Image image = entry.getTarget();
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 		
@@ -326,14 +330,14 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		// Afficher d'abord les images séléctionnées
 		
 		
-		for(int imageId = 0; imageId < list.getImages().size(); ++imageId)
+		for(int imageId = 0; imageId < list.getEntryList().size(); ++imageId)
 		{
 			if (!list.isRowSelected(imageId)) {
 				drawImage(g, imageId, 0);	
 			}
 		}
 		
-		for(int imageId = 0; imageId < list.getImages().size(); ++imageId)
+		for(int imageId = 0; imageId < list.getEntryList().size(); ++imageId)
 		{
 			if (list.isRowSelected(imageId)) {
 				drawImage(g, imageId, 2);	
@@ -343,11 +347,16 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		// Désinner les viewports
 		ViewPort scopePosition;
 		
-		for(ViewPort vp : correlation.getViewPorts())
-		{
-			drawViewPort(g, vp, 2, vp.getViewPortName(), -1);
-		}
 		
+		for(ViewPortListEntry vp : viewPortList.getEntryList())
+		{
+			if (vp.isVisible())
+			{
+				boolean isSelected = viewPortList.isRowSelected(vp.getRowId());
+				drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
+				
+			}
+		}		
 	}
 
 	@Override

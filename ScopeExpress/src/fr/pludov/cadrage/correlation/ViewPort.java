@@ -1,11 +1,15 @@
 package fr.pludov.cadrage.correlation;
 
+import fr.pludov.cadrage.utils.WeakListenerCollection;
+
 /**
  * 	Les viewports sont des endroits que l'on souhaite conserver indépendemment des photos
  * @author Ludovic POLLET
  *
  */
 public class ViewPort implements Area {
+	public final WeakListenerCollection<ViewPortListener> listeners = new WeakListenerCollection<ViewPortListener>(ViewPortListener.class);
+	
 	private String viewPortName;
 	private double width;
 	private double height;
