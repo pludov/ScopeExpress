@@ -270,6 +270,16 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		return Collections.unmodifiableList(images);
 	}
 	
+	public List<EffectiveListEntry> getSelectedEntryList() {
+		List<EffectiveListEntry> result = new ArrayList<EffectiveListEntry>();
+		for(EffectiveListEntry entry : images) {
+			if (isEntrySelected((ListEntry)entry)) {
+				result.add(entry);
+			}
+		}
+		return result;
+	}
+	
 	
 	protected boolean hasEntry(Target t)
 	{

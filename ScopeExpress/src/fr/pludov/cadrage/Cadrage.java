@@ -44,7 +44,8 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *  - calibration : 
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
  * 
- * Courbe de visualisation
+ * Courbe de visualisation, niveau alpha, min, max
+ * Améliorer la vitesse de paint (le Lookup pour les images)
  * Améliorer la visualisation (permettre de choisir les images qui sont gardées en fond.
  * Sauvegarder/restaurer
  *
@@ -61,7 +62,6 @@ public class Cadrage {
 	public static JFrame mainFrame;
 	public static Correlation correlation;
 	public static Scope scopeInterface;
-	public static boolean calibration;
 	
 	public static void setScopeInterface(Scope newScope)
 	{
@@ -84,15 +84,10 @@ public class Cadrage {
 			image.ra = scopeInterface.getRightAscension();
 			image.dec = scopeInterface.getDeclination();
 			
-			if (calibration) {
-				image.calibration = true;
-			}
-			
 			// Si la calibration est dispo, on doit pouvoir placer l'image à partir de la précédente
 			
 		} else {
 			image.scopePosition = false;
-			image.calibration = false;
 		}
 		
 		correlation.addImage(image);

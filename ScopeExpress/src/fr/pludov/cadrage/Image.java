@@ -10,13 +10,12 @@ public class Image {
 	
 	File file;
 	
-	// Est-ce que cette image va participer à la calibration ?
-	boolean calibration;
-	
-	
 	// Position du téléscope ?
 	boolean scopePosition;
 	double ra, dec;
+	
+	//
+	public double expoComposensation;
 	
 	
 	// Les étoiles détéctées
@@ -30,6 +29,8 @@ public class Image {
 		this.file = file;
 		this.setStars(null);
 		this.listeners = new WeakListenerCollection<ImageListener>(ImageListener.class);
+		this.expoComposensation = 0;
+		
 	}
 
 	public File getFile() {
@@ -64,14 +65,6 @@ public class Image {
 		this.stars = stars;
 	}
 
-	public boolean isCalibration() {
-		return calibration;
-	}
-
-	public void setCalibration(boolean calibration) {
-		this.calibration = calibration;
-	}
-
 	public boolean isScopePosition() {
 		return scopePosition;
 	}
@@ -85,7 +78,11 @@ public class Image {
 	}
 
 	public void setRa(double ra) {
+		if (ra == this.ra) return;
 		this.ra = ra;
+		if (scopePosition) {
+			listeners.getTarget().scopePositionChanged();
+		}
 	}
 
 	public double getDec() {
@@ -93,7 +90,21 @@ public class Image {
 	}
 
 	public void setDec(double dec) {
+		if (dec == this.dec) return;
 		this.dec = dec;
+		if (scopePosition) {
+			listeners.getTarget().scopePositionChanged();
+		}
+	}
+
+	public double getExpoComposensation() {
+		return expoComposensation;
+	}
+
+	public void setExpoComposensation(double expoComposensation) {
+		if (this.expoComposensation == expoComposensation) return;
+		this.expoComposensation = expoComposensation;
+		listeners.getTarget().levelChanged();
 	}
 	
 }

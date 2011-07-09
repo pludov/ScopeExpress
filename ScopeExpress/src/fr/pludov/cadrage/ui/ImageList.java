@@ -56,6 +56,15 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
 		
+		@Override
+		public void scopePositionChanged() {
+			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
+		}
+		
+		@Override
+		public void levelChanged() {
+			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
+		}
 	}
 	
 	

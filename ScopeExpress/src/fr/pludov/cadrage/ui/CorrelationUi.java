@@ -29,6 +29,7 @@ public class CorrelationUi {
 	CorrelationImageDisplay display;
 	ImageList imageTable;
 	ViewPortList viewPortTable;
+	LevelDialog levelDialog;
 	
 	public CorrelationUi(Correlation correlation)
 	{
@@ -249,6 +250,24 @@ public class CorrelationUi {
 		// Déplacement
 		
 		// Edition des niveaux
+		JMenuItem levelMenu = new JMenuItem();
+		levelMenu.setText("Affichage");
+		levelMenu.setEnabled(images.size() > 0);
+		levelMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (levelDialog == null) {
+					levelDialog = new LevelDialog(Cadrage.mainFrame, imageTable);
+
+				}
+				levelDialog.setImageList(images);
+				levelDialog.setVisible(true);
+				
+			}
+		});
+		contextMenu.add(levelMenu);
+
+		
 		
 		// Téléscope:
 		// 		Calibrer - si plus d'une image

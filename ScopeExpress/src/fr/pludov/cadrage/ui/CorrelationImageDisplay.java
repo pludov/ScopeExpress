@@ -8,6 +8,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Panel;
+import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
@@ -17,13 +18,18 @@ import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
+import java.awt.image.ByteLookupTable;
+import java.awt.image.LookupOp;
+import java.awt.image.LookupTable;
 import java.awt.image.RescaleOp;
+import java.awt.image.ShortLookupTable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MouseInputListener;
@@ -38,9 +44,12 @@ import fr.pludov.cadrage.ui.GenericList.ListEntry;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
 import fr.pludov.cadrage.Image;
+import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
 
-public class CorrelationImageDisplay extends Panel implements CorrelationListener, ViewPortListener, ListSelectionListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
+public class CorrelationImageDisplay extends Panel 
+			implements CorrelationListener, ViewPortListener, ImageListener,
+					ListSelectionListener,MouseMotionListener, MouseInputListener, MouseWheelListener  {
 	Correlation correlation;
 	final ImageList imageList;
 	final ViewPortList viewPortList;
@@ -330,9 +339,6 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		if (!status.isPlacee()) {
 			return;
 		}
-		if (image.getStars() == null) {
-			return;
-		}
 		
 		double imgWidth = image.getWidth();
 		double imgHeight = image.getHeight();
@@ -341,18 +347,58 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		
 		AffineTransform transform = getImageToScreenTransform(entry);
 
-		double [] srcPts = new double [] {0, 0, imgWidth, imgHeight};
-		double [] dstPts = new double [srcPts.length];
-		
-		transform.transform(srcPts, 0, dstPts, 0, srcPts.length / 2);
-		
-
 		BufferedImage buffer = images.get(image);
+		
 		if (buffer != null) {
+			
+			
+			byte [] [] datas = new byte [buffer.getColorModel().getNumComponents()][];
+			
+			for(int channel = 0; channel < datas.length; ++channel)
+			{
+				datas[channel] = new byte[256];
+				for(int level = 0; level < 256; ++level)
+				{
+					int value;
+					
+					if (channel < 3)
+					{
+						double vAsFloat = level;
+						
+						switch(channel) {
+						case 0:					// r
+							break;
+						case 1:					// g
+							break;
+						case 2:					// b
+							break;
+						}
+						vAsFloat *= Math.pow(10, image.getExpoComposensation() / 100.0);
+						
+						if (vAsFloat > 255) {
+							value = 255;
+						} else if (vAsFloat < 0) {
+							value = 0;
+						} else {
+							value = (int)Math.round(vAsFloat);
+						}
+						
+					} else {
+						value = level;
+					}
+
+					datas[channel][level] = (byte)value;
+				}
+			}
+			
+			BufferedImageOp op = new LookupOp(new ByteLookupTable(0, datas), null);
+			
 			Composite oldCompo = ((Graphics2D)g).getComposite();
 			
 			((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, selectionLevel >= 2 ? (float)0.8 : (float)0.5));
-			((Graphics2D)g).drawImage(buffer, transform, null);
+			
+			BufferedImage copy = new BufferedImage(buffer.getWidth(), buffer.getHeight(), buffer.getType());
+			((Graphics2D)g).drawImage(op.filter(buffer, copy), transform, null);
 			((Graphics2D)g).setComposite(oldCompo);
 		}
 		
@@ -368,8 +414,7 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 			g.setColor(Color.GRAY);
 		}
 		
-		
-		if (selectionLevel > 1) {
+		if (image.getStars() != null && selectionLevel > 1) {
 			xySource = new double[2];
 			xyDest = new double[2];
 			
@@ -455,18 +500,38 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 	} 
 
 	@Override
-	public void imageAdded(Image image) 
+	public void imageAdded(final Image image) 
 	{
-		try {
-			images.put(image, ImageIO.read(image.getFile()));
-		} catch(IOException e) {
-			e.printStackTrace();
-		}
+		image.listeners.addListener(this);
+		images.put(image, null);
+		new Thread() {
+			public void run() {
+				BufferedImage jpeg = null;
+				try {
+					jpeg = ImageIO.read(image.getFile());
+				} catch(IOException e) {
+					e.printStackTrace();
+				}	
+				
+				final BufferedImage jpegToSet = jpeg;
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						if (images.containsKey(image)) {
+							images.put(image, jpegToSet);
+							repaint();
+						}
+					};
+				});
+				
+			};
+		}.start();
+		
 		repaint();
 	}
 
 	@Override
 	public void imageRemoved(Image image) {
+		image.listeners.removeListener(this);
 		images.remove(image);
 		repaint();
 	}
@@ -476,6 +541,20 @@ public class CorrelationImageDisplay extends Panel implements CorrelationListene
 		repaint();
 	}
 
+	@Override
+	public void levelChanged() {
+		repaint();
+	}
+	
+	@Override
+	public void scopePositionChanged() {
+	}
+	
+	@Override
+	public void starsChanged() {
+		repaint();
+	}
+		
 	@Override
 	public void valueChanged(ListSelectionEvent e) {
 		repaint();
