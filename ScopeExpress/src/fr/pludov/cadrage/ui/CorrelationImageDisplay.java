@@ -120,6 +120,8 @@ public class CorrelationImageDisplay extends Panel
 		
 		BufferedImage contentBinned;		 // On garde une version en bin
 		ImageWorker contentBinnedProvider;
+		int currentBin = 4;
+		
 		
 		BufferedImage contentBinnedFiltered; // Version filtrée avec les derniers paramètres (production asynchrone)
 		CorrelationImageProducer contentBinnedFilteredParameters;
@@ -127,20 +129,45 @@ public class CorrelationImageDisplay extends Panel
 		ImageWorker contentBinnedFilteredProvider;
 		CorrelationImageProducer contentBinnedFilteredWantedParameters;
 		
+		AffineTransform getContentBinnedTransform(AffineTransform current)
+		{
+			if (currentBin == 1) {
+				return current;
+			}
+			AffineTransform copy = new AffineTransform(current);
+			
+			copy.concatenate(AffineTransform.getScaleInstance(currentBin, currentBin));
+			
+			return copy;
+		}
 		
 		void startWorkers()
 		{
 			if (contentBinned == null && contentBinnedProvider == null) {
 				contentBinnedProvider = new ImageWorker() {
 					BufferedImage jpeg;
+					int bin = currentBin;
+					
 					@Override
 					public void run() {
 						jpeg = null;
 						try {
 							jpeg = ImageIO.read(image.getFile());
+							
+							if (bin != 1) {
+								BufferedImage copy = new BufferedImage(jpeg.getWidth() / bin, jpeg.getHeight() / bin, jpeg.getType());
+								
+								Graphics2D g = copy.createGraphics();
+								g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+								g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+								g.drawImage(jpeg, 0, 0, copy.getWidth(), copy.getHeight(), null);
+								g.dispose();
+								
+								jpeg = copy;
+							}
 						} catch(IOException e) {
 							e.printStackTrace();
-						}	
+						}
 					}
 					
 					@Override
@@ -478,24 +505,23 @@ public class CorrelationImageDisplay extends Panel
 		
 		if (display != null && (imageClip != null || alphaOverlay)) {
 			
-			
-			
-			// FIXME : on n'a pas besoin de tout filtrer.
-			/* BufferedImage copy = new BufferedImage(display.getWidth(), buffer.getHeight(), buffer.getType());
-			copy = op.filter(buffer, copy);*/
-			
 			if (imageClip != null && !alphaOverlay) {
 				Shape currentClip = ((Graphics2D)g).getClip();
 				((Graphics2D)g).setClip(imageClip);
 				
 				AffineTransform currentTransform = ((Graphics2D)g).getTransform();
-				((Graphics2D)g).setTransform(transform);
+				
 				
 				if (display.contentBinnedFiltered != null) {
+					((Graphics2D)g).setTransform(display.getContentBinnedTransform(transform));
 					((Graphics2D)g).drawImage(display.contentBinnedFiltered, 0, 0, null);
 				} else if (display.contentBinned != null) {
+					((Graphics2D)g).setTransform(display.getContentBinnedTransform(transform));
 					((Graphics2D)g).drawImage(display.contentBinned, 0, 0, null);
 				} else {
+					((Graphics2D)g).setTransform(transform);
+					
+					((Graphics2D)g).setColor(Color.black);
 					((Graphics2D)g).fillRect(0, 0, image.getWidth(), image.getHeight());
 				}
 				
@@ -508,13 +534,16 @@ public class CorrelationImageDisplay extends Panel
 				((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, selectionLevel >= 2 ? (float)0.8 : (float)0.5));
 
 				AffineTransform currentTransform = ((Graphics2D)g).getTransform();
-				((Graphics2D)g).setTransform(transform);
 				
 				if (display.contentBinnedFiltered != null) {
+					((Graphics2D)g).setTransform(display.getContentBinnedTransform(transform));
 					((Graphics2D)g).drawImage(display.contentBinnedFiltered, 0, 0, null);
 				} else if (display.contentBinned != null) {
+					((Graphics2D)g).setTransform(display.getContentBinnedTransform(transform));
 					((Graphics2D)g).drawImage(display.contentBinned, 0, 0, null);
 				} else {
+					((Graphics2D)g).setTransform(transform);
+					((Graphics2D)g).setColor(Color.black);
 					((Graphics2D)g).fillRect(0, 0, image.getWidth(), image.getHeight());
 				}
 				
