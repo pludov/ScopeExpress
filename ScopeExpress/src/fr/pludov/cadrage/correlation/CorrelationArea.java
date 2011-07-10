@@ -1,6 +1,6 @@
 package fr.pludov.cadrage.correlation;
 
-public interface Area {
+public interface CorrelationArea {
 	public double getWidth();
 	public double getHeight();
 	public double getTx();

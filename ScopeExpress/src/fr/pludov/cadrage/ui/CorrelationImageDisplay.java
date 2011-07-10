@@ -9,13 +9,16 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Panel;
 import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.awt.image.ByteLookupTable;
@@ -25,8 +28,11 @@ import java.awt.image.RescaleOp;
 import java.awt.image.ShortLookupTable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
@@ -34,15 +40,18 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.MouseInputListener;
 
-import fr.pludov.cadrage.correlation.Area;
+import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ViewPortListener;
-import fr.pludov.cadrage.ui.GenericList.ListEntry;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
+import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.ui.utils.GenericList.ListEntry;
+import fr.pludov.cadrage.ui.utils.tiles.TiledImage;
+import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
@@ -53,18 +62,126 @@ public class CorrelationImageDisplay extends Panel
 	Correlation correlation;
 	final ImageList imageList;
 	final ViewPortList viewPortList;
+	final TiledImagePool imagePool;
 	
 	double centerx;
 	double centery;
 	double angle;
 	double zoom;
 	
-	IdentityHashMap<Image, BufferedImage> images = new IdentityHashMap<Image, BufferedImage>();
+	/**
+	 * Il faut controller la tailles des données que l'on conserve.
+	 * 
+	 * 1 image = 10Mpix = 40 Mo.
+	 * 
+	 * On peut difficilement garder plus de 250Mo, soit 6 images.
+	 * 
+	 * 
+	 * Il faudrait que le soft puisse tourner avec 100 images pour 250Mo (soit un cadrage plus une acquisition)
+	 * 
+	 * On peut stocker une version basse résolution : 2,5Mo par image, donc un bin 8 pour la miniature
+	 * 
+	 * 
+	 * Solutions :
+	 * - Sélectionner automatiquement les images : un flag indique sur chaque image si elle doit être gardée
+	 *   Le flag est placé lors du positionnement :
+	 *   		- si l'image est meilleure (temps de pose>) que les autre sur plus de 30% de la surface, alors elle est gardée
+	 *   		- si l'image est seule sur plus de 30% de sa surface, elle est gardée
+	 *   	sinon, elle sera chargée dynamiquement
+	 * - ne garder que des parties des images qui nous intéressent
+	 * - garder des miniatures
+	 * - pour chaque image, on garde : les images
+	 * 
+	 * Affichage faire:
+	 * 	- afficher les images sans superposition, par ordre décroissant d'intéret (les dernières sont plus intéressantes). 
+	 * 	  On peut donc calculer la forme de l'image qui va effectivement être requise
+	 * 		=> nouveau menu monter/descendre sur les images
+	 * 	  si l'utilisateur sélectionne une image cachée, il ne la voit pas. 
+	 *    Il va voir le cadre mais n'aura pas d'indication sur l'image. Si il fait un déplacement il aura l'alpha
+	 *    
+	 *  - afficher une image avec alpha et au dessus si en cours de déplacement
+	 *  
+	 *  
+	 * Garder un tableau des shape requises pour chaque image, à jour
+	 * Garder une image basse résolution (bin 10)
+	 * Garder une image des shape requises pour chaque image
+	 * Garder une image transformée des shape requises pour chaque image
+	 * 
+	 * 
+	 */
+	IdentityHashMap<Image, BufferedImageDisplay> images = new IdentityHashMap<Image, BufferedImageDisplay>();
 	
-	public CorrelationImageDisplay(Correlation correlation, ImageList list, ViewPortList viewPortList)
+	private class BufferedImageDisplay {
+		Image image;
+		
+		Area viewPort;			// Partie visible de l'image dans la pile (sur l'écran)
+		Area fullViewPort;		// Ensemble de l'image
+		Area usedPart;
+		
+		BufferedImage contentBinned;		 // On garde une version en bin
+		ImageWorker contentBinnedProvider;
+		
+		BufferedImage contentBinnedFiltered; // Version filtrée avec les derniers paramètres (production asynchrone)
+		ImageWorker contentBinnedFilteredProvider;
+		
+		void startWorkers()
+		{
+			if (contentBinned == null && contentBinnedProvider == null) {
+				contentBinnedProvider = new ImageWorker() {
+					BufferedImage jpeg;
+					@Override
+					public void run() {
+						jpeg = null;
+						try {
+							jpeg = ImageIO.read(image.getFile());
+						} catch(IOException e) {
+							e.printStackTrace();
+						}	
+					}
+					
+					@Override
+					public void done() {
+						contentBinned = jpeg;
+						contentBinnedProvider = null;
+						contentBinnedFiltered = null;
+						contentBinnedFilteredProvider = null;
+						startWorkers();
+					}
+				};
+				contentBinnedProvider.queue();
+			}
+			
+			if (contentBinnedFiltered == null && contentBinnedFilteredProvider == null && contentBinned != null) {
+				contentBinnedFilteredProvider = new ImageWorker() {
+					BufferedImage source = contentBinned;
+					BufferedImage result;
+					@Override
+					public void run() {
+						CorrelationImageProducer producer = new CorrelationImageProducer(image, source);
+						result = producer.produce();
+						source = null;
+					}
+					
+					@Override
+					public void done() {
+						contentBinnedFiltered = result;
+						contentBinnedFilteredProvider = null;
+						
+						repaint();
+					}
+				};
+				
+				contentBinnedFilteredProvider.queue();
+			}
+		}
+	};
+	
+	
+	public CorrelationImageDisplay(Correlation correlation, ImageList list, ViewPortList viewPortList, TiledImagePool pool)
 	{
 		correlation.listeners.addListener(this);
 		this.imageList = list;
+		this.imagePool = pool;
 		this.viewPortList = viewPortList;
 		this.correlation = correlation;
 		this.centerx = 0;
@@ -149,7 +266,7 @@ public class CorrelationImageDisplay extends Panel
 		return transform;
 	}
 	
-	private AffineTransform getImageToScreenTransform(Area area)
+	private AffineTransform getImageToScreenTransform(CorrelationArea area)
 	{
 		double imgWidth = area.getWidth();
 		double imgHeight = area.getHeight();
@@ -252,7 +369,7 @@ public class CorrelationImageDisplay extends Panel
 		return resultList;
 	}
 	
-	private void drawViewPort(Graphics g, Area area, int selectionLevel, String title, int align)
+	private void drawViewPort(Graphics g, CorrelationArea area, int selectionLevel, String title, int align)
 	{
 		double imgWidth = area.getWidth();
 		double imgHeight = area.getHeight();
@@ -328,7 +445,8 @@ public class CorrelationImageDisplay extends Panel
 		}
 	}
 	
-	private void drawImage(Graphics g, ImageListEntry entry, int selectionLevel)
+	
+	private void drawImage(final Graphics g, ImageListEntry entry, int selectionLevel, Area imageClip, boolean alphaOverlay)
 	{
 		double [] xySource = null;
 		double [] xyDest = null;
@@ -345,61 +463,55 @@ public class CorrelationImageDisplay extends Panel
 		
 		// On le dessine sur ces quatres points
 		
-		AffineTransform transform = getImageToScreenTransform(entry);
+		final AffineTransform transform = getImageToScreenTransform(entry);
 
-		BufferedImage buffer = images.get(image);
+		final BufferedImageDisplay display = images.get(image);
 		
-		if (buffer != null) {
+		if (display != null && (imageClip != null || alphaOverlay)) {
 			
 			
-			byte [] [] datas = new byte [buffer.getColorModel().getNumComponents()][];
 			
-			for(int channel = 0; channel < datas.length; ++channel)
-			{
-				datas[channel] = new byte[256];
-				for(int level = 0; level < 256; ++level)
-				{
-					int value;
-					
-					if (channel < 3)
-					{
-						double vAsFloat = level;
-						
-						switch(channel) {
-						case 0:					// r
-							break;
-						case 1:					// g
-							break;
-						case 2:					// b
-							break;
-						}
-						vAsFloat *= Math.pow(10, image.getExpoComposensation() / 100.0);
-						
-						if (vAsFloat > 255) {
-							value = 255;
-						} else if (vAsFloat < 0) {
-							value = 0;
-						} else {
-							value = (int)Math.round(vAsFloat);
-						}
-						
-					} else {
-						value = level;
-					}
-
-					datas[channel][level] = (byte)value;
+			// FIXME : on n'a pas besoin de tout filtrer.
+			/* BufferedImage copy = new BufferedImage(display.getWidth(), buffer.getHeight(), buffer.getType());
+			copy = op.filter(buffer, copy);*/
+			
+			if (imageClip != null && !alphaOverlay) {
+				Shape currentClip = ((Graphics2D)g).getClip();
+				((Graphics2D)g).setClip(imageClip);
+				
+				AffineTransform currentTransform = ((Graphics2D)g).getTransform();
+				((Graphics2D)g).setTransform(transform);
+				
+				if (display.contentBinnedFiltered != null) {
+					((Graphics2D)g).drawImage(display.contentBinnedFiltered, 0, 0, null);
+				} else if (display.contentBinned != null) {
+					((Graphics2D)g).drawImage(display.contentBinned, 0, 0, null);
+				} else {
+					((Graphics2D)g).fillRect(0, 0, image.getWidth(), image.getHeight());
 				}
+				
+				((Graphics2D)g).setTransform(currentTransform);
+				((Graphics2D)g).setClip(currentClip);
 			}
 			
-			BufferedImageOp op = new LookupOp(new ByteLookupTable(0, datas), null);
-			
-			Composite oldCompo = ((Graphics2D)g).getComposite();
-			
-			((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, selectionLevel >= 2 ? (float)0.8 : (float)0.5));
-			
-			BufferedImage copy = new BufferedImage(buffer.getWidth(), buffer.getHeight(), buffer.getType());
-			((Graphics2D)g).drawImage(op.filter(buffer, copy), transform, null);
-			((Graphics2D)g).setComposite(oldCompo);
+			if (alphaOverlay) {
+				Composite oldCompo = ((Graphics2D)g).getComposite();
+				((Graphics2D)g).setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, selectionLevel >= 2 ? (float)0.8 : (float)0.5));
+
+				AffineTransform currentTransform = ((Graphics2D)g).getTransform();
+				((Graphics2D)g).setTransform(transform);
+				
+				if (display.contentBinnedFiltered != null) {
+					((Graphics2D)g).drawImage(display.contentBinnedFiltered, 0, 0, null);
+				} else if (display.contentBinned != null) {
+					((Graphics2D)g).drawImage(display.contentBinned, 0, 0, null);
+				} else {
+					((Graphics2D)g).fillRect(0, 0, image.getWidth(), image.getHeight());
+				}
+				
+				((Graphics2D)g).setComposite(oldCompo);
+				((Graphics2D)g).setTransform(currentTransform);
+			}
 		}
 		
 		switch(selectionLevel)
@@ -442,6 +554,70 @@ public class CorrelationImageDisplay extends Panel
 	
 	private java.awt.Image offscreen = null;
 	
+	private void setAreaOfInterestForDisplays()
+	{
+		Area area = new Area(new Rectangle2D.Double(0, 0, getWidth(), getHeight()));
+        List<ImageListEntry> topToBottom = new ArrayList<ImageListEntry>(imageList.getEntryList());
+        Collections.reverse(topToBottom);
+        
+        for(ImageListEntry ile : topToBottom)
+        {
+        	BufferedImageDisplay imageDisplay = images.get(ile.getTarget());
+        	
+        	if (imageDisplay == null) continue;
+        	
+        	imageDisplay.viewPort = null;
+        	imageDisplay.fullViewPort = null;
+        	imageDisplay.usedPart = null;
+        	
+        	Area image;
+        	
+        	AffineTransform transform = getImageToScreenTransform(ile);
+    		
+    		if (transform == null) {
+    			image = null;
+    		} else {
+	    		
+	    		image = new Area(new Rectangle2D.Double(0, 0, ile.getTarget().getWidth(), ile.getTarget().getHeight()));
+	    		image.transform(transform);
+	    		
+	    		image.intersect(area);
+	    		
+	    		if (image.isEmpty()) {
+	    			image = null;
+	    		}
+	    		
+	    		imageDisplay.viewPort = image;
+	    		
+	    		if (imageList.isRowSelected(ile.getRowId())) {
+	    			imageDisplay.fullViewPort = new Area(new Rectangle2D.Double(0, 0, ile.getTarget().getWidth(), ile.getTarget().getHeight()));
+	    			imageDisplay.fullViewPort.transform(transform);
+	    		} else {
+	    			imageDisplay.fullViewPort = null;
+	    		}
+	    		
+	    		if (imageDisplay.viewPort != null || imageDisplay.fullViewPort != null)
+	    		{
+		    		try {
+		    			transform.invert();
+		    		
+		    			Area used = new Area(imageDisplay.fullViewPort != null ? imageDisplay.fullViewPort : imageDisplay.viewPort);
+		    			used.transform(transform);
+		    			
+		    			imageDisplay.usedPart = used;
+		    		} catch(NoninvertibleTransformException e) {
+		    			e.printStackTrace();
+		    			imageDisplay.usedPart = null;
+		    		}
+	    		}
+    		}
+    		
+    		if (imageDisplay.viewPort != null) {
+    			area.subtract(image);
+    		}
+        }
+	}
+	
 	public void paint(Graphics gPaint)
 	{
 		// Afficher d'abord les images séléctionnées
@@ -455,6 +631,8 @@ public class CorrelationImageDisplay extends Panel
         
         }
         
+        setAreaOfInterestForDisplays();
+        
         // Get a reference to offscreens graphics context
         // which we use for drawing in/on the image.
         Graphics g = offscreen.getGraphics();
@@ -464,16 +642,21 @@ public class CorrelationImageDisplay extends Panel
 		for(ImageListEntry ile : imageList.getEntryList())
 		{
 			if (!imageList.isRowSelected(ile.getRowId())) {
-				drawImage(g, ile, 0);	
+				BufferedImageDisplay imageDisplay = images.get(ile.getTarget());
+	        	
+				drawImage(g, ile, 0, imageDisplay != null ? imageDisplay.viewPort : null, false);	
 			}
 		}
 		
 		for(ImageListEntry ile : imageList.getEntryList())
 		{
 			if (imageList.isRowSelected(ile.getRowId())) {
-				drawImage(g, ile, 2);	
+				BufferedImageDisplay imageDisplay = images.get(ile.getTarget());
+	        	
+				drawImage(g, ile, 2, imageDisplay != null ? imageDisplay.viewPort : null, this.draging_item);	
 			}
 		}
+		
 		
 		// Désinner les viewports
 		ViewPort scopePosition;
@@ -494,7 +677,6 @@ public class CorrelationImageDisplay extends Panel
 	
 	@Override
 	public void update(Graphics g) {
-		// TODO Auto-generated method stub
 		paint(g);
 		// super.update(g);
 	} 
@@ -503,28 +685,19 @@ public class CorrelationImageDisplay extends Panel
 	public void imageAdded(final Image image) 
 	{
 		image.listeners.addListener(this);
-		images.put(image, null);
-		new Thread() {
-			public void run() {
-				BufferedImage jpeg = null;
-				try {
-					jpeg = ImageIO.read(image.getFile());
-				} catch(IOException e) {
-					e.printStackTrace();
-				}	
-				
-				final BufferedImage jpegToSet = jpeg;
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						if (images.containsKey(image)) {
-							images.put(image, jpegToSet);
-							repaint();
-						}
-					};
-				});
-				
-			};
-		}.start();
+		BufferedImageDisplay display = new BufferedImageDisplay();
+		display.image = image;
+		display.contentBinned = null;
+		display.contentBinnedProvider = null;
+		display.contentBinnedFiltered = null;
+		display.contentBinnedFilteredProvider = null;
+		
+		setAreaOfInterestForDisplays();
+		
+		display.startWorkers();
+		
+		images.put(image, display);
+		
 		
 		repaint();
 	}
@@ -532,7 +705,18 @@ public class CorrelationImageDisplay extends Panel
 	@Override
 	public void imageRemoved(Image image) {
 		image.listeners.removeListener(this);
-		images.remove(image);
+		
+		BufferedImageDisplay display = images.remove(image);
+		
+		if (display != null) {
+			if (display.contentBinnedProvider != null) {
+				display.contentBinnedProvider.cancel();
+			}
+			if (display.contentBinnedFilteredProvider != null) {
+				display.contentBinnedFilteredProvider.cancel();
+			}
+		}
+		
 		repaint();
 	}
 
@@ -542,16 +726,25 @@ public class CorrelationImageDisplay extends Panel
 	}
 
 	@Override
-	public void levelChanged() {
-		repaint();
+	public void levelChanged(Image source) {
+		// Il faut invalider le display de l'image
+		BufferedImageDisplay display = images.get(source);
+		
+		if (display.contentBinnedFilteredProvider != null) {
+			display.contentBinnedFilteredProvider.cancel();
+			display.contentBinnedFilteredProvider = null;
+		}
+		display.contentBinnedFiltered = null;
+		display.startWorkers();
+		
 	}
 	
 	@Override
-	public void scopePositionChanged() {
+	public void scopePositionChanged(Image source) {
 	}
 	
 	@Override
-	public void starsChanged() {
+	public void starsChanged(Image source) {
 		repaint();
 	}
 		
@@ -715,13 +908,11 @@ public class CorrelationImageDisplay extends Panel
 
 	@Override
 	public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseExited(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 

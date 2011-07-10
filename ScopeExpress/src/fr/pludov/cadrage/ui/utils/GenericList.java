@@ -1,4 +1,4 @@
-package fr.pludov.cadrage.ui;
+package fr.pludov.cadrage.ui.utils;
 
 import java.awt.Point;
 import java.awt.event.ActionEvent;
@@ -57,7 +57,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		private Integer rowId;
 		
 		
-		ListEntry(Target image) {
+		protected ListEntry(Target image) {
 			super(image);
 		}
 
@@ -74,21 +74,21 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		DefaultTableCellRenderer renderer;
 		boolean editable;
 		
-		ColumnDefinition(String title, Class clazz) {
+		protected ColumnDefinition(String title, Class clazz) {
 			this.title = title;
 			this.clazz = clazz;
 			this.renderer = null;
 		}
 		
-		ColumnDefinition(String title, Class clazz, DefaultTableCellRenderer renderer) {
+		protected ColumnDefinition(String title, Class clazz, DefaultTableCellRenderer renderer) {
 			this.title = title;
 			this.clazz = clazz;
 			this.renderer = renderer;
 		}
 		
-		abstract Object getValue(EffectiveListEntry ile);
+		public abstract Object getValue(EffectiveListEntry ile);
 		
-		void setValue(EffectiveListEntry ile, Object value)
+		public void setValue(EffectiveListEntry ile, Object value)
 		{
 			throw new RuntimeException("unimplemented");
 		}

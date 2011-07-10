@@ -2,9 +2,9 @@ package fr.pludov.cadrage;
 
 public interface ImageListener {
 	// La présence d'étoiles à changé
-	void starsChanged();
+	void starsChanged(Image source);
 	
-	void scopePositionChanged();
+	void scopePositionChanged(Image source);
 	
-	void levelChanged();
+	void levelChanged(Image source);
 }

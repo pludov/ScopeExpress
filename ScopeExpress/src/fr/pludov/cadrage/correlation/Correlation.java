@@ -248,7 +248,7 @@ public class Correlation {
 				// Remettre les nouveaux
 				clearMatchingForImage(image);
 				
-				image.listeners.getTarget().starsChanged();
+				image.listeners.getTarget().starsChanged(image);
 			}
 		};
 	}

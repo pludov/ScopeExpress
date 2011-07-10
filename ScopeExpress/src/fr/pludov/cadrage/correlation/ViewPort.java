@@ -7,7 +7,7 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
  * @author Ludovic POLLET
  *
  */
-public class ViewPort implements Area {
+public class ViewPort implements CorrelationArea {
 	public final WeakListenerCollection<ViewPortListener> listeners = new WeakListenerCollection<ViewPortListener>(ViewPortListener.class);
 	
 	private String viewPortName;

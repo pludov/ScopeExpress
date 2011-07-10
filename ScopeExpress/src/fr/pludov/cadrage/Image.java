@@ -81,7 +81,7 @@ public class Image {
 		if (ra == this.ra) return;
 		this.ra = ra;
 		if (scopePosition) {
-			listeners.getTarget().scopePositionChanged();
+			listeners.getTarget().scopePositionChanged(this);
 		}
 	}
 
@@ -93,7 +93,7 @@ public class Image {
 		if (dec == this.dec) return;
 		this.dec = dec;
 		if (scopePosition) {
-			listeners.getTarget().scopePositionChanged();
+			listeners.getTarget().scopePositionChanged(this);
 		}
 	}
 
@@ -104,7 +104,7 @@ public class Image {
 	public void setExpoComposensation(double expoComposensation) {
 		if (this.expoComposensation == expoComposensation) return;
 		this.expoComposensation = expoComposensation;
-		listeners.getTarget().levelChanged();
+		listeners.getTarget().levelChanged(this);
 	}
 	
 }

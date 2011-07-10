@@ -18,6 +18,7 @@ import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ViewPort;
+import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
 
@@ -52,17 +53,17 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 		}
 		
 		@Override
-		public void starsChanged() {
+		public void starsChanged(Image source) {
 			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
 		
 		@Override
-		public void scopePositionChanged() {
+		public void scopePositionChanged(Image source) {
 			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
 		
 		@Override
-		public void levelChanged() {
+		public void levelChanged(Image source) {
 			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
 	}
@@ -72,29 +73,29 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 	private final List<ColumnDefinition> columns = Arrays.asList(
 		new ColumnDefinition("Image", String.class) {
 			@Override
-			Object getValue(ImageListEntry ile) {
+			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().getFile().getName();
 			}
 		},
 		new ColumnDefinition("Date", Date.class) {
 			@Override
-			Object getValue(ImageListEntry ile) {
+			public Object getValue(ImageListEntry ile) {
 				return ile.getCreationDate();
 			}
 		},		
 		new ColumnDefinition("étoiles", Integer.class) {
-			Object getValue(ImageListEntry ile) {
+			public Object getValue(ImageListEntry ile) {
 				List<ImageStar> stars = ile.getTarget().getStars();
 				return stars != null ? stars.size() : null;
 			}
 		},
 		new ColumnDefinition("ra", Double.class, new DegresRenderer()) {
-			Object getValue(ImageListEntry ile) {
+			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().isScopePosition() ? ile.getTarget().getRa() : null;
 			}
 		},
 		new ColumnDefinition("dec", Double.class, new DegresRenderer()) {
-			Object getValue(ImageListEntry ile) {
+			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().isScopePosition() ? ile.getTarget().getDec() : null;
 			}
 		}

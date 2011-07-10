@@ -4,7 +4,7 @@ import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
-public class ImageCorrelation implements Area
+public class ImageCorrelation implements CorrelationArea
 {
 	final Image image;
 	

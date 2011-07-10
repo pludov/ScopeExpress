@@ -19,7 +19,8 @@ import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ViewPortListener;
-import fr.pludov.cadrage.ui.GenericList.ListEntry;
+import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.ui.utils.GenericList.ListEntry;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
 
@@ -60,11 +61,11 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 	private final List<ColumnDefinition> columns = Arrays.asList(
 			new ColumnDefinition("Titre", String.class) {
 				@Override
-				Object getValue(ViewPortListEntry ile) {
+				public Object getValue(ViewPortListEntry ile) {
 					return ile.getTarget().getViewPortName();
 				}
 				
-				void setValue(ViewPortListEntry ile, Object value) {
+				public void setValue(ViewPortListEntry ile, Object value) {
 					ile.getTarget().setViewPortName((String)value);
 				}
 				
@@ -75,12 +76,12 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 			
 			new ColumnDefinition("Voir", Boolean.class) {
 				@Override
-				Object getValue(ViewPortListEntry ile) {
+				public Object getValue(ViewPortListEntry ile) {
 					return ile.isVisible();
 				}
 				
 				@Override
-				void setValue(ViewPortListEntry ile, Object value) {
+				public void setValue(ViewPortListEntry ile, Object value) {
 					ile.setVisible((Boolean)value);
 				}
 				

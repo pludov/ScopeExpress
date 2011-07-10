@@ -15,13 +15,14 @@ import javax.swing.event.ListSelectionListener;
 
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.Image;
-import fr.pludov.cadrage.correlation.Area;
+import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
+import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 
 public class CorrelationUi {
 	Correlation correlation;
@@ -30,15 +31,17 @@ public class CorrelationUi {
 	ImageList imageTable;
 	ViewPortList viewPortTable;
 	LevelDialog levelDialog;
+	TiledImagePool imagePool;
 	
 	public CorrelationUi(Correlation correlation)
 	{
 		this.correlation = correlation;
 
-
+		imagePool = new TiledImagePool();
+		
 		imageTable = new ImageList(this);
 		viewPortTable = new ViewPortList(this);
-		display = new CorrelationImageDisplay(correlation, imageTable, viewPortTable);
+		display = new CorrelationImageDisplay(correlation, imageTable, viewPortTable, imagePool);
 		
 		makeSelectionExclusion();
 		
@@ -166,7 +169,7 @@ public class CorrelationUi {
 		return corr != null && corr.isPlacee();
 	}
 	
-	protected void atteindre(Area area)
+	protected void atteindre(CorrelationArea area)
 	{
 		// Trouver le viewPort actuel, il va nous donner la position du téléscope
 		
