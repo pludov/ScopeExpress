@@ -122,7 +122,11 @@ public class CorrelationImageDisplay extends Panel
 		ImageWorker contentBinnedProvider;
 		
 		BufferedImage contentBinnedFiltered; // Version filtrée avec les derniers paramètres (production asynchrone)
+		CorrelationImageProducer contentBinnedFilteredParameters;
+		
 		ImageWorker contentBinnedFilteredProvider;
+		CorrelationImageProducer contentBinnedFilteredWantedParameters;
+		
 		
 		void startWorkers()
 		{
@@ -151,14 +155,17 @@ public class CorrelationImageDisplay extends Panel
 				contentBinnedProvider.queue();
 			}
 			
-			if (contentBinnedFiltered == null && contentBinnedFilteredProvider == null && contentBinned != null) {
+			if (contentBinnedFilteredProvider == null && contentBinned != null && 
+					(contentBinnedFiltered == null || !contentBinnedFilteredParameters.equals(contentBinnedFilteredWantedParameters))) {
+
 				contentBinnedFilteredProvider = new ImageWorker() {
 					BufferedImage source = contentBinned;
 					BufferedImage result;
+					CorrelationImageProducer parameters = contentBinnedFilteredWantedParameters;
+					
 					@Override
 					public void run() {
-						CorrelationImageProducer producer = new CorrelationImageProducer(image, source);
-						result = producer.produce();
+						result = parameters.produce(source);
 						source = null;
 					}
 					
@@ -166,8 +173,10 @@ public class CorrelationImageDisplay extends Panel
 					public void done() {
 						contentBinnedFiltered = result;
 						contentBinnedFilteredProvider = null;
-						
+						contentBinnedFilteredParameters = parameters;
 						repaint();
+						
+						startWorkers();
 					}
 				};
 				
@@ -546,9 +555,7 @@ public class CorrelationImageDisplay extends Panel
 			}
 		}
 		
-		
 		drawViewPort(g, status, selectionLevel, selectionLevel > 0 ? image.getFile().getName() : null, 1);
-
 	}
 	
 	
@@ -691,6 +698,7 @@ public class CorrelationImageDisplay extends Panel
 		display.contentBinnedProvider = null;
 		display.contentBinnedFiltered = null;
 		display.contentBinnedFilteredProvider = null;
+		display.contentBinnedFilteredWantedParameters = new CorrelationImageProducer(image);
 		
 		setAreaOfInterestForDisplays();
 		
@@ -729,14 +737,16 @@ public class CorrelationImageDisplay extends Panel
 	public void levelChanged(Image source) {
 		// Il faut invalider le display de l'image
 		BufferedImageDisplay display = images.get(source);
+
+		if (display == null) return;
 		
-		if (display.contentBinnedFilteredProvider != null) {
-			display.contentBinnedFilteredProvider.cancel();
+		display.contentBinnedFilteredWantedParameters = new CorrelationImageProducer(source);
+		// FIXME
+		if ((display.contentBinnedFilteredProvider != null) && display.contentBinnedFilteredProvider.cancelIfNotStarted()) {
 			display.contentBinnedFilteredProvider = null;
 		}
-		display.contentBinnedFiltered = null;
-		display.startWorkers();
 		
+		display.startWorkers();
 	}
 	
 	@Override

@@ -9,6 +9,7 @@ import javax.swing.SwingUtilities;
 
 public abstract class ImageWorker {
 	boolean canceled;
+	boolean started;
 	
 	private static final LinkedList<ImageWorker> queue = new LinkedList<ImageWorker>();// new Queue<ImageWorker>(2 * Runtime.getRuntime().availableProcessors());
 	
@@ -23,6 +24,7 @@ public abstract class ImageWorker {
 					queue.wait();
 				}
 				worker = queue.removeFirst();
+				worker.started = true;
 			}
 			
 			worker.run();
@@ -68,10 +70,22 @@ public abstract class ImageWorker {
 		}
 	}
 	
+	public final boolean cancelIfNotStarted()
+	{
+		synchronized(queue) {
+			if (!started) {
+				canceled = true;
+				return true;
+			}
+			return false;
+		}
+	}
+	
 	public final void queue()
 	{
 		synchronized(queue) {
 			canceled = false;
+			started = false;
 			queue.add(this);
 			queue.notify();
 		}

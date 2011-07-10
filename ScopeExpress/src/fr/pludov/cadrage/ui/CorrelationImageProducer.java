@@ -13,14 +13,12 @@ import fr.pludov.cadrage.ui.utils.tiles.TiledImage;
 
 public class CorrelationImageProducer {
 	private final Image image;
-	private final BufferedImage source;
 	private final byte [] [] datas;
 	private final BufferedImageOp op;
 	
-	protected CorrelationImageProducer(Image image, BufferedImage source)
+	protected CorrelationImageProducer(Image image)
 	{
 		this.image = image;
-		this.source = source;
 		
 		datas = new byte [3][];
 		
@@ -64,8 +62,26 @@ public class CorrelationImageProducer {
 		op = new LookupOp(new ByteLookupTable(0, datas), null);
 	}
 
+
+	@Override
+	public boolean equals(Object obj) {
+		if (!(obj instanceof CorrelationImageProducer)) return false;
+		CorrelationImageProducer other = (CorrelationImageProducer)obj;
+		
+		if (other.image != this.image) return false;
+		
+		if (other.datas.length != this.datas.length) return false;
+		
+		for(int i = 0; i < this.datas.length; ++i)
+		{
+			if (other.datas[i].length != this.datas[i].length) return false;
+			for(int j = 0; j < this.datas[i].length; ++j)
+				if (other.datas[i][j] != this.datas[i][j]) return false;
+		}
+		return true;
+	}
 	
-	public BufferedImage produce() {
+	public BufferedImage produce(BufferedImage source) {
 		
 		BufferedImage result = new BufferedImage(source.getWidth(), source.getHeight(), source.getType());
 		
