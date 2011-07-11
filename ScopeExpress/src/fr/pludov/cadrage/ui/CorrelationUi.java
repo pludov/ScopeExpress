@@ -124,18 +124,6 @@ public class CorrelationUi {
 		
 		AffineTransform result = new AffineTransform(new double[] {glob2eq_a, glob2eq_c, glob2eq_b, glob2eq_d});
 		
-		// Test...
-		double tx;
-		double ty;
-		
-		tx = 50;
-		ty = 20;
-
-		double vec_ra = tx * glob2eq_a + ty * glob2eq_b;
-		double vec_dec = tx * glob2eq_c + ty * glob2eq_d;
-		
-		Point2D point = result.transform(new Point2D.Double(tx, ty), null);
-		
 		return result;
 	}
 	
@@ -278,6 +266,29 @@ public class CorrelationUi {
 		JPopupMenu contextMenu = new JPopupMenu();
 
 		// Déplacement
+		JMenuItem reorderMenu;
+		
+		reorderMenu = new JMenuItem();
+		reorderMenu.setText("Passer devant");
+		reorderMenu.setEnabled(images.size() > 0);
+		reorderMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				imageTable.reorderSelection(2);
+			}
+		});
+		contextMenu.add(reorderMenu);
+		
+		reorderMenu = new JMenuItem();
+		reorderMenu.setText("Passer derrière");
+		reorderMenu.setEnabled(images.size() > 0);
+		reorderMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				imageTable.reorderSelection(-2);
+			}
+		});
+		contextMenu.add(reorderMenu);
 		
 		// Edition des niveaux
 		JMenuItem levelMenu = new JMenuItem();

@@ -50,7 +50,6 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *  - monter/descendre les images
  *  - détection des nouvelles images d'un répertoire
  *  - importer des images existantes
- *  - afficher la calibration
  *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existente) 
  *  - recalculer les étoiles
  *  - dialogue de paramètres de calcul des étoiles (local avec bouton définir par défaut)

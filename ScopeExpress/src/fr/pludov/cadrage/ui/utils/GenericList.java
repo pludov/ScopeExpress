@@ -20,6 +20,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 
@@ -103,7 +104,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	}
 	
 	protected ColumnDefinition [] columns;
-	private final List<EffectiveListEntry> images;
+	private final List<EffectiveListEntry> entries;
 	private final Map<ListKey, EffectiveListEntry> listEntries;
 	private final AbstractTableModel tableModel;
 	
@@ -123,11 +124,82 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		return isRowSelected(rowId);
 	}
 	
+
+	public void reorderSelection(int how)
+	{
+		
+		
+		if (how < 0) {
+			int moveToIndex = 0;
+			// On déplace vers 0
+			for(int i = 0; i < entries.size(); ++i)
+			{
+				if (isModelRowSelected(i)) {
+					// On la déplace vers moveToIndex;
+					if (moveToIndex != i) {
+						EffectiveListEntry eli = entries.remove(i);
+						entries.add(moveToIndex, eli);
+					}
+					moveToIndex++;
+				}
+			}
+			
+			boolean sthChanged = false;
+			for(int i = 0; i < entries.size(); ++i)
+			{
+				EffectiveListEntry eli = entries.get(i);
+				if (eli.getRowId() != i) {
+					sthChanged = true;
+					eli.rowId = i;
+				}
+			}
+
+			if (!sthChanged) return;
+			
+			tableModel.fireTableDataChanged();
+			
+			// Selectionner de 0 à moveToIndex--;
+			getSelectionModel().setSelectionInterval(0, moveToIndex - 1);
+		} else {
+			int moveToIndex = entries.size() - 1;
+			for(int i = entries.size() - 1; i >= 0; --i)
+			{
+				if (isModelRowSelected(i)) {
+					// On déplace vers moveToIndex
+					if (moveToIndex != i) {
+						EffectiveListEntry eli = entries.remove(i);
+						
+						entries.add(moveToIndex, eli);
+					}
+					moveToIndex--;
+				}
+			}
+			
+			boolean sthChanged = false;
+			for(int i = 0; i < entries.size(); ++i)
+			{
+				EffectiveListEntry eli = entries.get(i);
+				if (eli.getRowId() != i) {
+					sthChanged = true;
+					eli.rowId = i;
+				}
+			}
+			if (!sthChanged) return;
+			
+			tableModel.fireTableDataChanged();
+			
+			// Selectionner de 0 à moveToIndex--;
+			getSelectionModel().setSelectionInterval(moveToIndex + 1,entries.size());
+		}
+	}
+	
+	
 	protected GenericList()
 	{
 		super();
-		images = new ArrayList<EffectiveListEntry>();
+		entries = new ArrayList<EffectiveListEntry>();
 		listEntries = new HashMap<ListKey, EffectiveListEntry>();
+		new DefaultTableModel();
 		
 		tableModel = 
 				new AbstractTableModel() {
@@ -139,7 +211,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 					
 					@Override
 					public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-						EffectiveListEntry ile = images.get(rowIndex);
+						EffectiveListEntry ile = entries.get(rowIndex);
 						columns[columnIndex].setValue(ile, aValue);
 					};
 			
@@ -155,12 +227,12 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 					
 					@Override
 					public int getRowCount() {
-						return images.size();
+						return entries.size();
 					}
 					
 					@Override
 					public Object getValueAt(int rowIndex, int columnIndex) {
-						EffectiveListEntry ile = images.get(rowIndex);
+						EffectiveListEntry ile = entries.get(rowIndex);
 						return columns[columnIndex].getValue(ile);
 					}
 					
@@ -194,7 +266,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 						}
 
 						List<EffectiveListEntry> targets = new ArrayList<EffectiveListEntry>();
-						for(EffectiveListEntry entry : images)
+						for(EffectiveListEntry entry : entries)
 						{
 							if (isModelRowSelected(entry.getRowId()))
 							{
@@ -267,12 +339,12 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	}
 
 	public List<EffectiveListEntry> getEntryList() {
-		return Collections.unmodifiableList(images);
+		return Collections.unmodifiableList(entries);
 	}
 	
 	public List<EffectiveListEntry> getSelectedEntryList() {
 		List<EffectiveListEntry> result = new ArrayList<EffectiveListEntry>();
-		for(EffectiveListEntry entry : images) {
+		for(EffectiveListEntry entry : entries) {
 			if (isEntrySelected((ListEntry)entry)) {
 				result.add(entry);
 			}
@@ -298,11 +370,11 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		// Supprime rowid...
 		int rowId = entry.getRowId();
 		
-		images.remove(rowId);
+		entries.remove(rowId);
 	
-		for(int i = rowId; i < images.size(); ++i)
+		for(int i = rowId; i < entries.size(); ++i)
 		{
-			images.get(i).rowId = i;
+			entries.get(i).rowId = i;
 		}
 		
 		((AbstractTableModel)getModel()).fireTableRowsDeleted(rowId, rowId);
@@ -312,9 +384,9 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	
 	protected void addEntry(EffectiveListEntry ile)
 	{
-		images.add(ile);
+		entries.add(ile);
 		listEntries.put((ListKey)ile, ile);
-		ile.rowId = images.size() - 1;
+		ile.rowId = entries.size() - 1;
 		tableModel.fireTableRowsInserted(ile.rowId, ile.rowId);
 	}
 	
