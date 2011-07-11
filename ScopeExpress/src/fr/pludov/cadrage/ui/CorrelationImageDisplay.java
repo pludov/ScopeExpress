@@ -503,7 +503,7 @@ public class CorrelationImageDisplay extends Panel
 
 		final BufferedImageDisplay display = images.get(image);
 		
-		if (display != null && (imageClip != null || alphaOverlay)) {
+		if (transform != null && display != null && (imageClip != null || alphaOverlay)) {
 			
 			if (imageClip != null && !alphaOverlay) {
 				Shape currentClip = ((Graphics2D)g).getClip();
