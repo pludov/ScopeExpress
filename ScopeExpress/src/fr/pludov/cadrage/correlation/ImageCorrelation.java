@@ -8,8 +8,18 @@ public class ImageCorrelation implements CorrelationArea
 {
 	final Image image;
 	
+	public static enum PlacementType { 
+		Aucun, 			// Les valeur tx, ty, cs, sn ne sont pas renseignées
+		Approx, 		// Placement approximatif effectué par la position telescope
+		Correlation;	// Placement fin par corrélation des étoiles
+	
+		public boolean isEmpty() {
+			return this == Aucun;
+		}
+	};
+	
 	// Est-ce que l'image est placée
-	boolean placee;
+	private PlacementType placement; 
 	
 	// Translation
 	double tx, ty;
@@ -22,6 +32,7 @@ public class ImageCorrelation implements CorrelationArea
 	public ImageCorrelation(Image image)
 	{
 		this.image = image;
+		this.placement = PlacementType.Aucun;
 	}
 	
 	public double [] imageToGlobal(double x, double y, double [] xy)
@@ -36,10 +47,6 @@ public class ImageCorrelation implements CorrelationArea
 		xy[1] = ty + y * cs - x * sn;
 		
 		return xy;
-	}
-
-	public boolean isPlacee() {
-		return placee;
 	}
 
 	public Image getImage() {
@@ -88,5 +95,13 @@ public class ImageCorrelation implements CorrelationArea
 	
 	public double getHeight() {
 		return this.image.getHeight();
+	}
+	
+	public PlacementType getPlacement() {
+		return placement;
+	}
+
+	public void setPlacement(PlacementType placement) {
+		this.placement = placement;
 	}
 }

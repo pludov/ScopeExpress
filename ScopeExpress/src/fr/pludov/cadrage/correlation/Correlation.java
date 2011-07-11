@@ -22,6 +22,8 @@ import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.StarDetection;
 import fr.pludov.cadrage.async.AsyncOperation;
+import fr.pludov.cadrage.async.CancelationException;
+import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.IdentityBijection;
@@ -113,11 +115,8 @@ public class Correlation {
 		
 		IdentityBijection<ImageStar, ImageStar> localToImage = status.starParImage;
 		
-		if (localToImage != null || status.placee) {
-		
-
+		if (localToImage != null) {
 			status.starParImage = null;
-			status.placee = false;
 
 			if (localToImage != null) {
 				// Les ImageStar qui n'appartiennent plus à aucune image sont supprimées
@@ -147,7 +146,7 @@ public class Correlation {
 	{
 		ImageCorrelation status = images.get(image);
 		
-		if (!status.placee) {
+		if (status.getPlacement().isEmpty()) {
 			throw new RuntimeException("Image pas placée");
 		}
 		if (image.getStars() == null) {
@@ -525,13 +524,13 @@ public class Correlation {
 				for(ImageCorrelation otherStatus : images.values())
 				{
 					if (otherStatus == status) continue;
-					if (otherStatus.placee) {
+					if (otherStatus.getPlacement() == PlacementType.Correlation) {
 						isFirst = false;
 						break;
 					}
 				}
 				if (isFirst) {
-					status.placee = true;
+					status.setPlacement(PlacementType.Correlation);
 					status.tx = 0;
 					status.ty = 0;
 					status.cs = 1;
@@ -699,10 +698,10 @@ public class Correlation {
 				// Vérifier que l'image est encore dans la correlation
 				ImageCorrelation status = images.get(image);
 				if (status == null) {
-					throw new Exception("Opération annulée");
+					throw new CancelationException("Opération annulée");
 				}
 				
-				status.placee = true;
+				status.setPlacement(PlacementType.Correlation);
 				status.tx = tx;
 				status.ty = ty;
 				status.cs = cs;
@@ -718,11 +717,10 @@ public class Correlation {
 	{
 		ImageCorrelation status = new ImageCorrelation(image);
 		
-		status.placee = false;
 		status.starParImage = null;
 		
 		if (this.images.size() == 0) {
-			status.placee = true;
+			status.setPlacement(PlacementType.Approx);
 			status.tx = 0;
 			status.ty = 0;
 			status.cs = 1.0;

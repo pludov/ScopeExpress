@@ -59,10 +59,10 @@ import fr.pludov.cadrage.ImageStar;
 public class CorrelationImageDisplay extends Panel 
 			implements CorrelationListener, ViewPortListener, ImageListener,
 					ListSelectionListener,MouseMotionListener, MouseInputListener, MouseWheelListener  {
-	Correlation correlation;
+	final Correlation correlation;
+	final CorrelationUi correlationUi;
 	final ImageList imageList;
 	final ViewPortList viewPortList;
-	final TiledImagePool imagePool;
 	
 	double centerx;
 	double centery;
@@ -213,13 +213,13 @@ public class CorrelationImageDisplay extends Panel
 	};
 	
 	
-	public CorrelationImageDisplay(Correlation correlation, ImageList list, ViewPortList viewPortList, TiledImagePool pool)
+	public CorrelationImageDisplay(Correlation correlation, CorrelationUi correlationUi, ImageList list, ViewPortList viewPortList)
 	{
 		correlation.listeners.addListener(this);
 		this.imageList = list;
-		this.imagePool = pool;
 		this.viewPortList = viewPortList;
 		this.correlation = correlation;
+		this.correlationUi = correlationUi;
 		this.centerx = 0;
 		this.centery = 0;
 		this.angle = 0;
@@ -327,10 +327,7 @@ public class CorrelationImageDisplay extends Panel
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 
-		if (!status.isPlacee()) {
-			return null;
-		}
-		if (image.getStars() == null) {
+		if (status.getPlacement().isEmpty()) {
 			return null;
 		}
 
@@ -345,9 +342,6 @@ public class CorrelationImageDisplay extends Panel
 	private List<GenericList.ListEntry> getImageIdUnder(Point2D where)
 	{
 		// Changer la sélection
-		Integer first = null;
-		boolean wantNext;
-		
 		List<GenericList.ListEntry> resultList = new ArrayList<GenericList.ListEntry>(); 
 		
 		for(ImageListEntry imageEntry : imageList.getEntryList())
@@ -401,6 +395,8 @@ public class CorrelationImageDisplay extends Panel
 
 			resultList.add(viewPortEntry);
 		}
+		
+		Collections.reverse(resultList);
 		
 		return resultList;
 	}
@@ -490,7 +486,7 @@ public class CorrelationImageDisplay extends Panel
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 		
-		if (!status.isPlacee()) {
+		if (status.getPlacement().isEmpty()) {
 			return;
 		}
 		
@@ -587,6 +583,83 @@ public class CorrelationImageDisplay extends Panel
 		drawViewPort(g, status, selectionLevel, selectionLevel > 0 ? image.getFile().getName() : null, 1);
 	}
 	
+	
+	private void drawRosace(final Graphics g)
+	{
+		AffineTransform transform = this.correlationUi.getGlobalCoordToScopeCalibration();
+		
+		g.setColor(Color.BLUE);
+		
+		int rosaceRay = 30;
+		int textRay = 40;
+		
+		if (transform == null) {
+			return;
+		}
+		try {
+			transform.invert();
+		} catch (NoninvertibleTransformException e) {
+			e.printStackTrace();
+			return;
+		}
+		
+		String [] cardinauxName = { null, "E", "N", "O", "S" };
+		double [] cardinauxRaDec = {0, 0, 							// On voudrait des degres pour le ciel
+									6, 0, 
+									0, 90, 
+									-6, 0, 
+									0, -90};		
+		double [] cardinauxGlobal = new double[cardinauxRaDec.length];
+		double dstMax;
+		
+		transform.transform(cardinauxRaDec, 0, cardinauxGlobal, 0, cardinauxRaDec.length / 2);
+		
+		dstMax = 0;
+		for(int i = 1; i < cardinauxRaDec.length / 2; ++i)
+		{
+			cardinauxGlobal[2 * i] -= cardinauxGlobal[0];
+			cardinauxGlobal[2 * i + 1] -= cardinauxGlobal[1];
+			double dst = Math.sqrt(cardinauxGlobal[2 * i] * cardinauxGlobal[2 * i] + cardinauxGlobal[2 * i + 1] * cardinauxGlobal[2 * i + 1]);
+			if (dst > dstMax) dstMax = dst;
+		}
+		
+		// Maintenant, on scale à 
+		for(int i = 1; i < cardinauxRaDec.length / 2; ++i)
+		{
+			cardinauxGlobal[2*i] /= dstMax;
+			cardinauxGlobal[2*i+1] /= dstMax;
+		}
+		
+		
+		int centerX, centerY;
+		
+		centerX = 60;
+		centerY = getHeight() - 60;
+		
+		for(int i = 1; i < cardinauxRaDec.length / 2; ++i)
+		{
+			g.drawLine(centerX, centerY, 
+					(int)Math.round(centerX + rosaceRay * cardinauxGlobal[2 * i]), 
+					(int)Math.round(centerY + rosaceRay * cardinauxGlobal[2 * i + 1]));
+			
+			double actualDst = rosaceRay * Math.sqrt(cardinauxGlobal[2 * i] * cardinauxGlobal[2 * i] + cardinauxGlobal[2 * i + 1] * cardinauxGlobal[2 * i + 1]);
+			
+			double wantedDst = actualDst + (textRay - rosaceRay);
+			
+			double multiplier = rosaceRay * wantedDst / actualDst;
+			
+			double textCenterX = centerX + multiplier * cardinauxGlobal[2 * i];
+			double textCenterY = centerY + multiplier * cardinauxGlobal[2 * i + 1];
+			
+
+			FontMetrics fm = g.getFontMetrics();
+			int textWidth = fm.stringWidth(cardinauxName[i]);
+			int textHeight = fm.getAscent();
+			g.drawString(cardinauxName[i], (int)(textCenterX - textWidth / 2.0), (int)(textCenterY + textHeight / 2.0));
+		}
+		
+		
+	}
 	
 	private java.awt.Image offscreen = null;
 	
@@ -706,6 +779,10 @@ public class CorrelationImageDisplay extends Panel
 				drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
 			}
 		}
+		
+		drawRosace(g);
+		
+		g.dispose();
 		
 		// Draw offscreen.
         gPaint.drawImage(offscreen, 0, 0, this);

@@ -14,6 +14,7 @@ import javax.swing.SwingUtilities;
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
@@ -43,9 +44,23 @@ import fr.pludov.cadrage.ui.ViewPortList;
  * 
  *  - calibration : 
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
+ *
+ * A faire par ordre de priorité
  * 
+ *  - monter/descendre les images
+ *  - détection des nouvelles images d'un répertoire
+ *  - importer des images existantes
+ *  - afficher la calibration
+ *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existente) 
+ *  - recalculer les étoiles
+ *  - dialogue de paramètres de calcul des étoiles (local avec bouton définir par défaut)
+ *  - dialogue de paramètres de correlation (global)
+ *  - recorreler
+ *  - afficher les opérations en cours (Async...)
+ *  - placer manuellement
+ *  - information sur les image
+ *  
  * Courbe de visualisation, niveau alpha, min, max
- * Améliorer la vitesse de paint (le Lookup pour les images)
  * Améliorer la visualisation (permettre de choisir les images qui sont gardées en fond.
  * Sauvegarder/restaurer
  *
@@ -114,7 +129,7 @@ public class Cadrage {
 						return;
 					}
 					
-					if (status.isPlacee()) {
+					if (status.getPlacement() == PlacementType.Correlation) {
 						// Mettre à jour le viewport du telescope
 						
 						ViewPort scopePosition = correlation.getCurrentScopePosition();

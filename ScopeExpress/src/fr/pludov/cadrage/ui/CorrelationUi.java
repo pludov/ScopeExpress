@@ -3,6 +3,7 @@ package fr.pludov.cadrage.ui;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,17 +32,15 @@ public class CorrelationUi {
 	ImageList imageTable;
 	ViewPortList viewPortTable;
 	LevelDialog levelDialog;
-	TiledImagePool imagePool;
 	
 	public CorrelationUi(Correlation correlation)
 	{
 		this.correlation = correlation;
 
-		imagePool = new TiledImagePool();
 		
 		imageTable = new ImageList(this);
 		viewPortTable = new ViewPortList(this);
-		display = new CorrelationImageDisplay(correlation, imageTable, viewPortTable, imagePool);
+		display = new CorrelationImageDisplay(correlation, this, imageTable, viewPortTable);
 		
 		makeSelectionExclusion();
 		
@@ -92,7 +91,7 @@ public class CorrelationUi {
 			ImageListEntry imageEntry = it.next();
 			ImageCorrelation correlationData = correlation.getImageCorrelation(imageEntry.getTarget());
 			
-			if (!correlationData.isPlacee()) {
+			if (correlationData.getPlacement().isEmpty()) {
 				it.remove();
 				continue;
 			}
@@ -112,7 +111,33 @@ public class CorrelationUi {
 	//	vecteur12Ra = vecteur12GlobalX * a + vecteur12GlobalY * b;
 	//	vecteur12Dec = vecteur12GlobalX * c + vecteur12GlobalY * d;
 	//	
+	boolean calibrationAvailable;
 	double glob2eq_a, glob2eq_b, glob2eq_c, glob2eq_d;
+	
+	/**
+	 * Retourne une transformation sans translation
+	 * @return
+	 */
+	protected AffineTransform getGlobalCoordToScopeCalibration()
+	{
+		if (!calibrationAvailable) return null;
+		
+		AffineTransform result = new AffineTransform(new double[] {glob2eq_a, glob2eq_c, glob2eq_b, glob2eq_d});
+		
+		// Test...
+		double tx;
+		double ty;
+		
+		tx = 50;
+		ty = 20;
+
+		double vec_ra = tx * glob2eq_a + ty * glob2eq_b;
+		double vec_dec = tx * glob2eq_c + ty * glob2eq_d;
+		
+		Point2D point = result.transform(new Point2D.Double(tx, ty), null);
+		
+		return result;
+	}
 	
 	protected void calibrer(List<ImageListEntry> imageList)
 	{
@@ -160,13 +185,15 @@ public class CorrelationUi {
 		
 		glob2eq_c = ((vecteur01GlobalY*vecteur12Dec) - (vecteur01Dec*vecteur12GlobalY)) / ((vecteur01GlobalY*vecteur12GlobalX) - (vecteur01GlobalX*vecteur12GlobalY));
 		glob2eq_d = ((vecteur12GlobalX*vecteur01Dec) - (vecteur12Dec*vecteur01GlobalX)) / ((vecteur01GlobalY*vecteur12GlobalX) - (vecteur01GlobalX*vecteur12GlobalY));
+		
+		calibrationAvailable = true;
 	}
 	
 	protected boolean atteindreOk(ImageListEntry ile)
 	{
 		// L'image doit être placée
 		ImageCorrelation corr = correlation.getImageCorrelation(ile.getTarget());
-		return corr != null && corr.isPlacee();
+		return corr != null && !corr.getPlacement().isEmpty();
 	}
 	
 	protected void atteindre(CorrelationArea area)
@@ -416,6 +443,14 @@ public class CorrelationUi {
 
 	public void setViewPortTable(ViewPortList viewPortTable) {
 		this.viewPortTable = viewPortTable;
+	}
+
+	public boolean isCalibrationAvailable() {
+		return calibrationAvailable;
+	}
+
+	public void setCalibrationAvailable(boolean calibrationAvailable) {
+		this.calibrationAvailable = calibrationAvailable;
 	}
 	
 }
