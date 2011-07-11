@@ -17,6 +17,10 @@ public class Image {
 	//
 	public double expoComposensation;
 	
+	// Valeur ajoutée au gamma : gamma_effectif = 10 ^ (this.gamma / 100)
+	public double gamma;
+	
+	public double black;
 	
 	// Les étoiles détéctées
 	private List<ImageStar> stars;
@@ -30,6 +34,8 @@ public class Image {
 		this.setStars(null);
 		this.listeners = new WeakListenerCollection<ImageListener>(ImageListener.class);
 		this.expoComposensation = 0;
+		this.gamma = 0.0;
+		this.black = 0.0;
 		
 	}
 
@@ -104,6 +110,27 @@ public class Image {
 	public void setExpoComposensation(double expoComposensation) {
 		if (this.expoComposensation == expoComposensation) return;
 		this.expoComposensation = expoComposensation;
+		listeners.getTarget().levelChanged(this);
+	}
+
+	public double getGamma() {
+		return gamma;
+	}
+
+	public void setGamma(double gamma) {
+		if (this.gamma == gamma) return;
+		this.gamma = gamma;
+		listeners.getTarget().levelChanged(this);
+
+	}
+
+	public double getBlack() {
+		return black;
+	}
+
+	public void setBlack(double black) {
+		if (this.black == black) return;
+		this.black = black;
 		listeners.getTarget().levelChanged(this);
 	}
 	

@@ -259,13 +259,16 @@ public class CorrelationUi {
 		levelMenu.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+//				if (levelDialog != null) {
+//					levelDialog.dispose();
+//					levelDialog = null;
+//				}
 				if (levelDialog == null) {
 					levelDialog = new LevelDialog(Cadrage.mainFrame, imageTable);
 
 				}
 				levelDialog.setImageList(images);
 				levelDialog.setVisible(true);
-				
 			}
 		});
 		contextMenu.add(levelMenu);

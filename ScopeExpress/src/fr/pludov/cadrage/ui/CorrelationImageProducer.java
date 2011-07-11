@@ -25,6 +25,14 @@ public class CorrelationImageProducer {
 		for(int channel = 0; channel < datas.length; ++channel)
 		{
 			datas[channel] = new byte[256];
+			
+
+			double multLevel = Math.pow(10, image.getExpoComposensation() / 100.0);
+			double gamma = Math.pow(10, image.getGamma() / 100.0);
+			
+			double levelMin = image.getBlack();
+			double levelMax = (255 - levelMin) * multLevel;
+			
 			for(int level = 0; level < 256; ++level)
 			{
 				int value;
@@ -41,7 +49,21 @@ public class CorrelationImageProducer {
 					case 2:					// b
 						break;
 					}
-					vAsFloat *= Math.pow(10, image.getExpoComposensation() / 100.0);
+					
+					
+					if (vAsFloat > levelMin) {
+						vAsFloat -= levelMin;
+						vAsFloat *= multLevel;
+						
+						// Remet entre 0 et 1...
+						vAsFloat = (vAsFloat) / levelMax;
+						// Applique le gamma
+						vAsFloat = Math.pow(vAsFloat, gamma);
+						// Remet entre levelMin et levelMax
+						vAsFloat = levelMax * vAsFloat;
+					} else {
+						vAsFloat = 0;
+					}
 					
 					if (vAsFloat > 255) {
 						value = 255;
