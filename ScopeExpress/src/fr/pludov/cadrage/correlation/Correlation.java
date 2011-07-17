@@ -55,6 +55,7 @@ public class Correlation {
 	final IdentityHashMap<Image, ImageCorrelation> images;
 	
 	ViewPort currentScopePosition;
+	Image currentScopeImage;			// Cette image représente la position du téléscope. Passe à nul après chaque mouvement reporté par la monture.
 	
 	public Correlation()
 	{
@@ -498,6 +499,38 @@ public class Correlation {
 		return result;
 	}
 	
+	public void moveViewPortToImage(ImageCorrelation status)
+	{
+		// Si fresh, mettre à jour la position du téléscope
+//					if (calibrationAvailable) return;
+//					
+//					ImageCorrelation status = correlation.getImageCorrelation(image);
+//					if (status == null) {
+//						return;
+//					}
+//					
+//					if (status.getPlacement() == PlacementType.Correlation) {
+//						// Mettre à jour le viewport du telescope
+		if (status.getPlacement() == PlacementType.Aucun) {
+			throw new RuntimeException("Image non placée");
+		}
+		
+		ViewPort scopePosition = getCurrentScopePosition();
+		if (scopePosition == null) {
+			scopePosition = new ViewPort();
+			scopePosition.setViewPortName("Champ du téléscope");
+			setCurrentScopePosition(scopePosition);
+		}
+
+		scopePosition.setTx(status.getTx());
+		scopePosition.setTy(status.getTy());
+		scopePosition.setCs(status.getCs());
+		scopePosition.setSn(status.getSn());
+		scopePosition.setWidth(status.getWidth());
+		scopePosition.setHeight(status.getHeight());
+		// FIXME : envoyer une calibration sur cette image (pour initialiser au moins les offset en ra et dec)
+	}
+	
 	public AsyncOperation place(final Image image)
 	{
 		// Positionnement par rapport aux etoiles déjà existantes...
@@ -538,6 +571,10 @@ public class Correlation {
 					
 					calcMatching(image);
 					
+					if (image == currentScopeImage) {
+						moveViewPortToImage(status);
+					}
+					
 					listeners.getTarget().correlationUpdated();
 					
 					// Rien à faire.
@@ -547,6 +584,9 @@ public class Correlation {
 				
 				// Sinon : retirer le matching des étoiles
 				clearMatchingForImage(image);
+				if (status.getPlacement() == PlacementType.Correlation) {
+					status.setPlacement(PlacementType.Approx);
+				}
 				
 				// Prendre la liste des images de référence
 				referenceStars = new ArrayList<ImageStar>();
@@ -566,7 +606,7 @@ public class Correlation {
 			public void async() throws Exception {
 				if (!work) return;
 				
-				double starRay = 400; 	// Prendre en compte des triangles de au plus cette taille
+				double starRay = 500; 	// Prendre en compte des triangles de au plus cette taille
 				double starMinRay = 20;	// Elimine les petits triangles
 				
 				double [] cssn1 = new double[3];
@@ -615,6 +655,13 @@ public class Correlation {
 						cs *= ratio;
 						sn *= ratio;
 						
+						double dlt = (cssn1[2] - ratio) * (cssn1[2] - ratio)  + (cssn2[2] - ratio) * (cssn2[2] - ratio) + + (cssn3[2] - ratio) * (cssn3[2] - ratio);
+						
+						if (dlt > 0.001) {
+							continue;
+						}
+						
+						if (ratio < 0.9 || ratio > 1.1) continue;
 						
 						double tx = 0, ty = 0;
 						
@@ -675,8 +722,30 @@ public class Correlation {
 				
 				Ransac ransac = new Ransac();
 				
-				double [] bestParameter = ransac.proceed(ransacPoints, 4, 0.01, 0.1);
+				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+					@Override
+					public double getEvaluator(Ransac.RansacPoint p) {
+						return Math.sqrt(p.getRansacParameter(2) * p.getRansacParameter(2) + p.getRansacParameter(3) * p.getRansacParameter(3));
+					}
+				});
+
 				
+				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+					@Override
+					public double getEvaluator(Ransac.RansacPoint p) {
+						return Math.sqrt(p.getRansacParameter(0) * p.getRansacParameter(0) + p.getRansacParameter(1) * p.getRansacParameter(1));
+					}
+				});
+				
+				
+				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+						0.1, 0.5);
+				
+				if (bestParameter == null) {
+					throw new RuntimeException("Pas de corrélation trouvée");
+				}
+					
 				System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
 						" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
 						" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
@@ -708,6 +777,12 @@ public class Correlation {
 				status.sn = sn;
 				
 				calcMatching(image);
+
+				// si le viewport du téléscope est sur cette image, ajuster ses paramètres...
+				if (image == currentScopeImage) {
+					moveViewPortToImage(status);
+				}
+				
 				listeners.getTarget().correlationUpdated();
 			}
 		};
@@ -731,6 +806,11 @@ public class Correlation {
 		
 		listeners.getTarget().imageAdded(image);
 		return image;
+	}
+	
+	public void setImageIsScopeViewPort(final Image image)
+	{
+		this.currentScopeImage = image;
 	}
 
 	public void removeImage(final Image image)

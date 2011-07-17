@@ -18,6 +18,9 @@ import fr.pludov.cadrage.utils.WorkThread;
 public class AscomScope extends WorkThread implements Scope {
 	boolean isOleInitialized;
 	
+	double decBias, raBias;
+	
+	
 	String driver;
 	DispatchPtr scope;
 	
@@ -35,24 +38,24 @@ public class AscomScope extends WorkThread implements Scope {
 	
 	public double getRightAscension()
 	{
-		return lastRa;
+		return lastRa + raBias;
 	}
 	
 	public double getDeclination()
 	{
-		return lastDec;
+		return lastDec + decBias;
 	}
 	
 	// Bloque l'appelant
 	public void slew(final double ra, final double dec) throws ScopeException
 	{
-		System.err.println("Slew to ra=" + ra + ", dec=" + dec);
+		System.err.println("Slew to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
 		try {
 			exec(new AsyncOrder() {
 				
 				@Override
 				public Object run() throws Throwable {
-					scope.invoke("SlewToCoordinatesAsync", ra, dec);
+					scope.invoke("SlewToCoordinatesAsync", ra - raBias, dec - decBias);
 					return null;
 				}
 			});
@@ -210,4 +213,22 @@ public class AscomScope extends WorkThread implements Scope {
 	public String getDriver() {
 		return driver;
 	}
+
+	public double getDecBias() {
+		return decBias;
+	}
+
+	public void setDecBias(double decBias) {
+		this.decBias = decBias;
+	}
+
+	public double getRaBias() {
+		return raBias;
+	}
+
+	public void setRaBias(double raBias) {
+		this.raBias = raBias;
+	}
+	
+	
 }

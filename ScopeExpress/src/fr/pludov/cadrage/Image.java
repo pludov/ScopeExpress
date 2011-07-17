@@ -28,7 +28,7 @@ public class Image {
 	// Géometrie... Uniquement valide si stars est != null
 	int width, height;
 	
-	Image(File file)
+	public Image(File file)
 	{
 		this.file = file;
 		this.setStars(null);

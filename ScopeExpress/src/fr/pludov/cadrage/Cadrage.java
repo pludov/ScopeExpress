@@ -1,5 +1,6 @@
 package fr.pludov.cadrage;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Panel;
 import java.awt.image.BufferedImage;
@@ -46,19 +47,23 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
  *
  * A faire par ordre de priorité
- * 
- *  - monter/descendre les images
+ *  - calibration absolue (calcul et mise à jour de la translation)
  *  - détection des nouvelles images d'un répertoire
- *  - importer des images existantes
+ *  - "le téléscope est sur cette image"
+ *  - Permettre de déplacer le viewport du téléscope sur une image
+ *  - afficher le type de positionnement dans les colonnes des images
  *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existente) 
  *  - recalculer les étoiles
+ *  - recorreler
  *  - dialogue de paramètres de calcul des étoiles (local avec bouton définir par défaut)
  *  - dialogue de paramètres de correlation (global)
- *  - recorreler
  *  - afficher les opérations en cours (Async...)
  *  - placer manuellement
  *  - information sur les image
  *  
+ * Fait:
+ *  - importer des images existantes
+ * 
  * Courbe de visualisation, niveau alpha, min, max
  * Améliorer la visualisation (permettre de choisir les images qui sont gardées en fond.
  * Sauvegarder/restaurer
@@ -85,72 +90,7 @@ public class Cadrage {
 		scopeInterface = newScope;
 	}
 
-	private static void newFileDetected(File file, boolean fresh)
-	{
-		AsyncOperation a1;
-		
-		final Image image = new Image(file);
-		
-		if (fresh && scopeInterface != null && scopeInterface.isConnected())
-		{
-			image.scopePosition = true;
-			
-			image.ra = scopeInterface.getRightAscension();
-			image.dec = scopeInterface.getDeclination();
-			
-			// Si la calibration est dispo, on doit pouvoir placer l'image à partir de la précédente
-			
-		} else {
-			image.scopePosition = false;
-		}
-		
-		correlation.addImage(image);
-		a1 = correlation.detectStars(image);
-		a1.queue(correlation.place(image));
-
-		// FIXME : mettre à jour la calibration ?
-		
-		// Si fresh, mettre à jour la position du téléscope
-		if (fresh) {
-			a1.queue(new AsyncOperation("Mise à jour de la position du téléscope") {
-				@Override
-				public void init() throws Exception {
-				}
-				
-				@Override
-				public void async() throws Exception {
-				}
-				
-				@Override
-				public void terminate() throws Exception {
-					ImageCorrelation status = correlation.getImageCorrelation(image);
-					if (status == null) {
-						return;
-					}
-					
-					if (status.getPlacement() == PlacementType.Correlation) {
-						// Mettre à jour le viewport du telescope
-						
-						ViewPort scopePosition = correlation.getCurrentScopePosition();
-						if (scopePosition == null) {
-							scopePosition = new ViewPort();
-							scopePosition.setViewPortName("Champ du téléscope");
-							correlation.setCurrentScopePosition(scopePosition);
-						}
-						
-						scopePosition.setTx(status.getTx());
-						scopePosition.setTy(status.getTy());
-						scopePosition.setCs(status.getCs());
-						scopePosition.setSn(status.getSn());
-						scopePosition.setWidth(status.getWidth());
-						scopePosition.setHeight(status.getHeight());
-					}
-				}
-			});
-		}
-		
-		a1.start();
-	}
+	
 	
 	/**
 	 * @param args
@@ -180,7 +120,9 @@ public class Cadrage {
 			mainFrame = new JFrame("Display image");
 			
 			mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			CorrelationUi correlationUi = new CorrelationUi(correlation);
+			final CorrelationUi correlationUi = new CorrelationUi(correlation);
+			
+			mainFrame.add(correlationUi.getToolBar(), BorderLayout.NORTH);
 			
 			ImageList imageTable = correlationUi.getImageTable();
 	        imageTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
@@ -248,23 +190,60 @@ public class Cadrage {
 			AscomScope.connectScope();
 			
 			// Tant qu'il y a de nouveaux fichiers dans le répertoire...
-			
+//			
+//			Object [] scenario = {
+//			
+//					5000, new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"),
+//					5000, new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"),
+//					5000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
+//			};
+
+			// M51
 			Object [] scenario = {
-			
-					5000, new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"),
-					5000, new File("C:/astro/EOS 350D DIGITAL/america-300-2706/IMG_0153.JPG"),
-					5000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
+					// Les trois bias sur la monture s'équilibrent à 0.
+					new double [] {0, -(1.0) * 360.0 / 360.0},
+					4000, new File("c:/astro/tmp/IMG_5975.jpg"),
+					new double [] {(1.0) * 24.0 / 360.0, 0},
+					4000, new File("c:/astro/tmp/IMG_5973.jpg"),
+					new double [] {-(1.0) * 24.0 / 360.0, (1.0) * 360.0 / 360.0},
+					4000, new File("c:/astro/tmp/IMG_5974.jpg"),
+					4000, new File("c:/astro/tmp/IMG_5972.jpg"),
+					4000, new File("c:/astro/tmp/IMG_5969.jpg"),
+					4000, new File("c:/astro/tmp/IMG_5968.jpg"),
+					4000, new File("c:/astro/tmp/IMG_5971.jpg"),
+					4000, new File("c:/astro/tmp/IMG_5979.jpg"),
+					
+					
 			};
+			
 			
 			for(final Object o : scenario)			
 			{
-				if (o instanceof Integer) {
+				if (o instanceof double[]) {
+					double radec [] = (double[])o;
+					
+					while (scopeInterface == null) {
+						System.err.println("Scenario en attente de téléscope");
+						Thread.sleep(2000);
+					}
+					
+					double bra, bdec;
+					bra = scopeInterface.getRaBias();
+					bdec = scopeInterface.getDecBias();
+					
+					bra += radec[0];
+					bdec += radec[1];
+					
+					scopeInterface.setRaBias(bra);
+					scopeInterface.setDecBias(bdec);
+					
+				} else if (o instanceof Integer) {
 					Thread.sleep((Integer)o);
 				} else if (o instanceof File) {
 					SwingUtilities.invokeAndWait(new Runnable() {
 						@Override
 						public void run() {
-							newFileDetected((File)o, true);	
+							correlationUi.newFileDetected((File)o, true);	
 						}
 					});
 				}

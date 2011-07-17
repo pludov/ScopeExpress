@@ -4,22 +4,28 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.Image;
+import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
+import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
@@ -33,6 +39,10 @@ public class CorrelationUi {
 	ViewPortList viewPortTable;
 	LevelDialog levelDialog;
 	
+	JFileChooser chooser;
+	
+	JToolBar toolBar;
+	
 	public CorrelationUi(Correlation correlation)
 	{
 		this.correlation = correlation;
@@ -42,6 +52,9 @@ public class CorrelationUi {
 		viewPortTable = new ViewPortList(this);
 		display = new CorrelationImageDisplay(correlation, this, imageTable, viewPortTable);
 		
+		toolBar = new JToolBar();
+		
+		peuplerToolbar();
 		makeSelectionExclusion();
 		
 		new Thread() {
@@ -104,15 +117,82 @@ public class CorrelationUi {
 		return images;
 	}
 	
+	private void peuplerToolbar()
+	{
+		JButton button = null;
+		
+		button = new JButton();
+		button.setText("Ajouter images");
+		button.setToolTipText("Ajoute des images en essayant de les correler par les étoiles");
+		button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				addImages();
+			}
+		});
+		toolBar.add(button);
+	}
+	
+	public void newFileDetected(File file, boolean fresh)
+	{
+		AsyncOperation a1;
+		
+		final Image image = new Image(file);
+		
+		if (fresh && Cadrage.scopeInterface != null && Cadrage.scopeInterface.isConnected())
+		{
+
+			image.setRa(Cadrage.scopeInterface.getRightAscension());
+			image.setDec(Cadrage.scopeInterface.getDeclination());
+			image.setScopePosition(true);
+			
+			// Si la calibration est dispo, on doit pouvoir placer l'image à partir de la précédente
+		}
+		
+		
+		correlation.addImage(image);
+		if (fresh) {
+			correlation.setImageIsScopeViewPort(image);
+		}
+		
+		a1 = correlation.detectStars(image);
+		a1.queue(correlation.place(image));
+
+		// FIXME : mettre à jour la calibration ?
+		
+		a1.start();
+	}
+	
+	private void addImages()
+	{
+		if (chooser == null) {
+			chooser = new JFileChooser();
+		}
+		
+		chooser.setMultiSelectionEnabled(true);
+		
+		
+		if (chooser.showOpenDialog(Cadrage.mainFrame) != JFileChooser.APPROVE_OPTION) return;
+		File[] files = chooser.getSelectedFiles();
+		
+		for(File file : files)
+		{
+			// Pour forcer une pseudo détection...
+			newFileDetected(file, true);
+		}
+		
+	}
+	
 	//	
-	//	vecteur01Ra = vecteur01GlobalX * a + vecteur01GlobalY * b;
-	//	vecteur01Dec = vecteur01GlobalX * c + vecteur01GlobalY * d;
+	//	vecteur01Ra = vecteur01GlobalX * a + vecteur01GlobalY * b + ra_shift;
+	//	vecteur01Dec = vecteur01GlobalX * c + vecteur01GlobalY * d + dec_shift;
 	//	
 	//	vecteur12Ra = vecteur12GlobalX * a + vecteur12GlobalY * b;
 	//	vecteur12Dec = vecteur12GlobalX * c + vecteur12GlobalY * d;
 	//	
 	boolean calibrationAvailable;
 	double glob2eq_a, glob2eq_b, glob2eq_c, glob2eq_d;
+	double ra_shift, dec_shift;
 	
 	/**
 	 * Retourne une transformation sans translation
@@ -175,6 +255,22 @@ public class CorrelationUi {
 		glob2eq_d = ((vecteur12GlobalX*vecteur01Dec) - (vecteur12Dec*vecteur01GlobalX)) / ((vecteur01GlobalY*vecteur12GlobalX) - (vecteur01GlobalX*vecteur12GlobalY));
 		
 		calibrationAvailable = true;
+		
+		// On a maintenant : 
+		//	vecteur01Ra = vecteur01GlobalX * a + vecteur01GlobalY * b + ra_shift;
+		//	vecteur01Dec = vecteur01GlobalX * c + vecteur01GlobalY * d + dec_shift;
+
+		// La calibration est complète maintenant...
+		ra_shift = images[0].getRa() - (correlations[0].getTx() * glob2eq_a + correlations[0].getTy() * glob2eq_b);
+		dec_shift = images[0].getDec() - (correlations[0].getTx() * glob2eq_c + correlations[0].getTy() * glob2eq_d);
+		
+		
+	}
+	
+	protected void correler(ImageListEntry ile)
+	{
+		correlation.place(ile.getTarget()).start();
+
 	}
 	
 	protected boolean atteindreOk(ImageListEntry ile)
@@ -211,8 +307,8 @@ public class CorrelationUi {
 			throw new RuntimeException("Calibrage invalide");
 		}
 		
-		if (Math.abs(vec_ra) > 2 || Math.abs(vec_dec) > 2) {
-		//	throw new RuntimeException("déplacement superieur à 2°... Ignoré");
+		if (Math.abs(vec_ra * 360.0 / 24.0) > 2 || Math.abs(vec_dec) > 2) {
+			// throw new RuntimeException("déplacement superieur à 2°... Ignoré");
 		}
 		
 		double curDec = Cadrage.scopeInterface.getDeclination();
@@ -259,6 +355,8 @@ public class CorrelationUi {
 		
 		currentScope.setTx(currentScope.getTx() + vecGlobalX);
 		currentScope.setTy(currentScope.getTy() + vecGlobalY);
+		
+		correlation.setImageIsScopeViewPort(null);
 	}
 	
 	protected JPopupMenu getDynamicMenuForImageList(final List<ImageListEntry> images)
@@ -311,6 +409,24 @@ public class CorrelationUi {
 		});
 		contextMenu.add(levelMenu);
 
+		
+		// Détection
+
+		JMenuItem correlerMenu = new JMenuItem();
+		correlerMenu.setText("Coreller les étoiles");
+		correlerMenu.setEnabled(images.size() > 0);
+		correlerMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(ImageListEntry image : images) {
+					correler(image);
+				}
+			}
+		});
+		contextMenu.add(correlerMenu);
+		
+		
+		
 		
 		
 		// Téléscope:
@@ -462,6 +578,10 @@ public class CorrelationUi {
 
 	public void setCalibrationAvailable(boolean calibrationAvailable) {
 		this.calibrationAvailable = calibrationAvailable;
+	}
+
+	public JToolBar getToolBar() {
+		return toolBar;
 	}
 	
 }
