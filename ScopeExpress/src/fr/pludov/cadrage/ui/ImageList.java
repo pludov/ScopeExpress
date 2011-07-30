@@ -53,6 +53,11 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 		}
 		
 		@Override
+		public void metadataChanged(Image source) {
+			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
+		}
+		
+		@Override
 		public void starsChanged(Image source) {
 			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 		}
@@ -71,30 +76,39 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 	
 	@SuppressWarnings("unchecked")
 	private final List<ColumnDefinition> columns = Arrays.asList(
-		new ColumnDefinition("Image", String.class) {
+		new ColumnDefinition("Image", String.class, 120) {
 			@Override
 			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().getFile().getName();
 			}
 		},
-		new ColumnDefinition("Date", Date.class) {
+		new ColumnDefinition("Date", Date.class, 80) {
 			@Override
 			public Object getValue(ImageListEntry ile) {
 				return ile.getCreationDate();
 			}
-		},		
-		new ColumnDefinition("étoiles", Integer.class) {
+		},
+		
+		new ColumnDefinition("Exp", Double.class, 30) {
+			@Override
+			public Object getValue(ImageListEntry ile) {
+				return ile.getTarget().getPause();
+			}
+
+		},
+		
+		new ColumnDefinition("étoiles", Integer.class, 40) {
 			public Object getValue(ImageListEntry ile) {
 				List<ImageStar> stars = ile.getTarget().getStars();
 				return stars != null ? stars.size() : null;
 			}
 		},
-		new ColumnDefinition("ra", Double.class, new DegresRenderer()) {
+		new ColumnDefinition("ra", Double.class, 80, new DegresRenderer()) {
 			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().isScopePosition() ? ile.getTarget().getRa() : null;
 			}
 		},
-		new ColumnDefinition("dec", Double.class, new DegresRenderer()) {
+		new ColumnDefinition("dec", Double.class, 80, new DegresRenderer()) {
 			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().isScopePosition() ? ile.getTarget().getDec() : null;
 			}

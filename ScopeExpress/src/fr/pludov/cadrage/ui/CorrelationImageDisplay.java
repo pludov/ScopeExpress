@@ -734,11 +734,19 @@ public class CorrelationImageDisplay extends Panel
         int w = getWidth();
         int h = getHeight();
         
+        
+        
         if (offscreen == null || offscreen.getWidth(null) != w || offscreen.getHeight(null) != h)
         {
-        	offscreen = createImage(w, h);
+        	if (w == 0 || h == 0) {
+        		offscreen = null;
+        	} else {
+        		offscreen = createImage(w, h);
+        	}
         
         }
+        
+        if (offscreen == null) return;
         
         setAreaOfInterestForDisplays();
         
@@ -767,17 +775,31 @@ public class CorrelationImageDisplay extends Panel
 		}
 		
 		
-		// Désinner les viewports
+		// Dessiner les viewports
 		ViewPort scopePosition;
 		
+		List<ViewPortListEntry> list = new ArrayList<ViewPortList.ViewPortListEntry>(viewPortList.getEntryList());
+		Collections.reverse(list);
+		List<ViewPortListEntry> todo = new ArrayList<ViewPortList.ViewPortListEntry>();
 		
-		for(ViewPortListEntry vp : viewPortList.getEntryList())
+		for(ViewPortListEntry vp : list)
 		{
-			if (vp.isVisible())
+			if (!vp.isVisible()) continue;
+			
+			boolean isSelected = viewPortList.isEntrySelected(vp);
+			
+			if (correlation.getCurrentScopePosition() != vp.getTarget() && !isSelected)
 			{
-				boolean isSelected = viewPortList.isEntrySelected(vp);
 				drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
+			} else {
+				todo.add(vp);
 			}
+		}
+		
+		for(ViewPortListEntry vp : todo)
+		{
+			boolean isSelected = viewPortList.isEntrySelected(vp);
+			drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
 		}
 		
 		drawRosace(g);
@@ -868,7 +890,11 @@ public class CorrelationImageDisplay extends Panel
 	public void valueChanged(ListSelectionEvent e) {
 		repaint();
 	}
-
+	
+	@Override
+	public void metadataChanged(Image source) {
+		
+	}
 	
 	boolean draging = false;
 	boolean draging_item = false;

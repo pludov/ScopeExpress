@@ -14,6 +14,9 @@ public class Image {
 	boolean scopePosition;
 	double ra, dec;
 	
+	// Temps de pause en seconde.
+	Double pause;
+	
 	//
 	public double expoComposensation;
 	
@@ -36,6 +39,7 @@ public class Image {
 		this.expoComposensation = 0;
 		this.gamma = 0.0;
 		this.black = 0.0;
+		this.pause = null;
 		
 	}
 
@@ -56,7 +60,9 @@ public class Image {
 	}
 
 	public void setWidth(int width) {
+		if (this.width == width) return;
 		this.width = width;
+		listeners.getTarget().metadataChanged(this);
 	}
 
 	public int getHeight() {
@@ -64,7 +70,9 @@ public class Image {
 	}
 
 	public void setHeight(int height) {
+		if (this.height == height) return;
 		this.height = height;
+		listeners.getTarget().metadataChanged(this);
 	}
 
 	public void setStars(List<ImageStar> stars) {
@@ -132,6 +140,16 @@ public class Image {
 		if (this.black == black) return;
 		this.black = black;
 		listeners.getTarget().levelChanged(this);
+	}
+
+	public Double getPause() {
+		return pause;
+	}
+
+	public void setPause(Double pause) {
+		if (pause == this.pause || (pause != null && this.pause != null && pause.equals(this.pause))) return;
+		this.pause = pause;
+		listeners.getTarget().metadataChanged(this);
 	}
 	
 }

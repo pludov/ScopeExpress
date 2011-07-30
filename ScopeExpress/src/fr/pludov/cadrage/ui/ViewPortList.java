@@ -47,7 +47,10 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 		}
 
 		public void setVisible(boolean visible) {
+			if (this.visible == visible) return;
 			this.visible = visible;
+			
+			getTarget().listeners.getTarget().viewPortMoved(getTarget());
 		}
 		
 		@Override
@@ -74,7 +77,7 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 				}
 			},
 			
-			new ColumnDefinition("Voir", Boolean.class) {
+			new ColumnDefinition("Voir", Boolean.class, 20) {
 				@Override
 				public Object getValue(ViewPortListEntry ile) {
 					return ile.isVisible();

@@ -23,6 +23,7 @@ import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.CorrelationUi;
 import fr.pludov.cadrage.ui.ImageList;
 import fr.pludov.cadrage.ui.ViewPortList;
+import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 
 /**
  * A gauche : visualisation des images
@@ -125,14 +126,16 @@ public class Cadrage {
 			mainFrame.add(correlationUi.getToolBar(), BorderLayout.NORTH);
 			
 			ImageList imageTable = correlationUi.getImageTable();
-	        imageTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
+	        imageTable.setPreferredScrollableViewportSize(new Dimension(640, 480));
 	        imageTable.setFillsViewportHeight(true);
 
+
+
+	        
 	        //Create the scroll pane and add the table to it.
 	        JScrollPane imageListScrollPane = new JScrollPane(imageTable);
-			
+	        
 	        ViewPortList viewPortTable = correlationUi.getViewPortTable();
-	        viewPortTable.setPreferredScrollableViewportSize(new Dimension(500, 180));
 	        viewPortTable.setFillsViewportHeight(true);
 
 	        JScrollPane viewPortListScrollPane = new JScrollPane(viewPortTable);
@@ -140,27 +143,30 @@ public class Cadrage {
 	        
 	        JSplitPane listSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
 	        		imageListScrollPane, viewPortListScrollPane);
-	        listSplitPane.setResizeWeight(0.75);
-	        Dimension minimumListSize = new Dimension(100, 100);
-	        imageListScrollPane.setMinimumSize(minimumListSize);
-	        viewPortListScrollPane.setMinimumSize(minimumListSize);
+	        listSplitPane.setResizeWeight(0.5);
 	        
 	        CorrelationImageDisplay display = correlationUi.getDisplay();
 	        
 	        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
 	        		display, listSplitPane);
 	        splitPane.setResizeWeight(1.0);
-	        Dimension minimumSize = new Dimension(100, 100);
-	        display.setMinimumSize(minimumSize);
-	        listSplitPane.setMinimumSize(minimumSize);
-	        
+
+	        splitPane.setMinimumSize(new Dimension(640 + 240, 480));
+		
+	        viewPortListScrollPane.setMinimumSize(new Dimension(240, 100));
+		    imageListScrollPane.setMinimumSize(new Dimension(240, 200));
+		    listSplitPane.setMinimumSize(new Dimension(240, 100));
+		    display.setMinimumSize(new Dimension(640, 480));
+		    display.setSize(new Dimension(640, 480));
+		    listSplitPane.setSize(new Dimension(240, 480));
 	        
 			// ShowImage panel = new ShowImage();
 			// panel.setImage(image);
 			mainFrame.getContentPane().add(splitPane);
-			mainFrame.setSize(500, 500);
+			mainFrame.setSize(1024, 768);
 			mainFrame.setVisible(true);
 
+		        
 			// detection = new ImageDetection();
 			// detection.setAbsoluteAdu(aduSeuil);
 			// List<ImageStar> stars2 = detection.proceed(image, 18 * 1600 );
@@ -207,11 +213,13 @@ public class Cadrage {
 					4000, new File("c:/astro/tmp/IMG_5973.jpg"),
 					new double [] {-(1.0) * 24.0 / 360.0, (1.0) * 360.0 / 360.0},
 					4000, new File("c:/astro/tmp/IMG_5974.jpg"),
-					4000, new File("c:/astro/tmp/IMG_5972.jpg"),
-					4000, new File("c:/astro/tmp/IMG_5969.jpg"),
-					4000, new File("c:/astro/tmp/IMG_5968.jpg"),
-					4000, new File("c:/astro/tmp/IMG_5971.jpg"),
-					4000, new File("c:/astro/tmp/IMG_5979.jpg"),
+					// Coreller
+					"Calibrer",
+					2000, new File("c:/astro/tmp/IMG_5972.jpg"),
+					6000, new File("c:/astro/tmp/IMG_5969.jpg"),
+					6000, new File("c:/astro/tmp/IMG_5968.jpg"),
+					6000, new File("c:/astro/tmp/IMG_5971.jpg"),
+					6000, new File("c:/astro/tmp/IMG_5979.jpg"),
 					
 					
 			};
@@ -244,6 +252,23 @@ public class Cadrage {
 						@Override
 						public void run() {
 							correlationUi.newFileDetected((File)o, true);	
+						}
+					});
+				} else if (o.equals("Calibrer")) {
+					List<ImageListEntry> images;
+					while((images =
+							correlationUi.filtrerPourCalibration(correlationUi.getImageTable().getEntryList())).size() < 3);
+					{
+						System.err.println("Scenario en attente d'images pour correlation");
+						Thread.sleep(2000);
+					}
+					
+					final List<ImageListEntry> finalImages = images;
+					SwingUtilities.invokeAndWait(new Runnable() {
+						@Override
+						public void run() {
+							;
+							correlationUi.calibrer(finalImages);	
 						}
 					});
 				}

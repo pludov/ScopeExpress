@@ -1,5 +1,7 @@
 package fr.pludov.cadrage.ui.utils;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.swing.CellEditor;
+import javax.swing.JComponent;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
@@ -74,6 +77,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		Class clazz;
 		DefaultTableCellRenderer renderer;
 		boolean editable;
+		Integer width;
 		
 		protected ColumnDefinition(String title, Class clazz) {
 			this.title = title;
@@ -87,6 +91,21 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 			this.renderer = renderer;
 		}
 		
+		protected ColumnDefinition(String title, Class clazz, Integer width) {
+			this.title = title;
+			this.clazz = clazz;
+			this.width = width;
+			this.renderer = null;
+		}
+		
+		protected ColumnDefinition(String title, Class clazz, Integer width, DefaultTableCellRenderer renderer) {
+			this.title = title;
+			this.clazz = clazz;
+			this.width = width;
+			this.renderer = renderer;
+		}
+		
+
 		public abstract Object getValue(EffectiveListEntry ile);
 		
 		public void setValue(EffectiveListEntry ile, Object value)
@@ -265,28 +284,11 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 							getSelectionModel().setSelectionInterval(row, row);
 						}
 
-						List<EffectiveListEntry> targets = new ArrayList<EffectiveListEntry>();
-						for(EffectiveListEntry entry : entries)
-						{
-							if (isModelRowSelected(entry.getRowId()))
-							{
-								targets.add(entry);
-							}
-						}
-						
-						JPopupMenu contextMenu = createContextMenu(targets);
-						
-						if (contextMenu == null || contextMenu.getComponentCount() == 0) return;
-						
-						cancelCellEditing();
-						
-						
-						// ... and show it
-						contextMenu.show(GenericList.this, p.x, p.y);
+						showPopup(GenericList.this, e);
 					}
 				}
 			}
-
+			
 			@Override
 			public void mousePressed(MouseEvent e) {
 				maybeShowPopup(e);
@@ -299,19 +301,45 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 			
 			@Override
 			public void mouseClicked(MouseEvent e) {
-//				maybeShowPopup(e);
+//						maybeShowPopup(e);
 			}
 
-			private void cancelCellEditing() {
-				CellEditor ce = getCellEditor();
-				if (ce != null) {
-					ce.cancelCellEditing();
-				}
-			}
 		});
 	}
 	
+	public boolean showPopup(Component widget, MouseEvent e) 
+	{
+		
+		List<EffectiveListEntry> targets = new ArrayList<EffectiveListEntry>();
+		for(EffectiveListEntry entry : entries)
+		{
+			if (isModelRowSelected(entry.getRowId()))
+			{
+				targets.add(entry);
+			}
+		}
+		
+		JPopupMenu contextMenu = createContextMenu(targets);
 
+		if (contextMenu == null || contextMenu.getComponentCount() == 0) return false;
+		contextMenu.setLightWeightPopupEnabled(false);
+		
+		cancelCellEditing();
+		
+		Point p = new Point(e.getX(), e.getY());
+		
+		// ... and show it
+		contextMenu.show(widget, p.x, p.y);
+		return true;
+	}
+	
+	private void cancelCellEditing() {
+		CellEditor ce = getCellEditor();
+		if (ce != null) {
+			ce.cancelCellEditing();
+		}
+	}
+	
 	protected JPopupMenu createContextMenu(List<EffectiveListEntry> entries) {
 		return null;
 	}
@@ -325,6 +353,24 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		}
 		
 		setModel(tableModel);
+		
+		int totalWidth = 20;
+		for(int i = 0 ; i < columnDefs.size(); ++i)
+		{
+			 
+			if (this.columns[i].width != null) {
+				int width = this.columns[i].width;
+				totalWidth += width;
+				getColumnModel().getColumn(i).setPreferredWidth(width);
+			} else {
+				totalWidth += 20;
+			}
+		}
+		
+		setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+		
+		
+		setMinimumSize(new Dimension(totalWidth, 100));
 	}
 	
 

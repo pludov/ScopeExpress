@@ -1,7 +1,10 @@
 package fr.pludov.cadrage.ui;
 
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -10,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -29,6 +33,7 @@ import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
+import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 
 public class CorrelationUi {
@@ -56,6 +61,36 @@ public class CorrelationUi {
 		
 		peuplerToolbar();
 		makeSelectionExclusion();
+		display.addMouseListener(new MouseAdapter() {
+
+			private void maybeShowPopup(MouseEvent e) {
+				if (e.getButton() == 3) {
+					List<ImageListEntry> images = imageTable.getSelectedEntryList();
+					List<ViewPortListEntry> viewports = viewPortTable.getSelectedEntryList();
+					
+					if (images.isEmpty()) {
+						// On prend les viewPort
+						if (viewPortTable.showPopup(display, e)) return;
+					}
+					imageTable.showPopup(display, e);
+				}
+			}
+			
+			@Override
+			public void mousePressed(MouseEvent e) {
+				maybeShowPopup(e);
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+			
+			@Override
+			public void mouseClicked(MouseEvent e) {
+//						maybeShowPopup(e);
+			}
+
+		});
 		
 		new Thread() {
 			public void run() {
@@ -95,7 +130,7 @@ public class CorrelationUi {
 		}.start();
 	}
 	
-	protected List<ImageListEntry> filtrerPourCalibration(List<ImageListEntry> images)
+	public List<ImageListEntry> filtrerPourCalibration(List<ImageListEntry> images)
 	{
 		// Parcourir la liste d'images, les trier par heure d'arriver
 		images = new ArrayList<ImageListEntry>(images);
@@ -155,7 +190,8 @@ public class CorrelationUi {
 			correlation.setImageIsScopeViewPort(image);
 		}
 		
-		a1 = correlation.detectStars(image);
+		a1 = correlation.initImageMetadata(image);
+		a1.queue(correlation.detectStars(image));
 		a1.queue(correlation.place(image));
 
 		// FIXME : mettre à jour la calibration ?
@@ -207,7 +243,7 @@ public class CorrelationUi {
 		return result;
 	}
 	
-	protected void calibrer(List<ImageListEntry> imageList)
+	public void calibrer(List<ImageListEntry> imageList)
 	{
 		imageList = filtrerPourCalibration(imageList);
 		// Trouver un grand axe en terme de déplacement rx, ry
@@ -444,6 +480,20 @@ public class CorrelationUi {
 		});
 		contextMenu.add(calibrerMenu);
 		
+		// Le téléscope est ici
+		JMenuItem scopeSync = new JMenuItem();
+		scopeSync.setText("Le téléscope est ici");
+		scopeSync.setEnabled(images.size() == 1);
+		scopeSync.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				correlation.setImageIsScopeViewPort(images.get(0).getTarget());
+				correlation.moveViewPortToImage(correlation.getImageCorrelation(images.get(0).getTarget()), false);
+			}
+		});
+		contextMenu.add(scopeSync);
+		
+		
 		// Atteindre...
 		JMenuItem atteindre = new JMenuItem();
 		atteindre.setText("Goto");
@@ -482,6 +532,18 @@ public class CorrelationUi {
 		// Déplacement
 		
 		// Edition des niveaux
+		// Le téléscope est ici
+		JMenuItem scopeSync = new JMenuItem();
+		scopeSync.setText("Le téléscope est ici");
+		scopeSync.setEnabled(images.size() == 1);
+		scopeSync.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				correlation.setImageIsScopeViewPort(null);
+				correlation.moveViewPortToViewPort(images.get(0).getTarget());
+			}
+		});
+		contextMenu.add(scopeSync);
 		
 		// Calibration
 		JMenuItem atteindre = new JMenuItem();

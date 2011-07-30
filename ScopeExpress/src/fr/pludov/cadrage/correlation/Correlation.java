@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,16 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
+import com.drew.metadata.exif.ExifIFD0Descriptor;
+import com.drew.metadata.exif.ExifIFD0Directory;
+import com.drew.metadata.exif.ExifInteropDirectory;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+import com.drew.metadata.jpeg.JpegDirectory;
 
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.Image;
@@ -200,6 +211,85 @@ public class Correlation {
 		}
 	
 		listeners.getTarget().correlationUpdated();
+	}
+	
+	public AsyncOperation initImageMetadata(final Image image)
+	{
+		return new AsyncOperation("Lecture de l'image") {
+			Integer width;
+			Integer height;
+			Double pause;
+			@Override
+			public void init() throws Exception {
+				// Vérifier que l'image est encore dans la correlation
+				if (!images.containsKey(image)) {
+					throw new Exception("Opération annulée");
+				}
+				
+				width = null;
+				height = null;
+				pause = null;
+			}
+			
+			@Override
+			public void async() throws Exception {
+				// Obtenir les méta information
+				Metadata metadata = ImageMetadataReader.readMetadata(image.getFile());
+				
+				for (Directory directory2 : metadata.getDirectories()) {
+				    for (Tag tag : directory2.getTags()) {
+				        System.out.println(tag);
+				    }
+				}				
+				
+				// Jpeg width, height
+				
+				// obtain the Exif directory
+				Directory directory = metadata.getDirectory(JpegDirectory.class);
+				if (directory != null) {
+					width = directory.getInteger(JpegDirectory.TAG_JPEG_IMAGE_WIDTH);
+					height = directory.getInteger(JpegDirectory.TAG_JPEG_IMAGE_HEIGHT);
+				}
+				
+				directory = metadata.getDirectory(ExifSubIFDDirectory.class);
+				if (directory != null) {
+					pause = directory.getDoubleObject(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
+				}
+				
+//
+//				// query the tag's value
+//				Date date = directory.getDate(ExifIFD0Directory.TAG_DATETIME);
+//				
+				System.out.println("metadata read");
+			}
+			
+			@Override
+			public void terminate() throws Exception {
+				if (width != null) image.setWidth(width);
+				if (height != null) image.setHeight(height);
+				if (pause != null) {
+					image.setPause(pause);
+					
+					Image bestOther = null;
+					for(ImageCorrelation other : images.values()) {
+						if (other.getImage() == image) continue;
+						if (other.getImage().getPause() == null) continue;
+						
+						if (bestOther == null ||
+								Math.abs(other.getImage().getPause() - pause) > Math.abs(bestOther.getPause() - pause))
+						{
+							bestOther = other.getImage();
+						}
+					}
+					
+					if (bestOther != null) {
+						image.setBlack(bestOther.getBlack());
+						image.setExpoComposensation(bestOther.getExpoComposensation());
+						image.setGamma(bestOther.getGamma());
+					}
+				}
+			}
+		};
 	}
 	
 	public AsyncOperation detectStars(final Image image)
@@ -498,8 +588,25 @@ public class Correlation {
 		
 		return result;
 	}
+
+	public void moveViewPortToViewPort(ViewPort status)
+	{
+		ViewPort scopePosition = getCurrentScopePosition();
+		if (scopePosition == null) {
+			scopePosition = new ViewPort();
+			scopePosition.setViewPortName("Champ du téléscope");
+			setCurrentScopePosition(scopePosition);
+		}
+		
+		scopePosition.setTx(status.getTx());
+		scopePosition.setTy(status.getTy());
+		scopePosition.setCs(status.getCs());
+		scopePosition.setSn(status.getSn());
+		scopePosition.setWidth(status.getWidth());
+		scopePosition.setHeight(status.getHeight());
+	}
 	
-	public void moveViewPortToImage(ImageCorrelation status)
+	public void moveViewPortToImage(ImageCorrelation status, boolean autoBackup)
 	{
 		// Si fresh, mettre à jour la position du téléscope
 //					if (calibrationAvailable) return;
@@ -520,6 +627,19 @@ public class Correlation {
 			scopePosition = new ViewPort();
 			scopePosition.setViewPortName("Champ du téléscope");
 			setCurrentScopePosition(scopePosition);
+		} else if (autoBackup) {
+			// Il faut archiver la position si elle est loin ... Qu'est ce que loin...
+			double dst = (scopePosition.getTx() - status.getTx()) * (scopePosition.getTx() - status.getTx())
+						+ (scopePosition.getTy() - status.getTy()) * (scopePosition.getTy() - status.getTy());
+			
+			// Au delà de 15 pixels, il y a un problème.
+			if (dst > 15) {
+				ViewPort copy = new ViewPort(scopePosition);
+				
+				copy.setViewPortName(copy.getViewPortName() + " (bkp " + status.getImage().getFile().getName()+")");
+				addViewPort(copy);
+			}
+			
 		}
 
 		scopePosition.setTx(status.getTx());
@@ -572,7 +692,7 @@ public class Correlation {
 					calcMatching(image);
 					
 					if (image == currentScopeImage) {
-						moveViewPortToImage(status);
+						moveViewPortToImage(status, true);
 					}
 					
 					listeners.getTarget().correlationUpdated();
@@ -745,7 +865,8 @@ public class Correlation {
 				if (bestParameter == null) {
 					throw new RuntimeException("Pas de corrélation trouvée");
 				}
-					
+				
+				
 				System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
 						" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
 						" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
@@ -780,7 +901,7 @@ public class Correlation {
 
 				// si le viewport du téléscope est sur cette image, ajuster ses paramètres...
 				if (image == currentScopeImage) {
-					moveViewPortToImage(status);
+					moveViewPortToImage(status, true);
 				}
 				
 				listeners.getTarget().correlationUpdated();
