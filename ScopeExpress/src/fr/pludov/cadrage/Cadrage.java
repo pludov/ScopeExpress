@@ -194,10 +194,13 @@ public class Cadrage {
 //			
 //			a1.start();
 			
+			
+			boolean isUnix;
 			String os = System.getProperty("os.name").toLowerCase();
-			if (os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0) {
+			isUnix = os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0;
+			
+			if (isUnix) {
 				Cadrage.setScopeInterface(new DummyScope());
-				
 			} else {
 				AscomScope.connectScope();
 			}
@@ -212,21 +215,27 @@ public class Cadrage {
 //			};
 
 			// M51
+			File scenarioFolder = isUnix ? 
+					new File("/home/ludovic/Documents/Astronomie/photos/test-cadrage/") 
+					: new File("c:/astro/tmp/");
+		
+			
+			
 			Object [] scenario = {
 					// Les trois bias sur la monture s'équilibrent à 0.
 					new double [] {0, -(1.0) * 360.0 / 360.0},
-					4000, new File("c:/astro/tmp/IMG_5975.jpg"),
+					4000, new File(scenarioFolder, "img_5975.jpg"),
 					new double [] {(1.0) * 24.0 / 360.0, 0},
-					4000, new File("c:/astro/tmp/IMG_5973.jpg"),
+					4000, new File(scenarioFolder, "img_5973.jpg"),
 					new double [] {-(1.0) * 24.0 / 360.0, (1.0) * 360.0 / 360.0},
-					4000, new File("c:/astro/tmp/IMG_5974.jpg"),
+					4000, new File(scenarioFolder, "img_5974.jpg"),
 					// Coreller
 					"Calibrer",
-					2000, new File("c:/astro/tmp/IMG_5972.jpg"),
-					6000, new File("c:/astro/tmp/IMG_5969.jpg"),
-//					6000, new File("c:/astro/tmp/IMG_5968.jpg"),
-//					6000, new File("c:/astro/tmp/IMG_5971.jpg"),
-//					6000, new File("c:/astro/tmp/IMG_5979.jpg"),
+					2000, new File(scenarioFolder, "img_5972.jpg"),
+					6000, new File(scenarioFolder, "img_5969.jpg"),
+					6000, new File(scenarioFolder, "img_5968.jpg"),
+					6000, new File(scenarioFolder, "img_5971.jpg"),
+					6000, new File(scenarioFolder, "img_5979.jpg"),
 					
 					
 			};

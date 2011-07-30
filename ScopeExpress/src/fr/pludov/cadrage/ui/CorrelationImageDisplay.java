@@ -455,7 +455,7 @@ public class CorrelationImageDisplay extends Panel
 			double m10 = transform.getShearY();
 			
 			double delta = Math.sqrt((m00 * m11) + (m01*m10));
-			
+			if (delta < 0.00001) delta = 0.00001;
 			
 			double [] textPoint = {(1 + align) / 2.0 * area.getWidth(), 0};
 			double [] target = new double[2];
