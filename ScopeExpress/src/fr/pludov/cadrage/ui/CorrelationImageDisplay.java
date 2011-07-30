@@ -421,23 +421,49 @@ public class CorrelationImageDisplay extends Panel
 		default:
 			g.setColor(Color.GRAY);
 		}
-		double [] [] polys = {
-				{
+		
+		List<double[]> polys = new ArrayList<double[]>();
+		
+		polys.add(new double[]				{
 					0, 0,
 					imgWidth - 1, 0,
 					imgWidth - 1, imgHeight - 1,
-					0, imgHeight - 1
-				}
-		};
+					0, imgHeight - 1,
+					0, 0
+				});
+		if (selectionLevel > 0) {
+			// Règle du tier
+			polys.add(new double[] {
+					imgWidth / 3.0, 0,
+					imgWidth / 3.0, imgHeight - 1
+			});
+			polys.add(new double[] {
+					2 * imgWidth / 3.0, 0,
+					2 * imgWidth / 3.0, imgHeight - 1
+			});
+	
+			polys.add(new double[] {
+					0,				imgHeight / 3.0,
+					imgWidth -1,	imgHeight / 3.0
+			});
+			polys.add(new double[] {
+					0,				2 * imgHeight / 3.0,
+					imgWidth -1,	2 * imgHeight / 3.0
+			});
+		}
+		
+		
+		// Ajouter d'autres polys si nécessaire
+		
 		double [] xySource = null;
 		double [] xyDest = null;
 		for(double[] poly : polys)
 		{
 			double [] xyTarget = new double[poly.length]; 
 			transform.transform(poly, 0, xyTarget, 0, poly.length / 2);
-			for(int i = 0; i < poly.length / 2; ++i)
+			for(int i = 0; i + 1 < poly.length / 2; ++i)
 			{
-				int nexti = i+1 < poly.length / 2 ? i+1 : 0;
+				int nexti = i+1;
 				
 				g.drawLine(
 						(int)Math.round(xyTarget[2 * i]),
