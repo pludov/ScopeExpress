@@ -176,7 +176,9 @@ public class CorrelationImageDisplay extends Panel
 						contentBinnedProvider = null;
 						contentBinnedFiltered = null;
 						contentBinnedFilteredProvider = null;
-						startWorkers();
+						if (contentBinned != null) {
+							startWorkers();
+						}
 					}
 				};
 				contentBinnedProvider.queue();
@@ -327,7 +329,7 @@ public class CorrelationImageDisplay extends Panel
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 
-		if (status.getPlacement().isEmpty()) {
+		if (status.getPlacement().isEmpty() || status.getImage().getWidth() == 0 || status.getImage().getHeight() == 0) {
 			return null;
 		}
 
@@ -486,7 +488,7 @@ public class CorrelationImageDisplay extends Panel
 		
 		ImageCorrelation status = correlation.getImageCorrelation(image);
 		
-		if (status.getPlacement().isEmpty()) {
+		if (status.getPlacement().isEmpty() || status.getImage().getWidth() == 0 || status.getImage().getHeight() == 0) {
 			return;
 		}
 		

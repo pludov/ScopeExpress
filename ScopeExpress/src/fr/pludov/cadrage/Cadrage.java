@@ -19,6 +19,7 @@ import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
+import fr.pludov.cadrage.scope.dummy.DummyScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.CorrelationUi;
 import fr.pludov.cadrage.ui.ImageList;
@@ -193,7 +194,13 @@ public class Cadrage {
 //			
 //			a1.start();
 			
-			AscomScope.connectScope();
+			String os = System.getProperty("os.name").toLowerCase();
+			if (os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0) {
+				Cadrage.setScopeInterface(new DummyScope());
+				
+			} else {
+				AscomScope.connectScope();
+			}
 			
 			// Tant qu'il y a de nouveaux fichiers dans le répertoire...
 //			
@@ -257,7 +264,7 @@ public class Cadrage {
 				} else if (o.equals("Calibrer")) {
 					List<ImageListEntry> images;
 					while((images =
-							correlationUi.filtrerPourCalibration(correlationUi.getImageTable().getEntryList())).size() < 3);
+							correlationUi.filtrerPourCalibration(correlationUi.getImageTable().getEntryList())).size() < 3)
 					{
 						System.err.println("Scenario en attente d'images pour correlation");
 						Thread.sleep(2000);
