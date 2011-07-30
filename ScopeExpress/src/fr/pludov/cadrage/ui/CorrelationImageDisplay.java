@@ -480,7 +480,7 @@ public class CorrelationImageDisplay extends Panel
 			double m11 = transform.getScaleY();
 			double m10 = transform.getShearY();
 			
-			double delta = Math.sqrt((m00 * m11) + (m01*m10));
+			double delta = Math.sqrt((m00 * m00) + (m01*m01));
 			if (delta < 0.00001) delta = 0.00001;
 			
 			double [] textPoint = {(1 + align) / 2.0 * area.getWidth(), 0};
@@ -926,6 +926,7 @@ public class CorrelationImageDisplay extends Panel
 	
 	boolean draging = false;
 	boolean draging_item = false;
+	boolean draging_item_rotate = false;
 	boolean draginCurrentSelection = false;
 	int draging_x, draging_y;
 	
@@ -975,8 +976,34 @@ public class CorrelationImageDisplay extends Panel
 							viewPortList.selectEntry(newEntry);
 						}
 						
-						viewPort.setTx(viewPort.getTx() + (transfo[0] - transfo[2]));
-						viewPort.setTy(viewPort.getTy() + (transfo[1] - transfo[3]));
+						if (!draging_item_rotate) {
+							
+							viewPort.setTx(viewPort.getTx() + (transfo[0] - transfo[2]));
+							viewPort.setTy(viewPort.getTy() + (transfo[1] - transfo[3]));
+						} else {
+							// Que nous vos le vecteur transfo en terme d'angle ?
+							double [] transfoDepuisViewPort = new double[4];
+							transfoDepuisViewPort[0] = transfo[0] - viewPort.getTx();
+							transfoDepuisViewPort[1] = transfo[1] - viewPort.getTy();
+							transfoDepuisViewPort[2] = transfo[2] - viewPort.getTx();
+							transfoDepuisViewPort[3] = transfo[3] - viewPort.getTy();
+							
+							double newAngle = Math.atan2(transfoDepuisViewPort[1], transfoDepuisViewPort[0]);
+							double oldAngle = Math.atan2(transfoDepuisViewPort[3], transfoDepuisViewPort[2]);
+							
+							double angle = newAngle - oldAngle;
+							
+							double currentAngle = Math.atan2(viewPort.getSn(), viewPort.getCs());
+							double currentMult = Math.sqrt(viewPort.getCs() * viewPort.getCs() + viewPort.getSn() * viewPort.getSn());
+							
+							currentAngle -= angle;
+							double cs = Math.cos(currentAngle) * currentMult;
+							double sn = Math.sin(currentAngle) * currentMult;
+							
+							viewPort.setCs(cs);
+							viewPort.setSn(sn);
+							
+						}
 						change = true;
 					}
 				}
@@ -1064,6 +1091,7 @@ public class CorrelationImageDisplay extends Panel
 			
 			draging = true;
 			draging_item = true;
+			draging_item_rotate = e.isShiftDown();
 			draging_x = e.getX();
 			draging_y = e.getY();
 		}

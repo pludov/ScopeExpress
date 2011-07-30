@@ -49,10 +49,6 @@ import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
  *  	- part du principe que la dernière image est centrée sur le viewport du téléscope
  *
  * A faire par ordre de priorité
- *  - calibration absolue (calcul et mise à jour de la translation)
- *  - détection des nouvelles images d'un répertoire
- *  - "le téléscope est sur cette image"
- *  - Permettre de déplacer le viewport du téléscope sur une image
  *  - afficher le type de positionnement dans les colonnes des images
  *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existente) 
  *  - recalculer les étoiles
@@ -65,6 +61,12 @@ import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
  *  
  * Fait:
  *  - importer des images existantes
+ *  - calibration absolue (calcul et mise à jour de la translation - abandonné, le calcul est fait mais pas utilisé)
+ *  - détection des nouvelles images d'un répertoire
+ *  - "le téléscope est sur cette image"
+ *  - Permettre de déplacer le viewport du téléscope sur une image
+ *  - afficher des guide
+ *  - rotation du champ (shift+click)
  * 
  * Courbe de visualisation, niveau alpha, min, max
  * Améliorer la visualisation (permettre de choisir les images qui sont gardées en fond.
