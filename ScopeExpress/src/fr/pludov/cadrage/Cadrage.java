@@ -224,9 +224,9 @@ public class Cadrage {
 					"Calibrer",
 					2000, new File("c:/astro/tmp/IMG_5972.jpg"),
 					6000, new File("c:/astro/tmp/IMG_5969.jpg"),
-					6000, new File("c:/astro/tmp/IMG_5968.jpg"),
-					6000, new File("c:/astro/tmp/IMG_5971.jpg"),
-					6000, new File("c:/astro/tmp/IMG_5979.jpg"),
+//					6000, new File("c:/astro/tmp/IMG_5968.jpg"),
+//					6000, new File("c:/astro/tmp/IMG_5971.jpg"),
+//					6000, new File("c:/astro/tmp/IMG_5979.jpg"),
 					
 					
 			};

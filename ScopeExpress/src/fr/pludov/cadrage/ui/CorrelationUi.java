@@ -1,5 +1,6 @@
 package fr.pludov.cadrage.ui;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,8 +10,12 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -45,6 +50,11 @@ public class CorrelationUi {
 	LevelDialog levelDialog;
 	
 	JFileChooser chooser;
+	
+	JButton directoryButton;
+	JFileChooser directoryChooser;
+	volatile File directoryWatch;
+	File lastDirectoryWatch;
 	
 	JToolBar toolBar;
 	
@@ -92,6 +102,7 @@ public class CorrelationUi {
 
 		});
 		
+		// Surveillance de la position téléscope.
 		new Thread() {
 			public void run() {
 				boolean hasLast = false;
@@ -127,6 +138,27 @@ public class CorrelationUi {
 					
 				}
 			};
+		}.start();
+		
+		// Thread pour la surveillance...
+		new Thread() {
+			public void run() {
+				while(true) {
+					try {
+						
+						surveillance();
+						
+					} catch(Throwable t) {
+						t.printStackTrace();
+						try {
+							Thread.sleep(100);
+						} catch(Throwable t2) {
+							t2.printStackTrace();
+						}
+					}
+				}
+			};
+			
 		}.start();
 	}
 	
@@ -166,6 +198,18 @@ public class CorrelationUi {
 			}
 		});
 		toolBar.add(button);
+		
+		directoryButton = new JButton();
+		directoryButton.setText("Images auto");
+		directoryButton.setToolTipText("Importe automatiquement les images d'un répertoire donné");
+		directoryButton.setBackground(Color.RED);
+		directoryButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				surveillanceClick();
+			}
+		});
+		toolBar.add(directoryButton);
 	}
 	
 	public void newFileDetected(File file, boolean fresh)
@@ -217,6 +261,77 @@ public class CorrelationUi {
 			newFileDetected(file, true);
 		}
 		
+	}
+	
+	private void surveillance() throws Throwable
+	{
+		Set<String> known = new HashSet<String>();
+		File lastWatch = null;
+		
+		while(true) {
+			File watch = this.directoryWatch;
+			if (watch == null) {
+				lastWatch = null;
+				known.clear();
+			} else {
+				List<String> content = new ArrayList<String>(Arrays.asList(watch.list()));
+				Collections.sort(content);
+				
+				if (lastWatch == null) {
+					lastWatch = watch;
+					known.addAll(content);
+				} else {
+					// Détecter ce qui est nouveau.
+					content.removeAll(known);
+					known.addAll(content);
+					
+					for(String file : content)
+					{
+						if (file.toLowerCase().endsWith(".jpg") || file.toLowerCase().endsWith(".jpeg") || 
+								file.toLowerCase().endsWith(".tif") || file.toLowerCase().endsWith(".tiff"))
+						{
+							final File newFile = new File(watch, file);
+							System.err.println("nouvelle image : " + newFile);
+							
+							SwingUtilities.invokeLater(new Runnable() {
+								public void run() {
+									newFileDetected(newFile, true);
+								}
+							});
+						}
+					}
+					
+				}
+			}
+			Thread.sleep(100);
+		}
+		
+	}
+	
+	private void surveillanceClick()
+	{
+		if (this.directoryWatch != null) {
+			this.directoryWatch = null;
+			this.directoryButton.setBackground(Color.RED);
+			return;
+		}
+		
+		if (directoryChooser == null) {
+			directoryChooser = new JFileChooser();
+		}
+		if (lastDirectoryWatch != null) {
+			directoryChooser.setCurrentDirectory(lastDirectoryWatch);
+		}
+		directoryChooser.setMultiSelectionEnabled(false);
+		directoryChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		directoryChooser.setDialogTitle("Importer automatiquement les nouvelles images d'un dossier");
+		if (directoryChooser.showOpenDialog(Cadrage.mainFrame) != JFileChooser.APPROVE_OPTION) return;
+		directoryWatch = directoryChooser.getSelectedFile();
+		
+		if (directoryWatch != null) {
+			this.directoryButton.setBackground(Color.GREEN);
+			this.lastDirectoryWatch = directoryWatch;
+		}
 	}
 	
 	//	
