@@ -636,7 +636,7 @@ public class Correlation {
 			if (dst > 15) {
 				ViewPort copy = new ViewPort(scopePosition);
 				
-				copy.setViewPortName(copy.getViewPortName() + " (bkp " + status.getImage().getFile().getName()+")");
+				copy.setViewPortName(copy.getViewPortName() + " (backup " + status.getImage().getFile().getName()+")");
 				addViewPort(copy);
 			}
 			

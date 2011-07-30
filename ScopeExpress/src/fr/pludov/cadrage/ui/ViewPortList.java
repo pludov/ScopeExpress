@@ -118,7 +118,9 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 		}
 		
 		ViewPortListEntry ile = new ViewPortListEntry(viewport); 
-		
+		if (viewport.getViewPortName().indexOf("backup") >= 0) {
+			ile.setVisible(false);
+		}
 		addEntry(ile);
 	}
 	
