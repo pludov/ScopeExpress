@@ -703,13 +703,13 @@ public class StarDetection {
 		}
 		
 		System.err.println("Star detected : " + count);
-		
-		try {
-			ImageIO.write(mask, "png", new File("c:/mask.png"));
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-		
+//		
+//		try {
+//			ImageIO.write(mask, "png", new File("c:/mask.png"));
+//		} catch(Exception e) {
+//			e.printStackTrace();
+//		}
+//		
 		return result;
 	}
 	
