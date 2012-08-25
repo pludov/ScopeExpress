@@ -18,46 +18,13 @@ import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ViewPort;
-import fr.pludov.cadrage.correlation.ViewPortListener;
 import fr.pludov.cadrage.ui.utils.GenericList;
-import fr.pludov.cadrage.ui.utils.GenericList.ListEntry;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
 
-public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortListEntry> implements CorrelationListener {
+public class ViewPortList extends GenericList<ViewPort, ViewPortListEntry> implements CorrelationListener {
 	protected final CorrelationUi correlationUi;
 	Correlation target;
-	
-	
-	public class ViewPortListEntry 
-				extends GenericList<ViewPort, ViewPortListEntry>.ListEntry
-				implements ViewPortListener
-	{
-		boolean visible;
-		
-		
-		ViewPortListEntry(ViewPort image) {
-			super(image);
-			visible = true;
-			image.listeners.addListener(this);
-		}
-
-		public boolean isVisible() {
-			return visible;
-		}
-
-		public void setVisible(boolean visible) {
-			if (this.visible == visible) return;
-			this.visible = visible;
-			
-			getTarget().listeners.getTarget().viewPortMoved(getTarget());
-		}
-		
-		@Override
-		public void viewPortMoved(ViewPort vp) {
-			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
-		}
-	}
 	
 	
 	@SuppressWarnings("unchecked")
@@ -93,7 +60,7 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 				}
 			});
 	
-	final Correlation correlation;
+	Correlation correlation;
 	
 	public ViewPortList(CorrelationUi correlationUi) {
 		super();
@@ -103,7 +70,14 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortList.ViewPortLis
 		this.correlationUi = correlationUi;
 		this.correlation = correlationUi.getCorrelation();
 		
-		this.correlation.listeners.addListener(this);
+		this.correlation.listeners.addListener(this, this);
+	}
+	
+	public void changeCorrelation(Correlation correlation)
+	{
+		this.correlation.listeners.removeListener(this);
+		this.correlation = correlation;
+		this.correlation.listeners.addListener(this, this);
 	}
 	
 	@Override

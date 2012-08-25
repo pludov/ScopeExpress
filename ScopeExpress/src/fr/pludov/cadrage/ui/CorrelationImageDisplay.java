@@ -10,6 +10,9 @@ import java.awt.Graphics2D;
 import java.awt.Panel;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
@@ -26,7 +29,10 @@ import java.awt.image.LookupOp;
 import java.awt.image.LookupTable;
 import java.awt.image.RescaleOp;
 import java.awt.image.ShortLookupTable;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,22 +50,23 @@ import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ViewPortListener;
-import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
-import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
 import fr.pludov.cadrage.ui.utils.GenericList;
-import fr.pludov.cadrage.ui.utils.GenericList.ListEntry;
+import fr.pludov.cadrage.ui.utils.ListEntry;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImage;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
+import fr.pludov.io.ImageProvider;
 
 public class CorrelationImageDisplay extends Panel 
 			implements CorrelationListener, ViewPortListener, ImageListener,
-					ListSelectionListener,MouseMotionListener, MouseInputListener, MouseWheelListener  {
-	final Correlation correlation;
+					ListSelectionListener, KeyListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
+	
+	Correlation correlation;
 	final CorrelationUi correlationUi;
 	final ImageList imageList;
 	final ViewPortList viewPortList;
@@ -120,7 +127,7 @@ public class CorrelationImageDisplay extends Panel
 		
 		BufferedImage contentBinned;		 // On garde une version en bin
 		ImageWorker contentBinnedProvider;
-		int currentBin = 4;
+		int currentBin = 2;
 		
 		
 		BufferedImage contentBinnedFiltered; // Version filtrée avec les derniers paramètres (production asynchrone)
@@ -152,8 +159,8 @@ public class CorrelationImageDisplay extends Panel
 					public void run() {
 						jpeg = null;
 						try {
-							jpeg = ImageIO.read(image.getFile());
-							
+							jpeg = ImageProvider.readImage(image.getFile());
+
 							if (bin != 1) {
 								BufferedImage copy = new BufferedImage(jpeg.getWidth() / bin, jpeg.getHeight() / bin, jpeg.getType());
 								
@@ -217,7 +224,7 @@ public class CorrelationImageDisplay extends Panel
 	
 	public CorrelationImageDisplay(Correlation correlation, CorrelationUi correlationUi, ImageList list, ViewPortList viewPortList)
 	{
-		correlation.listeners.addListener(this);
+		correlation.listeners.addListener(this, this);
 		this.imageList = list;
 		this.viewPortList = viewPortList;
 		this.correlation = correlation;
@@ -234,11 +241,35 @@ public class CorrelationImageDisplay extends Panel
 		addMouseMotionListener(this);
 		addMouseWheelListener(this);
 		addMouseListener(this);
+		addKeyListener(this);
+	}
+	
+	public void changeCorrelation(Correlation newCorrelation)
+	{
+		if (this.correlation == newCorrelation) return;
+		this.correlation.listeners.removeListener(this);
+		for(Image image : new ArrayList<Image>(this.images.keySet()))
+		{
+			this.imageRemoved(image);
+		}
+		this.images.clear();
+		
+		newCorrelation.listeners.addListener(this, this);
+		this.correlation = newCorrelation;
+		this.images.clear();
+		this.centerx = 0;
+		this.centery = 0;
+		this.angle = 0;
+		this.zoom = 0.25;
+		for(ImageListEntry imageEntry : imageList.getContent())
+		{
+			this.imageAdded(imageEntry.getTarget());
+		}
 	}
 	
 	private GenericList getListOfEntry(ListEntry item)
 	{
-		if (item instanceof ViewPortList.ViewPortListEntry)
+		if (item instanceof ViewPortListEntry)
 		{
 			return viewPortList;
 		}
@@ -298,6 +329,7 @@ public class CorrelationImageDisplay extends Panel
 		AffineTransform transform = new AffineTransform();
 		
 		transform.preConcatenate(AffineTransform.getTranslateInstance(-centerx, -centery));
+		transform.preConcatenate(AffineTransform.getRotateInstance(angle));
 		transform.preConcatenate(AffineTransform.getScaleInstance(zoom, zoom));
 		transform.preConcatenate(AffineTransform.getTranslateInstance(getWidth() / 2.0, getHeight() / 2.0));
 		
@@ -306,24 +338,14 @@ public class CorrelationImageDisplay extends Panel
 	
 	private AffineTransform getImageToScreenTransform(CorrelationArea area)
 	{
-		double imgWidth = area.getWidth();
-		double imgHeight = area.getHeight();
-		
-		AffineTransform transform = new AffineTransform();
-		
-		double scale = Math.sqrt(area.getSn() * area.getSn() + area.getCs() * area.getCs());
-		
-		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
-		transform.preConcatenate(AffineTransform.getRotateInstance(area.getCs(), -area.getSn()));
-		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
-		transform.preConcatenate(AffineTransform.getTranslateInstance(area.getTx(), area.getTy()));
+		AffineTransform transform = Correlation.getImageToGlobalTransform(area);
 		
 		transform.preConcatenate(getGlobalToScreenTransform());
 		
 		return transform;
 	}
 	
-	private AffineTransform getImageToScreenTransform(ImageList.ImageListEntry entry)
+	private AffineTransform getImageToScreenTransform(ImageListEntry entry)
 	{
 		Image image = entry.getTarget();
 		
@@ -336,15 +358,15 @@ public class CorrelationImageDisplay extends Panel
 		return getImageToScreenTransform(status);
 	}
 	
-	private AffineTransform getImageToScreenTransform(ViewPortList.ViewPortListEntry entry)
+	private AffineTransform getImageToScreenTransform(ViewPortListEntry entry)
 	{
 		return getImageToScreenTransform(entry.getTarget());
 	}
 	
-	private List<GenericList.ListEntry> getImageIdUnder(Point2D where)
+	private List<ListEntry> getImageIdUnder(Point2D where)
 	{
 		// Changer la sélection
-		List<GenericList.ListEntry> resultList = new ArrayList<GenericList.ListEntry>(); 
+		List<ListEntry> resultList = new ArrayList<ListEntry>(); 
 		
 		for(ImageListEntry imageEntry : imageList.getEntryList())
 		{
@@ -576,17 +598,21 @@ public class CorrelationImageDisplay extends Panel
 			}
 		}
 		
+		Color normalColor;
+		Color selectedColor;
 		switch(selectionLevel)
 		{
 		case 2:
-			g.setColor(Color.GREEN);
+			normalColor = Color.GREEN;
 			break;
 		case 1:
-			g.setColor(Color.YELLOW);
+			normalColor = Color.YELLOW;
 			break;
 		default:
-			g.setColor(Color.GRAY);
+			normalColor = Color.GRAY;
 		}
+		selectedColor = Color.blue;
+		
 		
 		if (image.getStars() != null && selectionLevel > 1) {
 			xySource = new double[2];
@@ -595,6 +621,8 @@ public class CorrelationImageDisplay extends Panel
 			// Dessiner les étoiles
 			for(ImageStar imageStar : image.getStars())
 			{
+				g.setColor(imageStar.wasSelected ? selectedColor : normalColor);
+				
 				xySource[0] = imageStar.getX() + imgWidth / 2.0;
 				xySource[1] = imageStar.getY() + imgHeight / 2.0;
 				
@@ -608,6 +636,7 @@ public class CorrelationImageDisplay extends Panel
 			}
 		}
 		
+		g.setColor(normalColor);
 		drawViewPort(g, status, selectionLevel, selectionLevel > 0 ? image.getFile().getName() : null, 1);
 	}
 	
@@ -798,7 +827,7 @@ public class CorrelationImageDisplay extends Panel
 			if (imageList.isRowSelected(ile.getRowId())) {
 				BufferedImageDisplay imageDisplay = images.get(ile.getTarget());
 	        	
-				drawImage(g, ile, 2, imageDisplay != null ? imageDisplay.viewPort : null, this.draging_item);	
+				drawImage(g, ile, 2, imageDisplay != null ? imageDisplay.viewPort : null, this.dragingOperation != null && this.dragingOperation.applyToItem);
 			}
 		}
 		
@@ -806,9 +835,9 @@ public class CorrelationImageDisplay extends Panel
 		// Dessiner les viewports
 		ViewPort scopePosition;
 		
-		List<ViewPortListEntry> list = new ArrayList<ViewPortList.ViewPortListEntry>(viewPortList.getEntryList());
+		List<ViewPortListEntry> list = new ArrayList<ViewPortListEntry>(viewPortList.getEntryList());
 		Collections.reverse(list);
-		List<ViewPortListEntry> todo = new ArrayList<ViewPortList.ViewPortListEntry>();
+		List<ViewPortListEntry> todo = new ArrayList<ViewPortListEntry>();
 		
 		for(ViewPortListEntry vp : list)
 		{
@@ -829,6 +858,30 @@ public class CorrelationImageDisplay extends Panel
 			boolean isSelected = viewPortList.isEntrySelected(vp);
 			drawViewPort(g, vp.getTarget(), isSelected ? 2 : 0, vp.getTarget().getViewPortName(), -1);
 		}
+
+		AffineTransform affine = getGlobalToScreenTransform();
+		double [] src = new double[2];
+		double [] dst = new double[2];
+		
+		for(ImageStar star : correlation.getCorrelationStars())
+		{
+			src[0] = star.x;
+			src[1] = star.y;
+			
+			if (star.wasSelected) {
+				g.setColor(Color.blue);		
+			} else {
+				g.setColor(Color.red);
+			}
+			
+			affine.transform(src, 0, dst, 0, 1);
+			
+			int x = (int)Math.round(dst[0]);
+			int y = (int)Math.round(dst[1]);
+			
+			g.drawLine(x-2, y, x + 2, y);
+			g.drawLine(x, y - 2, x, y + 2);
+		}
 		
 		drawRosace(g);
 		
@@ -847,7 +900,7 @@ public class CorrelationImageDisplay extends Panel
 	@Override
 	public void imageAdded(final Image image) 
 	{
-		image.listeners.addListener(this);
+		image.listeners.addListener(this, this);
 		BufferedImageDisplay display = new BufferedImageDisplay();
 		display.image = image;
 		display.contentBinned = null;
@@ -924,15 +977,29 @@ public class CorrelationImageDisplay extends Panel
 		
 	}
 	
-	boolean draging = false;
-	boolean draging_item = false;
-	boolean draging_item_rotate = false;
-	boolean draginCurrentSelection = false;
+
+	public enum Operation
+	{
+		Translate(false),
+		Rotate(false),
+		Zoom(false),
+		TranslateItem(true),
+		RotateItem(true);
+		
+		boolean applyToItem;
+		
+		Operation(boolean applyToItem)
+		{
+			this.applyToItem = applyToItem;
+		}
+	};
+	
+	Operation dragingOperation = null;
 	int draging_x, draging_y;
 	
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		if (draging) {
+		if (dragingOperation != null) {
 			int nvx = e.getPoint().x;
 			int nvy = e.getPoint().y;
 			
@@ -940,84 +1007,108 @@ public class CorrelationImageDisplay extends Panel
 				return;
 			}
 
-			setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			setCursor(getCursorForOperation(dragingOperation));
 
-			AffineTransform affine = getGlobalToScreenTransform();
-			try {
-				affine.invert();
-			} catch(NoninvertibleTransformException exc) {
-				exc.printStackTrace();
-			}
-			
-			double []vector = new double [] {nvx, nvy, draging_x, draging_y };
-			double [] transfo = new double[4];
-			
-			affine.transform(vector, 0, transfo, 0, 2);
-			
-			draging_x = nvx;
-			draging_y = nvy;
-			
-			if (draging_item) {
-				boolean change = false;
-				for(ListEntry item : getCurrentVisibleSelection())
-				{
-					if (item.getTarget() instanceof ViewPort) {
-						ViewPort viewPort = (ViewPort)item.getTarget();
-						
-						if (viewPort == correlation.getCurrentScopePosition()) {
-							ViewPort newViewPort = new ViewPort(viewPort);
-							newViewPort.setViewPortName("Copie de " + newViewPort.getViewPortName());
-							correlation.addViewPort(newViewPort);
-							viewPort = newViewPort;
-							
-							ViewPortListEntry newEntry = viewPortList.getEntryFor(viewPort);
-							newEntry.setVisible(true);
-							
-							viewPortList.selectEntry(newEntry);
-						}
-						
-						if (!draging_item_rotate) {
-							
-							viewPort.setTx(viewPort.getTx() + (transfo[0] - transfo[2]));
-							viewPort.setTy(viewPort.getTy() + (transfo[1] - transfo[3]));
-						} else {
-							// Que nous vos le vecteur transfo en terme d'angle ?
-							double [] transfoDepuisViewPort = new double[4];
-							transfoDepuisViewPort[0] = transfo[0] - viewPort.getTx();
-							transfoDepuisViewPort[1] = transfo[1] - viewPort.getTy();
-							transfoDepuisViewPort[2] = transfo[2] - viewPort.getTx();
-							transfoDepuisViewPort[3] = transfo[3] - viewPort.getTy();
-							
-							double newAngle = Math.atan2(transfoDepuisViewPort[1], transfoDepuisViewPort[0]);
-							double oldAngle = Math.atan2(transfoDepuisViewPort[3], transfoDepuisViewPort[2]);
-							
-							double angle = newAngle - oldAngle;
-							
-							double currentAngle = Math.atan2(viewPort.getSn(), viewPort.getCs());
-							double currentMult = Math.sqrt(viewPort.getCs() * viewPort.getCs() + viewPort.getSn() * viewPort.getSn());
-							
-							currentAngle -= angle;
-							double cs = Math.cos(currentAngle) * currentMult;
-							double sn = Math.sin(currentAngle) * currentMult;
-							
-							viewPort.setCs(cs);
-							viewPort.setSn(sn);
-							
-						}
-						change = true;
-					}
-				}
+			switch(dragingOperation)
+			{
+			case Rotate:
+				int angleFact = nvx - draging_x;
 				
-				if (change) {
-					repaint(100);
-				}
-			} else {
-				centerx -= transfo[0] - transfo[2];
-				centery -= transfo[1] - transfo[3];
+				draging_x = nvx;
+				draging_y = nvy;
+				angle += angleFact * 0.01;
 				
 				repaint(100);
-			}
-			
+				break;
+			case RotateItem:
+				// Que nous vos le vecteur transfo en terme d'angle ?
+//				double [] transfoDepuisViewPort = new double[4];
+//				transfoDepuisViewPort[0] = transfo[0] - viewPort.getTx();
+//				transfoDepuisViewPort[1] = transfo[1] - viewPort.getTy();
+//				transfoDepuisViewPort[2] = transfo[2] - viewPort.getTx();
+//				transfoDepuisViewPort[3] = transfo[3] - viewPort.getTy();
+//				
+//				double newAngle = Math.atan2(transfoDepuisViewPort[1], transfoDepuisViewPort[0]);
+//				double oldAngle = Math.atan2(transfoDepuisViewPort[3], transfoDepuisViewPort[2]);
+//				
+//				double angle = newAngle - oldAngle;
+//				
+//				double currentAngle = Math.atan2(viewPort.getSn(), viewPort.getCs());
+//				double currentMult = Math.sqrt(viewPort.getCs() * viewPort.getCs() + viewPort.getSn() * viewPort.getSn());
+//				
+//				currentAngle -= angle;
+//				double cs = Math.cos(currentAngle) * currentMult;
+//				double sn = Math.sin(currentAngle) * currentMult;
+//				
+//				viewPort.setCs(cs);
+//				viewPort.setSn(sn);
+				throw new RuntimeException("unimplemented");
+			case Zoom:
+				break; 
+			case Translate:
+			case TranslateItem:
+				{
+					AffineTransform affine = getGlobalToScreenTransform();
+					try {
+						affine.invert();
+					} catch(NoninvertibleTransformException exc) {
+						exc.printStackTrace();
+					}
+					
+					double []vector = new double [] {nvx, nvy, draging_x, draging_y };
+					double [] transfo = new double[4];
+					
+					affine.transform(vector, 0, transfo, 0, 2);
+					
+					draging_x = nvx;
+					draging_y = nvy;
+					if (dragingOperation == Operation.TranslateItem) {
+						boolean change = false;
+						for(ListEntry item : getCurrentVisibleSelection())
+						{
+							if (item.getTarget() instanceof ViewPort) {
+								ViewPort viewPort = (ViewPort)item.getTarget();
+								
+								if (viewPort == correlation.getCurrentScopePosition()) {
+									ViewPort newViewPort = new ViewPort(viewPort);
+									newViewPort.setViewPortName("Copie de " + newViewPort.getViewPortName());
+									correlation.addViewPort(newViewPort);
+									viewPort = newViewPort;
+									
+									ViewPortListEntry newEntry = viewPortList.getEntryFor(viewPort);
+									newEntry.setVisible(true);
+									
+									viewPortList.selectEntry(newEntry);
+								}
+								
+								viewPort.setTx(viewPort.getTx() + (transfo[0] - transfo[2]));
+								viewPort.setTy(viewPort.getTy() + (transfo[1] - transfo[3]));
+								change = true;
+							} else if (item instanceof ImageListEntry){
+								Image image = ((ImageListEntry)item).getTarget();
+								ImageCorrelation imageCorrelation = correlation.getImageCorrelation(image);
+								if (imageCorrelation != null) {
+									imageCorrelation.setPlacement(PlacementType.Approx);
+									imageCorrelation.setTx(imageCorrelation.getTx() + (transfo[0] - transfo[2]));
+									imageCorrelation.setTy(imageCorrelation.getTy() + (transfo[1] - transfo[3]));
+									correlation.clearMatchingForImage(image);
+									change = true;
+								}
+							}
+						}
+						
+						if (change) {
+							repaint(100);
+						}
+					} else {
+						centerx -= transfo[0] - transfo[2];
+						centery -= transfo[1] - transfo[3];
+						
+						repaint(100);
+					}
+					break;
+				}
+			}			
 		}
 	}
 	
@@ -1077,21 +1168,61 @@ public class CorrelationImageDisplay extends Panel
 			
 		}
 	}
-
+	
+	public Cursor getCursorForOperation(Operation op)
+	{
+		if (op == null) {
+			return Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR);
+		}
+		switch(op)
+		{
+		case Translate:
+		case TranslateItem:
+			return Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR);
+		case Rotate:
+			return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+		case RotateItem:
+			return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+		case Zoom:
+			return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
+		default:
+			throw new RuntimeException("impossible");
+		}
+		
+	}
+	
+	
+	
+	public static Operation getOpFromModifiers(int button, int modifierEx)
+	{
+		if (button == MouseEvent.BUTTON2 ||
+				((button == MouseEvent.BUTTON1) && ((modifierEx & MouseEvent.SHIFT_DOWN_MASK) == MouseEvent.SHIFT_DOWN_MASK)))
+		{
+			// Opération sur le viewport
+			if ((modifierEx & MouseEvent.CTRL_DOWN_MASK) == MouseEvent.CTRL_DOWN_MASK) {
+				return Operation.Rotate;
+			} else if ((modifierEx & MouseEvent.ALT_DOWN_MASK) == MouseEvent.ALT_DOWN_MASK) {
+				return Operation.Zoom;
+			} else {
+				return Operation.Translate;
+			}
+		} else {
+			// Opération sur les items (translate, rotate)
+			if ((modifierEx & MouseEvent.CTRL_DOWN_MASK) == MouseEvent.CTRL_DOWN_MASK) {
+				return Operation.RotateItem;
+			} else {
+				return Operation.TranslateItem;
+			}
+		}
+	}
+	
 	@Override
 	public void mousePressed(MouseEvent e) {
-		if (e.getButton() == MouseEvent.BUTTON2) {
-			setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-	
-			draging = true;
-			draging_item = false;
-			draging_x = e.getX();
-			draging_y = e.getY();
-		} else if (e.getButton() == MouseEvent.BUTTON1) {
-			
-			draging = true;
-			draging_item = true;
-			draging_item_rotate = e.isShiftDown();
+		Operation op = getOpFromModifiers(e.getButton(), e.getModifiersEx());
+		
+		if (op != null) { 
+			setCursor(getCursorForOperation(op));
+			dragingOperation = op;
 			draging_x = e.getX();
 			draging_y = e.getY();
 		}
@@ -1101,9 +1232,11 @@ public class CorrelationImageDisplay extends Panel
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-		draging = false;
+		dragingOperation = null;
 	}
 
+	
+	
 	@Override
 	public void mouseEntered(MouseEvent e) {
 		
@@ -1114,6 +1247,28 @@ public class CorrelationImageDisplay extends Panel
 		
 	}
 
+	@Override
+	public void keyPressed(KeyEvent e) {
+		if (dragingOperation == null) {
+			// FIXME: il faut que getModifiersEx inclue l'effet de e !
+			Operation op = getOpFromModifiers(MouseEvent.BUTTON1, e.getModifiersEx());
+			// setCursor(getCursorForOperation(op));
+		}
+	}
+	
+	@Override
+	public void keyReleased(KeyEvent e) {
+		if (dragingOperation == null) {
+			// FIXME: il faut que getModifiersEx inclue l'effet de e !
+			Operation op = getOpFromModifiers(MouseEvent.BUTTON1, e.getModifiersEx());
+			// setCursor(getCursorForOperation(op));
+		}
+	}
+	
+	@Override
+	public void keyTyped(KeyEvent e) {
+	}
+	
 	@Override
 	public void viewPortMoved(ViewPort vp) {
 		// FIXME : si il n'est pas visible...
@@ -1128,7 +1283,7 @@ public class CorrelationImageDisplay extends Panel
 
 	@Override
 	public void viewPortAdded(ViewPort viewPort) {
-		viewPort.listeners.addListener(this);
+		viewPort.listeners.addListener(this, this);
 		repaint();
 		
 	}

@@ -1,5 +1,8 @@
 package fr.pludov.cadrage.correlation;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 /**
@@ -7,8 +10,10 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
  * @author Ludovic POLLET
  *
  */
-public class ViewPort implements CorrelationArea {
-	public final WeakListenerCollection<ViewPortListener> listeners = new WeakListenerCollection<ViewPortListener>(ViewPortListener.class);
+public class ViewPort implements CorrelationArea, Serializable {
+	private static final long serialVersionUID = -1786447902686444622L;
+
+	public transient WeakListenerCollection<ViewPortListener> listeners = new WeakListenerCollection<ViewPortListener>(ViewPortListener.class);
 	
 	private String viewPortName;
 	private double width;
@@ -31,6 +36,12 @@ public class ViewPort implements CorrelationArea {
 	}
 	
 	public ViewPort() {
+	}
+
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+	    in.defaultReadObject();
+	    listeners = new WeakListenerCollection<ViewPortListener>(ViewPortListener.class);
 	}
 
 	public String getViewPortName() {

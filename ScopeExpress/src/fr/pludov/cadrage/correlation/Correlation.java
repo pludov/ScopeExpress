@@ -1,7 +1,11 @@
 package fr.pludov.cadrage.correlation;
 
+import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +45,7 @@ import fr.pludov.cadrage.utils.IdentityBijection;
 import fr.pludov.cadrage.utils.IdentityHashSet;
 import fr.pludov.cadrage.utils.Ransac;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.io.ImageProvider;
 
 /**
  * Correlation est une collection d'images corrélée
@@ -53,8 +58,10 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
  * @author Ludovic POLLET
  *
  */
-public class Correlation {
-	public final WeakListenerCollection<CorrelationListener> listeners;
+public class Correlation implements Serializable {
+	private static final long serialVersionUID = 7257085749793760384L;
+
+	public transient WeakListenerCollection<CorrelationListener> listeners;
 	
 	// Chaque ImageStar doit avoir une correspondante dans chaque image
 	final IdentityHashSet<ImageStar> etoiles;
@@ -78,6 +85,39 @@ public class Correlation {
 		
 		currentScopePosition = null;
 	}
+	
+	public void clear()
+	{
+		this.currentScopePosition = null;
+		this.currentScopeImage = null;
+		listeners.getTarget().scopeViewPortChanged();
+		
+		this.etoiles.clear();
+		listeners.getTarget().correlationUpdated();
+		
+		while(!this.viewPorts.isEmpty())
+		{
+			removeViewPort(this.viewPorts.iterator().next());
+		}
+	
+		while(!this.images.isEmpty()) {
+			removeImage(this.images.keySet().iterator().next());
+		}
+		
+	}
+	
+	public void add(Correlation other)
+	{
+		for(ViewPort viewPort : other.viewPorts) {
+			addViewPort(viewPort);
+		}
+	}
+	
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+	    in.defaultReadObject();
+	    listeners = new WeakListenerCollection<CorrelationListener>(CorrelationListener.class);
+	}
+
 	
 	private void evaluateLocalStar(ImageStar s)
 	{
@@ -120,10 +160,28 @@ public class Correlation {
 		
 	}
 	
-	private void clearMatchingForImage(Image image)
+	private void clearImageStarSelectionStatus()
+	{
+		for(ImageStar is : this.etoiles)
+		{
+			is.wasSelected = false;
+		}
+		
+		for(Image img : this.images.keySet())
+		{
+			for(ImageStar is : img.getStars())
+			{
+				is.wasSelected = false;
+			}
+		}
+	}
+	
+	public void clearMatchingForImage(Image image)
 	{
 		// Supprimmer les matchings d'une image.
 		ImageCorrelation status = images.get(image);
+		
+		if (status == null) return;
 		
 		IdentityBijection<ImageStar, ImageStar> localToImage = status.starParImage;
 		
@@ -316,7 +374,7 @@ public class Correlation {
 				BufferedImage bufferedImage;
 				
 				try {
-					bufferedImage = ImageIO.read(file);
+					bufferedImage = ImageProvider.readImage(file);
 					width = bufferedImage.getWidth();
 					height = bufferedImage.getHeight();
 					adu255 = 1.0;
@@ -326,7 +384,7 @@ public class Correlation {
 				
 				// Ajouter l'image dans l'objet correlation
 				
-				stars = idt.proceed(bufferedImage, adu255, 75);
+				stars = idt.proceed(bufferedImage, adu255, 125);
 			}
 			
 			@Override
@@ -552,6 +610,7 @@ public class Correlation {
 		double [] r_d = new double[3];
 
 		minTriangleSize = minTriangleSize * minTriangleSize;
+		
 		System.err.println("Searching for triangles in " + referenceStars.size() + " stars");
 		for(ImageStar rst1 : referenceStars)
 		{
@@ -564,6 +623,7 @@ public class Correlation {
 				if (compareTo(rst1, rst2) >= 0) continue;
 			
 				double r_d1 = ImageStar.d2(rst1, rst2);
+				if (r_d1 < minTriangleSize) continue;
 				
 				for(int b = a + 1; b < referencePeerList.size(); ++b)
 				{
@@ -575,7 +635,7 @@ public class Correlation {
 					r_d[1] = ImageStar.d2(rst1, rst3);
 					r_d[2] = ImageStar.d2(rst2, rst3);
 					
-					if (r_d[0] < minTriangleSize && r_d[1] < minTriangleSize && r_d[2] < minTriangleSize) continue;
+					if (r_d[0] < minTriangleSize || r_d[1] < minTriangleSize || r_d[2] < minTriangleSize) continue;
 					
 					Triangle t = new Triangle(rst1, rst2, rst3, r_d[0], r_d[1], r_d[2]);
 					
@@ -651,7 +711,43 @@ public class Correlation {
 		// FIXME : envoyer une calibration sur cette image (pour initialiser au moins les offset en ra et dec)
 	}
 	
-	public AsyncOperation place(final Image image)
+	private static class ImageStarLocationFilter
+	{
+		AffineTransform globalToStar;
+		double x0, y0, x1, y1;
+		double [] srcArray = new double[2];
+		double [] dstArray = new double[2];
+		
+		boolean matchGlobalStar(ImageStar s)
+		{
+			srcArray[0] = s.x;
+			srcArray[1] = s.y;
+			globalToStar.transform(srcArray, 0, dstArray, 0, 1);
+			
+			return dstArray[0] >= x0 && dstArray[0] <= x1 &&
+					dstArray[1] >= y0 && dstArray[1] <= y1;
+		}
+		
+		boolean matchImageStar(ImageStar s, AffineTransform starToGlobal)
+		{
+			dstArray[0] = s.x;
+			dstArray[1] = s.y;
+			
+			starToGlobal.transform(dstArray,  0, srcArray, 0, 1);
+			// Maintenant dans srcArray on a une position globale
+			globalToStar.transform(srcArray, 0, dstArray, 0, 1);
+			
+			return dstArray[0] >= x0 && dstArray[0] <= x1 &&
+					dstArray[1] >= y0 && dstArray[1] <= y1;
+		}
+	}
+	
+	/**
+	 * @param image
+	 * @param forceFullCorellation Est-ce que l'on force une calibration sur l'ensemble des images de références. Sinon, on se contentera de l'overlap
+	 * @return
+	 */
+	public AsyncOperation place(final Image image, final boolean forceFullCorellation)
 	{
 		// Positionnement par rapport aux etoiles déjà existantes...
 		return new AsyncOperation("Positionnement de " + image.getFile().getName()) {
@@ -671,6 +767,8 @@ public class Correlation {
 				if (image.getStars() == null) {
 					throw new Exception("Impossible sans étoiles détéctées");
 				}
+	
+				clearImageStarSelectionStatus();
 				
 				// Compter le nombre d'image déjà placées... Si il n'y en a pas, on est directement placé
 				boolean isFirst = true;
@@ -686,8 +784,8 @@ public class Correlation {
 					status.setPlacement(PlacementType.Correlation);
 					status.tx = 0;
 					status.ty = 0;
-					status.cs = 1;
-					status.sn = 0;
+					status.setCs(1);
+					status.setSn(0);
 					
 					calcMatching(image);
 					
@@ -704,22 +802,83 @@ public class Correlation {
 				
 				// Sinon : retirer le matching des étoiles
 				clearMatchingForImage(image);
-				if (status.getPlacement() == PlacementType.Correlation) {
+				boolean hadApproxPlacement = status.getPlacement() != PlacementType.Aucun;
+				if (status.getPlacement() != PlacementType.Aucun) {
 					status.setPlacement(PlacementType.Approx);
+				}
+				
+				// Listes des filtres correspondant aux images de référence.
+				// On ne va prendre que les étoiles de l'image à correler qui sont 
+				// dans une de ces zones.
+				List<ImageStarLocationFilter> filterForReferenceImages = new ArrayList<ImageStarLocationFilter>();
+				ImageStarLocationFilter filterForNewImage = null;
+				if (hadApproxPlacement && !forceFullCorellation) {
+					// On veut que ça tombe dans toutes les images de référence
+					for(Map.Entry<Image, ImageCorrelation> entry : images.entrySet())
+					{
+						if ((entry.getKey() == image) || entry.getValue().getPlacement() != PlacementType.Correlation) {
+							continue;
+						}
+						ImageStarLocationFilter filter = new ImageStarLocationFilter();
+						filter.globalToStar = Correlation.getGlobalToStarTransform(entry.getValue());
+						filter.x0 = - entry.getKey().getWidth() / 2;
+						filter.y0 = - entry.getKey().getHeight() / 2;
+						filter.x1 = entry.getKey().getWidth() / 2;
+						filter.y1 = entry.getKey().getHeight() / 2;
+						
+						filterForReferenceImages.add(filter);
+					}
+					
+					filterForNewImage = new ImageStarLocationFilter();
+					filterForNewImage.globalToStar = Correlation.getGlobalToStarTransform(status);
+					filterForNewImage.x0 = - status.getWidth() / 2;
+					filterForNewImage.y0 = - status.getHeight() / 2;
+					filterForNewImage.x1 = status.getWidth() / 2;
+					filterForNewImage.y1 = status.getHeight() / 2;
 				}
 				
 				// Prendre la liste des images de référence
 				referenceStars = new ArrayList<ImageStar>();
 				for(ImageStar is : etoiles)
 				{
-					referenceStars.add(new ImageStar(is));
+					if (filterForNewImage != null && !filterForNewImage.matchGlobalStar(is))
+					{
+						continue;
+					}
+					is.wasSelected = true;
+					referenceStars.add(new ImageStar(is));	
+				}
+				
+				
+				AffineTransform currentImageTransform = null;
+				if (!filterForReferenceImages.isEmpty()) {
+					currentImageTransform = getStarToGlobalTransform(status);
 				}
 				
 				imageStars = new ArrayList<ImageStar>();
+				
 				for(ImageStar is : image.getStars())
 				{
-					imageStars.add(new ImageStar(is));
+					if (!filterForReferenceImages.isEmpty())
+					{
+						boolean include = false;
+						for(ImageStarLocationFilter filter : filterForReferenceImages)
+						{
+							if (filter.matchImageStar(is, currentImageTransform)) {
+								include = true;
+								break;
+							}
+						}
+						if (!include) {
+							continue;
+						}
+					}
+					is.wasSelected = true;
+					imageStars.add(new ImageStar(is));	
 				}
+				
+				// On a changé l'état de sélection des étoiles
+				listeners.getTarget().correlationUpdated();
 			}
 			
 			@Override
@@ -733,8 +892,16 @@ public class Correlation {
 				double [] cssn2 = new double[3];
 				double [] cssn3 = new double[3];
 				
-				System.err.println("Looking for source triangles");
-				List<Triangle> referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay);
+				List<Triangle> referenceTriangle;
+				do {
+					System.err.println("Looking for source triangles, max size = " + starRay);
+					referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay);
+					if (referenceTriangle.size() > 10000) {
+						System.err.println("Too many triangles found, search for smaller ones");
+						starRay *= 0.75;
+						referenceTriangle = null;
+					}
+				} while(referenceTriangle == null);
 				DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(referenceTriangle);
 				
 				double bestDelta = 1.0;
@@ -858,9 +1025,12 @@ public class Correlation {
 				});
 				
 				
+//				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+//						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+//						0.1, 0.5);
 				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
 						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
-						0.1, 0.5);
+						1 / Math.sqrt(ransacPoints.size()), 0.1);
 				
 				if (bestParameter == null) {
 					throw new RuntimeException("Pas de corrélation trouvée");
@@ -894,8 +1064,8 @@ public class Correlation {
 				status.setPlacement(PlacementType.Correlation);
 				status.tx = tx;
 				status.ty = ty;
-				status.cs = cs;
-				status.sn = sn;
+				status.setCs(cs);
+				status.setSn(sn);
 				
 				calcMatching(image);
 
@@ -909,24 +1079,37 @@ public class Correlation {
 		};
 	}
 	
-	public Image addImage(final Image image)
+	public ImageCorrelation addImage(final Image image, boolean setSize, boolean useScopePos)
 	{
 		ImageCorrelation status = new ImageCorrelation(image);
 		
 		status.starParImage = null;
 		
-		if (this.images.size() == 0) {
+		if (setSize) {
 			status.setPlacement(PlacementType.Approx);
 			status.tx = 0;
 			status.ty = 0;
-			status.cs = 1.0;
-			status.sn = 1.0;
+			status.setCs(1.0);
+			status.setSn(1.0);
+		}
+		
+		if (useScopePos)
+		{
+			ViewPort currentScopePos = getCurrentScopePosition();
+			if (currentScopePos != null)
+			{
+				status.setPlacement(PlacementType.Approx);
+				status.tx = currentScopePos.getTx();
+				status.ty = currentScopePos.getTy();
+				status.setCs(currentScopePos.getCs());
+				status.setSn(currentScopePos.getSn());
+			}
 		}
 		
 		this.images.put(image, status);
 		
 		listeners.getTarget().imageAdded(image);
-		return image;
+		return status;
 	}
 	
 	public void setImageIsScopeViewPort(final Image image)
@@ -959,6 +1142,9 @@ public class Correlation {
 		return viewPorts;
 	}
 
+	/**
+	 * Peut être null si on ne connait pas la position du scope...
+	 */
 	public ViewPort getCurrentScopePosition() {
 		return currentScopePosition;
 	}
@@ -976,5 +1162,69 @@ public class Correlation {
 		}
 		this.currentScopePosition = currentScopePosition;
 		listeners.getTarget().scopeViewPortChanged();
+	}
+	
+	public static AffineTransform getImageToGlobalTransform(CorrelationArea area)
+	{
+		double imgWidth = area.getWidth();
+		double imgHeight = area.getHeight();
+		
+		AffineTransform transform = new AffineTransform();
+		
+		double scale = Math.sqrt(area.getSn() * area.getSn() + area.getCs() * area.getCs());
+		
+		transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
+		transform.preConcatenate(AffineTransform.getRotateInstance(area.getCs(), -area.getSn()));
+		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
+		transform.preConcatenate(AffineTransform.getTranslateInstance(area.getTx(), area.getTy()));
+		
+		return transform;
+	}
+	
+	public static AffineTransform getGlobalToImageTransform(CorrelationArea area) throws NoninvertibleTransformException
+	{
+		AffineTransform transform = getImageToGlobalTransform(area);
+		transform.invert();
+
+		return transform;
+	}
+	
+	/**
+	 * Les étoiles sont dans le range -width/2, width/2.
+	 * @param area
+	 * @return
+	 */
+	public static AffineTransform getStarToGlobalTransform(CorrelationArea area)
+	{
+		double imgWidth = area.getWidth();
+		double imgHeight = area.getHeight();
+		
+		AffineTransform transform = new AffineTransform();
+		
+		double scale = Math.sqrt(area.getSn() * area.getSn() + area.getCs() * area.getCs());
+		
+		// transform.preConcatenate(AffineTransform.getTranslateInstance(-imgWidth / 2.0, -imgHeight / 2.0));
+		transform.preConcatenate(AffineTransform.getRotateInstance(area.getCs(), -area.getSn()));
+		transform.preConcatenate(AffineTransform.getScaleInstance(scale, scale));
+		transform.preConcatenate(AffineTransform.getTranslateInstance(area.getTx(), area.getTy()));
+		
+		return transform;	
+	}
+	
+	public static AffineTransform getGlobalToStarTransform(CorrelationArea area) throws NoninvertibleTransformException
+	{
+		AffineTransform transform = getStarToGlobalTransform(area);
+		transform.invert();
+
+		return transform;	
+	}
+	
+	
+	/**
+	 * Retourne la liste des étoiles utilisées pour correlation.
+	 */
+	public Collection<ImageStar> getCorrelationStars()
+	{
+		return etoiles;
 	}
 }

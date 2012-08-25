@@ -28,9 +28,9 @@ public class StarDetection {
 	
 	public StarDetection()
 	{
-		backgroundEvaluationPct = 0.8;
-		absoluteAduSeuil = 0.2;
-		binFactor = 2;
+		backgroundEvaluationPct = 0.25;
+		absoluteAduSeuil = 0.05;
+		binFactor = 1;
 	}
 	
 	
@@ -43,7 +43,7 @@ public class StarDetection {
 	
 	private static class StarCandidate {
 		int x, y;
-		double energy;
+		float energy;
 		double fwhm;
 	}
 	
@@ -184,26 +184,62 @@ public class StarDetection {
 				if (rgb > 255) rgb = 255;
 				mask.setRGB(x, y, rgb | rgb << 8 | rgb << 16);
 				
-				image[x + sx * y] -= val;
+				int id = x + sx * y;
+				float img = image[id];
+				img -= val;
+				if (img < 0) img = 0;
+				image[id] = img;
 			}
 		try {
 			ImageIO.write(mask, "png", new File("c:/background.png"));
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-
 	}
+
 	
-	List<StarCandidate> detectCandidates()
+	List<StarCandidate> detectCandidates(int x0, int y0, int w, int h)
 	{
 		List<StarCandidate> result = new ArrayList<StarDetection.StarCandidate>();
-		int id = 0;
 		int candidateCount = 0;
-		for(int y = 0; y < sy; ++y)
-			for(int x = 0; x < sx; ++x)
+		
+//		int [] position  = new int[image.length];
+//		for(int i = 0; i < position.length; ++i)
+//		{
+//			position[i] = i;
+//		}
+//		float[] imageCopy = Arrays.copyOf(image, image.length);
+//		Arrays.sort(imageCopy);
+//		
+//		float seuil = imageCopy[(image.length * 99) / 100];
+		
+		for(int y = 0; y < h; ++y)
+		{
+			for(int x = 0; x < w; ++x)
 			{
-
-				float val = image[id++];
+				int id = (x + x0) + sx * (y + y0);
+				
+				float val = image[id];
+				if (x + x0 > 0) {
+					float valCheck = image[id - 1];
+					if (valCheck > val) continue;
+				}
+				
+				if (x + x0 + 1 < sx) {
+					float valCheck = image[id + 1];
+					if (valCheck > val) continue;
+				}
+				
+				if (y + y0 > 0) {
+					float valCheck = image[id - sx];
+					if (valCheck > val) continue;
+				}
+				
+				if (y + y0 + 1 < sy) {
+					float valCheck = image[id + sx];
+					if (valCheck > val) continue;
+				}
+				
 //				if (binFactor * x < 528 - 70) continue;
 //				if (binFactor * x > 528 + 70) continue;
 //				if (binFactor * y < 430 - 70) continue;
@@ -211,8 +247,8 @@ public class StarDetection {
 
 				if (val > absoluteAduSeuil) {
 					StarCandidate candidate = new StarCandidate();
-					candidate.x = x;
-					candidate.y = y;
+					candidate.x = x0 + x;
+					candidate.y = y0 + y;
 					candidate.energy = val;
 				
 					result.add(candidate);
@@ -220,6 +256,7 @@ public class StarDetection {
 					candidateCount ++;
 				}
 			}
+		}
 		
 		return result;
 	}
@@ -436,13 +473,13 @@ public class StarDetection {
 		return gaussEvaluation;
 	}
 	
-	private boolean hasTopAdu(int x0, int y0, int x1, int y1)
+	private boolean hasTopAdu(int x0, int y0, int x1, int y1, float limit)
 	{
 		for(int y = y0; y <= y1; ++y)
 			for(int x = x0; x <= x1; ++x)
 			{
 				int id = x + sx * y;
-				if (this.image[id] >= this.absoluteAduSeuil) {
+				if (this.image[id] >= limit) {
 					return true;
 				}
 			}
@@ -501,12 +538,20 @@ public class StarDetection {
 			{
 				int id = x + sx * y;
 				float p = this.image[id];
-				
+				if (p < 0) {
+					p = 0;
+				}
 				rx += (x - x0) * p;
 				ry += (y - y0) * p;
 				weightSum += p;
 			}
-		return new double[] {x0 + rx / weightSum, y0 + ry / weightSum, weightSum};
+		double baryx = x0 + rx / weightSum;
+		double baryy = y0 + ry / weightSum;
+//		if (baryx < x0 || baryx > x1 || baryy < y0 || baryy > y1)
+//		{
+//			throw new RuntimeException("bary is out of bounds !");
+//		}
+		return new double[] {baryx, baryy, weightSum};
 	}
 	
 	private double getFWHM(int x0, int y0, int x1, int y1, double centerx, double centery)
@@ -526,6 +571,44 @@ public class StarDetection {
 				weight += p;
 			}
 		return 2.355 * Math.sqrt(sum/weight);
+	}
+	
+	public class StarDetectionSector
+	{
+		int x, y, w, h;
+		List<StarCandidate> candidates;
+		int readPos;
+		
+		StarDetectionSector(int x, int y, int w, int h)
+		{
+			this.x = x;
+			this.y = y;
+			this.w = w;
+			this.h = h;
+		}
+		
+		void detectStars()
+		{
+			this.candidates = detectCandidates(x, y, w, h);
+			Collections.sort(this.candidates, pixelValueComparator());
+			this.readPos = 0;
+		}
+		
+		boolean hasNext()
+		{
+			return readPos < candidates.size();
+		}
+		
+		StarCandidate next()
+		{
+			return candidates.get(readPos++);
+		}
+		
+		double getLevelOfNextCandidate()
+		{
+			return candidates.isEmpty() ? -1 : candidates.get(0).energy;
+		}
+		
 	}
 	
 	// Double adu255 : valeur d'adu pour 255.
@@ -555,161 +638,228 @@ public class StarDetection {
 					sum += pixels[i];
 				}
 				
-				image[id ++] = (float)(mul * sum);
+				float pix = (float)(mul*sum);
+//				if (pix < 0) {
+//					throw new RuntimeException("pixel sum is negative!") ;
+//				}
+				image[id ++] = pix;
 			}
 		
 		background();
 		median3();
-		
-		
-		
-		// Parcourir le tableau à la recherche des pixels > seuilADU
-		List<StarCandidate> candidate = detectCandidates();
-		
-		// Trier par intensité décroissante
-		Collections.sort(candidate, pixelValueComparator());
-		
-		// placer candidate
+
+		// pour DEBUG : enregistrer l'image sans le fond.
 		BufferedImage mask = new BufferedImage(sx, sy, BufferedImage.TYPE_INT_RGB);
-		
-		List<ImageStar> result = new ArrayList<ImageStar>();
-		int count = 0;
-		for(StarCandidate sc : candidate)
+		for(int y = 0; y < sy; ++y)
 		{
-			// Agrandir tant qu'on trouve un pct de pixel superieur à l'adu...
-			int x0 = sc.x;
-			int y0 = sc.y;
-			int x1 = x0;
-			int y1 = y0;
-			
-			// FIXME: paramètre
-			int maxSize = 16;
-			boolean grow[] = {true,true, true, true};
-			while((grow[0] || grow[1] || grow[2] || grow[3]) && (x1 - x0 + 1 < maxSize)&& (y1 - y0 + 1 < maxSize))
+			for(int x = 0 ; x < sx; ++x)
 			{
-				if (grow[0]) {
-					if (x0 == 0) {
-						grow[0] = false;
-					} else {
-						// on peut grandir à gauche
-						if (hasTopAdu(x0-1, y0, x0-1, y1)) {
-							x0--;
-						} else {
-							grow[0] = false;
-						}
-					}
-				}
-				
-				if (grow[1]) {
-					if (x1 == sx - 1) {
-						grow[1] = false;
-					} else {
-						if (hasTopAdu(x1 + 1, y0, x1+1, y1)) {
-							x1++;
-						} else {
-							grow[1] = false;
-						}
-					}
-				}
-			
-				if (grow[2]) {
-					if (y0 == 0) {
-						grow[2] = false;
-					} else {
-						// on peut grandir à gauche
-						if (hasTopAdu(x0, y0 - 1, x1, y0 - 1)) {
-							y0--;
-						} else {
-							grow[2] = false;
-						}
-					}
-				}
-				
-				if (grow[3]) {
-					if (y1 == sy - 1) {
-						grow[3] = false;
-					} else {
-						if (hasTopAdu(x0, y1 + 1, x1, y1 + 1)) {
-							y1++;
-						} else {
-							grow[3] = false;
-						}
-					}
-				}
+				int val = Math.round(255 * image[x + y * sx]);
+				if (val < 0) val = 0;
+				if (val > 255) val = 255;
+				mask.setRGB(x, y, val);
 			}
-			
-			// Pixel chauds...
-			if (x1 == x0 && y1 == y0) continue;
-			
-			// Zone trop grande... Ignorée
-			if (grow[0] || grow[1] || grow[2] || grow[3]) continue;
-			
-			int largex0 = x0, largey0 = y0, largex1 = x1, largey1 = y1;
-			
-			// Faire grossir de 3 pixels
-			int growPx = 3;
-			largex0 -= growPx;
-			if (largex0 < 0) largex0 = 0;
-			largex1 += growPx;
-			if (largex1 >= sx) largex1 = sx - 1;
-			largey0 -= growPx;
-			if (largey0 < 0) largey0 = 0;
-			largey1 += growPx;
-			if (largey1 >= sy) largey1 = sy - 1;
-			
-			double [] bary = getBarycentre(largex0, largey0, largex1, largey1);
-			double ecartType = getFWHM(largex0, largey0, largex1, largey1, bary[0], bary[1]);
-			
-			ImageStar star = new ImageStar();
-			star.x = bary[0] * binFactor - img.getWidth() / 2.0;
-			star.y = bary[1] * binFactor - img.getHeight() / 2.0;
-			star.energy = bary[2] * binFactor * binFactor;
-			star.fwhm = ecartType * binFactor;
-			result.add(star);
-			count ++;
-			
-			System.err.println("Star found at " + bary[0]+","+bary[1]+ " E=" + bary[2] + " fwhm=" + ecartType);
-			
-			clearTopAdu(x0, y0, x1, y1);
-			try {
-				mask.setRGB(
-					(int)Math.ceil(bary[0]), 
-					(int)Math.ceil(bary[1]), 0xffffff);
-			} catch(Exception e) {
-				
-			}
-			
-			if (count >= nbStarMax) {
-				System.err.println("Enough star found.");
-				break;
-			}
-//			if (this.image[sc.x+sx*sc.y] < absoluteAduSeuil) {
-//				continue;
-//			}
-//			double err = evaluateStar(sc.x, sc.y, sc.pixel);
-//			if (err < absoluteAduSeuil * 0.1)
-//			{
-//				// fwhm*1.5 pour éviter les détection proches.
-//				substractGauss(gaussCenterX, gaussCenterY, gaussFwhm*1.5, gaussIntensity);
-//				System.err.println("Pixel at " + sc.x+","+sc.y+"   Star at " + gaussCenterX+","+gaussCenterY+"=>" +gaussIntensity+", fwhm="+ gaussFwhm+", mean relative error:" + err);
-//				mask.setRGB(
-//						(int)Math.round(gaussCenterX), 
-//						(int)Math.round(gaussCenterY), 0xffffff);
-//				count ++;
-//			} else {
-//				System.err.println("Rejecting start at " + sc.x +", "+sc.y + " : mean relative error:" + err);
-//			}
-			
 		}
 		
-		System.err.println("Star detected : " + count);
-//		
+		// On découpe l'image en secteur et on fait une recherche par secteur.
+		// On trouve une étoile sur chaque secteur et on continue.
+		// A chaque itération, on trouve la candidate la plus brillante sur chaque secteur...
+		
+		List<StarDetectionSector> sectors = new ArrayList<StarDetection.StarDetectionSector>();
+		int xdiv = 6, ydiv = 6;
+		
+		if (sx < 500) xdiv = 4;
+		if (sy < 500) ydiv = 4;
+		
+		if (sx < 128) xdiv = 2;
+		if (sy < 128) ydiv = 2;
+		
+		int xmargin = (sx * 4) / (xdiv * 16);
+		int ymargin = (sy * 4) / (xdiv * 16);
+		
+		
+		
+		for(int square_y = 0; square_y < ydiv; square_y++)
+		{
+			int y0 = (square_y * sy) / ydiv;
+			int y1 = ((square_y + 1) * sy) / ydiv - 1;
+		
+			y0 -= ymargin;
+			if (y0 < 0) y0 = 0;
+			y1 += ymargin;
+			if (y1 >= sy) y1 = sy - 1;
+			
+			for(int square_x = 0; square_x < xdiv; square_x++)
+			{
+				int x0 = (square_x * sx) / xdiv;
+				int x1 = ((square_x + 1) * sx) / xdiv - 1;
+			
+				x0 -= xmargin;
+				if (x0 < 0) x0 = 0;
+				x1 += xmargin;
+				if (x1 >= sx) x1 = sx - 1;
+				
+				StarDetectionSector sector = new StarDetectionSector(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+				sector.detectStars();
+				sectors.add(sector);
+			}
+		}
+
+		List<ImageStar> result = new ArrayList<ImageStar>();
+		boolean doContinue = true;
+		while(doContinue && result.size() < nbStarMax)
+		{
+			doContinue = false;
+			// Essayer sur chaque secteur, on choisissant d'abord les secteur brillants...
+			for(StarDetectionSector sector : sectors)
+			{
+				while(sector.hasNext()) {
+					
+					doContinue = true;
+					
+					
+					StarCandidate sc = sector.next();
+	
+					// Agrandir tant qu'on trouve un pct de pixel superieur à l'adu...
+					int x0 = sc.x;
+					int y0 = sc.y;
+					int x1 = x0;
+					int y1 = y0;
+					
+					// Si la valeur n'est plus la même, c'est qu'une autre étoile est dans le coin; on abandonne...
+					if (image[x0 + y0 * sx] != sc.energy) {
+						continue;
+					}
+					
+					// FIXME : C'est ad hoc...
+					float limit = (float)(sc.energy * 0.25);
+					
+					// FIXME: paramètre
+					int maxSize = 16;
+					boolean grow[] = {true,true, true, true};
+					while((grow[0] || grow[1] || grow[2] || grow[3]) && (x1 - x0 + 1 < maxSize)&& (y1 - y0 + 1 < maxSize))
+					{
+						if (grow[0]) {
+							if (x0 == 0) {
+								grow[0] = false;
+							} else {
+								// on peut grandir à gauche
+								if (hasTopAdu(x0-1, y0, x0-1, y1, limit)) {
+									x0--;
+								} else {
+									grow[0] = false;
+								}
+							}
+						}
+						
+						if (grow[1]) {
+							if (x1 == sx - 1) {
+								grow[1] = false;
+							} else {
+								if (hasTopAdu(x1 + 1, y0, x1+1, y1, limit)) {
+									x1++;
+								} else {
+									grow[1] = false;
+								}
+							}
+						}
+					
+						if (grow[2]) {
+							if (y0 == 0) {
+								grow[2] = false;
+							} else {
+								// on peut grandir à gauche
+								if (hasTopAdu(x0, y0 - 1, x1, y0 - 1, limit)) {
+									y0--;
+								} else {
+									grow[2] = false;
+								}
+							}
+						}
+						
+						if (grow[3]) {
+							if (y1 == sy - 1) {
+								grow[3] = false;
+							} else {
+								if (hasTopAdu(x0, y1 + 1, x1, y1 + 1, limit)) {
+									y1++;
+								} else {
+									grow[3] = false;
+								}
+							}
+						}
+					}
+					
+					// Pixel chauds...
+					if (x1 == x0 && y1 == y0) continue;
+					
+					// Zone trop grande... Ignorée
+					if (grow[0] || grow[1] || grow[2] || grow[3]) continue;
+					
+					int largex0 = x0, largey0 = y0, largex1 = x1, largey1 = y1;
+					
+					// Faire grossir de 3 pixels
+					int growPx = 3;
+					largex0 -= growPx;
+					if (largex0 < 0) largex0 = 0;
+					largex1 += growPx;
+					if (largex1 >= sx) largex1 = sx - 1;
+					largey0 -= growPx;
+					if (largey0 < 0) largey0 = 0;
+					largey1 += growPx;
+					if (largey1 >= sy) largey1 = sy - 1;
+					
+					double [] bary = getBarycentre(largex0, largey0, largex1, largey1);
+					double ecartType = getFWHM(largex0, largey0, largex1, largey1, bary[0], bary[1]);
+					
+					ImageStar star = new ImageStar();
+					star.x = bary[0] * binFactor - img.getWidth() / 2.0;
+					star.y = bary[1] * binFactor - img.getHeight() / 2.0;
+					star.energy = bary[2] * binFactor * binFactor;
+					star.fwhm = ecartType * binFactor;
+					result.add(star);
+					
+					System.err.println("Star found at " + bary[0]+","+bary[1]+ " E=" + bary[2] + " fwhm=" + ecartType);
+					
+					clearTopAdu(x0, y0, x1, y1);
+					try {
+						mask.setRGB(
+							(int)Math.ceil(bary[0]), 
+							(int)Math.ceil(bary[1]), 0xffffff);
+					} catch(Exception e) {
+						
+					}
+					
+		//			if (this.image[sc.x+sx*sc.y] < absoluteAduSeuil) {
+		//				continue;
+		//			}
+		//			double err = evaluateStar(sc.x, sc.y, sc.pixel);
+		//			if (err < absoluteAduSeuil * 0.1)
+		//			{
+		//				// fwhm*1.5 pour éviter les détection proches.
+		//				substractGauss(gaussCenterX, gaussCenterY, gaussFwhm*1.5, gaussIntensity);
+		//				System.err.println("Pixel at " + sc.x+","+sc.y+"   Star at " + gaussCenterX+","+gaussCenterY+"=>" +gaussIntensity+", fwhm="+ gaussFwhm+", mean relative error:" + err);
+		//				mask.setRGB(
+		//						(int)Math.round(gaussCenterX), 
+		//						(int)Math.round(gaussCenterY), 0xffffff);
+		//				count ++;
+		//			} else {
+		//				System.err.println("Rejecting start at " + sc.x +", "+sc.y + " : mean relative error:" + err);
+		//			}
+					
+					break;
+				}				
+			}
+		}
+		
+		System.err.println("Star detected : " + result.size());
+		
 //		try {
 //			ImageIO.write(mask, "png", new File("c:/mask.png"));
 //		} catch(Exception e) {
 //			e.printStackTrace();
 //		}
-//		
+		
 		return result;
 	}
 	

@@ -1,48 +1,55 @@
 package fr.pludov.cadrage.utils;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Set;
 
-public class IdentityHashSet<E> implements Set<E> {
+public class IdentityHashSet<E> implements Set<E>, Serializable{
+	private static final long serialVersionUID = -66174827635860294L;
+	
 	IdentityHashMap<E, Integer> map;
-	Set<E> set;
 	static final Integer zero = 0;
 	
 	public IdentityHashSet() {
 		map = new IdentityHashMap<E, Integer>();
-		set = map.keySet();
+		
+	}
+
+
+	Set<E> getSet() {
+		return map.keySet();
 	}
 
 
 	public int size() {
-		return set.size();
+		return getSet().size();
 	}
 
 
 	public boolean isEmpty() {
-		return set.isEmpty();
+		return getSet().isEmpty();
 	}
 
 
 	public boolean contains(Object o) {
-		return set.contains(o);
+		return getSet().contains(o);
 	}
 
 
 	public Iterator<E> iterator() {
-		return set.iterator();
+		return getSet().iterator();
 	}
 
 
 	public Object[] toArray() {
-		return set.toArray();
+		return getSet().toArray();
 	}
 
 
 	public <T> T[] toArray(T[] a) {
-		return set.toArray(a);
+		return getSet().toArray(a);
 	}
 
 
@@ -53,12 +60,12 @@ public class IdentityHashSet<E> implements Set<E> {
 
 
 	public boolean remove(Object o) {
-		return set.remove(o);
+		return getSet().remove(o);
 	}
 
 
 	public boolean containsAll(Collection<?> c) {
-		return set.containsAll(c);
+		return getSet().containsAll(c);
 	}
 
 
@@ -72,27 +79,27 @@ public class IdentityHashSet<E> implements Set<E> {
 
 
 	public boolean retainAll(Collection<?> c) {
-		return set.retainAll(c);
+		return getSet().retainAll(c);
 	}
 
 
 	public boolean removeAll(Collection<?> c) {
-		return set.removeAll(c);
+		return getSet().removeAll(c);
 	}
 
 
 	public void clear() {
-		set.clear();
+		getSet().clear();
 	}
 
 
 	public boolean equals(Object o) {
-		return set.equals(o);
+		return getSet().equals(o);
 	}
 
 
 	public int hashCode() {
-		return set.hashCode();
+		return getSet().hashCode();
 	}
 	
 }

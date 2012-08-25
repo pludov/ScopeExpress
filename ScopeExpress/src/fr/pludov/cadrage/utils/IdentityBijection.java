@@ -1,11 +1,13 @@
 package fr.pludov.cadrage.utils;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 
-public class IdentityBijection<A, B> {
-
+public class IdentityBijection<A, B> implements Serializable{
+	private static final long serialVersionUID = -3056452260744129872L;
+	
 	IdentityHashMap<A, B> directMap = new IdentityHashMap<A, B>();
 	IdentityHashMap<B, A> reverseMap = new IdentityHashMap<B, A>();
 	

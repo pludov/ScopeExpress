@@ -23,8 +23,8 @@ import fr.pludov.cadrage.scope.dummy.DummyScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
 import fr.pludov.cadrage.ui.CorrelationUi;
 import fr.pludov.cadrage.ui.ImageList;
+import fr.pludov.cadrage.ui.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList;
-import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 
 /**
  * A gauche : visualisation des images
@@ -94,6 +94,7 @@ public class Cadrage {
 		scopeInterface = newScope;
 	}
 
+	public static File preferedStartingPoint;
 	
 	
 	/**
@@ -112,7 +113,9 @@ public class Cadrage {
 			
 			defaultParameter = new StarDetection();
 			defaultParameter.setAbsoluteAdu(aduSeuil);
-			defaultParameter.setBinFactor(2);
+			defaultParameter.setBinFactor(1);
+			
+			preferedStartingPoint = new File("C:\\Documents and Settings\\utilisateur\\Mes documents\\Mes images\\BackyardEOS");
 			
 			// List<ImageStar> star1 = detection.proceed(image, 18 * 1600);
 			
@@ -216,6 +219,7 @@ public class Cadrage {
 //					5000, new File("c:/astro/EOS 350D DIGITAL/america300/IMG_0221.JPG")
 //			};
 
+			if (1 == 0) {
 			// M51
 			File scenarioFolder = isUnix ? 
 					new File("/home/ludovic/Documents/Astronomie/photos/test-cadrage/") 
@@ -292,7 +296,7 @@ public class Cadrage {
 				}
 				
 			}
-			
+			}
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

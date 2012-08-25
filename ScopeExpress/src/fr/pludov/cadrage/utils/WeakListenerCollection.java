@@ -9,13 +9,45 @@ import java.util.Iterator;
 import java.util.List;
 
 public class WeakListenerCollection<Interface> implements InvocationHandler {
+	private static class ControlledObject<Interface>
+	{
+		WeakReference<Object> reference;
+		Interface listener;
+		
+		ControlledObject(Object object, Interface itf)
+		{
+			this.reference = new WeakReference<Object>(object);
+			if (object != itf) {
+				this.listener = itf;
+			}
+		}
+		
+		Interface get()
+		{
+			if (listener == null) {
+				return (Interface)reference.get();
+			} else {
+				if (reference.get() != null) {
+					return listener;
+				}
+				return null;
+			}
+		}
+		
+		Object getOwner()
+		{
+			return this.reference.get();
+		}
+	}
+	
 	private Class<? extends Interface> clazz;
 	private Interface proxy;
-	private List<WeakReference<Interface>> listeners;
+	// private List<WeakReference<Interface>> listeners;
+	private List<ControlledObject<Interface>> listeners;
 	
 	public WeakListenerCollection(Class<? extends Interface> clazz)
 	{
-		listeners = new ArrayList<WeakReference<Interface>>();
+		listeners = new ArrayList<ControlledObject<Interface>>();
 		proxy = (Interface)Proxy.newProxyInstance(clazz.getClassLoader(), 
 				new Class[]{clazz}, 
 				this);
@@ -26,9 +58,9 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 	{
 		List<Interface> objectToNotify = new ArrayList<Interface>();
 		// 1 - vider les références vide
-		for(Iterator<WeakReference<Interface>> it = listeners.iterator(); it.hasNext();)
+		for(Iterator<ControlledObject<Interface>> it = listeners.iterator(); it.hasNext();)
 		{
-			WeakReference<Interface> ref = it.next();
+			ControlledObject<Interface> ref = it.next();
 			Interface target = ref.get();
 			if (target == null) {
 				it.remove();
@@ -53,19 +85,19 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 		return result;
 	}
 	
-	public void addListener(Interface i)
+	public void addListener(Object owner, Interface i)
 	{
-		removeListener(i);
-		listeners.add(new WeakReference<Interface>(i));
+		removeListener(owner);
+		listeners.add(new ControlledObject<Interface>(owner, i));
 	}
 	
-	public void removeListener(Interface i)
+	public void removeListener(Object owner)
 	{
-		for(Iterator<WeakReference<Interface>> it = listeners.iterator(); it.hasNext();)
+		for(Iterator<ControlledObject<Interface>> it = listeners.iterator(); it.hasNext();)
 		{
-			WeakReference<Interface> ref = it.next();
-			Interface target = ref.get();
-			if (target == null || target == i) {
+			ControlledObject<Interface> ref = it.next();
+			Object refOwner = ref.getOwner();
+			if (refOwner == null || refOwner == owner) {
 				it.remove();
 			}
 		}

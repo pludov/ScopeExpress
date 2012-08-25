@@ -18,7 +18,6 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
 
 public class LevelDialog extends JDialog implements ListSelectionListener {
 	List<ImageListEntry> images;
@@ -118,7 +117,7 @@ public class LevelDialog extends JDialog implements ListSelectionListener {
 	
 	void setImageList(List<ImageListEntry> images)
 	{
-		this.images = new ArrayList<ImageList.ImageListEntry>(images); 
+		this.images = new ArrayList<ImageListEntry>(images); 
 		
 		double exposition = 0;
 		double gamma = 0;

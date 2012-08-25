@@ -9,6 +9,11 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,11 +40,7 @@ import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
-import fr.pludov.cadrage.scope.ScopeException;
-import fr.pludov.cadrage.ui.ImageList.ImageListEntry;
-import fr.pludov.cadrage.ui.ViewPortList.ViewPortListEntry;
-import fr.pludov.cadrage.ui.utils.GenericList;
-import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
+import fr.pludov.cadrage.ui.utils.ListEntry;
 
 public class CorrelationUi {
 	Correlation correlation;
@@ -55,6 +56,8 @@ public class CorrelationUi {
 	JFileChooser directoryChooser;
 	volatile File directoryWatch;
 	File lastDirectoryWatch;
+	JButton saveButton;
+	JButton loadButton;
 	
 	JToolBar toolBar;
 	
@@ -210,6 +213,81 @@ public class CorrelationUi {
 			}
 		});
 		toolBar.add(directoryButton);
+		
+		saveButton = new JButton();
+		saveButton.setText("Sauver projet");
+		saveButton.setToolTipText("sauvegarder la liste d'image et les corrélations");
+		saveButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					save(new File("c:/plop.acd"));
+				} catch(IOException ex) {
+					throw new RuntimeException("save failed", ex);
+				}
+			}
+		});
+		toolBar.add(saveButton);
+
+		loadButton = new JButton();
+		loadButton.setText("Charger projet");
+		loadButton.setToolTipText("Charger la liste d'image et les corrélations");
+		loadButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					load(new File("c:/plop.acd"));
+				} catch(Exception ex) {
+					throw new RuntimeException("load failed", ex);
+				}
+			}
+		});
+		toolBar.add(loadButton);
+
+	}
+
+	public void save(File file) throws IOException
+	{
+		FileOutputStream fos = new FileOutputStream(file);
+		try {
+			ObjectOutputStream outputStream = new ObjectOutputStream(fos);
+			
+			List<ImageListEntry> imageTableContent = this.imageTable.getContent();
+			
+			// Sauver la correlation
+			outputStream.writeObject(correlation);
+			outputStream.writeObject(this.imageTable.getContent());
+			outputStream.writeObject(this.viewPortTable.getContent());
+			// FIXME : sauver les images et les viewports !
+			outputStream.close();
+		} finally {
+			fos.close();
+		}
+	}
+	
+	public void load(File file) throws IOException, ClassNotFoundException
+	{
+		FileInputStream fis = new FileInputStream(file);
+		try {
+			ObjectInputStream outputStream = new ObjectInputStream(fis);
+			
+			List<ImageListEntry> imageTableContent = this.imageTable.getContent();
+			
+			Correlation corr = (Correlation)outputStream.readObject();
+			List<ImageListEntry> imageListEntries = (List<ImageListEntry>)outputStream.readObject();
+			List<ViewPortListEntry> viewportListEntries = (List<ViewPortListEntry>)outputStream.readObject();
+			
+			// Restaure la correlation
+			correlation = corr;
+			this.imageTable.changeCorrelation(correlation);
+			this.viewPortTable.changeCorrelation(correlation);
+			this.imageTable.setContent(imageListEntries);
+			this.viewPortTable.setContent(viewportListEntries);
+			this.display.changeCorrelation(correlation);
+			outputStream.close();
+		} finally {
+			fis.close();
+		}
 	}
 	
 	public void newFileDetected(File file, boolean fresh)
@@ -228,15 +306,14 @@ public class CorrelationUi {
 			// Si la calibration est dispo, on doit pouvoir placer l'image à partir de la précédente
 		}
 		
-		
-		correlation.addImage(image);
+		ImageCorrelation imageCorrelation = correlation.addImage(image, true, fresh);
 		if (fresh) {
 			correlation.setImageIsScopeViewPort(image);
 		}
 		
 		a1 = correlation.initImageMetadata(image);
 		a1.queue(correlation.detectStars(image));
-		a1.queue(correlation.place(image));
+		a1.queue(correlation.place(image, imageCorrelation.getPlacement() != PlacementType.Aucun));
 
 		// FIXME : mettre à jour la calibration ?
 		
@@ -246,7 +323,7 @@ public class CorrelationUi {
 	private void addImages()
 	{
 		if (chooser == null) {
-			chooser = new JFileChooser();
+			chooser = new JFileChooser(Cadrage.preferedStartingPoint);
 		}
 		
 		chooser.setMultiSelectionEnabled(true);
@@ -317,7 +394,7 @@ public class CorrelationUi {
 		}
 		
 		if (directoryChooser == null) {
-			directoryChooser = new JFileChooser();
+			directoryChooser = new JFileChooser(Cadrage.preferedStartingPoint);
 		}
 		if (lastDirectoryWatch != null) {
 			directoryChooser.setCurrentDirectory(lastDirectoryWatch);
@@ -357,6 +434,27 @@ public class CorrelationUi {
 		
 		return result;
 	}
+	
+	public void detectStars(List<ImageListEntry> imageList)
+	{
+		AsyncOperation a1;
+		
+		for(ImageListEntry entry : imageList)
+		{
+			final Image image = entry.getTarget();
+			
+			ImageCorrelation imageCorrelation = correlation.getImageCorrelation(image);
+			
+			a1 = correlation.detectStars(image);
+			a1.queue(correlation.place(image, imageCorrelation.getPlacement() != PlacementType.Aucun));
+
+			// FIXME : mettre à jour la calibration ?
+			
+			a1.start();
+			
+		}
+	}
+
 	
 	public void calibrer(List<ImageListEntry> imageList)
 	{
@@ -418,9 +516,9 @@ public class CorrelationUi {
 		
 	}
 	
-	protected void correler(ImageListEntry ile)
+	protected void correler(ImageListEntry ile, boolean forceFullCalibration)
 	{
-		correlation.place(ile.getTarget()).start();
+		correlation.place(ile.getTarget(), forceFullCalibration).start();
 
 	}
 	
@@ -510,6 +608,40 @@ public class CorrelationUi {
 		correlation.setImageIsScopeViewPort(null);
 	}
 	
+	
+	private void addRotateMenu(JPopupMenu popupMenu, final List<CorrelationArea> objectList)
+	{
+		JMenuItem rotateMenu;
+		
+		rotateMenu = new JMenuItem();
+		rotateMenu.setText("Tourner 90° horaire");
+		rotateMenu.setEnabled(objectList.size() > 0);
+		rotateMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(CorrelationArea target : objectList)
+				{
+					double cs, sn;
+					cs = target.getCs();
+					sn = target.getSn();
+					target.setCs(-sn);
+					target.setSn(cs);
+					
+					if (target instanceof ImageCorrelation)
+					{
+						((ImageCorrelation)target).setPlacement(PlacementType.Approx);
+						correlation.listeners.getTarget().correlationUpdated();
+					} else if (target instanceof ViewPort)
+					{
+						((ViewPort)target).listeners.getTarget().viewPortMoved((ViewPort)target);
+					}
+				}
+			}
+		});
+		popupMenu.add(rotateMenu);
+		
+	}
+	
 	protected JPopupMenu getDynamicMenuForImageList(final List<ImageListEntry> images)
 	{
 		JPopupMenu contextMenu = new JPopupMenu();
@@ -562,20 +694,46 @@ public class CorrelationUi {
 
 		
 		// Détection
+		JMenuItem detectEtoileMenu = new JMenuItem();
+		detectEtoileMenu.setText("Détecter les étoiles");
+		detectEtoileMenu.setToolTipText("(Re)Détecte les étoiles sur l'image");
+		detectEtoileMenu.setEnabled(images.size() > 0);
+		detectEtoileMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				detectStars(images);
+			}
+		});
+		contextMenu.add(detectEtoileMenu);
 
 		JMenuItem correlerMenu = new JMenuItem();
-		correlerMenu.setText("Coreller les étoiles");
+		correlerMenu.setText("Coreller globalement");
+		correlerMenu.setToolTipText("Fait une corellation avec l'ensemble des images de références");
 		correlerMenu.setEnabled(images.size() > 0);
 		correlerMenu.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				for(ImageListEntry image : images) {
-					correler(image);
+					correler(image, true);
 				}
 			}
 		});
 		contextMenu.add(correlerMenu);
-		
+
+		JMenuItem correlerEnPlaceMenu = new JMenuItem();
+		correlerEnPlaceMenu.setText("Afiner la corellation");
+		correlerEnPlaceMenu.setToolTipText("Fait une corellation à la position actuelle");
+		correlerEnPlaceMenu.setEnabled(images.size() > 0);
+		correlerEnPlaceMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(ImageListEntry image : images) {
+					correler(image, false);
+				}
+			}
+		});
+		contextMenu.add(correlerEnPlaceMenu);
+
 		
 		
 		
@@ -636,6 +794,17 @@ public class CorrelationUi {
 		});
 		contextMenu.add(removeMenu);
 		
+		List<CorrelationArea> areas = new ArrayList<CorrelationArea>();
+		for(ImageListEntry target : images)
+		{
+			ImageCorrelation imageCorr = correlation.getImageCorrelation(target.getTarget());
+			if (imageCorr != null) {
+				areas.add(imageCorr);
+			}
+		}
+		addRotateMenu(contextMenu, areas);
+		
+		
 		return contextMenu;
 	}
 	
@@ -685,6 +854,13 @@ public class CorrelationUi {
 			}
 		});
 		contextMenu.add(removeMenu);
+		
+		List<CorrelationArea> areas = new ArrayList<CorrelationArea>();
+		for(ViewPortListEntry target : images)
+		{
+			areas.add(target.getTarget());
+		}
+		addRotateMenu(contextMenu, areas);
 		
 		return contextMenu;
 		

@@ -15,6 +15,7 @@ public class CorrelationImageProducer {
 	private final Image image;
 	private final byte [] [] datas;
 	private final BufferedImageOp op;
+	private final BufferedImageOp opGray;
 	
 	protected CorrelationImageProducer(Image image)
 	{
@@ -82,6 +83,7 @@ public class CorrelationImageProducer {
 		}
 		
 		op = new LookupOp(new ByteLookupTable(0, datas), null);
+		opGray = new LookupOp(new ByteLookupTable(0, datas[0]), null);
 	}
 
 
@@ -106,7 +108,10 @@ public class CorrelationImageProducer {
 	public BufferedImage produce(BufferedImage source) {
 		
 		BufferedImage result = new BufferedImage(source.getWidth(), source.getHeight(), source.getType());
-		
-		return op.filter(source, result);
+		if (source.getColorModel().getComponentSize().length == 1) {
+			return opGray.filter(source,  result);
+		} else {
+			return op.filter(source, result);
+		}
 	}
 }

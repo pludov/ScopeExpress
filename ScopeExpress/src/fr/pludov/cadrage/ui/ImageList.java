@@ -13,66 +13,17 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import fr.pludov.cadrage.Image;
-import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.ui.utils.ListEntry;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
 
-public class ImageList extends GenericList<Image, ImageList.ImageListEntry> implements CorrelationListener {
+public class ImageList extends GenericList<Image, ImageListEntry> implements CorrelationListener {
 	protected final CorrelationUi correlationUi;
-	
-	public class ImageListEntry 
-			extends GenericList<Image, ImageList.ImageListEntry>.ListEntry 
-			implements ImageListener
-	{
-		ImageListEntry(Image image) {
-			super(image);
-			
-			image.listeners.addListener(this);
-		}
-		
-		boolean hasDate = false;
-		Date date;
-
-		public Date getCreationDate()
-		{
-			if (!hasDate) {
-				hasDate = true;
-				long modif = getTarget().getFile().lastModified();
-				if (modif != 0L) {
-					date = new Date(modif);
-				} else {
-					date = null;
-				}
-			}
-			return date;
-		}
-		
-		@Override
-		public void metadataChanged(Image source) {
-			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
-		}
-		
-		@Override
-		public void starsChanged(Image source) {
-			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
-		}
-		
-		@Override
-		public void scopePositionChanged(Image source) {
-			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
-		}
-		
-		@Override
-		public void levelChanged(Image source) {
-			getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
-		}
-	}
-	
 	
 	@SuppressWarnings("unchecked")
 	private final List<ColumnDefinition> columns = Arrays.asList(
@@ -115,7 +66,7 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 		}
 	);
 	
-	final Correlation correlation;
+	Correlation correlation;
 
 	public ImageList(CorrelationUi correlationUi) {
 		super();
@@ -123,7 +74,14 @@ public class ImageList extends GenericList<Image, ImageList.ImageListEntry> impl
 		
 		this.correlationUi = correlationUi;
 		this.correlation = correlationUi.getCorrelation();
-		this.correlation.listeners.addListener(this);
+		this.correlation.listeners.addListener(this, this);
+	}
+	
+	public void changeCorrelation(Correlation correlation)
+	{
+		this.correlation.listeners.removeListener(this);
+		this.correlation = correlation;
+		this.correlation.listeners.addListener(this, this);
 	}
 	
 	@Override

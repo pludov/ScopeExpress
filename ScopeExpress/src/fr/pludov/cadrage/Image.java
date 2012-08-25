@@ -1,16 +1,21 @@
 package fr.pludov.cadrage;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.List;
 
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
-public class Image {
-	public final WeakListenerCollection<ImageListener> listeners;
+public class Image implements Serializable {
+
+	private static final long serialVersionUID = 2030293814683489896L;
+
+	public transient WeakListenerCollection<ImageListener> listeners;
 	
 	File file;
 	
-	// Position du téléscope ?
+	// Position issue du téléscope ?
 	boolean scopePosition;
 	double ra, dec;
 	
@@ -41,6 +46,12 @@ public class Image {
 		this.black = 0.0;
 		this.pause = null;
 		
+	}
+
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+	    in.defaultReadObject();
+	    this.listeners = new WeakListenerCollection<ImageListener>(ImageListener.class);
 	}
 
 	public File getFile() {

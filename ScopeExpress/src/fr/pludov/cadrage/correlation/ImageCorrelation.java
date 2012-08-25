@@ -1,11 +1,15 @@
 package fr.pludov.cadrage.correlation;
 
+import java.io.Serializable;
+
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.utils.IdentityBijection;
 
-public class ImageCorrelation implements CorrelationArea
+public class ImageCorrelation implements CorrelationArea, Serializable
 {
+	private static final long serialVersionUID = 1718182669795697353L;
+
 	final Image image;
 	
 	public static enum PlacementType { 
@@ -24,7 +28,9 @@ public class ImageCorrelation implements CorrelationArea
 	// Translation
 	double tx, ty;
 	// Rotation et scaling.
-	double cs, sn;
+	private double cs;
+
+	private double sn;
 	
 	// Etoile locale => etoile de l'image. Null si pas corellées
 	IdentityBijection<ImageStar, ImageStar> starParImage;
@@ -43,8 +49,8 @@ public class ImageCorrelation implements CorrelationArea
 		
 		double tmpx, tmpy;
 		
-		xy[0] = tx + x * cs + y * sn;
-		xy[1] = ty + y * cs - x * sn;
+		xy[0] = tx + x * getCs() + y * getSn();
+		xy[1] = ty + y * getCs() - x * getSn();
 		
 		return xy;
 	}

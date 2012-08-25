@@ -27,50 +27,9 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 
-public class GenericList<Target, EffectiveListEntry extends GenericList<Target, ?>.ListEntry> 
+public class GenericList<Target, EffectiveListEntry extends ListEntry<Target, ?>> 
 			extends JTable 
 {
-
-	public class ListKey {
-		final Target viewPort;
-
-		ListKey(Target image) {
-			this.viewPort = image;
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if (obj instanceof GenericList.ListKey) {
-				return ((ListKey)obj).viewPort == this.viewPort;
-			}
-			return super.equals(obj);
-		}
-		
-		@Override
-		public int hashCode() {
-			return System.identityHashCode(viewPort);
-		}
-
-		public Target getTarget() {
-			return viewPort;
-		}
-	}
-	
-	public class ListEntry extends ListKey
-	{
-		private Integer rowId;
-		
-		
-		protected ListEntry(Target image) {
-			super(image);
-		}
-
-		public Integer getRowId() {
-			return rowId;
-		}
-	}
-	
-	
 
 	protected abstract class ColumnDefinition {
 		String title;
@@ -124,7 +83,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	
 	protected ColumnDefinition [] columns;
 	private final List<EffectiveListEntry> entries;
-	private final Map<ListKey, EffectiveListEntry> listEntries;
+	private final Map<ListKey<Target, EffectiveListEntry>, EffectiveListEntry> listEntries;
 	private final AbstractTableModel tableModel;
 	
 	protected int rowToModelRow(int mrow)
@@ -217,7 +176,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	{
 		super();
 		entries = new ArrayList<EffectiveListEntry>();
-		listEntries = new HashMap<ListKey, EffectiveListEntry>();
+		listEntries = new HashMap<ListKey<Target, EffectiveListEntry>, EffectiveListEntry>();
 		new DefaultTableModel();
 		
 		tableModel = 
@@ -391,7 +350,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	public List<EffectiveListEntry> getSelectedEntryList() {
 		List<EffectiveListEntry> result = new ArrayList<EffectiveListEntry>();
 		for(EffectiveListEntry entry : entries) {
-			if (isEntrySelected((ListEntry)entry)) {
+			if (isEntrySelected((ListEntry<Target, EffectiveListEntry>)entry)) {
 				result.add(entry);
 			}
 		}
@@ -401,12 +360,12 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	
 	protected boolean hasEntry(Target t)
 	{
-		return listEntries.containsKey(new ListKey(t));
+		return listEntries.containsKey(new ListKey<Target, EffectiveListEntry>(t));
 	}
 
 	protected boolean removeEntry(Target t)
 	{
-		ListKey key = new ListKey(t);
+		ListKey<Target, EffectiveListEntry> key = new ListKey<Target, EffectiveListEntry>(t);
 		
 		EffectiveListEntry entry = listEntries.remove(key);
 		if (entry == null) {
@@ -422,7 +381,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		{
 			entries.get(i).rowId = i;
 		}
-		
+		entry.removedFromGenericList((GenericList)this);
 		((AbstractTableModel)getModel()).fireTableRowsDeleted(rowId, rowId);
 		
 		return true;
@@ -431,21 +390,41 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 	protected void addEntry(EffectiveListEntry ile)
 	{
 		entries.add(ile);
-		listEntries.put((ListKey)ile, ile);
+		listEntries.put((ListKey<Target, EffectiveListEntry>)ile, ile);
 		ile.rowId = entries.size() - 1;
+		
+		ile.addedToGenericList((GenericList)this);
 		tableModel.fireTableRowsInserted(ile.rowId, ile.rowId);
+	}
+	
+	public List<EffectiveListEntry> getContent()
+	{
+		return entries;
+	}
+	
+	public void setContent(List<EffectiveListEntry> newEntries)
+	{
+		while(!entries.isEmpty())
+		{
+			removeEntry(entries.get(0).getTarget());
+		}
+		
+		for(EffectiveListEntry entry : newEntries)
+		{
+			addEntry(entry);
+		}
 	}
 	
 	public EffectiveListEntry getEntryFor(Target target)
 	{
-		ListKey key = new ListKey(target);
+		ListKey<Target, EffectiveListEntry> key = new ListKey<Target, EffectiveListEntry>(target);
 		
 		EffectiveListEntry entry = listEntries.get(key);
 		
 		return entry;
 	}
 	
-	public boolean isEntrySelected(ListKey key)
+	public boolean isEntrySelected(ListKey<Target, EffectiveListEntry> key)
 	{
 		if (key == null) return false;
 		
@@ -457,7 +436,7 @@ public class GenericList<Target, EffectiveListEntry extends GenericList<Target, 
 		return isModelRowSelected(rowId);
 	}
 
-	public boolean selectEntry(ListEntry entry)
+	public boolean selectEntry(ListEntry<Target, EffectiveListEntry> entry)
 	{
 		int rowId = entry.getRowId();
 		if (getRowSorter() != null) {
