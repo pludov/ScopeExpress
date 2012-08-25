@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -34,10 +35,12 @@ import javax.swing.event.ListSelectionListener;
 
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.Image;
+import fr.pludov.cadrage.StarDetectionParameters;
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.StarDetectionParameterPanel;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.ui.utils.ListEntry;
@@ -59,6 +62,8 @@ public class CorrelationUi {
 	JButton saveButton;
 	JButton loadButton;
 	
+	JButton starDetectionParamsButton;
+	
 	JToolBar toolBar;
 	
 	public CorrelationUi(Correlation correlation)
@@ -74,6 +79,8 @@ public class CorrelationUi {
 		
 		peuplerToolbar();
 		makeSelectionExclusion();
+		
+		
 		display.addMouseListener(new MouseAdapter() {
 
 			private void maybeShowPopup(MouseEvent e) {
@@ -165,6 +172,40 @@ public class CorrelationUi {
 		}.start();
 	}
 	
+	JDialog starDetectionParameterDialog = null;
+	StarDetectionParameterPanel starDetectionParameterPanel = null;
+	
+	private void popupStarDetectionParameterDialog()
+	{
+		if (starDetectionParameterDialog == null) {
+			starDetectionParameterPanel = new StarDetectionParameterPanel();
+			
+			starDetectionParameterDialog = new JDialog(Cadrage.mainFrame);
+			starDetectionParameterDialog.getContentPane().add(starDetectionParameterPanel);
+			starDetectionParameterDialog.pack();
+			starDetectionParameterDialog.setResizable(false);
+		}
+		if (!starDetectionParameterDialog.isVisible()) {
+			starDetectionParameterPanel.loadParameters(Cadrage.defaultStarDetectionParameters);
+			starDetectionParameterDialog.setVisible(true);
+		}
+	}
+	
+	private void toggleStarDetectionParameterDialog()
+	{
+		if (starDetectionParameterDialog == null || !starDetectionParameterDialog.isVisible()) {
+			popupStarDetectionParameterDialog();
+		} else {
+			starDetectionParameterDialog.setVisible(false);
+		}
+	}
+	
+	private void refreshStarDetectionParameterDialog()
+	{
+		if (starDetectionParameterPanel == null) return;
+		starDetectionParameterPanel.loadParameters(Cadrage.defaultStarDetectionParameters);
+	}
+	
 	public List<ImageListEntry> filtrerPourCalibration(List<ImageListEntry> images)
 	{
 		// Parcourir la liste d'images, les trier par heure d'arriver
@@ -244,6 +285,21 @@ public class CorrelationUi {
 		});
 		toolBar.add(loadButton);
 
+		
+
+		starDetectionParamsButton = new JButton();
+		starDetectionParamsButton.setText("Paramètres de détection des étoiles");
+		starDetectionParamsButton.setToolTipText("Modifier les paramètres utilisés pour la détection des étoiles");
+		starDetectionParamsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				toggleStarDetectionParameterDialog();
+				
+			}
+		});
+		toolBar.add(starDetectionParamsButton);
+
+		
 	}
 
 	public void save(File file) throws IOException
@@ -258,6 +314,8 @@ public class CorrelationUi {
 			outputStream.writeObject(correlation);
 			outputStream.writeObject(this.imageTable.getContent());
 			outputStream.writeObject(this.viewPortTable.getContent());
+			
+			outputStream.writeObject(Cadrage.defaultStarDetectionParameters);
 			// FIXME : sauver les images et les viewports !
 			outputStream.close();
 		} finally {
@@ -277,6 +335,8 @@ public class CorrelationUi {
 			List<ImageListEntry> imageListEntries = (List<ImageListEntry>)outputStream.readObject();
 			List<ViewPortListEntry> viewportListEntries = (List<ViewPortListEntry>)outputStream.readObject();
 			
+			StarDetectionParameters starDetectionParameters = (StarDetectionParameters)outputStream.readObject(); 
+			
 			// Restaure la correlation
 			correlation = corr;
 			this.imageTable.changeCorrelation(correlation);
@@ -285,6 +345,9 @@ public class CorrelationUi {
 			this.viewPortTable.setContent(viewportListEntries);
 			this.display.changeCorrelation(correlation);
 			outputStream.close();
+			
+			Cadrage.defaultStarDetectionParameters = starDetectionParameters;
+			refreshStarDetectionParameterDialog();
 		} finally {
 			fis.close();
 		}

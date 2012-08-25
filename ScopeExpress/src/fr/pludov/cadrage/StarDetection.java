@@ -13,32 +13,11 @@ import javax.imageio.ImageIO;
 
 public class StarDetection {
 	
-	// Portion des pixels les plus faibles utilisés pour l'évaluation du fond.
-	// Tous ce qui est en dessous de ça est considéré comme noir.
-	private double backgroundEvaluationPct;
+	StarDetectionParameters parameters;
 	
-	// Paramètre global de détéction des ADU.
-	private double absoluteAduSeuil;
-	
-	// Nombre de pixels utilisés dans le calculs de la valeur B&W
-	// 1 - 2 - 3
-	private int binFactor;
-	
-	private int backgroundSquare = 24;
-	
-	public StarDetection()
+	public StarDetection(StarDetectionParameters parameters)
 	{
-		backgroundEvaluationPct = 0.25;
-		absoluteAduSeuil = 0.05;
-		binFactor = 1;
-	}
-	
-	
-	public StarDetection(StarDetection copy)
-	{
-		this.backgroundEvaluationPct = copy.backgroundEvaluationPct;
-		this.absoluteAduSeuil = copy.absoluteAduSeuil;
-		this.binFactor = copy.binFactor;
+		this.parameters = new StarDetectionParameters(parameters);
 	}
 	
 	private static class StarCandidate {
@@ -105,12 +84,14 @@ public class StarDetection {
 	
 	private void background()
 	{
-		int nbSquareX = (sx + backgroundSquare - 1) / backgroundSquare;
-		int nbSquareY = (sy + backgroundSquare - 1) / backgroundSquare;
+		int nbSquareX = (sx + parameters.getBackgroundSquare() - 1) / parameters.getBackgroundSquare();
+		int nbSquareY = (sy + parameters.getBackgroundSquare() - 1) / parameters.getBackgroundSquare();
 		
 		if (nbSquareX == 0) nbSquareX = 1;
 		if (nbSquareY == 0) nbSquareY = 1;
 		
+		
+		int backgroundSquare = parameters.backgroundSquare;
 		
 		double [] backgroundLevel = new double[nbSquareX * nbSquareY];
 		for(int squarey = 0; squarey < nbSquareY; ++squarey)
@@ -212,6 +193,8 @@ public class StarDetection {
 //		Arrays.sort(imageCopy);
 //		
 //		float seuil = imageCopy[(image.length * 99) / 100];
+		
+		float absoluteAduSeuil = (float)parameters.getAbsoluteAduSeuil();
 		
 		for(int y = 0; y < h; ++y)
 		{
@@ -452,7 +435,7 @@ public class StarDetection {
 		
 
 		gaussFwhmMin = 0.8;
-		gaussIntensityMin = Math.max(gaussIntensity * 0.5, this.absoluteAduSeuil);
+		gaussIntensityMin = Math.max(gaussIntensity * 0.5, this.parameters.getAbsoluteAduSeuil());
 		
 		for(int i = 0; i < 8; ++i)
 		{
@@ -492,7 +475,7 @@ public class StarDetection {
 			for(int x = x0; x <= x1; ++x)
 			{
 				int id = x + sx * y;
-				if (this.image[id] >= this.absoluteAduSeuil) {
+				if (this.image[id] >= this.parameters.getAbsoluteAduSeuil()) {
 					this.image[id] = 0;
 				}
 			}
@@ -517,7 +500,7 @@ public class StarDetection {
 				array[arrayId++] = p;
 			}
 		Arrays.sort(array);
-		int nbPix = (int)(array.length * this.backgroundEvaluationPct);
+		int nbPix = (int)(array.length * this.parameters.getBackgroundEvaluationPct());
 		double sum = 0;
 		for(int i = 0; i < nbPix; ++i)
 		{
@@ -612,8 +595,9 @@ public class StarDetection {
 	}
 	
 	// Double adu255 : valeur d'adu pour 255.
-	public List<ImageStar> proceed(BufferedImage img, double adu255, int nbStarMax)
+	public List<ImageStar> proceed(BufferedImage img, double adu255)
 	{
+		int binFactor = parameters.getBinFactor();
 		// Construire un tableau avec les valeurs  
 		double mul = adu255 / (255.0 * binFactor * binFactor);
 		
@@ -707,7 +691,8 @@ public class StarDetection {
 
 		List<ImageStar> result = new ArrayList<ImageStar>();
 		boolean doContinue = true;
-		while(doContinue && result.size() < nbStarMax)
+		
+		while(doContinue && result.size() < parameters.getNbStarMax())
 		{
 			doContinue = false;
 			// Essayer sur chaque secteur, on choisissant d'abord les secteur brillants...
@@ -731,11 +716,9 @@ public class StarDetection {
 						continue;
 					}
 					
-					// FIXME : C'est ad hoc...
-					float limit = (float)(sc.energy * 0.25);
+					float limit = (float)(sc.energy * this.parameters.getStarGrowIntensityRatio());
 					
-					// FIXME: paramètre
-					int maxSize = 16;
+					int maxSize = this.parameters.getStarMaxSize();
 					boolean grow[] = {true,true, true, true};
 					while((grow[0] || grow[1] || grow[2] || grow[3]) && (x1 - x0 + 1 < maxSize)&& (y1 - y0 + 1 < maxSize))
 					{
@@ -862,30 +845,4 @@ public class StarDetection {
 		
 		return result;
 	}
-	
-
-	public double getBackgroundEvaluationPct() {
-		return backgroundEvaluationPct;
-	}
-
-	public void setBackgroundEvaluationPct(double backgroundEvaluationPct) {
-		this.backgroundEvaluationPct = backgroundEvaluationPct;
-	}
-
-	public double getAbsoluteAdu() {
-		return absoluteAduSeuil;
-	}
-
-	public void setAbsoluteAdu(double absoluteAdu) {
-		this.absoluteAduSeuil = absoluteAdu;
-	}
-
-	public int getBinFactor() {
-		return binFactor;
-	}
-
-	public void setBinFactor(int binFactor) {
-		this.binFactor = binFactor;
-	}
-
 }

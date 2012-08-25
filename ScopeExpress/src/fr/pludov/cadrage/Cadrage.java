@@ -50,9 +50,7 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *
  * A faire par ordre de priorité
  *  - afficher le type de positionnement dans les colonnes des images
- *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existente) 
- *  - recalculer les étoiles
- *  - recorreler
+ *  - sauvegarder la position téléscope dans un fichier texte (à utiliser lors de l'import d'une image existante) 
  *  - dialogue de paramètres de calcul des étoiles (local avec bouton définir par défaut)
  *  - dialogue de paramètres de correlation (global)
  *  - afficher les opérations en cours (Async...)
@@ -60,6 +58,8 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *  - information sur les image
  *  
  * Fait:
+ *  - recalculer les étoiles
+ *  - recorreler
  *  - importer des images existantes
  *  - calibration absolue (calcul et mise à jour de la translation - abandonné, le calcul est fait mais pas utilisé)
  *  - détection des nouvelles images d'un répertoire
@@ -81,7 +81,7 @@ import fr.pludov.cadrage.ui.ViewPortList;
  */
 public class Cadrage {
 
-	public static StarDetection defaultParameter;
+	public static StarDetectionParameters defaultStarDetectionParameters;
 	public static JFrame mainFrame;
 	public static Correlation correlation;
 	public static Scope scopeInterface;
@@ -109,11 +109,7 @@ public class Cadrage {
 			
 			// image = ImageIO.read(new File("c:/astro/EOS 350D DIGITAL/IMG_0231.JPG"));
 			
-			double aduSeuil = 0.25;
-			
-			defaultParameter = new StarDetection();
-			defaultParameter.setAbsoluteAdu(aduSeuil);
-			defaultParameter.setBinFactor(1);
+			defaultStarDetectionParameters = new StarDetectionParameters();
 			
 			preferedStartingPoint = new File("C:\\Documents and Settings\\utilisateur\\Mes documents\\Mes images\\BackyardEOS");
 			

@@ -355,7 +355,7 @@ public class Correlation implements Serializable {
 		// Détection des étoiles
 		return new AsyncOperation("Détection d'étoiles dans " + image.getFile().getName()) {
 			File file = image.getFile();
-			StarDetection idt = new StarDetection(Cadrage.defaultParameter);
+			StarDetection idt = new StarDetection(Cadrage.defaultStarDetectionParameters);
 			
 			double adu255;
 			int width, height;
@@ -384,7 +384,7 @@ public class Correlation implements Serializable {
 				
 				// Ajouter l'image dans l'objet correlation
 				
-				stars = idt.proceed(bufferedImage, adu255, 125);
+				stars = idt.proceed(bufferedImage, adu255);
 			}
 			
 			@Override
@@ -600,7 +600,7 @@ public class Correlation implements Serializable {
 		return 0;
 	}
 	
-	public static List<Triangle> getTriangleList(List<ImageStar> referenceStars, double minTriangleSize, double triangleSearchRadius)
+	public static List<Triangle> getTriangleList(List<ImageStar> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle)
 	{
 		// Trouver les points à moins de 50 pixels
 		DynamicGrid<ImageStar> reference = new DynamicGrid(referenceStars);
@@ -640,6 +640,10 @@ public class Correlation implements Serializable {
 					Triangle t = new Triangle(rst1, rst2, rst3, r_d[0], r_d[1], r_d[2]);
 					
 					result.add(t);
+					if (result.size() >  maxTriangle) {
+						System.err.println("Found too many triangles... retry with stricter filter");
+						return null;
+					}
 				}
 			}
 		}
@@ -781,11 +785,14 @@ public class Correlation implements Serializable {
 					}
 				}
 				if (isFirst) {
+					if (status.getPlacement() == PlacementType.Aucun) {
+						status.tx = 0;
+						status.ty = 0;
+						status.setCs(1);
+						status.setSn(0);
+					}
+					
 					status.setPlacement(PlacementType.Correlation);
-					status.tx = 0;
-					status.ty = 0;
-					status.setCs(1);
-					status.setSn(0);
 					
 					calcMatching(image);
 					
@@ -885,36 +892,110 @@ public class Correlation implements Serializable {
 			public void async() throws Exception {
 				if (!work) return;
 				
+				int maxTriangle = 30000; // FIXME : c'est ad hoc...
 				double starRay = 500; 	// Prendre en compte des triangles de au plus cette taille
 				double starMinRay = 20;	// Elimine les petits triangles
 				
+				
+				List<Triangle> referenceTriangle;
+				
+				List<Triangle> imageTriangle;
+				
+				do {
+					System.err.println("Looking for source triangles, max size = " + starRay);
+					referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay, maxTriangle);
+					if (referenceTriangle == null) {
+						System.err.println("Too many triangles found, search for smaller ones");
+						starRay *= 0.75;
+						continue;
+					}
+					
+					System.err.println("Looking for image triangles, max size = " + starRay);
+					imageTriangle = getTriangleList(imageStars, starMinRay, starRay, maxTriangle);
+					if (imageTriangle == null) {
+						System.err.println("Too many triangles found in image, search for smaller ones");
+						starRay *= 0.75;
+						continue;
+					}
+					
+					break;
+				} while(true);
+				
+				DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(referenceTriangle);
+				
+				double tolerance = 0.005;
+				int maxNbRansacPoints = 15000;
+				
+				List<RansacPoint> ransacPoints;
+				
+				while((ransacPoints = getRansacPoints(imageTriangle, referenceTriangleGrid, maxNbRansacPoints, tolerance)) == null)
+				{
+					System.err.println("Too many possible translations. Filter wiht more aggressive values...");
+					tolerance *= 0.6;
+				}
+				
+				
+				System.err.println("Performing RANSAC with " + ransacPoints.size());
+				
+				Ransac ransac = new Ransac();
+				
+				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+					@Override
+					public double getEvaluator(Ransac.RansacPoint p) {
+						return Math.sqrt(p.getRansacParameter(2) * p.getRansacParameter(2) + p.getRansacParameter(3) * p.getRansacParameter(3));
+					}
+				});
+
+				
+				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+					@Override
+					public double getEvaluator(Ransac.RansacPoint p) {
+						return Math.sqrt(p.getRansacParameter(0) * p.getRansacParameter(0) + p.getRansacParameter(1) * p.getRansacParameter(1));
+					}
+				});
+				
+				
+//				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+//						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+//						0.1, 0.5);
+				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+						1 / Math.sqrt(ransacPoints.size()), 0.1);
+				
+				if (bestParameter == null) {
+					throw new RuntimeException("Pas de corrélation trouvée");
+				}
+				
+				
+				System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
+						" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
+						" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
+				tx = bestParameter[0];
+				ty = bestParameter[1];
+				cs = bestParameter[2];
+				sn = bestParameter[3];
+				
+				
+				// Trier les listes d'étoile par energie décroissante
+				
+				// throw new Exception("Corrélation des étoiles non implementées");
+			}
+
+			private List<RansacPoint> getRansacPoints(
+					List<Triangle> imageTriangle,
+					DynamicGrid<Triangle> referenceTriangleGrid, 
+					int maxCount, double distanceMax)
+			{
+				List<RansacPoint> ransacPoints = new ArrayList<RansacPoint>();
 				double [] cssn1 = new double[3];
 				double [] cssn2 = new double[3];
 				double [] cssn3 = new double[3];
 				
-				List<Triangle> referenceTriangle;
-				do {
-					System.err.println("Looking for source triangles, max size = " + starRay);
-					referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay);
-					if (referenceTriangle.size() > 10000) {
-						System.err.println("Too many triangles found, search for smaller ones");
-						starRay *= 0.75;
-						referenceTriangle = null;
-					}
-				} while(referenceTriangle == null);
-				DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(referenceTriangle);
-				
-				double bestDelta = 1.0;
-				
-				List<RansacPoint> ransacPoints = new ArrayList<RansacPoint>();
-				
-				System.err.println("Looking for image triangles");
-				List<Triangle> imageTriangle = getTriangleList(imageStars, starMinRay, starRay);
 				for(Triangle t : imageTriangle)
 				{
 					// FIXME : ce radius devrait être vajusté en fonction du nombre de triangle, pour sortir suffisement de candidat
 					// En même temps, le matching est absolu (on compare la précision des triangles)
-					List<Triangle> correspondant = referenceTriangleGrid.getNearObject(t.x, t.y, 0.005);
+					List<Triangle> correspondant = referenceTriangleGrid.getNearObject(t.x, t.y, distanceMax);
 					
 					
 					int id = 1;
@@ -945,6 +1026,7 @@ public class Correlation implements Serializable {
 						double dlt = (cssn1[2] - ratio) * (cssn1[2] - ratio)  + (cssn2[2] - ratio) * (cssn2[2] - ratio) + + (cssn3[2] - ratio) * (cssn3[2] - ratio);
 						
 						if (dlt > 0.001) {
+							// si les cos/sin ne sont pas orthogonaux, la translation déforme....
 							continue;
 						}
 						
@@ -999,56 +1081,17 @@ public class Correlation implements Serializable {
 						
 						ransacPoints.add(rp);
 						
-						
 						System.err.println("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
+						
+						if (ransacPoints.size() > maxCount) {
+							System.err.println("Too many translation founds. Retry with stricter filter");
+							return null;
+						}
+						
 						id++;
 					}
 				}
-				
-				System.err.println("Performing RANSAC with " + ransacPoints.size());
-				
-				Ransac ransac = new Ransac();
-				
-				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
-					@Override
-					public double getEvaluator(Ransac.RansacPoint p) {
-						return Math.sqrt(p.getRansacParameter(2) * p.getRansacParameter(2) + p.getRansacParameter(3) * p.getRansacParameter(3));
-					}
-				});
-
-				
-				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
-					@Override
-					public double getEvaluator(Ransac.RansacPoint p) {
-						return Math.sqrt(p.getRansacParameter(0) * p.getRansacParameter(0) + p.getRansacParameter(1) * p.getRansacParameter(1));
-					}
-				});
-				
-				
-//				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
-//						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
-//						0.1, 0.5);
-				double [] bestParameter = ransac.proceed(ransacPoints, 4, 
-						new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
-						1 / Math.sqrt(ransacPoints.size()), 0.1);
-				
-				if (bestParameter == null) {
-					throw new RuntimeException("Pas de corrélation trouvée");
-				}
-				
-				
-				System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
-						" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
-						" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
-				tx = bestParameter[0];
-				ty = bestParameter[1];
-				cs = bestParameter[2];
-				sn = bestParameter[3];
-				
-				
-				// Trier les listes d'étoile par energie décroissante
-				
-				// throw new Exception("Corrélation des étoiles non implementées");
+				return ransacPoints;
 			}
 			
 			@Override
