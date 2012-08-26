@@ -167,5 +167,10 @@ public class Image implements Serializable {
 		this.pause = pause;
 		listeners.getTarget().metadataChanged(this);
 	}
+
+
+	public ImageDisplayParameter getDisplayParameter() {
+		return displayParameter;
+	}
 	
 }

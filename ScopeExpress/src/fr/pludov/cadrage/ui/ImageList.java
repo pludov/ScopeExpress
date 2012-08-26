@@ -16,6 +16,7 @@ import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
+import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.ListEntry;
@@ -100,7 +101,7 @@ public class ImageList extends GenericList<Image, ImageListEntry> implements Cor
 	}
 	
 	@Override
-	public void imageRemoved(Image image) {
+	public void imageRemoved(Image image, ImageCorrelation imageCorrelation) {
 		removeEntry(image);
 	}
 	

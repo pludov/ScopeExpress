@@ -17,6 +17,7 @@ import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.CorrelationListener;
+import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.IdentityBijection;
@@ -112,7 +113,7 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortListEntry> imple
 	}
 
 	@Override
-	public void imageRemoved(Image viewPort) {
+	public void imageRemoved(Image viewPort, ImageCorrelation imageCorrelation) {
 	}
 
 	@Override

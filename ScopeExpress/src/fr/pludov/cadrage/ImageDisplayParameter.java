@@ -32,13 +32,15 @@ public class ImageDisplayParameter implements Serializable {
 		// high => 255
 		// median => 128
 		
+		// FIXME: ça doit disparaitre...
+		adu *= 16;
 		if (adu < low[channel]) return 0;
 		if (adu < median[channel])
 		{
 			int ret = (int)((adu - low[channel]) * 128.0 / (median[channel] - low[channel]));
 			return ret;
 		} else {
-			int ret = (int)(128.0 + (adu - low[channel]) * 128.0 / (median[channel] - low[channel]));
+			int ret = (int)(128.0 + (adu - median[channel]) * 128.0 / (high[channel] - median[channel]));
 			if (ret > 255) ret = 255;
 			return ret;
 		}
@@ -54,6 +56,24 @@ public class ImageDisplayParameter implements Serializable {
 		this.low = new double[] { 0, 0, 0};
 		this.high = new double[] { 65535, 65535, 65535 };
 		this.median = new double[] { 16384, 16384, 16384 };
+	}
+	
+	public ImageDisplayParameter(ImageDisplayParameter copy)
+	{
+		this.listeners = new WeakListenerCollection<ImageDisplayParameterListener>(ImageDisplayParameterListener.class);
+		this.channelMode = copy.getChannelMode();
+		this.targetExposition = copy.getTargetExposition();
+		this.targetIso = copy.getTargetIso();
+		this.low = new double[] { 0, 0, 0};
+		this.high = new double[] { 65535, 65535, 65535 };
+		this.median = new double[] { 16384, 16384, 16384 };
+		
+		for(int i = 0; i < 3; ++i)
+		{
+			this.low[i] = copy.low[i];
+			this.high[i] = copy.high[i];
+			this.median[i] = copy.median[i];
+		}
 	}
 
 	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {

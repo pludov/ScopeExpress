@@ -1,13 +1,18 @@
 package fr.pludov.cadrage.correlation;
 
+import java.io.IOException;
 import java.io.Serializable;
 
 import fr.pludov.cadrage.Image;
+import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.utils.IdentityBijection;
+import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class ImageCorrelation implements CorrelationArea, Serializable
 {
+	public transient WeakListenerCollection<ImageCorrelationListener> listeners;
+	
 	private static final long serialVersionUID = 1718182669795697353L;
 
 	final Image image;
@@ -43,8 +48,14 @@ public class ImageCorrelation implements CorrelationArea, Serializable
 		this.sn = 0.0;
 		this.tx = 0.0;
 		this.ty = 0.0;
+		this.listeners = new WeakListenerCollection<ImageCorrelationListener>(ImageCorrelationListener.class);
 	}
-	
+
+	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+	    in.defaultReadObject();
+	    this.listeners = new WeakListenerCollection<ImageCorrelationListener>(ImageCorrelationListener.class);
+	}
+
 	public double [] imageToGlobal(double x, double y, double [] xy)
 	{
 		if (xy == null || xy.length != 2) {

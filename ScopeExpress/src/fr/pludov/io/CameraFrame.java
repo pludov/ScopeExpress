@@ -101,7 +101,7 @@ public class CameraFrame {
 				int g2 = (int)buffer[offset + width]; 
 				int b = displayParameter.getLevelForAdu(2, (int)buffer[offset + width + 1]);
 				
-				int g = displayParameter.getLevelForAdu(0, (g1 + g2) / 2);
+				int g = displayParameter.getLevelForAdu(1, (g1 + g2) / 2);
 				
 				inData[0] = (byte) (r);
 				inData[1] = (byte) (g);

@@ -1,5 +1,6 @@
 package fr.pludov.cadrage.ui;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -7,8 +8,11 @@ import java.util.concurrent.BlockingQueue;
 
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
+
 public abstract class ImageWorker {
-	boolean canceled;
+	private static final Logger logger = Logger.getLogger(ImageWorker.class);
+	volatile boolean canceled;
 	boolean started;
 	
 	private static final LinkedList<ImageWorker> queue = new LinkedList<ImageWorker>();// new Queue<ImageWorker>(2 * Runtime.getRuntime().availableProcessors());
@@ -29,9 +33,13 @@ public abstract class ImageWorker {
 			
 			worker.run();
 			if (!worker.canceled) {
+				boolean doRun;
 				synchronized(queue) {
-					if (!worker.canceled) {
-						SwingUtilities.invokeLater(new Runnable() {
+					doRun = !worker.canceled;
+				}
+				if (doRun) {
+					try {
+						SwingUtilities.invokeAndWait(new Runnable() {
 							@Override
 							public void run() {
 								synchronized(queue) {
@@ -41,6 +49,8 @@ public abstract class ImageWorker {
 								}
 							}
 						});
+					} catch(InvocationTargetException e) {
+						logger.warn("Exception", e);
 					}
 				}
 			}

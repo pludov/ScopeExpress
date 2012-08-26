@@ -1167,9 +1167,10 @@ public class Correlation implements Serializable {
 	public void removeImage(final Image image)
 	{
 		if (this.images.containsKey(image)) {
+			ImageCorrelation corr = this.images.get(image);
 			clearMatchingForImage(image);
 			this.images.remove(image);
-			listeners.getTarget().imageRemoved(image);
+			listeners.getTarget().imageRemoved(image, corr);
 		}
 	}
 	
