@@ -76,8 +76,9 @@ public class GenericList<Target, EffectiveListEntry extends ListEntry<Target, ?>
 			return editable;
 		}
 
-		public void setEditable(boolean editable) {
+		public ColumnDefinition setEditable(boolean editable) {
 			this.editable = editable;
+			return this;
 		}
 	}
 	
@@ -190,7 +191,11 @@ public class GenericList<Target, EffectiveListEntry extends ListEntry<Target, ?>
 					@Override
 					public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 						EffectiveListEntry ile = entries.get(rowIndex);
-						columns[columnIndex].setValue(ile, aValue);
+						try {
+							columns[columnIndex].setValue(ile, aValue);
+						} catch(Exception e) {
+							getTableModel().fireTableRowsUpdated(rowIndex, rowIndex);
+						}
 					};
 			
 					@Override

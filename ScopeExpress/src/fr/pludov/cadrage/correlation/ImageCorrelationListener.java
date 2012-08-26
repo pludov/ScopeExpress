@@ -2,5 +2,6 @@ package fr.pludov.cadrage.correlation;
 
 public interface ImageCorrelationListener {
 
-	public void imageCorrelationChanged(ImageCorrelation correlation);
+	public void imageTransformationChanged(ImageCorrelation correlation);
+	public void lockingChanged(ImageCorrelation correlation);
 }

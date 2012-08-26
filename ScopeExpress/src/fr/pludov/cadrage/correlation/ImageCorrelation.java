@@ -34,8 +34,10 @@ public class ImageCorrelation implements CorrelationArea, Serializable
 	double tx, ty;
 	// Rotation et scaling.
 	private double cs;
-
 	private double sn;
+	
+	// Est-ce que la position peut être mise à jour manuellement ?
+	boolean locked;
 	
 	// Etoile locale => etoile de l'image. Null si pas corellées
 	IdentityBijection<ImageStar, ImageStar> starParImage;
@@ -124,5 +126,15 @@ public class ImageCorrelation implements CorrelationArea, Serializable
 
 	public void setPlacement(PlacementType placement) {
 		this.placement = placement;
+	}
+
+	public boolean isLocked() {
+		return locked;
+	}
+
+	public void setLocked(boolean locked) {
+		if (this.locked == locked) return;
+		this.locked = locked;
+		this.listeners.getTarget().lockingChanged(this);
 	}
 }

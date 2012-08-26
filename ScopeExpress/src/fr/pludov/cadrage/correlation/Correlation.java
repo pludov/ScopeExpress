@@ -797,6 +797,7 @@ public class Correlation implements Serializable {
 					}
 					
 					status.setPlacement(PlacementType.Correlation);
+					status.setLocked(true);
 					
 					calcMatching(image);
 					
@@ -1113,7 +1114,7 @@ public class Correlation implements Serializable {
 				status.ty = ty;
 				status.setCs(cs);
 				status.setSn(sn);
-				
+				status.setLocked(true);
 				calcMatching(image);
 
 				// si le viewport du téléscope est sur cette image, ajuster ses paramètres...

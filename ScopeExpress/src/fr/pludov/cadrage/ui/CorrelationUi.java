@@ -685,17 +685,24 @@ public class CorrelationUi {
 				for(CorrelationArea target : objectList)
 				{
 					double cs, sn;
-					cs = target.getCs();
-					sn = target.getSn();
-					target.setCs(-sn);
-					target.setSn(cs);
+					cs = -target.getSn();
+					sn = target.getCs();
 					
 					if (target instanceof ImageCorrelation)
 					{
+						if (((ImageCorrelation)target).isLocked()) {
+							continue;
+						}
+						target.setCs(cs);
+						target.setSn(sn);
+						
 						((ImageCorrelation)target).setPlacement(PlacementType.Approx);
 						correlation.listeners.getTarget().correlationUpdated();
 					} else if (target instanceof ViewPort)
 					{
+						target.setCs(cs);
+						target.setSn(sn);
+						
 						((ViewPort)target).listeners.getTarget().viewPortMoved((ViewPort)target);
 					}
 				}

@@ -981,8 +981,12 @@ public class CorrelationImageDisplay extends Panel
 	}
 	
 	@Override
-	public void imageCorrelationChanged(ImageCorrelation correlation) {
+	public void imageTransformationChanged(ImageCorrelation correlation) {
 		setAreaOfInterestForDisplays();
+	}
+	
+	@Override
+	public void lockingChanged(ImageCorrelation correlation) {
 	}
 
 	@Override
@@ -1131,13 +1135,13 @@ public class CorrelationImageDisplay extends Panel
 							} else if (item instanceof ImageListEntry){
 								Image image = ((ImageListEntry)item).getTarget();
 								ImageCorrelation imageCorrelation = correlation.getImageCorrelation(image);
-								if (imageCorrelation != null) {
+								if (imageCorrelation != null && !imageCorrelation.isLocked()) {
 									imageCorrelation.setPlacement(PlacementType.Approx);
 									imageCorrelation.setTx(imageCorrelation.getTx() + (transfo[0] - transfo[2]));
 									imageCorrelation.setTy(imageCorrelation.getTy() + (transfo[1] - transfo[3]));
 									
 									correlation.clearMatchingForImage(image);
-									imageCorrelation.listeners.getTarget().imageCorrelationChanged(imageCorrelation);
+									imageCorrelation.listeners.getTarget().imageTransformationChanged(imageCorrelation);
 									change = true;
 								}
 							}

@@ -64,7 +64,25 @@ public class ImageList extends GenericList<Image, ImageListEntry> implements Cor
 			public Object getValue(ImageListEntry ile) {
 				return ile.getTarget().isScopePosition() ? ile.getTarget().getDec() : null;
 			}
-		}
+		},
+		new ColumnDefinition("verrou", Boolean.class, 50) {
+			public Object getValue(ImageListEntry ile)
+			{
+				ImageCorrelation imgCorr = correlation.getImageCorrelation(ile.getTarget());
+				if (imgCorr != null) return imgCorr.isLocked();
+				return false;
+			}
+			
+			public void setValue(ImageListEntry ile, Object value) {
+				ImageCorrelation imgCorr = correlation.getImageCorrelation(ile.getTarget());
+				if (imgCorr != null) {
+					imgCorr.setLocked((Boolean)value);
+				} else {
+					throw new RuntimeException("not found");
+				}
+			}
+			
+		}.setEditable(true)
 	);
 	
 	Correlation correlation;
@@ -119,5 +137,9 @@ public class ImageList extends GenericList<Image, ImageListEntry> implements Cor
 
 	@Override
 	public void scopeViewPortChanged() {
+	}
+
+	public Correlation getCorrelation() {
+		return correlation;
 	}
 }

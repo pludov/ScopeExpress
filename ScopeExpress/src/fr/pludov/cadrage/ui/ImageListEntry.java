@@ -5,6 +5,8 @@ import java.util.Date;
 
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageListener;
+import fr.pludov.cadrage.correlation.ImageCorrelation;
+import fr.pludov.cadrage.correlation.ImageCorrelationListener;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.ListEntry;
 
@@ -25,6 +27,8 @@ public class ImageListEntry
 	boolean hasDate = false;
 	Date date;
 
+	transient ImageCorrelation imageCorrelation;
+	
 	public Date getCreationDate()
 	{
 		if (!hasDate) {
@@ -63,11 +67,24 @@ public class ImageListEntry
 			public void levelChanged(Image source) {
 				imageList.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
 			}			
-		});	
+		});
+		imageCorrelation = ((ImageList)imageList).getCorrelation().getImageCorrelation(getTarget());
+		imageCorrelation.listeners.addListener(this, new ImageCorrelationListener() {
+			@Override
+			public void lockingChanged(ImageCorrelation correlation) {
+				imageList.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
+			}
+			
+			@Override
+			public void imageTransformationChanged(ImageCorrelation correlation) {
+				imageList.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());				
+			}
+		});
 	}
 	
 	@Override
 	protected void removedFromGenericList(GenericList<Image, ImageListEntry> list) {
 		getTarget().listeners.removeListener(this);
+		imageCorrelation.listeners.removeListener(this);
 	}
 }
