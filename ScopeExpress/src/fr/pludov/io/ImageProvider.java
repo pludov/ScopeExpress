@@ -16,9 +16,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import javax.imageio.ImageIO;
 
@@ -28,6 +33,102 @@ import org.apache.log4j.Logger;
 
 public class ImageProvider {
 	private static final Logger logger = Logger.getLogger(ImageProvider.class);
+	
+	static class FileStatus
+	{
+		boolean loading;
+		IOException problem;
+		SoftReference<CameraFrame> frame;
+	}
+	
+	static HashMap<File, FileStatus> frames = new HashMap<File, FileStatus>();
+	
+	private static void cleanCache()
+	{
+		synchronized(frames)
+		{
+			for(Iterator<Map.Entry<File, FileStatus>> it = frames.entrySet().iterator(); it.hasNext();)
+			{
+				Map.Entry<File, FileStatus> frameEntry = it.next(); 
+				FileStatus status = frameEntry.getValue();
+				if (status.loading) continue;
+				if (status.problem != null) continue;
+				if (status.frame.get() == null) {
+					it.remove();
+				}
+			}
+		}
+	}
+	
+	public static CameraFrame readImage(final File file) throws IOException
+	{
+		FileStatus status;
+
+		synchronized(frames)
+		{
+			cleanCache();
+
+			// Attendre
+			while(true) {
+				status = frames.get(file);
+				if (status != null && status.loading) {
+					try {
+						frames.wait();
+					} catch(InterruptedException e) {
+					}
+				} else {
+					if (status != null) {
+						if (status.problem == null) {
+							CameraFrame frame = status.frame.get();
+							if (frame != null) return frame;
+							status.loading = true;
+							break;
+						} else {
+							throw status.problem;
+						}
+					} else {
+						status = new FileStatus();
+						status.loading = true;
+						status.problem = null;
+						status.frame = null;
+						
+						frames.put(file,  status);
+						break;
+					}
+				}
+			}
+		}
+		
+		IOException problem = null;
+		CameraFrame frame = null;
+		// Charger l'image
+		try {
+			frame = doReadImage(file);
+		} catch(Throwable t)
+		{
+			if (t instanceof IOException) {
+				problem = (IOException)t;
+			} else {
+				problem = new IOException("Generic error", t);
+			}
+			frame = null;
+		}
+		
+		synchronized(frames)
+		{
+			status.loading = false;
+			status.problem = problem;
+			if (frame != null) {
+				status.frame = new SoftReference<CameraFrame>(frame);
+			} else {
+				status.frame = null;
+			}
+		}
+		
+		if (problem != null) throw problem;
+		return frame;
+	}
+	
 	
 	
 	
@@ -43,9 +144,7 @@ public class ImageProvider {
 		}
 	}
 	
-	
-	
-	public static CameraFrame readImage(final File file) throws IOException
+	private static CameraFrame doReadImage(final File file) throws IOException
 	{
 		if (file.getName().toLowerCase().matches(".*\\.cr.")) {
 			try {

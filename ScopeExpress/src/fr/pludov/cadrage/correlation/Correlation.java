@@ -314,6 +314,8 @@ public class Correlation implements Serializable {
 				directory = metadata.getDirectory(ExifSubIFDDirectory.class);
 				if (directory != null) {
 					pause = directory.getDoubleObject(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
+					// ExifSubIFDDirectory.TAG_GAIN_CONTROL
+					// iso = directory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
 				}
 				
 //

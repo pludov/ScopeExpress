@@ -15,6 +15,9 @@ public class Image implements Serializable {
 	
 	File file;
 	
+	// jamais null, jamais modifié
+	ImageDisplayParameter displayParameter;
+	
 	// Position issue du téléscope ?
 	boolean scopePosition;
 	double ra, dec;
@@ -45,6 +48,7 @@ public class Image implements Serializable {
 		this.gamma = 0.0;
 		this.black = 0.0;
 		this.pause = null;
+		this.displayParameter = new ImageDisplayParameter();
 		
 	}
 
@@ -52,6 +56,7 @@ public class Image implements Serializable {
 	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
 	    in.defaultReadObject();
 	    this.listeners = new WeakListenerCollection<ImageListener>(ImageListener.class);
+	    if (this.displayParameter == null) this.displayParameter = new ImageDisplayParameter();
 	}
 
 	public File getFile() {
