@@ -1,4 +1,4 @@
-package fr.pludov.cadrage.correlation;
+package fr.pludov.cadrage.ui.settings;
 
 import javax.swing.JPanel;
 import java.awt.GridBagLayout;

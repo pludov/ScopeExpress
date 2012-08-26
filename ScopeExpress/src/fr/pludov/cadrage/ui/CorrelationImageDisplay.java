@@ -58,17 +58,20 @@ import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ViewPortListener;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.ListEntry;
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImage;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageDisplayParameter;
+import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
+import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.ImageProvider;
 
 public class CorrelationImageDisplay extends Panel 
-			implements CorrelationListener, ImageCorrelationListener, ViewPortListener, ImageListener,
+			implements CorrelationListener, ImageCorrelationListener, ViewPortListener, ImageListener, ImageDisplayParameterListener,
 					ListSelectionListener, KeyListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
 	
 	Correlation correlation;
@@ -134,23 +137,27 @@ public class CorrelationImageDisplay extends Panel
 	
 	private class BufferedImageDisplay {
 		Image image;
-		
+
+		ImageDisplayParameter imageParameters;	// Paramètres utilisés
+		ImageDisplayMetaDataInfo imageMetadata;	// Métadata utilisée pour le calcul
 		AffineTransform imageToScreenTransform;	// Transformation image => visuel. 
 		Area viewPort;				// Partie visible de l'image dans la pile (sur l'écran)
 		Area fullViewPort;			// Ensemble de l'image
 		Area usedPart;				// Ensemble de l'image
 		Area okPort;				// Partie à jour sur le backBuffer.
-		ImageWorker worker;
+		ImageRefresher worker;
 	
 		class ImageRefresher extends ImageWorker {
 			Image image;
 			ImageDisplayParameter parameters;
+			ImageDisplayMetaDataInfo imageMetadata;
 			BufferedImage display;
 			
-			ImageRefresher(Image from, ImageDisplayParameter parameters)
+			ImageRefresher(Image from, ImageDisplayParameter parameters, ImageDisplayMetaDataInfo imageMetadata)
 			{
 				this.image = from;
 				this.parameters = parameters;
+				this.imageMetadata = imageMetadata;
 			}
 			
 			@Override
@@ -161,7 +168,7 @@ public class CorrelationImageDisplay extends Panel
 						return;
 					}
 					
-					display = cameraFrame.asRgbImage(this.parameters);
+					display = cameraFrame.asImage(this.parameters, this.imageMetadata);
 				} catch(IOException e) {
 					display = new BufferedImage(16, 16, BufferedImage.TYPE_3BYTE_BGR);
 				}
@@ -170,6 +177,8 @@ public class CorrelationImageDisplay extends Panel
 			@Override
 			public void done() {
 				worker = null;
+				
+				if (viewPort == null) return;
 				
 				ImageCorrelation imgCorr = correlation.getImageCorrelation(image);
 				AffineTransform transform = getImageToScreenTransform(imgCorr);
@@ -198,7 +207,15 @@ public class CorrelationImageDisplay extends Panel
 		
 		void startWorkers()
 		{
-			if (worker != null) return;
+			if (worker != null) {
+				if ((!worker.parameters.equals(imageParameters)) ||
+					(!worker.imageMetadata.equals(imageMetadata))){
+					worker.cancel();
+					worker = null;
+				} else {
+					return;
+				}
+			}
 			if (viewPort == null) return;
 			
 			if (okPort != null && viewPort.equals(okPort)) {
@@ -212,7 +229,7 @@ public class CorrelationImageDisplay extends Panel
 				return;
 			}
 			
-			worker = new ImageRefresher(image, new ImageDisplayParameter(image.getDisplayParameter()));
+			worker = new ImageRefresher(image, new ImageDisplayParameter(imageParameters), imageMetadata);
 			worker.queue();
 		}
 	};
@@ -239,13 +256,13 @@ public class CorrelationImageDisplay extends Panel
 			@Override
 			public void componentShown(ComponentEvent e) {
 				updateBackBuffer();
-				setAreaOfInterestForDisplays();
+				refreshImageGeometry();
 			}
 			
 			@Override
 			public void componentResized(ComponentEvent e) {
 				updateBackBuffer();
-				setAreaOfInterestForDisplays();
+				refreshImageGeometry();
 			}
 			
 			@Override
@@ -255,7 +272,7 @@ public class CorrelationImageDisplay extends Panel
 			@Override
 			public void componentHidden(ComponentEvent e) {
 				updateBackBuffer();
-				setAreaOfInterestForDisplays();
+				refreshImageGeometry();
 			}
 		});
 		
@@ -696,7 +713,7 @@ public class CorrelationImageDisplay extends Panel
 	
 	private void viewPortTransformationUpdated()
 	{
-		setAreaOfInterestForDisplays();
+		refreshImageGeometry();
 		repaint(100);
 	}
 
@@ -729,7 +746,7 @@ public class CorrelationImageDisplay extends Panel
         backBufferEmpty = new Area(new Rectangle2D.Double(0, 0, wantedWidth, wantedHeight));
 	}
 	
-	private void setAreaOfInterestForDisplays()
+	public void refreshImageGeometry()
 	{
 		Area area = new Area(new Rectangle2D.Double(0, 0, getWidth(), getHeight()));
         List<ImageListEntry> topToBottom = new ArrayList<ImageListEntry>(imageList.getEntryList());
@@ -742,10 +759,15 @@ public class CorrelationImageDisplay extends Panel
         	if (imageDisplay == null) continue;
         	Area oldViewPort = imageDisplay.viewPort;
         	AffineTransform oldTransform = imageDisplay.imageToScreenTransform;
+        	ImageDisplayParameter oldParameters = imageDisplay.imageParameters;
+        	ImageDisplayMetaDataInfo oldMetadata = imageDisplay.imageMetadata;        	
         	
         	imageDisplay.viewPort = null;
         	imageDisplay.fullViewPort = null;
         	imageDisplay.usedPart = null;
+        	
+        	imageDisplay.imageParameters = new ImageDisplayParameter(ile.getTarget().getDisplayParameter());
+        	imageDisplay.imageMetadata = imageDisplay.imageParameters.getMetadataInUse(ile.getTarget());
         	
         	Area image;
         	
@@ -791,19 +813,17 @@ public class CorrelationImageDisplay extends Panel
     		}
     		
     		// Si la transformation a changée, il faut dropper le contenu...
-    		if (((oldTransform == null) != (imageDisplay.imageToScreenTransform == null)) ||
-    				(oldTransform != null && !oldTransform.equals(imageDisplay.imageToScreenTransform)))
+    		if (!Utils.equalsWithNullity(oldParameters, imageDisplay.imageParameters) ||
+    				!Utils.equalsWithNullity(oldMetadata, imageDisplay.imageMetadata) ||
+    				!Utils.equalsWithNullity(oldTransform, imageDisplay.imageToScreenTransform))
     		{
     			// Tout est à jetter
     			imageDisplay.okPort = null;
     			imageDisplay.startWorkers();
-    		} else {    		
-	    		if (((oldViewPort == null) != (imageDisplay.viewPort == null)) ||
-	    				
+    		} else if (((oldViewPort == null) != (imageDisplay.viewPort == null)) ||
 	    				(oldViewPort != null && !oldViewPort.equals(imageDisplay.viewPort)))
-	    		{
-	    			imageDisplay.startWorkers();
-	    		}
+    		{
+    			imageDisplay.startWorkers();
     		}
     		
     		if (imageDisplay.viewPort != null) {
@@ -937,6 +957,7 @@ public class CorrelationImageDisplay extends Panel
 	public void imageAdded(final Image image) 
 	{
 		image.listeners.addListener(this, this);
+		
 		BufferedImageDisplay display = new BufferedImageDisplay();
 		display.image = image;
 		display.okPort = null;
@@ -945,11 +966,11 @@ public class CorrelationImageDisplay extends Panel
 		display.viewPort = null;
 		
 		images.put(image, display);
-		
+		image.getDisplayParameter().listeners.addListener(display, this);
 		ImageCorrelation imgCorr = correlation.getImageCorrelation(image);
 		imgCorr.listeners.addListener(this, this);
 		
-		setAreaOfInterestForDisplays();
+		refreshImageGeometry();
 		
 		repaint();
 	}
@@ -961,6 +982,7 @@ public class CorrelationImageDisplay extends Panel
 		BufferedImageDisplay display = images.remove(image);
 		
 		if (display != null) {
+			image.getDisplayParameter().listeners.removeListener(display);
 			if (display.worker != null) {
 				display.worker.cancel();
 				display.worker = null;
@@ -968,27 +990,32 @@ public class CorrelationImageDisplay extends Panel
 		}
 		imageCorrelation.listeners.removeListener(this);
 		
-		setAreaOfInterestForDisplays();
+		refreshImageGeometry();
 
 		repaint();
 	}
 
 	@Override
 	public void correlationUpdated() {
-		setAreaOfInterestForDisplays();
+		refreshImageGeometry();
 		
 		repaint();
 	}
 	
 	@Override
 	public void imageTransformationChanged(ImageCorrelation correlation) {
-		setAreaOfInterestForDisplays();
+		refreshImageGeometry();
 	}
 	
 	@Override
 	public void lockingChanged(ImageCorrelation correlation) {
 	}
 
+	@Override
+	public void parameterChanged() {
+		refreshImageGeometry();
+	}
+	
 	@Override
 	public void levelChanged(Image source) {
 //		// Il faut invalider le display de l'image
@@ -1021,7 +1048,7 @@ public class CorrelationImageDisplay extends Panel
 	
 	@Override
 	public void metadataChanged(Image source) {
-		
+		refreshImageGeometry();
 	}
 	
 

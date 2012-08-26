@@ -1,4 +1,4 @@
-package fr.pludov.cadrage.correlation;
+package fr.pludov.cadrage.ui.settings;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,82 +11,18 @@ import javax.swing.JTextField;
 import fr.pludov.cadrage.StarDetectionParameters;
 
 public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesign {
+	InputOutputHandler<StarDetectionParameters> ioHandler;
 	
-	StarDetectionParameters target;
-	
-	private static abstract class Converter<CONTENT>
+	public StarDetectionParameterPanel()
 	{
-		final JTextField component;
-		
-		Converter(JTextField component)
-		{
-			this.component = component;
-		}
-		
-		abstract CONTENT getFromParameter(StarDetectionParameters parameters);
-		abstract void setParameter(StarDetectionParameters parameters, CONTENT content) throws Exception;
-		
-		abstract String toString(CONTENT t);
-		abstract CONTENT fromString(String s) throws Exception;
+		ioHandler = new InputOutputHandler<StarDetectionParameters>();
+		ioHandler.init(getConverters());
 	}
 	
-	private static abstract class IntConverter extends Converter<Integer>
-	{
-		IntConverter(JTextField component) {
-			super(component);
-		}
-		
-		String toString(Integer t)
-		{
-			return t.toString();
-		}
-		
-		Integer fromString(String s) throws Exception
-		{
-			return Integer.parseInt(s);
-		}
-	}
-
-	private static abstract class PercentConverter extends Converter<Double>
-	{
-		PercentConverter(JTextField component) {
-			super(component);
-		}
-		
-		String toString(Double d)
-		{
-			return Double.toString(d * 100.0) + "%";
-		}
-		
-		Double fromString(String s) throws Exception
-		{
-			s = s.trim();
-			if (s.endsWith("%")) s = s.substring(0, s.length() - 1).trim();
-			return Double.parseDouble(s) / 100.0;
-		}
-	}
-
-	private static abstract class DoubleConverter extends Converter<Double>
-	{
-		DoubleConverter(JTextField component) {
-			super(component);
-		}
-		
-		String toString(Double d)
-		{
-			return Double.toString(d);
-		}
-		
-		Double fromString(String s) throws Exception
-		{
-			return Double.parseDouble(s);
-		}
-	}
-	
-	private Converter [] getConverters() {
-		return new Converter[] {
+	private InputOutputHandler.TextConverter<StarDetectionParameters, ?> [] getConverters() {
+		return new InputOutputHandler.TextConverter[] {
 			// Nb Star Max
-			new IntConverter(this.nbStarMaxText) {
+			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.nbStarMaxText) {
 				@Override
 				Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getNbStarMax();
@@ -102,7 +38,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			},
 			
 			// binFactor
-			new IntConverter(this.binFactorCombo) {
+			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.binFactorCombo) {
 				@Override
 				Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getBinFactor();
@@ -117,7 +53,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			},
 			
 			// backgroundEvaluationPct
-			new PercentConverter(this.backgroundEvaluationPctText) {
+			new InputOutputHandler.PercentConverter<StarDetectionParameters>(this.backgroundEvaluationPctText) {
 				@Override
 				Double getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getBackgroundEvaluationPct();
@@ -131,7 +67,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			},
 			
 			// backgroundSquare
-			new IntConverter(this.backgroundSquareText) {
+			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.backgroundSquareText) {
 				
 				@Override
 				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
@@ -147,7 +83,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			},
 			
 			// absoluteAduSeuil 
-			new DoubleConverter(this.absoluteAduSeuilText) {
+			new InputOutputHandler.DoubleConverter<StarDetectionParameters>(this.absoluteAduSeuilText) {
 				@Override
 				void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
 					if (content == null) throw new Exception("Obligatoire");
@@ -162,7 +98,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			},
 			
 			// starGrowIntensityRatio
-			new PercentConverter(this.starGrowIntensityRatioText) {
+			new InputOutputHandler.PercentConverter<StarDetectionParameters>(this.starGrowIntensityRatioText) {
 				
 				@Override
 				void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
@@ -177,7 +113,7 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 				}
 			},
 			
-			new IntConverter(this.starMaxSizeText) {
+			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.starMaxSizeText) {
 				
 				@Override
 				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
@@ -192,72 +128,10 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 				}
 			}
 		};
+	}
+
+	public void loadParameters(StarDetectionParameters parameters) {
+		ioHandler.loadParameters(parameters);
 	};
-	
-	public void addListeneres()
-	{
-		for(Converter converter : getConverters())
-		{
-			final Converter finalConverter = converter;
-			converter.component.addActionListener(new ActionListener() {
-				
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					setParameter(finalConverter);
-				}
-			});
-			converter.component.addFocusListener(new FocusListener() {
-				
-				@Override
-				public void focusLost(FocusEvent e) {
-					setParameter(finalConverter);
-				}
-				
-				@Override
-				public void focusGained(FocusEvent e) {
-				}
-			});
-		}
-	}
-	
-	public void setParameter(Converter converter)
-	{
-		String currentText = converter.component.getText();
-
-		Object value;
-		try {
-			
-			if (currentText == null || currentText.equals("")) {
-				value = null;
-			} else {
-				value = converter.fromString(currentText);
-			}
-			
-			converter.setParameter(target, value);
-		} catch(Exception e) {
-			
-		}
-	}
-	
-	public void loadParameters(StarDetectionParameters parameters)
-	{
-		
-		this.target = parameters;
-		addListeneres();
-		for(Converter converter : getConverters())
-		{
-			Object value = converter.getFromParameter(target);
-			
-			JTextField textComponent = (JTextField)converter.component;	
-
-			String text;
-			if (value == null) {
-				text = "";
-			} else {
-				text = converter.toString(value);
-			}
-			textComponent.setText(text);
-		}		
-	}
 
 }

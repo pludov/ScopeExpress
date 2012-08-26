@@ -4,17 +4,13 @@ import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
+import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 
 public class CameraFrame {
 	int width, height;
 	// Données sous forme d'ADU 16-bits
 	char [] buffer;
 
-	// null si inconnu
-	Double pause;
-	// null si inconnu
-	Integer iso;
-	
 	boolean isCfa;
 	
 	public FitsPlane asGreyFits(double mul)
@@ -46,22 +42,22 @@ public class CameraFrame {
 	}
 	
 	
-	public BufferedImage asImage(ImageDisplayParameter displayParameter)
+	public BufferedImage asImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
-		switch(displayParameter.channelMode)
+		switch(displayParameter.getChannelMode())
 		{
 		case Color:
-			return asRgbImage(displayParameter);
+			return asRgbImage(displayParameter, metadataInfo);
 		case GreyScale:
 		case NarrowBlue:
 		case NarrowGreen:
 		case NarrowRed:
-			return asGreyImage(displayParameter);
+			return asGreyImage(displayParameter, metadataInfo);
 		}
 		throw new RuntimeException("unimplemented");
 	}
 	
-	public BufferedImage asGreyImage(ImageDisplayParameter displayParameter)
+	public BufferedImage asGreyImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
 		BufferedImage result = new BufferedImage(width / 2, height / 2, BufferedImage.TYPE_BYTE_GRAY);
 
@@ -76,7 +72,7 @@ public class CameraFrame {
 //							(int)charBuffer[offset + 1] + 
 //							(int)charBuffer[offset + width] + 
 //							(int)charBuffer[offset + width + 1] ) / (4 * 8);
-				int val = displayParameter.getLevelForAdu(0, ((int)buffer[offset]));
+				int val = displayParameter.getLevelForAdu(metadataInfo, 0, ((int)buffer[offset]));
 				inData[0] = (byte) (val);
 				raster.setDataElements(x , y, inData);
 			}
@@ -85,7 +81,7 @@ public class CameraFrame {
 		return result;
 	}
 	
-	public BufferedImage asRgbImage(ImageDisplayParameter displayParameter)
+	public BufferedImage asRgbImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
 		BufferedImage result = new BufferedImage(width / 2, height / 2, BufferedImage.TYPE_3BYTE_BGR);
 
@@ -96,12 +92,12 @@ public class CameraFrame {
 			for(int x = 0; x < width / 2; ++x)
 			{
 				int offset = (x * 2) + (y * 2) * width;
-				int r = displayParameter.getLevelForAdu(0, buffer[offset]);
+				int r = displayParameter.getLevelForAdu(metadataInfo, 0, buffer[offset]);
 				int g1 = (int)buffer[offset + 1];
 				int g2 = (int)buffer[offset + width]; 
-				int b = displayParameter.getLevelForAdu(2, (int)buffer[offset + width + 1]);
+				int b = displayParameter.getLevelForAdu(metadataInfo, 2, (int)buffer[offset + width + 1]);
 				
-				int g = displayParameter.getLevelForAdu(1, (g1 + g2) / 2);
+				int g = displayParameter.getLevelForAdu(metadataInfo, 1, (g1 + g2) / 2);
 				
 				inData[0] = (byte) (r);
 				inData[1] = (byte) (g);
@@ -129,5 +125,4 @@ public class CameraFrame {
 	public boolean isCfa() {
 		return isCfa;
 	}
-	
 }

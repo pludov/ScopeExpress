@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class Image implements Serializable {
@@ -23,7 +24,10 @@ public class Image implements Serializable {
 	double ra, dec;
 	
 	// Temps de pause en seconde.
-	Double pause;
+	Double expositionDuration;
+
+	// Valeur d'iso.
+	Integer iso;
 	
 	//
 	public double expoComposensation;
@@ -47,7 +51,7 @@ public class Image implements Serializable {
 		this.expoComposensation = 0;
 		this.gamma = 0.0;
 		this.black = 0.0;
-		this.pause = null;
+		this.expositionDuration = null;
 		this.displayParameter = new ImageDisplayParameter();
 		
 	}
@@ -159,12 +163,22 @@ public class Image implements Serializable {
 	}
 
 	public Double getPause() {
-		return pause;
+		return expositionDuration;
 	}
 
 	public void setPause(Double pause) {
-		if (pause == this.pause || (pause != null && this.pause != null && pause.equals(this.pause))) return;
-		this.pause = pause;
+		if (Utils.equalsWithNullity(this.expositionDuration, pause)) return;
+		this.expositionDuration = pause;
+		listeners.getTarget().metadataChanged(this);
+	}
+	
+	public Integer getIso() {
+		return iso;
+	}
+	
+	public void setIso(Integer iso) {
+		if (Utils.equalsWithNullity(this.iso, iso)) return;
+		this.iso = iso;
 		listeners.getTarget().metadataChanged(this);
 	}
 

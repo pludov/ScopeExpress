@@ -40,9 +40,10 @@ import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.CorrelationArea;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
-import fr.pludov.cadrage.correlation.StarDetectionParameterPanel;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
+import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
+import fr.pludov.cadrage.ui.settings.StarDetectionParameterPanel;
 import fr.pludov.cadrage.ui.utils.ListEntry;
 
 public class CorrelationUi {
@@ -170,6 +171,25 @@ public class CorrelationUi {
 			};
 			
 		}.start();
+	}
+	
+	JDialog imageDisplayParameterDialog = null;
+	ImageDisplayParameterPanel imageDisplayParameterPanel = null;
+
+	public void popupImageDisplayParameterDialog(Image image)
+	{
+		if (imageDisplayParameterDialog == null) {
+			imageDisplayParameterPanel = new ImageDisplayParameterPanel();
+			
+			imageDisplayParameterDialog = new JDialog(Cadrage.mainFrame);
+			imageDisplayParameterDialog.getContentPane().add(imageDisplayParameterPanel);
+			imageDisplayParameterDialog.pack();
+			imageDisplayParameterDialog.setResizable(false);
+		}
+		if (!imageDisplayParameterDialog.isVisible()) {
+			imageDisplayParameterPanel.loadParameters(image.getDisplayParameter());
+			imageDisplayParameterDialog.setVisible(true);
+		}
 	}
 	
 	JDialog starDetectionParameterDialog = null;
@@ -726,6 +746,7 @@ public class CorrelationUi {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				imageTable.reorderSelection(2);
+				display.refreshImageGeometry();
 			}
 		});
 		contextMenu.add(reorderMenu);
@@ -737,6 +758,7 @@ public class CorrelationUi {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				imageTable.reorderSelection(-2);
+				display.refreshImageGeometry();
 			}
 		});
 		contextMenu.add(reorderMenu);
@@ -752,12 +774,7 @@ public class CorrelationUi {
 //					levelDialog.dispose();
 //					levelDialog = null;
 //				}
-				if (levelDialog == null) {
-					levelDialog = new LevelDialog(Cadrage.mainFrame, imageTable);
-
-				}
-				levelDialog.setImageList(images);
-				levelDialog.setVisible(true);
+				popupImageDisplayParameterDialog(images.get(0).getTarget());
 			}
 		});
 		contextMenu.add(levelMenu);

@@ -279,6 +279,8 @@ public class Correlation implements Serializable {
 			Integer width;
 			Integer height;
 			Double pause;
+			Integer iso;
+			
 			@Override
 			public void init() throws Exception {
 				// Vérifier que l'image est encore dans la correlation
@@ -289,6 +291,7 @@ public class Correlation implements Serializable {
 				width = null;
 				height = null;
 				pause = null;
+				iso = null;
 			}
 			
 			@Override
@@ -300,7 +303,7 @@ public class Correlation implements Serializable {
 				    for (Tag tag : directory2.getTags()) {
 				        System.out.println(tag);
 				    }
-				}				
+				}
 				
 				// Jpeg width, height
 				
@@ -315,7 +318,7 @@ public class Correlation implements Serializable {
 				if (directory != null) {
 					pause = directory.getDoubleObject(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
 					// ExifSubIFDDirectory.TAG_GAIN_CONTROL
-					// iso = directory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
+					iso = directory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
 				}
 				
 //
@@ -349,6 +352,9 @@ public class Correlation implements Serializable {
 						image.setExpoComposensation(bestOther.getExpoComposensation());
 						image.setGamma(bestOther.getGamma());
 					}
+				}
+				if (iso != null) {
+					image.setIso(iso);
 				}
 			}
 		};

@@ -47,7 +47,31 @@ public class ImageList extends GenericList<Image, ImageListEntry> implements Cor
 				return ile.getTarget().getPause();
 			}
 
-		},
+			@Override
+			public void setValue(ImageListEntry ile, Object value) {
+				Double v = (Double)value;
+				if (v != null && v <= 0) throw new RuntimeException("exposition must be >= 0!");
+				ile.getTarget().setPause((Double)value);
+			}
+			
+		}.setEditable(true),
+		
+		new ColumnDefinition("ISO", Integer.class, 45) {
+			@Override
+			public Object getValue(ImageListEntry ile) {
+				return ile.getTarget().getIso();
+			}
+
+			@Override
+			public void setValue(ImageListEntry ile, Object value) {
+				Integer v = (Integer)value;
+				if (v != null && v <= 0) throw new RuntimeException("iso must be >= 0!");
+				ile.getTarget().setIso(v);
+			}
+			
+		}.setEditable(true),
+		
+		
 		
 		new ColumnDefinition("étoiles", Integer.class, 40) {
 			public Object getValue(ImageListEntry ile) {
