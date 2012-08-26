@@ -60,6 +60,7 @@ import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageListener;
 import fr.pludov.cadrage.ImageStar;
+import fr.pludov.io.CameraFrame;
 import fr.pludov.io.ImageProvider;
 
 public class CorrelationImageDisplay extends Panel 
@@ -159,7 +160,8 @@ public class CorrelationImageDisplay extends Panel
 					public void run() {
 						jpeg = null;
 						try {
-							jpeg = ImageProvider.readImage(image.getFile());
+							CameraFrame cameraFrame = ImageProvider.readImage(image.getFile());
+							jpeg = cameraFrame.asRgbImage(0.1);
 
 							if (bin != 1) {
 								BufferedImage copy = new BufferedImage(jpeg.getWidth() / bin, jpeg.getHeight() / bin, jpeg.getType());

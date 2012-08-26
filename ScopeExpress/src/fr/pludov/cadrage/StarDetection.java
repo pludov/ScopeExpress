@@ -11,6 +11,8 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import fr.pludov.io.FitsPlane;
+
 public class StarDetection {
 	
 	StarDetectionParameters parameters;
@@ -22,6 +24,7 @@ public class StarDetection {
 	
 	private static class StarCandidate {
 		int x, y;
+		// En adu/s
 		float energy;
 		double fwhm;
 	}
@@ -595,39 +598,20 @@ public class StarDetection {
 	}
 	
 	// Double adu255 : valeur d'adu pour 255.
-	public List<ImageStar> proceed(BufferedImage img, double adu255)
+	public List<ImageStar> proceed(FitsPlane img)
 	{
 		int binFactor = parameters.getBinFactor();
 		// Construire un tableau avec les valeurs  
-		double mul = adu255 / (255.0 * binFactor * binFactor);
+		sx = img.getSx() / binFactor;
+		sy = img.getSy() / binFactor;
 		
-		sx = img.getWidth() / binFactor;
-		sy = img.getHeight() / binFactor;
-		
-		image = new float[sx * sy];
+		if (binFactor != 1) throw new RuntimeException("unimplemented");
+		image = Arrays.copyOf(img.getValue(),  img.getValue().length);
+		for(int i = 0; i < image.length; ++i)
+		{
+			image[i] = img.getValue()[i];
+		}
 
-		
-		int id = 0;
-		Raster raster = img.getData();
-		int [] pixels = null;
-		for(int y = 0; y < sy; y ++)
-			for(int x = 0; x < sx; x++)
-			{
-				// Faire la somme des ADU sur x et y
-				pixels = raster.getPixels(x * binFactor, y * binFactor, binFactor, binFactor, pixels);
-				int sum = 0;
-				
-				for(int i = 0; i < pixels.length; ++i)
-				{
-					sum += pixels[i];
-				}
-				
-				float pix = (float)(mul*sum);
-//				if (pix < 0) {
-//					throw new RuntimeException("pixel sum is negative!") ;
-//				}
-				image[id ++] = pix;
-			}
 		
 		background();
 		median3();
@@ -796,8 +780,8 @@ public class StarDetection {
 					double ecartType = getFWHM(largex0, largey0, largex1, largey1, bary[0], bary[1]);
 					
 					ImageStar star = new ImageStar();
-					star.x = bary[0] * binFactor - img.getWidth() / 2.0;
-					star.y = bary[1] * binFactor - img.getHeight() / 2.0;
+					star.x = bary[0] * binFactor - img.getSx() / 2.0;
+					star.y = bary[1] * binFactor - img.getSy() / 2.0;
 					star.energy = bary[2] * binFactor * binFactor;
 					star.fwhm = ecartType * binFactor;
 					result.add(star);

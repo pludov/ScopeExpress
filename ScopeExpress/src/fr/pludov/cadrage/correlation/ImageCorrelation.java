@@ -39,6 +39,10 @@ public class ImageCorrelation implements CorrelationArea, Serializable
 	{
 		this.image = image;
 		this.placement = PlacementType.Aucun;
+		this.cs = 1.0;
+		this.sn = 0.0;
+		this.tx = 0.0;
+		this.ty = 0.0;
 	}
 	
 	public double [] imageToGlobal(double x, double y, double [] xy)

@@ -45,6 +45,8 @@ import fr.pludov.cadrage.utils.IdentityBijection;
 import fr.pludov.cadrage.utils.IdentityHashSet;
 import fr.pludov.cadrage.utils.Ransac;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.io.CameraFrame;
+import fr.pludov.io.FitsPlane;
 import fr.pludov.io.ImageProvider;
 
 /**
@@ -371,20 +373,20 @@ public class Correlation implements Serializable {
 			
 			@Override
 			public void async() throws Exception {
-				BufferedImage bufferedImage;
+				FitsPlane fitsPlane;
 				
 				try {
-					bufferedImage = ImageProvider.readImage(file);
-					width = bufferedImage.getWidth();
-					height = bufferedImage.getHeight();
-					adu255 = 1.0;
+					CameraFrame frame;
+					frame = ImageProvider.readImage(file);
+					fitsPlane = frame.asGreyFits(1.0);
+					width = fitsPlane.getSx();
+					height = fitsPlane.getSy();
 				}catch(Exception e) {
 					throw new Exception("Impossible de charger " + file.toString(), e);
 				}
 				
 				// Ajouter l'image dans l'objet correlation
-				
-				stars = idt.proceed(bufferedImage, adu255);
+				stars = idt.proceed(fitsPlane);
 			}
 			
 			@Override
@@ -1133,7 +1135,7 @@ public class Correlation implements Serializable {
 			status.tx = 0;
 			status.ty = 0;
 			status.setCs(1.0);
-			status.setSn(1.0);
+			status.setSn(0.0);
 		}
 		
 		if (useScopePos)
