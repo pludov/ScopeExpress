@@ -17,6 +17,7 @@ import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
 import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.FrameDisplay;
+import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 
@@ -26,10 +27,12 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	
 	Image image;
 	ImageDisplayParameter imageDisplayParameter; 
+	BackgroundTask taskToGetImageToDisplay;
 	
 	public FrameDisplayWithStar(Focus focus) {
 		super();
 		this.focus = focus;
+		this.taskToGetImageToDisplay = null;
 		focus.listeners.addListener(this.listenerOwner, new FocusListener() {
 			
 			@Override
@@ -119,36 +122,80 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		super.setFrame(plane);
 	}
 	
-	private void refreshFrame(boolean resetSize)
+	private void refreshFrame(final boolean resetSize, final boolean keepCurrentBufferUntilUpdate)
 	{
-		ImageDisplayMetaDataInfo metadataInfo;
-		if (image != null) {
-			metadataInfo = image.getImageDisplayMetaDataInfo();
-		} else {
-			metadataInfo = new ImageDisplayMetaDataInfo();
-			metadataInfo.expositionDuration = 1.0;
-			metadataInfo.iso = 1600;
-			
+		if (this.taskToGetImageToDisplay != null) {
+			this.taskToGetImageToDisplay.abort();
+			this.taskToGetImageToDisplay = null;
 		}
 		
-		if (imageDisplayParameter != null) {
-			CameraFrame frame = image != null ? image.getCameraFrame() : null;
-			BufferedImage buffimage = frame != null ? frame.asImage(imageDisplayParameter, metadataInfo) : null;
-			
-			if (resetSize)
-			{
-				if (buffimage != null) {
-					setCenter(buffimage.getWidth() / 2.0, buffimage.getHeight() / 2.0);
-				} else {
-					setCenter(0, 0);
-				}
-				setZoom(1);
-				setZoomIsAbsolute(false);
+		if (image != null && imageDisplayParameter != null) {
+			if (resetSize || !keepCurrentBufferUntilUpdate) {
+				setFrame(null);
 			}
-			
-			setFrame(buffimage);
 		} else {
 			setFrame(null);
+		}
+		
+		if (resetSize)
+		{
+			setCenter(0, 0);
+			setZoom(1);
+			setZoomIsAbsolute(false);
+		}
+		
+		if (image != null && imageDisplayParameter != null) {
+			BackgroundTask loadImageTask = new BackgroundTask("Preparing display for " + image.getPath().getName())
+			{
+				BufferedImage buffimage;
+				
+				@Override
+				protected void proceed() throws BackgroundTaskCanceledException, Throwable {
+					final ImageDisplayMetaDataInfo metadataInfo;
+					setRunningDetails("chargement des méta-informations");
+					
+					if (image != null) {
+						metadataInfo = image.getImageDisplayMetaDataInfo();
+					} else {
+						metadataInfo = new ImageDisplayMetaDataInfo();
+						metadataInfo.expositionDuration = 1.0;
+						metadataInfo.iso = 1600;
+						
+					}
+					
+					
+					checkInterrupted();
+					setRunningDetails("chargement du brut");
+					setPercent(20);
+					CameraFrame frame = image.getCameraFrame();
+					
+					checkInterrupted();
+					setRunningDetails("application des paramètres de visualisation");
+					setPercent(70);
+					buffimage = frame != null ? frame.asImage(imageDisplayParameter, metadataInfo) : null;
+				}
+				
+				@Override
+				protected void onDone() {
+					if (getStatus() == Status.Done && taskToGetImageToDisplay == this) {
+						setFrame(buffimage);
+						
+						if (resetSize)
+						{
+							if (buffimage != null) {
+								setCenter(buffimage.getWidth() / 2.0, buffimage.getHeight() / 2.0);
+							} else {
+								setCenter(0, 0);
+							}
+							setZoom(1);
+							setZoomIsAbsolute(false);
+						}
+					}
+				}
+			};
+			this.taskToGetImageToDisplay = loadImageTask;
+			// Load ASAP
+			focus.getBackgroundTaskQueue().addTask(loadImageTask);
 		}
 	}
 	
@@ -164,11 +211,11 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				
 				@Override
 				public void parameterChanged() {
-					refreshFrame(false);
+					refreshFrame(false, true);
 				}
 			});
 		}
-		refreshFrame(false);
+		refreshFrame(false, true);
 	}
 	
 	public void setImage(Image image, boolean resetImagePosition)
@@ -205,6 +252,6 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			}
 		}
 		
-		refreshFrame(resetImagePosition);
+		refreshFrame(resetImagePosition, false);
 	}
 }

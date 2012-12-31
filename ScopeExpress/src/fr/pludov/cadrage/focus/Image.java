@@ -26,6 +26,7 @@ public class Image implements WorkStepResource {
 	SoftReference<CameraFrame> cameraFrame;
 	CameraFrame cameraFrameLocked;
 	int cameraFrameLockCount;
+	boolean loading;
 	
 	// Valide uniquement si cameraFrame a été obtenu !
 	
@@ -110,6 +111,13 @@ public class Image implements WorkStepResource {
 	public void produce() {
 		synchronized(this)
 		{
+			while (loading) {
+				try {
+					wait(1000);
+				} catch(InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 			if (cameraFrameLocked == null) {
 				cameraFrameLocked = cameraFrame.get();
 			}
@@ -117,6 +125,7 @@ public class Image implements WorkStepResource {
 				cameraFrameLockCount++;
 				return;
 			}
+			loading = true;
 		}
 		CameraFrame loaded;
 		try {
@@ -129,9 +138,11 @@ public class Image implements WorkStepResource {
 		
 		synchronized(this)
 		{
+			this.loading = false;
 			this.cameraFrame = new SoftReference<CameraFrame>(loaded);
 			this.cameraFrameLocked = loaded;
 			this.cameraFrameLockCount++;
+			notifyAll();
 		}
 	}
 	

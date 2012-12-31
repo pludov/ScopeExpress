@@ -8,6 +8,7 @@ import java.util.Map;
 
 import fr.pludov.cadrage.async.WorkStepProcessor;
 import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
+import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class Focus {
@@ -20,7 +21,9 @@ public class Focus {
 	
 	List<StarOccurence> todoList;
 	
+	// FIXME: il y a manifestement concurrence entre les deux...
 	WorkStepProcessor workStepProcessor;
+	final BackgroundTaskQueue backgroundTaskQueue;
 	
 	int starRay;
 	
@@ -31,6 +34,7 @@ public class Focus {
 		this.stars = new ArrayList<Star>();
 		this.todoList = new ArrayList<StarOccurence>();
 		this.workStepProcessor = new WorkStepProcessor();
+		this.backgroundTaskQueue = new BackgroundTaskQueue();
 	}
 	
 	Image getPreviousImage(Image after)
@@ -172,5 +176,9 @@ public class Focus {
 
 	public WorkStepProcessor getWorkStepProcessor() {
 		return workStepProcessor;
+	}
+
+	public BackgroundTaskQueue getBackgroundTaskQueue() {
+		return backgroundTaskQueue;
 	}
 }

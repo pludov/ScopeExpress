@@ -37,8 +37,6 @@ import fr.pludov.utils.StarFinder;
 public class FocusUi extends FocusUiDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
-	final BackgroundTaskQueue taskQueue;
-	
 	Focus focus;
 	FocusImageListView fd;
 	
@@ -50,7 +48,6 @@ public class FocusUi extends FocusUiDesign {
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 		this.focus = focus;
 
-		this.taskQueue = new BackgroundTaskQueue();
 		setupBackgroundTaskQueue();
 		
 		fd = new FocusImageListView(focus);
@@ -112,7 +109,7 @@ public class FocusUi extends FocusUiDesign {
 				Image image = fd.getCurrentImage();
 				if (image == null) return;
 				BackgroundTask detectStar = createDetectStarTask(image);
-				taskQueue.addTask(detectStar);
+				focus.getBackgroundTaskQueue().addTask(detectStar);
 			}
 		});
 		
@@ -285,7 +282,7 @@ public class FocusUi extends FocusUiDesign {
 	
 	void refreshTaskQueue()
 	{
-		List<BackgroundTask> running = this.taskQueue.getRunningTasks();
+		List<BackgroundTask> running = this.focus.getBackgroundTaskQueue().getRunningTasks();
 		
 		if (running.isEmpty())
 		{
@@ -295,18 +292,30 @@ public class FocusUi extends FocusUiDesign {
 			this.taskQueueStatus.setText("");
 		} else {
 			Status status = running.get(0).getStatus();
+			String title = running.get(0).getTitle();
+			String runningDetail = running.get(0).getRunningDetails();
 			
 			this.taskQueueProgress.setEnabled(true);
 			this.taskQueueProgress.setValue(running.get(0).getPercent());
 			this.taskQueueStop.setEnabled(status == Status.Running);
-			this.taskQueueStatus.setText((status == Status.Running ? "En cours : " : "Arrêt en cours : ") + 
-					running.get(0).getTitle());
+			String statusText;
+			if (status == Status.Running) {
+				statusText = "En cours : ";
+			} else {
+				statusText = "Arrêt en cours : ";
+			}
+			statusText += title;
+			if (runningDetail != null && !"".equals(runningDetail)) {
+				statusText += " (" + runningDetail + ")";
+			}
+			
+			this.taskQueueStatus.setText(statusText);
 		}
 	}
 	
 	void setupBackgroundTaskQueue()
 	{
-		this.taskQueue.listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
+		this.focus.getBackgroundTaskQueue().listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
 			
 			@Override
 			public void stateChanged() {
@@ -318,10 +327,10 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				List<BackgroundTask> running = FocusUi.this.taskQueue.getRunningTasks();
+				List<BackgroundTask> running = FocusUi.this.focus.getBackgroundTaskQueue().getRunningTasks();
 				if (running.isEmpty()) return;
 				BackgroundTask first = running.get(0);
-				FocusUi.this.taskQueue.abortTask(first);
+				first.abort();
 			}
 		});
 		

@@ -33,11 +33,36 @@ public final class BackgroundTaskQueue {
 		somethingChanged();
 	}
 
-	public synchronized void abortTask(BackgroundTask task)
+	/**
+	 * Doit être appellé uniquement depuis le thread swing
+	 */
+	public void abortTask(BackgroundTask task)
 	{
-		if (task.status != Status.Running) return;
-		task.status = Status.Aborting;
-		somethingChanged();
+		synchronized(this)
+		{
+			switch(task.status) {
+			case Running:
+				task.status = Status.Aborting;
+				break;
+			case Pending:
+				task.status = Status.Canceled;
+				break;
+			case Aborting:
+			case Aborted:
+			case Canceled:
+			case Done:
+				// Pas de changement pour ces cas là
+				return;
+			}
+			somethingChanged();
+
+		}
+		
+		try {
+			task.onDone();
+		} catch(Throwable t) {
+			t.printStackTrace();
+		}
 	}
 	
 	// Les taches ne changent pas d'état hors du thread Swing.
@@ -46,7 +71,7 @@ public final class BackgroundTaskQueue {
 		List<BackgroundTask> result = new ArrayList<BackgroundTask>();
 		for(BackgroundTask task : tasks)
 		{
-			if (task.status.isPending || task.status.isRunning)
+			if (task.status.isRunning)
 			{
 				result.add(task);
 			}
@@ -59,17 +84,29 @@ public final class BackgroundTaskQueue {
 	 */
 	synchronized void taskDone(final BackgroundTask task)
 	{
-		task.endTime = System.currentTimeMillis();
-		switch(task.status)
+		boolean callOnDone;
+		synchronized(this)
 		{
-		case Aborting:
-			task.status = Status.Aborted;
-			break;
-		default:
-			task.status = Status.Done;
+			task.endTime = System.currentTimeMillis();
+			callOnDone = !task.status.isFinal;
+			switch(task.status)
+			{
+			case Aborting:
+				task.status = Status.Aborted;
+				break;
+			default:
+				task.status = Status.Done;
+			}
+			
+			somethingChanged();
 		}
-		
-		somethingChanged();
+		if (callOnDone) {
+			try {
+				task.onDone();
+			} catch(Throwable t) {
+				t.printStackTrace();
+			}
+		}
 	}
 	
 	/**
@@ -84,6 +121,7 @@ public final class BackgroundTaskQueue {
 			@Override
 			public void run() {
 				try {
+					task.checkInterrupted();
 					task.proceed();
 				} catch(BackgroundTaskCanceledException e) {
 				} catch(Throwable t) {

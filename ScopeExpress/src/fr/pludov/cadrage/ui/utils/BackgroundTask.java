@@ -17,8 +17,8 @@ public abstract class BackgroundTask {
 		Aborted (false, false, true);
 		
 		public final boolean isPending;
-		final boolean isRunning;
-		final boolean isFinal;
+		public final boolean isRunning;
+		public final boolean isFinal;
 		
 		Status(boolean isPending, boolean isRunning, boolean isFinal)
 		{
@@ -30,6 +30,7 @@ public abstract class BackgroundTask {
 	
 	
 	private String title;
+	private String runningDetails;
 	private int percent;
 	
 	long startTime;
@@ -40,11 +41,20 @@ public abstract class BackgroundTask {
 	public BackgroundTask(String title)
 	{
 		this.title = title;
+		this.runningDetails = "";
 		this.percent = 0;
 		this.status = Status.Pending;
 		this.queue = null;
 		this.startTime = -1;
 		this.endTime = -1;
+	}
+
+	/**
+	 * Doit uniquement être appellé depuis le thread swing
+	 */
+	public void abort()
+	{
+		queue.abortTask(this);
 	}
 	
 	// Indique si la tache est prete à être exécuté
@@ -56,6 +66,9 @@ public abstract class BackgroundTask {
 	// Ceci est appellé dès que isReady est vrai et que le nombre de taches en attente le permet
 	protected abstract void proceed() throws BackgroundTaskCanceledException, Throwable;
 	
+	// Appellé dans tous les cas à la fin de l'exécution de la tache, ou après une annulation
+	// exécuté dans le thread swing
+	protected void onDone() {}
 	
 	protected final void runSync(Runnable runnable) throws BackgroundTaskCanceledException, InvocationTargetException
 	{
@@ -108,6 +121,26 @@ public abstract class BackgroundTask {
 		}
 	}
 
+	public String getRunningDetails() {
+		return runningDetails;
+	}
+
+	public void setRunningDetails(String subTitle) {
+		if (queue == null) {
+			this.runningDetails = subTitle;
+			return;
+		}
+		
+		if (this.runningDetails.equals(subTitle)) return;
+		synchronized(queue)
+		{
+			if (this.runningDetails.equals(subTitle)) return;
+			this.runningDetails = subTitle;
+			queue.somethingChanged();
+		}
+	}
+
+	
 	public int getPercent() {
 		return percent;
 	}
