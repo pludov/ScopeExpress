@@ -1,8 +1,13 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
@@ -115,4 +120,29 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 	public void starOccurenceRemoved(StarOccurence sco) {
 	}
 
+	@Override
+	protected JPopupMenu createContextMenu(final List<FocusImageListEntry> entries) {
+		JPopupMenu contextMenu = new JPopupMenu();
+
+		// Déplacement
+		JMenuItem removeMenu;
+		
+		removeMenu = new JMenuItem();
+		removeMenu.setText("Retirer de la liste");
+		removeMenu.setEnabled(entries.size() > 0);
+		removeMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(FocusImageListEntry entry : entries)
+				{
+					Image image = entry.getTarget();
+					focus.removeImage(image);
+				}
+			}
+		});
+		contextMenu.add(removeMenu);
+		
+		return contextMenu;
+	}
+	
 }
