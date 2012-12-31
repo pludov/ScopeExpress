@@ -4,7 +4,7 @@ public class FitsPlane {
 	float [] value;
 	int sx, sy;
 	
-	FitsPlane(int sx, int sy)
+	public FitsPlane(int sx, int sy)
 	{
 		this.sx = sx;
 		this.sy = sy;

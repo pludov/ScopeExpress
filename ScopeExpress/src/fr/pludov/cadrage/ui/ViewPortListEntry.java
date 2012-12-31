@@ -6,12 +6,14 @@ import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.correlation.ViewPortListener;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.ListEntry;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class ViewPortListEntry 
 			extends ListEntry<ViewPort, ViewPortListEntry> implements Serializable
 			
 {
 	private static final long serialVersionUID = 4237214584857675847L;
+	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	/**
 	 * 
@@ -38,7 +40,7 @@ public class ViewPortListEntry
 	
 	@Override
 	protected void addedToGenericList(final GenericList<ViewPort, ViewPortListEntry> list) {
-		getTarget().listeners.addListener(this, new ViewPortListener() {
+		getTarget().listeners.addListener(this.listenerOwner, new ViewPortListener() {
 			@Override
 			public void viewPortMoved(ViewPort vp) {
 				list.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
@@ -48,6 +50,6 @@ public class ViewPortListEntry
 	
 	@Override
 	protected void removedFromGenericList(GenericList<ViewPort, ViewPortListEntry> list) {
-		getTarget().listeners.removeListener(this);
+		getTarget().listeners.removeListener(this.listenerOwner);
 	}
 }

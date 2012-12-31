@@ -123,6 +123,7 @@ public class ImageProvider {
 			} else {
 				status.frame = null;
 			}
+			frames.notifyAll();
 		}
 		
 		if (problem != null) throw problem;
@@ -165,6 +166,17 @@ public class ImageProvider {
 			result.buffer = charBuffer;
 			result.width = loader.getWidth();
 			result.height = loader.getHeight();
+			result.maximum = loader.getMaximum();
+			result.black = loader.getBlack();
+			result.histogram = new int[3][];
+			result.histogram[0] = loader.getRedHistogram();
+			result.histogram[1] = loader.getGreenHistogram();
+			result.histogram[2] = loader.getBlueHistogram();
+			
+			result.histogramNbPix = new int[3];
+			result.histogramNbPix[0] = width * height / 4;
+			result.histogramNbPix[1] = width * height / 2;
+			result.histogramNbPix[2] = width * height / 4;
 			
 			return result;
 		}		

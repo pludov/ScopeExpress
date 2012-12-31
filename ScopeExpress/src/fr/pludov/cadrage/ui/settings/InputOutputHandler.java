@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
 
@@ -201,6 +202,60 @@ public class InputOutputHandler<TARGET> {
 			CONTENT value = getFromParameter(ioHandler.target);
 			
 			component.setSelectedItem(value);
+		}
+
+	}
+
+	public static abstract class BooleanConverter<TARGET> implements Converter<TARGET>
+	{
+		JCheckBox component;
+		
+		BooleanConverter(JCheckBox component) {
+			this.component = component;
+		}
+		
+		abstract Boolean getFromParameter(TARGET parameters);
+		abstract void setParameter(TARGET parameters, Boolean content) throws Exception;
+		
+		@Override
+		public void addListener(final InputOutputHandler<TARGET> target) {
+			component.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					setParameter(target);
+				}
+			});
+			this.component.addFocusListener(new FocusListener() {
+				
+				@Override
+				public void focusLost(FocusEvent e) {
+					setParameter(target);
+				}
+				
+				@Override
+				public void focusGained(FocusEvent e) {
+				}
+			});
+		}
+		
+
+		@Override
+		public final void setParameter(InputOutputHandler<TARGET> ioHandler)
+		{
+			Boolean value = component.isSelected();
+			try {
+				setParameter(ioHandler.target, value);
+			} catch(Exception e) {
+				
+			}
+		}
+
+		@Override
+		public final void loadParameter(InputOutputHandler<TARGET> ioHandler)
+		{
+			Boolean value = getFromParameter(ioHandler.target);
+			
+			component.setSelected(value);
 		}
 
 	}

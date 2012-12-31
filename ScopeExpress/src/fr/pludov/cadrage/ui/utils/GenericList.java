@@ -443,14 +443,19 @@ public class GenericList<Target, EffectiveListEntry extends ListEntry<Target, ?>
 
 	public boolean selectEntry(ListEntry<Target, EffectiveListEntry> entry)
 	{
-		int rowId = entry.getRowId();
-		if (getRowSorter() != null) {
-			rowId = getRowSorter().convertRowIndexToView(rowId);
-			if (rowId == -1) return false;
+		if (entry != null) {
+			int rowId = entry.getRowId();
+			if (getRowSorter() != null) {
+				rowId = getRowSorter().convertRowIndexToView(rowId);
+				if (rowId == -1) return false;
+			}
+			
+			getSelectionModel().setSelectionInterval(rowId, rowId);
+			return true;
+		} else {
+			getSelectionModel().clearSelection();
+			return true;
 		}
-		
-		getSelectionModel().setSelectionInterval(rowId, rowId);
-		return true;
 	}
 	
 	public AbstractTableModel getTableModel() {

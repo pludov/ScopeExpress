@@ -171,6 +171,7 @@ public class Correlation implements Serializable {
 		
 		for(Image img : this.images.keySet())
 		{
+			if (img.getStars() == null) continue;
 			for(ImageStar is : img.getStars())
 			{
 				is.wasSelected = false;
@@ -1041,7 +1042,7 @@ public class Correlation implements Serializable {
 							continue;
 						}
 						
-						if (ratio < 0.9 || ratio > 1.1) continue;
+						if (ratio < 0.5 || ratio > 1.5) continue;
 						
 						double tx = 0, ty = 0;
 						

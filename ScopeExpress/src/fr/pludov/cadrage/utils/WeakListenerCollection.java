@@ -8,33 +8,33 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Tant que le owner est en vie vis à vis du gc, garder le listener.
+ * 
+ * Attention, le listener peut également avoir une référence au owner.
+ * 
+ * => il faut que le owner ait une référence sur le listener
+ */
 public class WeakListenerCollection<Interface> implements InvocationHandler {
 	private static class ControlledObject<Interface>
 	{
-		WeakReference<Object> reference;
-		Interface listener;
+		WeakReference<WeakListenerOwner> reference;
+		// Si interface garde un lien sur object, rien de tout ça ne part à la poubelle...
+		// il faudrait faire en sorte que object garde une référence sur l'interface
+		WeakReference<Interface> listener;
 		
-		ControlledObject(Object object, Interface itf)
+		ControlledObject(WeakListenerOwner owner, Interface itf)
 		{
-			this.reference = new WeakReference<Object>(object);
-			if (object != itf) {
-				this.listener = itf;
-			}
+			this.reference = new WeakReference<WeakListenerOwner>(owner);
+			this.listener = new WeakReference<Interface>(itf);
 		}
 		
 		Interface get()
 		{
-			if (listener == null) {
-				return (Interface)reference.get();
-			} else {
-				if (reference.get() != null) {
-					return listener;
-				}
-				return null;
-			}
+			return listener.get();
 		}
 		
-		Object getOwner()
+		WeakListenerOwner getOwner()
 		{
 			return this.reference.get();
 		}
@@ -85,19 +85,21 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 		return result;
 	}
 	
-	public void addListener(Object owner, Interface i)
+	public void addListener(WeakListenerOwner owner, Interface i)
 	{
 		removeListener(owner);
 		listeners.add(new ControlledObject<Interface>(owner, i));
+		owner.addListener(i);
 	}
 	
-	public void removeListener(Object owner)
+	public void removeListener(WeakListenerOwner owner)
 	{
 		for(Iterator<ControlledObject<Interface>> it = listeners.iterator(); it.hasNext();)
 		{
 			ControlledObject<Interface> ref = it.next();
-			Object refOwner = ref.getOwner();
+			WeakListenerOwner refOwner = ref.getOwner();
 			if (refOwner == null || refOwner == owner) {
+				if (refOwner != null) refOwner.removeListener(ref.listener.get());
 				it.remove();
 			}
 		}

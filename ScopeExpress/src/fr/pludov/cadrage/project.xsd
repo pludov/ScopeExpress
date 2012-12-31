@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.example.org/project" xmlns:tns="http://www.example.org/project" elementFormDefault="qualified">
+
+    <element name="Project">
+    	<complexType>
+    		<sequence>
+    			<element name="Image" type="tns:ImageType"></element>
+    		</sequence>
+    	</complexType>
+    </element>
+
+    <complexType name="ImageType">
+    	<sequence>
+    		<element name="file" type="string"></element>
+    		<element name="width" type="int"></element>
+    		<element name="height" type="int"></element>
+    		<element name="exposition" type="double"></element>
+    		<element name="scopePosition"
+    			type="tns:AbstractScopePositionType">
+    		</element>
+    	</sequence>
+    	<attribute name="id" type="string"></attribute>
+    </complexType>
+
+    <complexType name="AbstractScopePositionType">
+    	<sequence>
+    		<element name="ra" type="double"></element>
+    		<element name="dec" type="double"></element>
+    	</sequence>
+    </complexType>
+
+    <complexType name="ImageCorrelationType">
+    	<sequence>
+    		<element name="viewPorts">
+    			<complexType>
+    				<sequence>
+    					<element name="viewPort" type="tns:ViewPortType"></element>
+    				</sequence>
+    			</complexType></element>
+    	</sequence>
+    </complexType>
+
+    <complexType name="ViewPortType">
+    	<complexContent>
+    		<extension base="tns:AbstractPosition">
+    			<sequence>
+    				<element name="name" type="string" minOccurs="1"
+    					maxOccurs="1">
+    				</element>
+                    <element name="width" type="double" minOccurs="1" maxOccurs="1">
+    				</element>
+                    <element name="height" type="double" minOccurs="1" maxOccurs="1"></element>
+    			</sequence>
+    			<attribute name="id" type="string"></attribute>
+    		</extension>
+    	</complexContent>
+    </complexType>
+
+    <complexType name="AbstractPosition">
+    	<sequence>
+    		<element name="tx" type="double" minOccurs="1" maxOccurs="1"></element>
+    		<element name="ty" type="double" minOccurs="1" maxOccurs="1"></element>
+    		<element name="cs" type="double" minOccurs="1" maxOccurs="1"></element>
+    		<element name="sn" type="double" minOccurs="1" maxOccurs="1"></element>
+    	</sequence>
+    </complexType>
+</schema>

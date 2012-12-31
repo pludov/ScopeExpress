@@ -9,12 +9,16 @@ import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ImageCorrelationListener;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.ListEntry;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class ImageListEntry 
 		extends ListEntry<Image, ImageListEntry> implements Serializable 
 {
 
 	private static final long serialVersionUID = -4986397965526535539L;
+	
+	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
+	
 	ImageListEntry()
 	{
 		super(null);
@@ -47,7 +51,7 @@ public class ImageListEntry
 	@Override
 	protected void addedToGenericList(final GenericList<Image, ImageListEntry> imageList) 
 	{
-		getTarget().listeners.addListener(this, new ImageListener() {
+		getTarget().listeners.addListener(this.listenerOwner, new ImageListener() {
 			@Override
 			public void metadataChanged(Image source) {
 				imageList.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
@@ -69,7 +73,7 @@ public class ImageListEntry
 			}			
 		});
 		imageCorrelation = ((ImageList)imageList).getCorrelation().getImageCorrelation(getTarget());
-		imageCorrelation.listeners.addListener(this, new ImageCorrelationListener() {
+		imageCorrelation.listeners.addListener(this.listenerOwner, new ImageCorrelationListener() {
 			@Override
 			public void lockingChanged(ImageCorrelation correlation) {
 				imageList.getTableModel().fireTableRowsUpdated(getRowId(), getRowId());
@@ -84,7 +88,7 @@ public class ImageListEntry
 	
 	@Override
 	protected void removedFromGenericList(GenericList<Image, ImageListEntry> list) {
-		getTarget().listeners.removeListener(this);
-		imageCorrelation.listeners.removeListener(this);
+		getTarget().listeners.removeListener(this.listenerOwner);
+		imageCorrelation.listeners.removeListener(this.listenerOwner);
 	}
 }

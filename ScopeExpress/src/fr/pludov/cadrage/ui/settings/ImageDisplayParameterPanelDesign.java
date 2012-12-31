@@ -12,25 +12,29 @@ import javax.swing.JComboBox;
 
 public class ImageDisplayParameterPanelDesign extends JPanel {
 	protected JLabel lblDureDexpoCible;
-	protected JCheckBox checkBox;
+	protected JCheckBox targetExpositionCheckBox;
 	protected JTextField targetExpositionText;
 	protected JLabel lblIsoCible;
-	protected JCheckBox checkBox_1;
+	protected JCheckBox targetIsoCheckBox;
 	protected JTextField targetIsoText;
 	protected JLabel lblMode;
 	protected JComboBox channelModeCombo;
 	protected JLabel lblNiveauDeNoir;
 	protected JTextField zeroText;
+	protected JLabel lblTransfert;
+	protected JComboBox transfertComboBox;
+	protected JCheckBox autoHistogramCheckBox;
+	protected JLabel label;
 
 	/**
 	 * Create the panel.
 	 */
 	public ImageDisplayParameterPanelDesign() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[]{0, 44, 0, 0};
-		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0};
+		gridBagLayout.columnWidths = new int[] {0, 31, 0, 0};
+		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		this.lblMode = new JLabel("Mode :");
@@ -50,27 +54,59 @@ public class ImageDisplayParameterPanelDesign extends JPanel {
 		gbc_channelModeCombo.gridy = 0;
 		add(this.channelModeCombo, gbc_channelModeCombo);
 		
+		this.lblTransfert = new JLabel("Transfert :");
+		GridBagConstraints gbc_lblTransfert = new GridBagConstraints();
+		gbc_lblTransfert.anchor = GridBagConstraints.EAST;
+		gbc_lblTransfert.insets = new Insets(0, 0, 5, 5);
+		gbc_lblTransfert.gridx = 0;
+		gbc_lblTransfert.gridy = 1;
+		add(this.lblTransfert, gbc_lblTransfert);
+		
+		this.transfertComboBox = new JComboBox();
+		GridBagConstraints gbc_transfertComboBox = new GridBagConstraints();
+		gbc_transfertComboBox.gridwidth = 2;
+		gbc_transfertComboBox.insets = new Insets(0, 0, 5, 0);
+		gbc_transfertComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_transfertComboBox.gridx = 1;
+		gbc_transfertComboBox.gridy = 1;
+		add(this.transfertComboBox, gbc_transfertComboBox);
+		
+		this.autoHistogramCheckBox = new JCheckBox("");
+		GridBagConstraints gbc_autoHistogramCheckBox = new GridBagConstraints();
+		gbc_autoHistogramCheckBox.insets = new Insets(0, 0, 5, 5);
+		gbc_autoHistogramCheckBox.gridx = 1;
+		gbc_autoHistogramCheckBox.gridy = 2;
+		add(this.autoHistogramCheckBox, gbc_autoHistogramCheckBox);
+		
+		this.label = new JLabel("R\u00E9glage automatique");
+		GridBagConstraints gbc_label = new GridBagConstraints();
+		gbc_label.anchor = GridBagConstraints.WEST;
+		gbc_label.insets = new Insets(0, 0, 5, 0);
+		gbc_label.gridx = 2;
+		gbc_label.gridy = 2;
+		add(this.label, gbc_label);
+		
 		this.lblDureDexpoCible = new JLabel("Dur\u00E9e d'expo cible :");
 		GridBagConstraints gbc_lblDureDexpoCible = new GridBagConstraints();
 		gbc_lblDureDexpoCible.anchor = GridBagConstraints.EAST;
 		gbc_lblDureDexpoCible.insets = new Insets(0, 0, 5, 5);
 		gbc_lblDureDexpoCible.gridx = 0;
-		gbc_lblDureDexpoCible.gridy = 1;
+		gbc_lblDureDexpoCible.gridy = 3;
 		add(this.lblDureDexpoCible, gbc_lblDureDexpoCible);
 		
-		this.checkBox = new JCheckBox("");
-		GridBagConstraints gbc_checkBox = new GridBagConstraints();
-		gbc_checkBox.insets = new Insets(0, 0, 5, 5);
-		gbc_checkBox.gridx = 1;
-		gbc_checkBox.gridy = 1;
-		add(this.checkBox, gbc_checkBox);
+		this.targetExpositionCheckBox = new JCheckBox("");
+		GridBagConstraints gbc_targetExpositionCheckBox = new GridBagConstraints();
+		gbc_targetExpositionCheckBox.insets = new Insets(0, 0, 5, 5);
+		gbc_targetExpositionCheckBox.gridx = 1;
+		gbc_targetExpositionCheckBox.gridy = 3;
+		add(this.targetExpositionCheckBox, gbc_targetExpositionCheckBox);
 		
 		this.targetExpositionText = new JTextField();
 		GridBagConstraints gbc_targetExpositionText = new GridBagConstraints();
 		gbc_targetExpositionText.insets = new Insets(0, 0, 5, 0);
 		gbc_targetExpositionText.fill = GridBagConstraints.HORIZONTAL;
 		gbc_targetExpositionText.gridx = 2;
-		gbc_targetExpositionText.gridy = 1;
+		gbc_targetExpositionText.gridy = 3;
 		add(this.targetExpositionText, gbc_targetExpositionText);
 		this.targetExpositionText.setColumns(10);
 		
@@ -79,22 +115,22 @@ public class ImageDisplayParameterPanelDesign extends JPanel {
 		gbc_lblIsoCible.anchor = GridBagConstraints.EAST;
 		gbc_lblIsoCible.insets = new Insets(0, 0, 5, 5);
 		gbc_lblIsoCible.gridx = 0;
-		gbc_lblIsoCible.gridy = 2;
+		gbc_lblIsoCible.gridy = 4;
 		add(this.lblIsoCible, gbc_lblIsoCible);
 		
-		this.checkBox_1 = new JCheckBox("");
-		GridBagConstraints gbc_checkBox_1 = new GridBagConstraints();
-		gbc_checkBox_1.insets = new Insets(0, 0, 5, 5);
-		gbc_checkBox_1.gridx = 1;
-		gbc_checkBox_1.gridy = 2;
-		add(this.checkBox_1, gbc_checkBox_1);
+		this.targetIsoCheckBox = new JCheckBox("");
+		GridBagConstraints gbc_targetIsoCheckBox = new GridBagConstraints();
+		gbc_targetIsoCheckBox.insets = new Insets(0, 0, 5, 5);
+		gbc_targetIsoCheckBox.gridx = 1;
+		gbc_targetIsoCheckBox.gridy = 4;
+		add(this.targetIsoCheckBox, gbc_targetIsoCheckBox);
 		
 		this.targetIsoText = new JTextField();
 		GridBagConstraints gbc_targetIsoText = new GridBagConstraints();
 		gbc_targetIsoText.insets = new Insets(0, 0, 5, 0);
 		gbc_targetIsoText.fill = GridBagConstraints.HORIZONTAL;
 		gbc_targetIsoText.gridx = 2;
-		gbc_targetIsoText.gridy = 2;
+		gbc_targetIsoText.gridy = 4;
 		add(this.targetIsoText, gbc_targetIsoText);
 		this.targetIsoText.setColumns(10);
 		
@@ -103,16 +139,15 @@ public class ImageDisplayParameterPanelDesign extends JPanel {
 		gbc_lblNiveauDeNoir.anchor = GridBagConstraints.EAST;
 		gbc_lblNiveauDeNoir.insets = new Insets(0, 0, 0, 5);
 		gbc_lblNiveauDeNoir.gridx = 0;
-		gbc_lblNiveauDeNoir.gridy = 3;
+		gbc_lblNiveauDeNoir.gridy = 5;
 		add(this.lblNiveauDeNoir, gbc_lblNiveauDeNoir);
 		
 		this.zeroText = new JTextField();
 		GridBagConstraints gbc_zeroText = new GridBagConstraints();
 		gbc_zeroText.gridwidth = 2;
-		gbc_zeroText.insets = new Insets(0, 0, 0, 5);
 		gbc_zeroText.fill = GridBagConstraints.HORIZONTAL;
 		gbc_zeroText.gridx = 1;
-		gbc_zeroText.gridy = 3;
+		gbc_zeroText.gridy = 5;
 		add(this.zeroText, gbc_zeroText);
 		this.zeroText.setColumns(10);
 

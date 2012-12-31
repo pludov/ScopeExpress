@@ -1,7 +1,11 @@
 package fr.pludov.cadrage.ui.settings;
 
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ChannelMode;
+import fr.pludov.cadrage.ImageDisplayParameter.TransfertFunction;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler.Converter;
 
@@ -16,8 +20,29 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 			channelModeCombo.addItem(ch);
 		}
 
+		for(TransfertFunction func : TransfertFunction.values())
+		{
+			transfertComboBox.addItem(func);
+		}
+		
 		ioHandler = new InputOutputHandler<ImageDisplayParameter>();
 		ioHandler.init(getConverters());
+		
+		this.autoHistogramCheckBox.addChangeListener(new ChangeListener() {
+			
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				boolean isAutoCb = autoHistogramCheckBox.isSelected();
+				
+				targetIsoCheckBox.setEnabled(!isAutoCb);
+				targetIsoText.setEditable(!isAutoCb);
+				
+				targetExpositionText.setEditable(!isAutoCb);
+				targetExpositionCheckBox.setEnabled(!isAutoCb);
+				
+				zeroText.setEditable(!isAutoCb);
+			}
+		});
 		
 	}
 
@@ -36,6 +61,31 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 						parameters.setChannelMode(content);
 					}
 				},
+				new InputOutputHandler.EnumConverter<ImageDisplayParameter, TransfertFunction>(this.transfertComboBox, TransfertFunction.values()) {
+					@Override
+					TransfertFunction getFromParameter(ImageDisplayParameter parameters) {
+						return parameters.getTransfertFunction();
+					}
+					
+					@Override
+					void setParameter(ImageDisplayParameter parameters, TransfertFunction content) throws Exception {
+						if (content == null) throw new Exception("Obligatoire!");
+						parameters.setTransfertFunction(content);
+					}
+				},
+				new InputOutputHandler.BooleanConverter<ImageDisplayParameter>(this.autoHistogramCheckBox) {
+					@Override
+					Boolean getFromParameter(ImageDisplayParameter parameters) {
+						return parameters.isAutoHistogram();
+					}
+					
+					@Override
+					void setParameter(ImageDisplayParameter parameters, Boolean content) throws Exception {
+						if (content == null) throw new Exception("Obligatoire!");
+						parameters.setAutoHistogram(content);
+					}
+				},
+
 				new InputOutputHandler.IntConverter<ImageDisplayParameter>(this.zeroText) {
 					@Override
 					Integer getFromParameter(ImageDisplayParameter parameters) {

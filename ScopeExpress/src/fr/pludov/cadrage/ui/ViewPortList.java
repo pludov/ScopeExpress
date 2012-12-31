@@ -21,12 +21,14 @@ import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.IdentityBijection;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 
 public class ViewPortList extends GenericList<ViewPort, ViewPortListEntry> implements CorrelationListener {
 	protected final CorrelationUi correlationUi;
 	Correlation target;
-	
+	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
+		
 	
 	@SuppressWarnings("unchecked")
 	private final List<ColumnDefinition> columns = Arrays.asList(
@@ -71,14 +73,14 @@ public class ViewPortList extends GenericList<ViewPort, ViewPortListEntry> imple
 		this.correlationUi = correlationUi;
 		this.correlation = correlationUi.getCorrelation();
 		
-		this.correlation.listeners.addListener(this, this);
+		this.correlation.listeners.addListener(this.listenerOwner, this);
 	}
 	
 	public void changeCorrelation(Correlation correlation)
 	{
-		this.correlation.listeners.removeListener(this);
+		this.correlation.listeners.removeListener(this.listenerOwner);
 		this.correlation = correlation;
-		this.correlation.listeners.addListener(this, this);
+		this.correlation.listeners.addListener(this.listenerOwner, this);
 	}
 	
 	@Override

@@ -61,6 +61,7 @@ import fr.pludov.cadrage.ui.utils.ListEntry;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImage;
 import fr.pludov.cadrage.ui.utils.tiles.TiledImagePool;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
@@ -73,6 +74,8 @@ import fr.pludov.io.ImageProvider;
 public class CorrelationImageDisplay extends Panel 
 			implements CorrelationListener, ImageCorrelationListener, ViewPortListener, ImageListener, ImageDisplayParameterListener,
 					ListSelectionListener, KeyListener, MouseMotionListener, MouseInputListener, MouseWheelListener  {
+	
+	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
 	Correlation correlation;
 	final CorrelationUi correlationUi;
@@ -237,7 +240,7 @@ public class CorrelationImageDisplay extends Panel
 	
 	public CorrelationImageDisplay(Correlation correlation, CorrelationUi correlationUi, ImageList list, ViewPortList viewPortList)
 	{
-		correlation.listeners.addListener(this, this);
+		correlation.listeners.addListener(this.listenerOwner, this);
 		this.imageList = list;
 		this.viewPortList = viewPortList;
 		this.correlation = correlation;
@@ -288,14 +291,14 @@ public class CorrelationImageDisplay extends Panel
 	public void changeCorrelation(Correlation newCorrelation)
 	{
 		if (this.correlation == newCorrelation) return;
-		this.correlation.listeners.removeListener(this);
+		this.correlation.listeners.removeListener(this.listenerOwner);
 		for(Image image : new ArrayList<Image>(this.images.keySet()))
 		{
 			this.imageRemoved(image, correlation.getImageCorrelation(image));
 		}
 		this.images.clear();
 		
-		newCorrelation.listeners.addListener(this, this);
+		newCorrelation.listeners.addListener(this.listenerOwner, this);
 		this.correlation = newCorrelation;
 		this.images.clear();
 		this.centerx = 0;
@@ -956,7 +959,7 @@ public class CorrelationImageDisplay extends Panel
 	@Override
 	public void imageAdded(final Image image) 
 	{
-		image.listeners.addListener(this, this);
+		image.listeners.addListener(this.listenerOwner, this);
 		
 		BufferedImageDisplay display = new BufferedImageDisplay();
 		display.image = image;
@@ -966,9 +969,10 @@ public class CorrelationImageDisplay extends Panel
 		display.viewPort = null;
 		
 		images.put(image, display);
-		image.getDisplayParameter().listeners.addListener(display, this);
+		// FIXME: avant, le owner était display !
+		image.getDisplayParameter().listeners.addListener(this.listenerOwner, this);
 		ImageCorrelation imgCorr = correlation.getImageCorrelation(image);
-		imgCorr.listeners.addListener(this, this);
+		imgCorr.listeners.addListener(this.listenerOwner, this);
 		
 		refreshImageGeometry();
 		
@@ -977,18 +981,19 @@ public class CorrelationImageDisplay extends Panel
 
 	@Override
 	public void imageRemoved(Image image, ImageCorrelation imageCorrelation) {
-		image.listeners.removeListener(this);
+		image.listeners.removeListener(this.listenerOwner);
 		
 		BufferedImageDisplay display = images.remove(image);
 		
 		if (display != null) {
-			image.getDisplayParameter().listeners.removeListener(display);
+			// FIXME: avant, le owner était display !
+			image.getDisplayParameter().listeners.removeListener(this.listenerOwner);
 			if (display.worker != null) {
 				display.worker.cancel();
 				display.worker = null;
 			}
 		}
-		imageCorrelation.listeners.removeListener(this);
+		imageCorrelation.listeners.removeListener(this.listenerOwner);
 		
 		refreshImageGeometry();
 
@@ -1360,14 +1365,14 @@ public class CorrelationImageDisplay extends Panel
 
 	@Override
 	public void viewPortAdded(ViewPort viewPort) {
-		viewPort.listeners.addListener(this, this);
+		viewPort.listeners.addListener(this.listenerOwner, this);
 		repaint();
 		
 	}
 
 	@Override
 	public void viewPortRemoved(ViewPort viewPort) {
-		viewPort.listeners.removeListener(this);
+		viewPort.listeners.removeListener(this.listenerOwner);
 		repaint();
 	}
 
