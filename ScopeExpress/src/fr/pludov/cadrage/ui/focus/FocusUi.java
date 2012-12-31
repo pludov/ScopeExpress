@@ -210,10 +210,10 @@ public class FocusUi extends FocusUiDesign {
 						{
 							throw new RuntimeException("Image discarded");
 						}
-						frame = image.getCameraFrame();
 					}
 				});
 				
+				frame = image.getCameraFrame();
 				setPercent(20);
 				
 				final MultiStarFinder msf = new MultiStarFinder(frame) {
