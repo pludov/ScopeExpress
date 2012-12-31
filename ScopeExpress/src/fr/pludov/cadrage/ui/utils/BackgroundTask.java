@@ -70,6 +70,8 @@ public abstract class BackgroundTask {
 	// exécuté dans le thread swing
 	protected void onDone() {}
 	
+	/// C.f. SwingThreadMonitor
+	@Deprecated
 	protected final void runSync(Runnable runnable) throws BackgroundTaskCanceledException, InvocationTargetException
 	{
 		checkInterrupted();

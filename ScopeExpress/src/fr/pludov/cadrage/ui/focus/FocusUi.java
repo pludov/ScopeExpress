@@ -29,6 +29,7 @@ import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
+import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.utils.MultiStarFinder;
@@ -203,16 +204,19 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-				runSync(new Runnable() {
-					@Override
-					public void run() {
-						if (!focus.containsImage(image))
-						{
-							throw new RuntimeException("Image discarded");
-						}
-					}
-				});
+				SwingThreadMonitor monitor = new SwingThreadMonitor();
 				
+				monitor.acquire();
+				try {
+					if (!focus.containsImage(image))
+					{
+						throw new BackgroundTaskCanceledException();
+					}
+					
+				} finally {
+					monitor.release();
+				}
+
 				frame = image.getCameraFrame();
 				setPercent(20);
 				
@@ -229,51 +233,51 @@ public class FocusUi extends FocusUiDesign {
 					}
 				};
 				frame = null;
-				
-				runSync(new Runnable() {
-					@Override
-					public void run() {
-						if (!focus.containsImage(image))
-						{
-							throw new RuntimeException("Image discarded");
-						}
 
-						for(Star existingStar : FocusUi.this.focus.getStars())
-						{
-							StarOccurence occurence = FocusUi.this.focus.getStarOccurence(existingStar, image);
-							if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
-							{
-								continue;
-							}
-							msf.getCheckedArea().add(occurence.getStarMask());
-						}
+				monitor.acquire();
+				try {
+					if (!focus.containsImage(image))
+					{
+						throw new RuntimeException("Image discarded");
 					}
-				});
+
+					for(Star existingStar : FocusUi.this.focus.getStars())
+					{
+						StarOccurence occurence = FocusUi.this.focus.getStarOccurence(existingStar, image);
+						if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
+						{
+							continue;
+						}
+						msf.getCheckedArea().add(occurence.getStarMask());
+					}
+				} finally {
+					monitor.release();
+				}
 				
 				setPercent(30);
 				
 				msf.proceed();
 				
 				setPercent(98);
-				
-				runSync(new Runnable() {
-					@Override
-					public void run() {
-						if (!focus.containsImage(image))
-						{
-							throw new RuntimeException("Image discarded");
-						}
 
-						for(StarFinder sf : msf.getStars())
-						{
-							Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
-							FocusUi.this.focus.addStar(star);
-							StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
-							FocusUi.this.focus.addStarOccurence(occurence);
-							occurence.init();
-						}
+				monitor.acquire();
+				try {
+					if (!focus.containsImage(image))
+					{
+						throw new RuntimeException("Image discarded");
 					}
-				});
+
+					for(StarFinder sf : msf.getStars())
+					{
+						Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
+						FocusUi.this.focus.addStar(star);
+						StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
+						FocusUi.this.focus.addStarOccurence(occurence);
+						occurence.init();
+					}
+				} finally {
+					monitor.release();
+				};
 			}
 		};
 		
