@@ -137,7 +137,11 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			
 			if (resetSize)
 			{
-				setCenter(buffimage.getWidth() / 2.0, buffimage.getHeight() / 2.0);
+				if (buffimage != null) {
+					setCenter(buffimage.getWidth() / 2.0, buffimage.getHeight() / 2.0);
+				} else {
+					setCenter(0, 0);
+				}
 				setZoom(1);
 				setZoomIsAbsolute(false);
 			}

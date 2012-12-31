@@ -25,6 +25,10 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
+import fr.pludov.cadrage.ui.utils.BackgroundTask;
+import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
+import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
+import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.utils.MultiStarFinder;
@@ -33,6 +37,8 @@ import fr.pludov.utils.StarFinder;
 public class FocusUi extends FocusUiDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
+	final BackgroundTaskQueue taskQueue;
+	
 	Focus focus;
 	FocusImageListView fd;
 	
@@ -44,6 +50,9 @@ public class FocusUi extends FocusUiDesign {
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 		this.focus = focus;
 
+		this.taskQueue = new BackgroundTaskQueue();
+		setupBackgroundTaskQueue();
+		
 		fd = new FocusImageListView(focus);
 		this.imageViewPanel.add(fd);
 		fd.setOnClick(new FocusImageListView.ClicEvent() {
@@ -102,30 +111,8 @@ public class FocusUi extends FocusUiDesign {
 			public void actionPerformed(ActionEvent e) {
 				Image image = fd.getCurrentImage();
 				if (image == null) return;
-				CameraFrame frame = image.getCameraFrame();
-				MultiStarFinder msf = new MultiStarFinder(frame);
-				
-				for(Star existingStar : FocusUi.this.focus.getStars())
-				{
-					StarOccurence occurence = FocusUi.this.focus.getStarOccurence(existingStar, image);
-					if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
-					{
-						continue;
-					}
-					msf.getCheckedArea().add(occurence.getStarMask());
-				}
-				
-				msf.proceed();
-				
-				for(StarFinder sf : msf.getStars())
-				{
-					Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
-					FocusUi.this.focus.addStar(star);
-					StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
-					FocusUi.this.focus.addStarOccurence(occurence);
-					occurence.init();
-				}
-				
+				BackgroundTask detectStar = createDetectStarTask(image);
+				taskQueue.addTask(detectStar);
 			}
 		});
 		
@@ -211,7 +198,137 @@ public class FocusUi extends FocusUiDesign {
 		});
 	}
 	
+	BackgroundTask createDetectStarTask(final Image image)
+	{
+		BackgroundTask result = new BackgroundTask("Recherche d'étoiles dans " + image.getPath().getName())
+		{
+			CameraFrame frame;
+			
+			@Override
+			protected void proceed() throws BackgroundTaskCanceledException, Throwable {
+				runSync(new Runnable() {
+					@Override
+					public void run() {
+						if (!focus.containsImage(image))
+						{
+							throw new RuntimeException("Image discarded");
+						}
+						frame = image.getCameraFrame();
+					}
+				});
+				
+				setPercent(20);
+				
+				final MultiStarFinder msf = new MultiStarFinder(frame) {
+					@Override
+					public void percent(int pct) {
+						setPercent(30 + pct * (98 - 30) / 100);
+						try {
+							checkInterrupted();
+						} catch(BackgroundTaskCanceledException ex)
+						{
+							throw new RuntimeException("stopped");
+						}
+					}
+				};
+				frame = null;
+				
+				runSync(new Runnable() {
+					@Override
+					public void run() {
+						if (!focus.containsImage(image))
+						{
+							throw new RuntimeException("Image discarded");
+						}
 
+						for(Star existingStar : FocusUi.this.focus.getStars())
+						{
+							StarOccurence occurence = FocusUi.this.focus.getStarOccurence(existingStar, image);
+							if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
+							{
+								continue;
+							}
+							msf.getCheckedArea().add(occurence.getStarMask());
+						}
+					}
+				});
+				
+				setPercent(30);
+				
+				msf.proceed();
+				
+				setPercent(98);
+				
+				runSync(new Runnable() {
+					@Override
+					public void run() {
+						if (!focus.containsImage(image))
+						{
+							throw new RuntimeException("Image discarded");
+						}
+
+						for(StarFinder sf : msf.getStars())
+						{
+							Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
+							FocusUi.this.focus.addStar(star);
+							StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
+							FocusUi.this.focus.addStarOccurence(occurence);
+							occurence.init();
+						}
+					}
+				});
+			}
+		};
+		
+		return result;
+	}
+	
+	void refreshTaskQueue()
+	{
+		List<BackgroundTask> running = this.taskQueue.getRunningTasks();
+		
+		if (running.isEmpty())
+		{
+			this.taskQueueProgress.setValue(0);
+			this.taskQueueProgress.setEnabled(false);
+			this.taskQueueStop.setEnabled(false);
+			this.taskQueueStatus.setText("");
+		} else {
+			Status status = running.get(0).getStatus();
+			
+			this.taskQueueProgress.setEnabled(true);
+			this.taskQueueProgress.setValue(running.get(0).getPercent());
+			this.taskQueueStop.setEnabled(status == Status.Running);
+			this.taskQueueStatus.setText((status == Status.Running ? "En cours : " : "Arrêt en cours : ") + 
+					running.get(0).getTitle());
+		}
+	}
+	
+	void setupBackgroundTaskQueue()
+	{
+		this.taskQueue.listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
+			
+			@Override
+			public void stateChanged() {
+				refreshTaskQueue();
+			}
+		});
+		
+		this.taskQueueStop.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				List<BackgroundTask> running = FocusUi.this.taskQueue.getRunningTasks();
+				if (running.isEmpty()) return;
+				BackgroundTask first = running.get(0);
+				FocusUi.this.taskQueue.abortTask(first);
+			}
+		});
+		
+		refreshTaskQueue();
+	}
+	
+	
 	/**
 	 * Launch the application.
 	 */

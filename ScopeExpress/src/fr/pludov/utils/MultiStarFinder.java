@@ -26,6 +26,8 @@ public class MultiStarFinder {
 	{
 		int stepX = frame.getWidth() / 24;
 		int stepY = stepX;
+
+		percent(0);
 		
 		Histogram histogram = new Histogram();
 
@@ -36,14 +38,20 @@ public class MultiStarFinder {
 		blackLevelByChannel[0] = histogram.getBlackLevel(0.25);
 		blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
 		
+		percent(5);
+		
 		histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), ChannelMode.Green);
 		blackLevelByChannel[1] = histogram.getBlackLevel(0.25);
 		blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[1]));
+		
+		percent(10);
 		
 		histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), ChannelMode.Blue);
 		blackLevelByChannel[2] = histogram.getBlackLevel(0.25);
 		blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[2]));
 
+		percent(15);
+		
 		int [] limitByChannel = new int[3];
 		for(int i = 0; i < 3; ++i)
 		{
@@ -62,15 +70,33 @@ public class MultiStarFinder {
 			}
 		}
 		
+		percent(25);
+		
 		notBlack.erode();
+		
+		percent(30);
+		
 		notBlack.erode();
+		
+		percent(35);
+		
 		notBlack.grow(null);
+		
+		percent(40);
+		
 		notBlack.grow(null);
+		
+		percent(45);
+		
 		notBlack.substract(checkedArea);
+		
+		percent(50);
 		
 		int [] coords = null;
 		for(coords = notBlack.nextPixel(coords); coords != null; coords = notBlack.nextPixel(coords))
 		{
+			percent(50 + 50 * coords[1] / frame.getHeight());
+			
 			BitMask mask = notBlack.getConnexArea(coords[0], coords[1], 50);
 			notBlack.substract(mask);
 			
@@ -101,6 +127,14 @@ public class MultiStarFinder {
 		}
 	}
 
+	/**
+	 * Appellé pour donner un apercu de la progression
+	 */
+	public void percent(int pct)
+	{
+		
+	}
+	
 	public List<StarFinder> getStars() {
 		return stars;
 	}

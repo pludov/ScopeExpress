@@ -59,6 +59,11 @@ public class Focus {
 		
 		return null;
 	}
+
+	public boolean containsImage(Image image)
+	{
+		return images.contains(image);
+	}
 	
 	public StarOccurence getStarOccurence(Star star, Image image)
 	{

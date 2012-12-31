@@ -16,6 +16,10 @@ import javax.swing.ImageIcon;
 import net.miginfocom.swing.MigLayout;
 import javax.swing.JMenuItem;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JLabel;
+import java.awt.Font;
+import javax.swing.JProgressBar;
+import java.awt.Insets;
 
 public class FocusUiDesign {
 
@@ -37,6 +41,10 @@ public class FocusUiDesign {
 	protected JMenu mnEtoiles;
 	protected JMenuItem mnChercheEtoiles;
 	protected JCheckBoxMenuItem mnChercheEtoilesAuto;
+	protected JPanel statusPanel;
+	protected JLabel taskQueueStatus;
+	protected JProgressBar taskQueueProgress;
+	protected JButton taskQueueStop;
 
 	/**
 	 * Create the application.
@@ -112,6 +120,23 @@ public class FocusUiDesign {
 		this.starDetailPanel = new JPanel();
 		this.detailsPanel.add(this.starDetailPanel, "cell 1 0,grow");
 		this.starDetailPanel.setLayout(new BoxLayout(this.starDetailPanel, BoxLayout.X_AXIS));
+		
+		this.statusPanel = new JPanel();
+		this.frmFocus.getContentPane().add(this.statusPanel, BorderLayout.SOUTH);
+		this.statusPanel.setLayout(new MigLayout("insets 0", "[grow][][]", "[]"));
+		
+		this.taskQueueStatus = new JLabel("Status");
+		this.taskQueueStatus.setFont(new Font("Tahoma", Font.PLAIN, 10));
+		this.statusPanel.add(this.taskQueueStatus, "flowx,cell 0 0");
+		
+		this.taskQueueProgress = new JProgressBar();
+		this.statusPanel.add(this.taskQueueProgress, "cell 1 0");
+		
+		this.taskQueueStop = new JButton("stop");
+		this.taskQueueStop.setMargin(new Insets(0, 5, 0, 5));
+		this.taskQueueStop.setIconTextGap(2);
+		this.taskQueueStop.setIcon(null);
+		this.statusPanel.add(this.taskQueueStop, "cell 2 0");
 	}
 
 	protected JFrame getFrmFocus() {
