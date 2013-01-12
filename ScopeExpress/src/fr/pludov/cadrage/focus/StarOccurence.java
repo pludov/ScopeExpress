@@ -58,7 +58,7 @@ public class StarOccurence {
 
 	}
 	
-	public void init()
+	public void init(final boolean isFineTuning)
 	{
 		WorkStep load = new WorkStep() {
 			@Override
@@ -103,38 +103,45 @@ public class StarOccurence {
 					
 					int centerX, centerY;
 					
-					// Trouver la dernière 
-					if (star.getClickImage() == image || (star.getClickImage() == null && focus.getPreviousImage(image) == null))
+					if (!isFineTuning)
 					{
-						// On prend le click
-						centerX = star.getClickX();
-						centerY = star.getClickY();
-					} else {
-						Image reference = null;
 						
-						Image previous = focus.getPreviousImage(image);
-						if (previous != null && isAnalysisOkForImage(previous)) reference = previous;
-						Image next = focus.getNextImage(image);
-						if (next != null && isAnalysisOkForImage(next) && (reference == null || !isAnalysisFoundForImage(reference))) {
-							reference = next;
-						}
-
-						StarOccurence referenceStarOccurence = null;
-						if (reference != null) {
-							referenceStarOccurence = focus.getStarOccurence(star, reference);;
-						}
-						 
-						if ((referenceStarOccurence != null) && referenceStarOccurence.analyseDone) {
-							if (!referenceStarOccurence.starFound) {
-								starFound = false;
-								return;
-							}
-							centerX = (int)Math.round(referenceStarOccurence.picX);
-							centerY = (int)Math.round(referenceStarOccurence.picY);
-						} else {
+						// Trouver la dernière 
+						if (star.getClickImage() == image || (star.getClickImage() == null && focus.getPreviousImage(image) == null))
+						{
+							// On prend le click
 							centerX = star.getClickX();
 							centerY = star.getClickY();
+						} else {
+							Image reference = null;
+							
+							Image previous = focus.getPreviousImage(image);
+							if (previous != null && isAnalysisOkForImage(previous)) reference = previous;
+							Image next = focus.getNextImage(image);
+							if (next != null && isAnalysisOkForImage(next) && (reference == null || !isAnalysisFoundForImage(reference))) {
+								reference = next;
+							}
+	
+							StarOccurence referenceStarOccurence = null;
+							if (reference != null) {
+								referenceStarOccurence = focus.getStarOccurence(star, reference);;
+							}
+							 
+							if ((referenceStarOccurence != null) && referenceStarOccurence.analyseDone) {
+								if (!referenceStarOccurence.starFound) {
+									starFound = false;
+									return;
+								}
+								centerX = (int)Math.round(referenceStarOccurence.picX);
+								centerY = (int)Math.round(referenceStarOccurence.picY);
+							} else {
+								centerX = star.getClickX();
+								centerY = star.getClickY();
+							}
 						}
+					} else {
+						centerX = (int)Math.round(picX);
+						centerY = (int)Math.round(picY);
 					}
 					
 					// Faire une érosion, pour tuer les pixels chauds
@@ -146,208 +153,7 @@ public class StarOccurence {
 					
 					int square = 40;
 					
-					/*
-					Histogram histogram = new Histogram();
-
-					histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Red);
-					blackLevelByChannel[0] = histogram.getBlackLevel(0.25);
-					blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
-					
-					histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Green);
-					blackLevelByChannel[1] = histogram.getBlackLevel(0.25);
-					blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(1, blackLevelByChannel[1]));
-					
-					histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Blue);
-					blackLevelByChannel[2] = histogram.getBlackLevel(0.25);
-					blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(2, blackLevelByChannel[2]));
-					
-					// Calcul des pixels "non noirs"
-					BitMask notBlack = new BitMask(
-							2 * centerX - square,  2 * centerY - square,
-							2 * centerX + square,  2 * centerY + square);
-					for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-					{
-						for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-						{
-							int adu = frame.getAdu(x, y);
-							if (adu > blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)]) {
-								notBlack.set(x, y);
-							}
-						}
-					}
-					
-					BitMask notBlackEroded = new BitMask(notBlack);
-					notBlackEroded.erode();
-					notBlackEroded.erode();
-					notBlackEroded.grow(null);
-					notBlackEroded.grow(null);
-					
-					int maxAdu = 0;
-					int maxAduX = 2 * centerX, maxAduY = 2 * centerY;
-					
-					for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-					{
-						for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-						{
-							if (!notBlackEroded.get(x, y)) continue;
-							int adu = frame.getAdu(x, y);
-							int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-							adu -= black;
-							if (adu >= maxAdu) {
-								maxAdu = adu;
-								maxAduX = x;
-								maxAduY = y;
-							}
-						}
-					}
-					
-					// On remonte le niveau de noir de 20%
-					// blackLevel = (int)Math.round(blackLevel + 0.2 * (maxAdu - blackLevel));
-					
-					// On remonte arbitrairement le noir
-					for(int i = 0; i < blackLevelByChannel.length; ++i) {
-						blackLevelByChannel[i] += blackStddevByChannel[i];
-					}
-					
-					// Re- Calcul des pixels "non noirs"
-					notBlack = new BitMask(
-							2 * centerX - square,  2 * centerY - square,
-							2 * centerX + square,  2 * centerY + square);
-					for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-					{
-						for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-						{
-							int adu = frame.getAdu(x, y);
-							int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-							if (adu > black) {
-								notBlack.set(x, y);
-							}
-						}
-					}
-					
-					notBlackEroded = new BitMask(notBlack);
-					notBlackEroded.erode();
-					notBlackEroded.grow(null);
-					
-					if (notBlackEroded.get(maxAduX, maxAduY)) {
-							
-						// On marque le centre
-						BitMask star = new BitMask(
-								2 * centerX - square,  2 * centerY - square,
-								2 * centerX + square,  2 * centerY + square);
-						star.set(maxAduX, maxAduY);
-						star.grow(notBlackEroded);
-						
-						// On élargi encore un coup l'étoile...
-						star.grow(null);
-						star.grow(null);
-						star.grow(null);					
-						
-						StarOccurence.this.starMask = star;
-						
-						long xSum = 0;
-						long ySum = 0;
-						long aduSum = 0;
-						
-						for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-						{
-							for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-							{
-								if (!star.get(x, y)) continue;
-								
-								int adu = frame.getAdu(x, y);
-								int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-								if (adu <= black) continue;
-								adu -= black;
-								xSum += x * adu;
-								ySum += y * adu;
-								aduSum += adu;
-							}
-						}
-						
-						
-						
-						if (aduSum > 0) {
-							picX = xSum * 1.0 / aduSum;
-							picY = ySum * 1.0 / aduSum;
-							picX /= 2;
-							picY /= 2;
-							centerX = (int)Math.round(picX);
-							centerY = (int)Math.round(picY);
-	
-							double sumDstSquare = 0;
-							long aduDst = 0;
-//							for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-//							{
-//								for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-//								{
-//									if (!star.get(x, y)) continue;
-//									
-//									int adu = frame.getAdu(x, y);
-//									int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-//									
-//									if (adu <= black) continue;
-//									adu -= black;
-//									//adu = (int)(100.0*Math.sqrt(adu));
-//									
-//									double dst = (x - 2 * picX) * (x - 2 * picX) + (y - 2 * picY) * (y - 2 * picY);
-//									
-//									sumDstSquare += adu * dst;
-//									aduDst += adu;
-//								}
-//							}
-
-							for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
-							{
-								long aduForX = 0;
-								for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-								{
-									if (!star.get(x, y)) continue;
-									
-									int adu = frame.getAdu(x, y);
-									int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-									
-									if (adu <= black) continue;
-									adu -= black;
-									aduForX += adu;
-								}
-								//adu = (int)(100.0*Math.sqrt(adu));
-								
-								double dst = (x - 2 * picX) * (x - 2 * picX);
-								
-								sumDstSquare += aduForX * dst;
-								aduDst += aduForX;
-
-							}
-
-							
-							stddev = Math.sqrt(sumDstSquare / aduDst);
-							
-							fwhm = 2.35 * stddev;
-							starFound = true;
-						} else {
-							picX = centerX;
-							picY = centerY;
-							
-							stddev = 0;
-							fwhm = 2.35 * stddev;
-							starFound = false;
-							
-						}
-					} else {
-						picX = centerX;
-						picY = centerY;
-						
-						stddev = 0;
-						fwhm = 2.35 * stddev;
-						starFound = false;
-					}
-					//x=maxAduX;
-					//y=maxAduY;
-					centerX = (int)Math.round(picX);
-					centerY = (int)Math.round(picY);
-					*/
-					StarFinder finder = new StarFinder(frame, centerX, centerY, square);
+					StarFinder finder = new StarFinder(frame, centerX, centerY, square, isFineTuning ? 5 : square);
 					finder.perform();
 					
 					StarOccurence.this.starFound = finder.isStarFound();
@@ -478,5 +284,21 @@ public class StarOccurence {
 
 	public int[] getAduMaxByChannel() {
 		return aduMaxByChannel;
+	}
+
+	public double getPicX() {
+		return picX;
+	}
+
+	public void setPicX(double picX) {
+		this.picX = picX;
+	}
+
+	public double getPicY() {
+		return picY;
+	}
+
+	public void setPicY(double picY) {
+		this.picY = picY;
 	}
 }

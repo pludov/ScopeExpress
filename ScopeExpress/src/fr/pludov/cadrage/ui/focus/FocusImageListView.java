@@ -109,9 +109,9 @@ public class FocusImageListView extends FocusImageListViewDesign {
 		}
 	}
 	
-	public FocusImageListView(Focus focus) {
+	public FocusImageListView(FocusUi focusUi) {
 		super();
-		
+		Focus focus = focusUi.getFocus();
 		displayParameter = new ImageDisplayParameter();
 
 		principal = new FrameDisplayWithStar(focus);
@@ -121,7 +121,7 @@ public class FocusImageListView extends FocusImageListViewDesign {
 		
 		displayParameterPanel = new ImageDisplayParameterPanel();
 		displayParameterPanel.loadParameters(displayParameter);
-		focusImageList = new FocusImageList(focus);
+		focusImageList = new FocusImageList(focusUi);
 		
 		JScrollPane imageListScrollPane = new JScrollPane(focusImageList);
         

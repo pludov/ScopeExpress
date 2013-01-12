@@ -392,7 +392,7 @@ public class StarOccurenceTable extends JTable {
 //						if (soForImg == null) continue;
 //						soForImg.init();
 //					}
-					so.init();
+					so.init(false);
 				}
 			}
 		});
@@ -412,7 +412,7 @@ public class StarOccurenceTable extends JTable {
 					{
 						StarOccurence so = focus.getStarOccurence(star, image);
 						if (so == null) continue;
-						so.init();
+						so.init(false);
 					}
 				}
 			}

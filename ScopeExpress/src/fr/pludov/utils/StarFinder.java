@@ -11,6 +11,7 @@ import fr.pludov.io.CameraFrame;
 public class StarFinder {
 
 	final int square;
+	final int searchRadius;
 	final CameraFrame frame;
 	int centerX, centerY;
 	final int [] blackLevelByChannel;
@@ -31,7 +32,7 @@ public class StarFinder {
 	BitMask excludeMask;
 	
 	// Trouver une étoile à environ centerX, dans un rayon de square.
-	public StarFinder(CameraFrame frame, int centerX, int centerY, int square) {
+	public StarFinder(CameraFrame frame, int centerX, int centerY, int square, int searchRadius) {
 		this.centerX = centerX;
 		this.centerY = centerY;
 		this.frame = frame;
@@ -40,6 +41,7 @@ public class StarFinder {
 		this.aduSumByChannel = new int[3];
 		this.aduMaxByChannel = new int[3];
 		this.square = square;
+		this.searchRadius = square;
 	}
 
 	public void perform()
@@ -85,9 +87,9 @@ public class StarFinder {
 		int maxAdu = 0;
 		int maxAduX = 2 * centerX, maxAduY = 2 * centerY;
 		
-		for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
+		for(int y = 2 * centerY - searchRadius; y <= 2 * centerY + searchRadius; ++y)
 		{
-			for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
+			for(int x = 2 * centerX - searchRadius; x <= 2 * centerX + searchRadius; ++x)
 			{
 				if (!notBlackEroded.get(x, y)) continue;
 				int adu = frame.getAdu(x, y);

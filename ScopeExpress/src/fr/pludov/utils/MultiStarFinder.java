@@ -102,7 +102,7 @@ public class MultiStarFinder {
 			
 			// Calculer le milieu du mask
 			
-			StarFinder finder = new StarFinder(frame, coords[0] / 2, coords[1] / 2, 25);
+			StarFinder finder = new StarFinder(frame, coords[0] / 2, coords[1] / 2, 25, 25);
 			finder.setExcludeMask(checkedArea);
 			finder.perform();
 			if (finder.starFound) {

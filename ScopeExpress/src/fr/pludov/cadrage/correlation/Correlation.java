@@ -39,6 +39,7 @@ import fr.pludov.cadrage.StarDetection;
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.async.CancelationException;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
+import fr.pludov.cadrage.utils.CorrelationAlgo;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.IdentityBijection;
@@ -949,7 +950,7 @@ public class Correlation implements Serializable {
 				
 				System.err.println("Performing RANSAC with " + ransacPoints.size());
 				
-				Ransac ransac = new Ransac();
+				CorrelationAlgo ransac = new Ransac();
 				
 				ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
 					@Override

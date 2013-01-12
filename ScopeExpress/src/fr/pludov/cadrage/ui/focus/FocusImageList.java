@@ -20,7 +20,8 @@ import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class FocusImageList extends GenericList<Image, FocusImageListEntry> implements FocusListener {
-	Focus focus;
+	final Focus focus;
+	final FocusUi focusUi;
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
 	@SuppressWarnings("unchecked")
@@ -78,9 +79,10 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 //		}
 	);
 
-	public FocusImageList(Focus focus) {
+	public FocusImageList(FocusUi focusUi) {
 		setColumnDefinitions(columns);
-		this.focus = focus;
+		this.focusUi = focusUi;
+		this.focus = focusUi.getFocus();
 		this.focus.listeners.addListener(this.listenerOwner, this);
 	}
 
@@ -141,6 +143,26 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 			}
 		});
 		contextMenu.add(removeMenu);
+
+		JMenuItem correlateMenu;
+		
+		correlateMenu = new JMenuItem();
+		correlateMenu.setText("Correler les images");
+		correlateMenu.setEnabled(entries.size() > 1);
+		correlateMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (entries.size() < 2) return;
+				
+				CorrelateTask task = new CorrelateTask(focusUi, entries.get(0).getTarget(), entries.get(1).getTarget());
+				
+				focusUi.getFocus().getBackgroundTaskQueue().addTask(task);
+				
+				
+			}
+		});
+		contextMenu.add(correlateMenu);
+
 		
 		return contextMenu;
 	}

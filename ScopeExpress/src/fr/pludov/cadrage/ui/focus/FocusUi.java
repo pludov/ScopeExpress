@@ -51,7 +51,7 @@ public class FocusUi extends FocusUiDesign {
 
 		setupBackgroundTaskQueue();
 		
-		fd = new FocusImageListView(focus);
+		fd = new FocusImageListView(this);
 		this.imageViewPanel.add(fd);
 		fd.setOnClick(new FocusImageListView.ClicEvent() {
 			
@@ -63,7 +63,7 @@ public class FocusUi extends FocusUiDesign {
 				FocusUi.this.focus.addStar(star);
 				StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
 				FocusUi.this.focus.addStarOccurence(occurence);
-				occurence.init();
+				occurence.init(false);
 			}
 		});
 		
@@ -185,10 +185,14 @@ public class FocusUi extends FocusUiDesign {
 						{
 							StarOccurence previous = focus.getStarOccurence(star, referenceImage);
 							if (previous == null) continue;
-
+							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
+							
 							StarOccurence copy = new StarOccurence(focus, image, star);
+							copy.setPicX(previous.getPicX());
+							copy.setPicY(previous.getPicY());
 							focus.addStarOccurence(copy);
-							copy.init();
+							
+							copy.init(precise);
 						}
 					}
 				}
@@ -272,8 +276,11 @@ public class FocusUi extends FocusUiDesign {
 						Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
 						FocusUi.this.focus.addStar(star);
 						StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
+						occurence.setPicX(sf.getCenterX());
+						occurence.setPicY(sf.getCenterY());
 						FocusUi.this.focus.addStarOccurence(occurence);
-						occurence.init();
+						// il faut que le init ne cherche pas la position trop loin !
+						occurence.init(true);
 					}
 				} finally {
 					monitor.release();
