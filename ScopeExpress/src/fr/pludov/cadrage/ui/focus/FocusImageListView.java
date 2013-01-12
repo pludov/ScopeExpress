@@ -119,7 +119,7 @@ public class FocusImageListView extends FocusImageListViewDesign {
 		zoomed = new FrameDisplayWithStar(focus);
 		zoomed.setImageDisplayParameter(displayParameter);
 		
-		displayParameterPanel = new ImageDisplayParameterPanel();
+		displayParameterPanel = new ImageDisplayParameterPanel(true);
 		displayParameterPanel.loadParameters(displayParameter);
 		focusImageList = new FocusImageList(focusUi);
 		

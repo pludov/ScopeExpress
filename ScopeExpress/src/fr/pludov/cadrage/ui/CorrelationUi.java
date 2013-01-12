@@ -179,7 +179,7 @@ public class CorrelationUi {
 	public void popupImageDisplayParameterDialog(Image image)
 	{
 		if (imageDisplayParameterDialog == null) {
-			imageDisplayParameterPanel = new ImageDisplayParameterPanel();
+			imageDisplayParameterPanel = new ImageDisplayParameterPanel(false);
 			
 			imageDisplayParameterDialog = new JDialog(Cadrage.mainFrame);
 			imageDisplayParameterDialog.getContentPane().add(imageDisplayParameterPanel);

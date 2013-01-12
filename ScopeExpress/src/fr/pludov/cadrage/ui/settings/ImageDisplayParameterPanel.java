@@ -7,13 +7,23 @@ import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ChannelMode;
 import fr.pludov.cadrage.ImageDisplayParameter.TransfertFunction;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
+import fr.pludov.cadrage.ui.focus.ActionOpen;
+import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
+import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
+import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler.Converter;
 
 public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign implements ImageDisplayParameterListener {
 	InputOutputHandler<ImageDisplayParameter> ioHandler;
 	
+	public static final EnumConfigItem<ChannelMode> lastChannelMode = new EnumConfigItem<ChannelMode>(ImageDisplayParameterPanel.class, "lastChannelMode", ChannelMode.class, ChannelMode.Color);
+	public static final EnumConfigItem<TransfertFunction> lastTransfertFunction = new EnumConfigItem<TransfertFunction>(ImageDisplayParameterPanel.class, "lastTransfertFunction", TransfertFunction.class, TransfertFunction.Linear);
+	public static final BooleanConfigItem lastAutoMode = new BooleanConfigItem(ImageDisplayParameterPanel.class, "lastAutoMode", false);
 	
-	public ImageDisplayParameterPanel() {
+	boolean isDefaultViewParameter;
+	
+	public ImageDisplayParameterPanel(boolean isDefaultViewParameter) {
+		this.isDefaultViewParameter = isDefaultViewParameter;
 		
 		for(ChannelMode ch : ChannelMode.values())
 		{
@@ -49,7 +59,7 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 	Converter<ImageDisplayParameter> [] getConverters()
 	{
 		return new Converter[] {
-				new InputOutputHandler.EnumConverter<ImageDisplayParameter, ChannelMode>(this.channelModeCombo, ChannelMode.values()) {
+				new InputOutputHandler.EnumConverter<ImageDisplayParameter, ChannelMode>(this.channelModeCombo, ChannelMode.values(), this.isDefaultViewParameter ? lastChannelMode : null) {
 					@Override
 					ChannelMode getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.getChannelMode();
@@ -61,7 +71,7 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 						parameters.setChannelMode(content);
 					}
 				},
-				new InputOutputHandler.EnumConverter<ImageDisplayParameter, TransfertFunction>(this.transfertComboBox, TransfertFunction.values()) {
+				new InputOutputHandler.EnumConverter<ImageDisplayParameter, TransfertFunction>(this.transfertComboBox, TransfertFunction.values(), this.isDefaultViewParameter ? lastTransfertFunction : null) {
 					@Override
 					TransfertFunction getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.getTransfertFunction();
@@ -73,7 +83,7 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 						parameters.setTransfertFunction(content);
 					}
 				},
-				new InputOutputHandler.BooleanConverter<ImageDisplayParameter>(this.autoHistogramCheckBox) {
+				new InputOutputHandler.BooleanConverter<ImageDisplayParameter>(this.autoHistogramCheckBox, isDefaultViewParameter ? lastAutoMode : null) {
 					@Override
 					Boolean getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.isAutoHistogram();
@@ -132,7 +142,7 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 	
 	public void loadParameters(ImageDisplayParameter parameter)
 	{
-		ioHandler.loadParameters(parameter);
+		ioHandler.loadWithConfigParameters(parameter);
 	}
 	
 

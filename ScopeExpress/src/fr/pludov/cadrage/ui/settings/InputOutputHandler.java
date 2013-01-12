@@ -9,6 +9,10 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
 
+import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
+import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
+import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+
 public class InputOutputHandler<TARGET> {
     TARGET target;
 
@@ -17,15 +21,28 @@ public class InputOutputHandler<TARGET> {
     	void addListener(final InputOutputHandler<TARGET> target);
     	void setParameter(InputOutputHandler<TARGET> ioHandler);
     	void loadParameter(InputOutputHandler<TARGET> ioHandler);
+
+    	// Lit la valeur depuis la configuration. Faux indique que ce n'est pas supporté
+    	boolean setConfigValue(InputOutputHandler<TARGET> ioHandler);
+
+    	// Enregistre la valeur courante en configuration
+    	void saveConfigValue(InputOutputHandler<TARGET> ioHandler);
     }
     
 	public static abstract class TextConverter<TARGET, CONTENT> implements Converter<TARGET>
 	{
 		final JTextField component;
-		
-		TextConverter(JTextField component)
+		final StringConfigItem configItem;
+
+		TextConverter(JTextField component, StringConfigItem configItem)
 		{
 			this.component = component;
+			this.configItem = configItem;
+		}
+
+		TextConverter(JTextField component)
+		{
+			this(component, null);
 		}
 
 		@Override
@@ -66,6 +83,8 @@ public class InputOutputHandler<TARGET> {
 				}
 				
 				setParameter(ioHandler.target, value);
+				
+				saveConfigValue(ioHandler);
 			} catch(Exception e) {
 				
 			}
@@ -84,6 +103,30 @@ public class InputOutputHandler<TARGET> {
 			}
 			component.setText(text);
 		}
+		
+		@Override
+    	public boolean setConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return false;
+    		if (!this.configItem.exists()) return false;
+    		String value = this.configItem.get();
+    		try {
+    			CONTENT v = fromString(value);
+    			setParameter(ioHandler.target, v);
+    			return true;
+    		} catch(Exception e) {
+    			return false;
+    		}
+    	}
+
+    	@Override
+    	public void saveConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return;
+    		CONTENT c = getFromParameter(ioHandler.target);
+    		this.configItem.set(toString(c));
+    	}
+
 		
 		abstract CONTENT getFromParameter(TARGET parameters);
 		abstract void setParameter(TARGET parameters, CONTENT content) throws Exception;
@@ -145,14 +188,20 @@ public class InputOutputHandler<TARGET> {
 		}
 	}
 
-	public static abstract class EnumConverter<TARGET, CONTENT extends Enum> implements Converter<TARGET>
+	public static abstract class EnumConverter<TARGET, CONTENT extends Enum<CONTENT>> implements Converter<TARGET>
 	{
-		CONTENT [] values;
-		JComboBox component;
+		final CONTENT [] values;
+		final JComboBox component;
+		final EnumConfigItem<CONTENT> configItem;
 		
 		EnumConverter(JComboBox component, CONTENT [] values) {
+			this(component, values, null);
+		}
+		
+		EnumConverter(JComboBox component, CONTENT [] values, EnumConfigItem<CONTENT> defaultConfig) {
 			this.component = component;
 			this.values = values;
+			this.configItem = defaultConfig;
 		}
 		
 		abstract CONTENT getFromParameter(TARGET parameters);
@@ -191,6 +240,7 @@ public class InputOutputHandler<TARGET> {
 			CONTENT value = (CONTENT)component.getSelectedItem();
 			try {
 				setParameter(ioHandler.target, value);
+				saveConfigValue(ioHandler);
 			} catch(Exception e) {
 				
 			}
@@ -204,14 +254,41 @@ public class InputOutputHandler<TARGET> {
 			component.setSelectedItem(value);
 		}
 
+		@Override
+    	public boolean setConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return false;
+    		if (!this.configItem.exists()) return false;
+    		CONTENT value = this.configItem.get();
+    		try {
+    			setParameter(ioHandler.target, value);
+    			return true;
+    		} catch(Exception e) {
+    			return false;
+    		}
+    	}
+
+    	@Override
+    	public void saveConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return;
+    		CONTENT value = getFromParameter(ioHandler.target);
+    		this.configItem.set(value);
+    	}
 	}
 
 	public static abstract class BooleanConverter<TARGET> implements Converter<TARGET>
 	{
 		JCheckBox component;
-		
+		BooleanConfigItem configItem;
+
 		BooleanConverter(JCheckBox component) {
 			this.component = component;
+		}
+
+		BooleanConverter(JCheckBox component, BooleanConfigItem configItem) {
+			this.component = component;
+			this.configItem = configItem;
 		}
 		
 		abstract Boolean getFromParameter(TARGET parameters);
@@ -245,6 +322,8 @@ public class InputOutputHandler<TARGET> {
 			Boolean value = component.isSelected();
 			try {
 				setParameter(ioHandler.target, value);
+				
+				saveConfigValue(ioHandler);
 			} catch(Exception e) {
 				
 			}
@@ -258,6 +337,28 @@ public class InputOutputHandler<TARGET> {
 			component.setSelected(value);
 		}
 
+
+		@Override
+    	public boolean setConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return false;
+    		if (!this.configItem.exists()) return false;
+    		Boolean value = this.configItem.get();
+    		try {
+    			setParameter(ioHandler.target, value);
+    			return true;
+    		} catch(Exception e) {
+    			return false;
+    		}
+    	}
+
+    	@Override
+    	public void saveConfigValue(InputOutputHandler<TARGET> ioHandler)
+    	{
+    		if (this.configItem == null) return;
+    		Boolean value = getFromParameter(ioHandler.target);
+    		this.configItem.set(value);
+    	}
 	}
 
 	
@@ -284,5 +385,14 @@ public class InputOutputHandler<TARGET> {
 			converter.loadParameter(this);
 		}		
 	}
-	
+
+	public void loadWithConfigParameters(TARGET parameters)
+	{
+		this.target = parameters;
+		for(Converter<TARGET> converter : converters)
+		{
+			converter.setConfigValue(this);
+			converter.loadParameter(this);
+		}
+	}
 }
