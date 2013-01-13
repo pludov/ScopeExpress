@@ -157,6 +157,11 @@ public class StarDetail extends StarDetailDesign {
 				public void analyseDone() {
 					refreshLabels();
 				}
+
+				@Override
+				public void imageUpdated() {
+				}
+				
 			});
 		}
 		

@@ -54,6 +54,10 @@ public class GraphPanel extends JPanel {
 					public void analyseDone() {
 						repaint();	
 					}
+
+					@Override
+					public void imageUpdated() {
+					}
 				});
 			}
 			

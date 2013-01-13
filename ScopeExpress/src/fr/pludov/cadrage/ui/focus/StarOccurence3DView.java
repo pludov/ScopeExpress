@@ -48,6 +48,10 @@ public class StarOccurence3DView extends Generic3DView {
 					repaint();
 					
 				}
+
+				@Override
+				public void imageUpdated() {
+				}
 			});
 		}
 		repaint(60);

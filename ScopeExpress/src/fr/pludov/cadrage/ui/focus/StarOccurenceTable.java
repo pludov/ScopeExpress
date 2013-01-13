@@ -177,6 +177,11 @@ public class StarOccurenceTable extends JTable {
 						
 						tableModel.fireTableCellUpdated(modelRow, modelCol);
 					}
+					
+					@Override
+					public void imageUpdated() {
+						analyseDone();
+					}
 				});
 			}
 
@@ -391,7 +396,7 @@ public class StarOccurenceTable extends JTable {
 //						if (soForImg == null) continue;
 //						soForImg.init();
 //					}
-					so.init(false);
+					so.asyncSearch(false);
 				}
 			}
 		});
@@ -411,7 +416,7 @@ public class StarOccurenceTable extends JTable {
 					{
 						StarOccurence so = focus.getStarOccurence(star, image);
 						if (so == null) continue;
-						so.init(false);
+						so.asyncSearch(false);
 					}
 				}
 			}

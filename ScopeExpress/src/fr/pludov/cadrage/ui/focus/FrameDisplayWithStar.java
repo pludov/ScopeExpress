@@ -104,6 +104,10 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					repaint();
 				}
 			}
+
+			@Override
+			public void imageUpdated() {
+			}
 		};
 	}
 	

@@ -65,7 +65,7 @@ public class FocusUi extends FocusUiDesign {
 				FocusUi.this.mosaic.addStar(star);
 				StarOccurence occurence = new StarOccurence(FocusUi.this.mosaic, image, star);
 				FocusUi.this.mosaic.addStarOccurence(occurence);
-				occurence.init(false);
+				occurence.asyncSearch(false);
 			}
 		});
 		
@@ -176,6 +176,7 @@ public class FocusUi extends FocusUiDesign {
 			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 				if (!mnChercheEtoilesAuto.isSelected()) return;
 				
+				// FIXME: on devrait ajouter une tache qui les cherches toutes les une après les autres
 				switch(currentStarDetectionParameter.correlationMode)
 				{
 				case SamePosition:
@@ -194,7 +195,7 @@ public class FocusUi extends FocusUiDesign {
 							copy.setPicY(previous.getPicY());
 							mosaic.addStarOccurence(copy);
 							
-							copy.init(precise);
+							copy.asyncSearch(precise);
 						}
 					}
 				}
@@ -212,9 +213,8 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-				SwingThreadMonitor monitor = new SwingThreadMonitor();
 				
-				monitor.acquire();
+				SwingThreadMonitor.acquire();
 				try {
 					if (!mosaic.containsImage(image))
 					{
@@ -222,7 +222,7 @@ public class FocusUi extends FocusUiDesign {
 					}
 					
 				} finally {
-					monitor.release();
+					SwingThreadMonitor.release();
 				}
 
 				frame = image.getCameraFrame();
@@ -242,7 +242,7 @@ public class FocusUi extends FocusUiDesign {
 				};
 				frame = null;
 
-				monitor.acquire();
+				SwingThreadMonitor.acquire();
 				try {
 					if (!mosaic.containsImage(image))
 					{
@@ -259,7 +259,7 @@ public class FocusUi extends FocusUiDesign {
 						msf.getCheckedArea().add(occurence.getStarMask());
 					}
 				} finally {
-					monitor.release();
+					SwingThreadMonitor.release();
 				}
 				
 				setPercent(30);
@@ -268,7 +268,7 @@ public class FocusUi extends FocusUiDesign {
 				
 				setPercent(98);
 
-				monitor.acquire();
+				SwingThreadMonitor.acquire();
 				try {
 					if (!mosaic.containsImage(image))
 					{
@@ -280,14 +280,11 @@ public class FocusUi extends FocusUiDesign {
 						Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
 						FocusUi.this.mosaic.addStar(star);
 						StarOccurence occurence = new StarOccurence(FocusUi.this.mosaic, image, star);
-						occurence.setPicX(sf.getCenterX());
-						occurence.setPicY(sf.getCenterY());
+						occurence.initFromStarFinder(sf);
 						FocusUi.this.mosaic.addStarOccurence(occurence);
-						// il faut que le init ne cherche pas la position trop loin !
-						occurence.init(true);
 					}
 				} finally {
-					monitor.release();
+					SwingThreadMonitor.release();
 				};
 			}
 		};

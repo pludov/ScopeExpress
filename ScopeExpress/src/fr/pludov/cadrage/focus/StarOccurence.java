@@ -7,6 +7,7 @@ import javax.jws.WebParam.Mode;
 
 import fr.pludov.cadrage.async.WorkStep;
 import fr.pludov.cadrage.async.WorkStepResource;
+import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.FitsPlane;
@@ -42,11 +43,11 @@ public class StarOccurence {
 	// Pic au centre
 	double picX, picY;
 	
-	public StarOccurence(Mosaic focus, Image image, Star star) {
-		if (focus == null) throw new NullPointerException("null focus");
+	public StarOccurence(Mosaic mosaic, Image image, Star star) {
+		if (mosaic == null) throw new NullPointerException("null focus");
 		if (image == null) throw new NullPointerException("null image");
 		if (star == null) throw new NullPointerException("null star");
-		this.mosaic = focus;
+		this.mosaic = mosaic;
 		this.image = image;
 		this.star = star;
 		this.analyseDone = false;
@@ -55,10 +56,105 @@ public class StarOccurence {
 		this.blackStddevByChannel = new int[3];
 		this.aduMaxByChannel = new int[3];
 		this.aduSumByChannel = new int[3];
-
 	}
 	
-	public void init(final boolean isFineTuning)
+	void copyFromStarFinder(StarFinder finder)
+	{
+		this.fwhm = finder.getFwhm();
+		this.stddev = finder.getStddev();
+		this.picX = finder.getPicX();
+		this.picY = finder.getPicY();
+		this.starMask = finder.getStarMask();
+		for(int i = 0; i < this.blackLevelByChannel.length; ++i)
+		{
+			this.blackLevelByChannel[i] = finder.getBlackLevelByChannel()[i];
+			this.blackStddevByChannel[i] = finder.getBlackStddevByChannel()[i];
+			this.aduMaxByChannel[i] = finder.getAduMaxByChannel()[i];
+			this.aduSumByChannel[i] = finder.getAduSumByChannel()[i];
+		}
+	}
+	
+	void copyFrameContent(CameraFrame frame, int centerX, int centerY) {
+		int maxX = frame.getWidth() / 2 - 1;
+		int maxY = frame.getHeight() / 2 - 1;
+		
+		int x0 = centerX - mosaic.getApplication().getStarRay();
+		int y0 = centerY - mosaic.getApplication().getStarRay();
+		int x1 = centerX + mosaic.getApplication().getStarRay();
+		int y1 = centerY + mosaic.getApplication().getStarRay();
+		
+		if (x0 < 0) x0 = 0;
+		if (y0 < 0) y0 = 0;
+		if (x1 > maxX) x1 = maxX;
+		if (y1 > maxY) y1 = maxY;
+		
+		SwingThreadMonitor.acquire();
+		try {
+			if ((x1 < x0) || (y1 < y0)) {
+				subFrame = new CameraFrame();
+				StarOccurence.this.dataX0 = 0;
+				StarOccurence.this.dataY0 = 0;
+			} else {
+				subFrame = frame.subFrame(x0, y0, x1, y1);
+				StarOccurence.this.dataX0 = x0;
+				StarOccurence.this.dataY0 = y0;
+			}
+			listeners.getTarget().imageUpdated();
+		} finally {
+			SwingThreadMonitor.release();
+		}
+	}
+	
+	/**
+	 * Initialise à partir d'un starfinder qui a trouvé une étoile
+	 */
+	public void initFromStarFinder(StarFinder finder)
+	{
+		final int centerX = finder.getCenterX();
+		final int centerY = finder.getCenterY();
+		analyseDone = true;
+		starFound = true;
+		
+		copyFromStarFinder(finder);
+		if (image.lock()) {
+			try {
+				CameraFrame frame = image.getCameraFrame();
+				
+				copyFrameContent(frame, centerX, centerY);		
+			} finally {
+				image.unlock();
+			}
+		} else {
+			// On crée un tache qui a besoin des données
+			subFrame = new CameraFrame();
+			StarOccurence.this.dataX0 = 0;
+			StarOccurence.this.dataY0 = 0;
+			
+			WorkStep load = new WorkStep() {
+				@Override
+				public List<WorkStepResource> getRequiredResources() {
+					return Collections.singletonList((WorkStepResource)image);
+				}
+				
+				@Override
+				public boolean readyToProceed() {
+					return true;
+				}
+				
+				@Override
+				public void proceed() {
+					CameraFrame frame = image.getCameraFrame();
+					copyFrameContent(frame, centerX, centerY);
+				}
+			};
+			// On lance la lecture en asynchrone.
+			// FIXME: si l'image est retirée de la mosaic, on devrait arreter !
+			getMosaic().getApplication().getWorkStepProcessor().add(load);
+		}
+		listeners.getTarget().analyseDone();
+	}
+	
+	public void asyncSearch(final boolean isFineTuning)
 	{
 		WorkStep load = new WorkStep() {
 			@Override
@@ -158,46 +254,9 @@ public class StarOccurence {
 					
 					StarOccurence.this.starFound = finder.isStarFound();
 					if (StarOccurence.this.starFound) {
-						StarOccurence.this.fwhm = finder.getFwhm();
-						StarOccurence.this.stddev = finder.getStddev();
-						StarOccurence.this.picX = finder.getPicX();
-						StarOccurence.this.picY = finder.getPicY();
-						StarOccurence.this.starMask = finder.getStarMask();
-						for(int i = 0; i < StarOccurence.this.blackLevelByChannel.length; ++i)
-						{
-							StarOccurence.this.blackLevelByChannel[i] = finder.getBlackLevelByChannel()[i];
-							StarOccurence.this.blackStddevByChannel[i] = finder.getBlackStddevByChannel()[i];
-							StarOccurence.this.aduMaxByChannel[i] = finder.getAduMaxByChannel()[i];
-							StarOccurence.this.aduSumByChannel[i] = finder.getAduSumByChannel()[i];
-						}
+						copyFromStarFinder(finder);
 					}
-					centerX = finder.getCenterX();
-					centerY = finder.getCenterY();
-					
-					
-					
-					int maxX = frame.getWidth() / 2 - 1;
-					int maxY = frame.getHeight() / 2 - 1;
-					
-					int x0 = centerX - mosaic.getApplication().getStarRay();
-					int y0 = centerY - mosaic.getApplication().getStarRay();
-					int x1 = centerX + mosaic.getApplication().getStarRay();
-					int y1 = centerY + mosaic.getApplication().getStarRay();
-					
-					if (x0 < 0) x0 = 0;
-					if (y0 < 0) y0 = 0;
-					if (x1 > maxX) x1 = maxX;
-					if (y1 > maxY) y1 = maxY;
-					
-					if ((x1 < x0) || (y1 < y0)) {
-						subFrame = new CameraFrame();
-						StarOccurence.this.dataX0 = 0;
-						StarOccurence.this.dataY0 = 0;
-					} else {
-						subFrame = frame.subFrame(x0, y0, x1, y1);
-						StarOccurence.this.dataX0 = x0;
-						StarOccurence.this.dataY0 = y0;
-					}
+					copyFrameContent(frame, finder.getCenterX(), finder.getCenterY());
 					
 				} finally {
 					analyseDone = true;
