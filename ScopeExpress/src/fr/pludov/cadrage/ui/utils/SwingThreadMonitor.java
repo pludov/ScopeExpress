@@ -17,12 +17,12 @@ public class SwingThreadMonitor {
 	Runnable synchronizer;
 	
 	
-	public SwingThreadMonitor()
+	private SwingThreadMonitor()
 	{
 		
 	}
 	
-	public void acquire()
+	private void doAcquire()
 	{
 		if (SwingUtilities.isEventDispatchThread()) {
 			return;
@@ -70,7 +70,7 @@ public class SwingThreadMonitor {
 		}
 	}
 	
-	public void release()
+	private void doRelease()
 	{
 		if (SwingUtilities.isEventDispatchThread()) {
 			return;
@@ -84,5 +84,27 @@ public class SwingThreadMonitor {
 			}
 		}
 		
+	}
+	
+	private static final ThreadLocal<SwingThreadMonitor> lockByThread = new ThreadLocal<SwingThreadMonitor>();
+	
+	public static void acquire()
+	{
+		SwingThreadMonitor monitor = lockByThread.get();
+		if (monitor == null) {
+			monitor = new SwingThreadMonitor();
+			lockByThread.set(monitor);
+		}
+		
+		monitor.doAcquire();
+	}
+	
+	public static void release()
+	{
+		SwingThreadMonitor monitor = lockByThread.get();
+		if (monitor == null) {
+			throw new NullPointerException("probable monitor lock/unlock mismatch");
+		}
+		monitor.doRelease();
 	}
 }

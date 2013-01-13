@@ -69,14 +69,12 @@ public class CorrelateTask extends BackgroundTask {
 	
 	@Override
 	protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-		SwingThreadMonitor monitor = new SwingThreadMonitor();
-		
 		List<DynamicGridPoint> referenceStars;
 		List<DynamicGridPoint> destStars;
 		
 		Correlation correlation = new Correlation();
 
-		monitor.acquire();
+		SwingThreadMonitor.acquire();
 		try {
 		
 			referenceStars = getImageStars(this.reference);
@@ -84,14 +82,14 @@ public class CorrelateTask extends BackgroundTask {
 			destStars = getImageStars(this.image);
 			
 		} finally {
-			monitor.release();
+			SwingThreadMonitor.release();
 		}
 		
 		try {
 			correlation.correlate(destStars, referenceStars);
 			
 			
-			monitor.acquire();
+			SwingThreadMonitor.acquire(); 
 			try {
 				Mosaic mosaic = focusUi.getMosaic();
 	
@@ -133,14 +131,14 @@ public class CorrelateTask extends BackgroundTask {
 					otherSo = new StarOccurence(mosaic, this.image, referenceSo.getStar());
 					otherSo.setPicX(nvx);
 					otherSo.setPicY(nvy);
-					otherSo.init(true);
+					otherSo.asyncSearch(true);
 					mosaic.addStarOccurence(otherSo);
 				}
 				
 				
 				
 			} finally {
-				monitor.release();
+				SwingThreadMonitor.release();
 			}
 			
 			
