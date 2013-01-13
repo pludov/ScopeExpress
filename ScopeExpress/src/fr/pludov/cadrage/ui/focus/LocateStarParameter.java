@@ -2,7 +2,7 @@ package fr.pludov.cadrage.ui.focus;
 
 import java.util.List;
 
-import fr.pludov.cadrage.focus.Focus;
+import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 
 public class LocateStarParameter {
@@ -13,7 +13,7 @@ public class LocateStarParameter {
 		Global			// Recherche avec toutes les étoiles connues 
 	};
 	
-	final Focus focus;
+	final Mosaic focus;
 	
 	int blackPercent;
 	int aduSumMini;
@@ -21,7 +21,7 @@ public class LocateStarParameter {
 	// Null signifie prend la derniere
 	Image reference;
 	
-	public LocateStarParameter(Focus focus) {
+	public LocateStarParameter(Mosaic focus) {
 		this.focus = focus;
 		this.blackPercent = 25;
 		this.aduSumMini = 10000;
@@ -78,7 +78,7 @@ public class LocateStarParameter {
 		this.reference = reference;
 	}
 
-	public Focus getFocus() {
+	public Mosaic getFocus() {
 		return focus;
 	}
 

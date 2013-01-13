@@ -10,30 +10,29 @@ import java.util.List;
 
 import javax.swing.JPanel;
 
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class GraphPanel extends JPanel {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
-	Focus focus;
+	Mosaic focus;
 	Image currentImage;
 	Star currentStar;
 	
-	public GraphPanel(Focus focus)
+	public GraphPanel(Mosaic focus)
 	{
 		super();
 		this.focus = focus;
 		this.currentImage = null;
 		this.currentStar = null;
 		
-		focus.listeners.addListener(listenerOwner, new FocusListener() {
+		focus.listeners.addListener(listenerOwner, new MosaicListener() {
 			
 			@Override
 			public void starRemoved(Star star) {
@@ -69,7 +68,7 @@ public class GraphPanel extends JPanel {
 			}
 			
 			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 				repaint();				
 			}
 		});

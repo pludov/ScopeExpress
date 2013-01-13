@@ -18,7 +18,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import fr.pludov.cadrage.Cadrage;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
+import fr.pludov.cadrage.focus.MosaicListener;
+import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 
 public class ActionMonitor implements ActionListener {
@@ -178,8 +179,8 @@ public class ActionMonitor implements ActionListener {
 										return;
 									}
 								}
-								fr.pludov.cadrage.focus.Image image = new fr.pludov.cadrage.focus.Image(new File(currentSearchPath, item));
-								focusUi.getFocus().addImage(image, ImageAddedCause.AutoDetected);
+								fr.pludov.cadrage.focus.Image image = focusUi.getApplication().getImage(new File(currentSearchPath, item));
+								focusUi.getMosaic().addImage(image, MosaicListener.ImageAddedCause.AutoDetected);
 							}
 						});
 

@@ -7,9 +7,9 @@ import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.ui.utils.ListEntry;
 
-public class FocusImageListEntry extends ListEntry<Image, FocusImageListEntry> implements Serializable{
+public class MosaicImageListEntry extends ListEntry<Image, MosaicImageListEntry> implements Serializable{
 
-	public FocusImageListEntry(Image image) {
+	public MosaicImageListEntry(Image image) {
 		super(image);
 	}
 	

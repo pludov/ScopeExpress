@@ -11,7 +11,7 @@ import java.awt.Dimension;
 import javax.swing.UIManager;
 import javax.swing.JSplitPane;
 
-public class FocusImageListViewDesign extends JPanel {
+public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel imageViewPanel;
 	protected JPanel imageListPanel;
 	protected JSplitPane splitPane;
@@ -23,7 +23,7 @@ public class FocusImageListViewDesign extends JPanel {
 	/**
 	 * Create the panel.
 	 */
-	public FocusImageListViewDesign() {
+	public MosaicImageListViewDesign() {
 		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 		
 		this.splitPane = new JSplitPane();

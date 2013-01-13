@@ -35,7 +35,11 @@ public class Image implements WorkStepResource {
 	Double pause;
 	Integer iso;
 	
-	public Image(File path) {
+	/**
+	 * Une image ne doit pas être construite directement.
+	 * @see Application.getImage
+	 */
+	Image(File path) {
 		this.path = path;
 		this.cameraFrame = new SoftReference<CameraFrame>(null);
 		this.cameraFrameLockCount = 0;

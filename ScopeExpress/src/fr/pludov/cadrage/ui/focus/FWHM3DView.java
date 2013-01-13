@@ -4,16 +4,16 @@ import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
-import fr.pludov.cadrage.focus.Focus;
+import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 
 public class FWHM3DView extends Generic3DView {
-	final Focus focus;
+	final Mosaic focus;
 	final Image image;
 	
-	public FWHM3DView(Focus focus, Image image) {
+	public FWHM3DView(Mosaic focus, Image image) {
 		this.focus = focus;
 		this.image = image;
 	}

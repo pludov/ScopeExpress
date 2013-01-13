@@ -36,13 +36,12 @@ import javax.swing.table.TableModel;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
@@ -54,7 +53,7 @@ public class StarOccurenceTable extends JTable {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	
-	Focus focus;
+	Mosaic focus;
 	StarOccurenceTableModel tableModel;
 	ImageDisplayParameter displayParameter;
 	
@@ -143,7 +142,7 @@ public class StarOccurenceTable extends JTable {
 		
 	}
 	
-	public StarOccurenceTable(Focus pFocus, ImageDisplayParameter displayParameter) {
+	public StarOccurenceTable(Mosaic pFocus, ImageDisplayParameter displayParameter) {
 		this.focus = pFocus;
 		this.displayParameter = displayParameter;
 		tableModel = new StarOccurenceTableModel();
@@ -152,7 +151,7 @@ public class StarOccurenceTable extends JTable {
 		setAutoResizeMode(AUTO_RESIZE_OFF);
 		setColumnSelectionAllowed(true);
 		
-		focus.listeners.addListener(listenerOwner, new FocusListener() {
+		focus.listeners.addListener(listenerOwner, new MosaicListener() {
 			
 			@Override
 			public void starOccurenceRemoved(StarOccurence sco) {
@@ -201,7 +200,7 @@ public class StarOccurenceTable extends JTable {
 			}
 			
 			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 				// tableModel.fireTableStructureChanged();
 				// FIXME: ceci assume que l'image est ajoutée en derniere position
 				TableColumn newColumn = new TableColumn(focus.getImages().indexOf(image), 128);

@@ -16,7 +16,7 @@ import javax.swing.SwingUtilities;
 
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.correlation.Correlation;
-import fr.pludov.cadrage.focus.Focus;
+import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.scope.dummy.DummyScope;
@@ -26,7 +26,7 @@ import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.ImageList;
 import fr.pludov.cadrage.ui.ImageListEntry;
 import fr.pludov.cadrage.ui.ViewPortList;
-import fr.pludov.cadrage.ui.focus.FocusImageListView;
+import fr.pludov.cadrage.ui.focus.MosaicImageListView;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.ImageProvider;
 

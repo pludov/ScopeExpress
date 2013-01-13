@@ -23,7 +23,7 @@ import javax.swing.event.ListSelectionListener;
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
-import fr.pludov.cadrage.focus.Focus;
+import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
@@ -33,17 +33,19 @@ import fr.pludov.io.ImageProvider;
 
 import net.miginfocom.swing.MigLayout;
 
-public class FocusImageListView extends FocusImageListViewDesign {
+public class MosaicImageListView extends MosaicImageListViewDesign {
 	ImageDisplayParameter displayParameter;
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	final FrameDisplayWithStar principal;
 	final FrameDisplayWithStar zoomed;
-	final FocusImageList focusImageList;
+	final MosaicImageList focusImageList;
 	final ImageDisplayParameterPanel displayParameterPanel;
 	ClicEvent onPrincipalClick = null;
 	DragOperation principalDragOperation = null;
 	Image currentImage = null;
+	
+	Mosaic mosaic;
 	
 	public static interface ClicEvent
 	{
@@ -109,23 +111,30 @@ public class FocusImageListView extends FocusImageListViewDesign {
 		}
 	}
 	
-	public FocusImageListView(FocusUi focusUi) {
+	public void setMosaic(Mosaic mosaic)
+	{
+		if (this.mosaic == mosaic) return;
+		
+		principal.setMosaic(mosaic);
+		zoomed.setMosaic(mosaic);
+		focusImageList.setMosaic(mosaic);
+	}
+	
+	public MosaicImageListView(FocusUi focusUi) {
 		super();
-		Focus focus = focusUi.getFocus();
 		displayParameter = new ImageDisplayParameter();
 
-		principal = new FrameDisplayWithStar(focus);
+		principal = new FrameDisplayWithStar(focusUi.application);
 		principal.setImageDisplayParameter(displayParameter);
-		zoomed = new FrameDisplayWithStar(focus);
+		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
 		
 		displayParameterPanel = new ImageDisplayParameterPanel(true);
 		displayParameterPanel.loadParameters(displayParameter);
-		focusImageList = new FocusImageList(focusUi);
+		focusImageList = new MosaicImageList(focusUi);
 		
 		JScrollPane imageListScrollPane = new JScrollPane(focusImageList);
         
-		
 		super.imageViewPanel.add(principal);
 		super.zoomPanel.add(zoomed);
 		super.imageListPanel.add(imageListScrollPane);
@@ -236,9 +245,9 @@ public class FocusImageListView extends FocusImageListViewDesign {
 	{
 		Image image = null;
 		
-		List<FocusImageListEntry> selected = focusImageList.getSelectedEntryList();
+		List<MosaicImageListEntry> selected = focusImageList.getSelectedEntryList();
 		if (!selected.isEmpty()) {
-			FocusImageListEntry firstEntry = selected.get(0);
+			MosaicImageListEntry firstEntry = selected.get(0);
 		
 			image = firstEntry.getTarget();
 		}

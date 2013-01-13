@@ -5,7 +5,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
-import fr.pludov.cadrage.focus.Focus;
+import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
@@ -49,7 +49,7 @@ public class CorrelateTask extends BackgroundTask {
 	private List<DynamicGridPoint> getImageStars(Image image)
 	{
 		List<DynamicGridPoint> imageStars = new ArrayList<DynamicGridPoint>();
-		Focus focus = focusUi.getFocus();
+		Mosaic focus = focusUi.getMosaic();
 		
 		for(Star star : focus.getStars())
 		{
@@ -93,21 +93,21 @@ public class CorrelateTask extends BackgroundTask {
 			
 			monitor.acquire();
 			try {
-				Focus focus = focusUi.getFocus();
+				Mosaic mosaic = focusUi.getMosaic();
 	
 				List<StarOccurence> referenceStarList = new ArrayList<StarOccurence>();
 				List<StarOccurence> otherStarList = new ArrayList<StarOccurence>();
 				
-				for(Star star : focus.getStars())
+				for(Star star : mosaic.getStars())
 				{
-					StarOccurence so = focus.getStarOccurence(star, this.reference);
+					StarOccurence so = mosaic.getStarOccurence(star, this.reference);
 					if (so == null || !so.isAnalyseDone() || !so.isStarFound())
 					{
 						continue;
 					}
 					referenceStarList.add(so);
 					
-					StarOccurence otherSo = focus.getStarOccurence(star, this.image);
+					StarOccurence otherSo = mosaic.getStarOccurence(star, this.image);
 					if (otherSo == null || !otherSo.isAnalyseDone() || !otherSo.isStarFound()) 
 					{
 						continue;
@@ -120,7 +120,7 @@ public class CorrelateTask extends BackgroundTask {
 				for(StarOccurence referenceSo : referenceStarList)
 				{
 					// Si il y a déjà une référence pour cette étoile, on abandonne !
-					StarOccurence otherSo = focus.getStarOccurence(referenceSo.getStar(), this.image);
+					StarOccurence otherSo = mosaic.getStarOccurence(referenceSo.getStar(), this.image);
 					if (otherSo != null) continue;
 					
 					double x = referenceSo.getX();
@@ -130,11 +130,11 @@ public class CorrelateTask extends BackgroundTask {
 					double nvy = correlation.getTy() + y * correlation.getCs() - x * correlation.getSn();
 					
 					
-					otherSo = new StarOccurence(focus, this.image, referenceSo.getStar());
+					otherSo = new StarOccurence(mosaic, this.image, referenceSo.getStar());
 					otherSo.setPicX(nvx);
 					otherSo.setPicY(nvy);
 					otherSo.init(true);
-					focus.addStarOccurence(otherSo);
+					mosaic.addStarOccurence(otherSo);
 				}
 				
 				

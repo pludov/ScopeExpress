@@ -2,13 +2,12 @@ package fr.pludov.cadrage.ui.focus;
 
 import javax.swing.JLabel;
 
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.utils.ChannelMode;
 
@@ -16,14 +15,14 @@ public class StarDetail extends StarDetailDesign {
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	final StarOccurence3DView view;
 
-	final Focus focus;
+	final Mosaic focus;
 	StarOccurence so;
 	
 	final JLabel [] lblBlackList;
 	final JLabel [] lblAduMaxList;
 	final JLabel [] lblAduSumList;
 	
-	public StarDetail(Focus fo) {
+	public StarDetail(Mosaic fo) {
 		super();
 		this.focus = fo;
 		this.so = null;
@@ -51,7 +50,7 @@ public class StarDetail extends StarDetailDesign {
 		
 		
 		this.graphPanel.add(view);
-		this.focus.listeners.addListener(this.listenerOwner, new FocusListener() {
+		this.focus.listeners.addListener(this.listenerOwner, new MosaicListener() {
 			
 			@Override
 			public void starRemoved(Star star) {
@@ -79,7 +78,7 @@ public class StarDetail extends StarDetailDesign {
 			}
 			
 			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 				
 			}
 		});

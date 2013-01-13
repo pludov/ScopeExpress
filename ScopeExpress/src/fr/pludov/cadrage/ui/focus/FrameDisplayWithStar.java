@@ -9,65 +9,89 @@ import java.awt.image.BufferedImage;
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Application;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 
 public class FrameDisplayWithStar extends FrameDisplay {
-	final Focus focus;
+	
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
+	final Application application;
+	Mosaic mosaic;
 	Image image;
 	ImageDisplayParameter imageDisplayParameter; 
 	BackgroundTask taskToGetImageToDisplay;
 	
-	public FrameDisplayWithStar(Focus focus) {
+	public FrameDisplayWithStar(Application application) {
 		super();
-		this.focus = focus;
+		this.application = application;
+		this.mosaic = null;
 		this.taskToGetImageToDisplay = null;
-		focus.listeners.addListener(this.listenerOwner, new FocusListener() {
-			
-			@Override
-			public void starRemoved(Star star) {
-			}
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				if (sco.getImage() == image) {
-					repaint(50);
-				}
-			}
-			
-			@Override
-			public void starOccurenceAdded(StarOccurence sco) {
-				if (sco.getImage() == image) {
-					sco.listeners.addListener(listenerOwner, getStarOccurenceListener(sco));
-					repaint(50);
-				}
-			}
-			
-			@Override
-			public void starAdded(Star star) {
-				repaint(50);
-			}
-			
-			@Override
-			public void imageRemoved(Image removedImage) {
-			}
-			
-			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
+	}
+	
+	public void setMosaic(Mosaic mosaic)
+	{
+		if (this.mosaic == mosaic) return;
+		
+		if (this.taskToGetImageToDisplay != null) {
+			this.taskToGetImageToDisplay.abort();
+			this.taskToGetImageToDisplay = null;
+		}
+		
+		if (this.mosaic != null) {
+			this.mosaic.listeners.removeListener(this.listenerOwner);
+			setImage(null, false);
+		}
+		
+		this.mosaic = mosaic;
+		
+		if (this.mosaic != null) {
+			this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
 				
-			}
-		});
+				@Override
+				public void starRemoved(Star star) {
+				}
+				
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					if (sco.getImage() == image) {
+						repaint(50);
+					}
+				}
+				
+				@Override
+				public void starOccurenceAdded(StarOccurence sco) {
+					if (sco.getImage() == image) {
+						sco.listeners.addListener(listenerOwner, getStarOccurenceListener(sco));
+						repaint(50);
+					}
+				}
+				
+				@Override
+				public void starAdded(Star star) {
+					repaint(50);
+				}
+				
+				@Override
+				public void imageRemoved(Image removedImage) {
+				}
+				
+				@Override
+				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+					
+				}
+			});
+		}
+		repaint(50);
 	}
 	
 	private StarOccurenceListener getStarOccurenceListener(final StarOccurence sco)
@@ -89,32 +113,34 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		AffineTransform imageToScreen = getImageToScreen();
     	Graphics2D g2d = (Graphics2D)gPaint;
-    	    
-        for(Star star : focus.getStars())
-        {
-        	
-        	StarOccurence sco = focus.getStarOccurence(star, image);
-        	if (sco == null) continue;
-        	
-        	double x = star.getClickX();
-        	double y = star.getClickY();
-        	
-        	if (sco.isAnalyseDone() && sco.isStarFound()) {
-        		x = sco.getX();
-        		y = sco.getY();
-        	}
-        	
-        	
-        	Point2D result = imageToScreen.transform(new Point2D.Double(x, y), null);
-        	
-        	int centerx = (int)Math.round(result.getX());
-        	int centery = (int)Math.round(result.getY());
-        	
-        	gPaint.drawLine(centerx - 20, centery, centerx - 5, centery);
-        	gPaint.drawLine(centerx + 20, centery, centerx + 5, centery);
-        	gPaint.drawLine(centerx, centery - 20, centerx, centery - 5);
-        	gPaint.drawLine(centerx, centery + 20, centerx, centery + 5);
-        }
+    	   
+    	if (mosaic != null) {
+	        for(Star star : mosaic.getStars())
+	        {
+	        	
+	        	StarOccurence sco = mosaic.getStarOccurence(star, image);
+	        	if (sco == null) continue;
+	        	
+	        	double x = star.getClickX();
+	        	double y = star.getClickY();
+	        	
+	        	if (sco.isAnalyseDone() && sco.isStarFound()) {
+	        		x = sco.getX();
+	        		y = sco.getY();
+	        	}
+	        	
+	        	
+	        	Point2D result = imageToScreen.transform(new Point2D.Double(x, y), null);
+	        	
+	        	int centerx = (int)Math.round(result.getX());
+	        	int centery = (int)Math.round(result.getY());
+	        	
+	        	gPaint.drawLine(centerx - 20, centery, centerx - 5, centery);
+	        	gPaint.drawLine(centerx + 20, centery, centerx + 5, centery);
+	        	gPaint.drawLine(centerx, centery - 20, centerx, centery - 5);
+	        	gPaint.drawLine(centerx, centery + 20, centerx, centery + 5);
+	        }
+    	}
 	}
 	
 	@Override
@@ -195,7 +221,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			};
 			this.taskToGetImageToDisplay = loadImageTask;
 			// Load ASAP
-			focus.getBackgroundTaskQueue().addTask(loadImageTask);
+			application.getBackgroundTaskQueue().addTask(loadImageTask);
 		}
 	}
 	
@@ -234,9 +260,9 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		if (this.image != null)
 		{
-			for(Star star : focus.getStars())
+			for(Star star : mosaic.getStars())
 			{
-				StarOccurence oc = focus.getStarOccurence(star, this.image);
+				StarOccurence oc = mosaic.getStarOccurence(star, this.image);
 				if (oc != null) oc.listeners.removeListener(this.listenerOwner);
 			}
 		}
@@ -245,9 +271,9 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		if (this.image != null)
 		{
-			for(Star star : focus.getStars())
+			for(Star star : mosaic.getStars())
 			{
-				StarOccurence oc = focus.getStarOccurence(star, this.image);
+				StarOccurence oc = mosaic.getStarOccurence(star, this.image);
 				if (oc != null) oc.listeners.addListener(this.listenerOwner, getStarOccurenceListener(oc));
 			}
 		}

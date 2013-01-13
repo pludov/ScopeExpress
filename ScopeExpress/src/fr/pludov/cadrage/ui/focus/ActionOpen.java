@@ -8,8 +8,9 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import fr.pludov.cadrage.Cadrage;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.MosaicListener;
+import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 
 public class ActionOpen implements ActionListener {
@@ -45,8 +46,8 @@ public class ActionOpen implements ActionListener {
 		for(File file : files)
 		{
 			// Pour forcer une pseudo détection...
-			Image image = new Image(file);
-			focusUi.focus.addImage(image, ImageAddedCause.Explicit);
+			Image image = focusUi.getApplication().getImage(file);
+			focusUi.mosaic.addImage(image, MosaicListener.ImageAddedCause.Explicit);
 		}
 	}	
 }

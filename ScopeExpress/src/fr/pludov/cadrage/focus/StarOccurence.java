@@ -17,7 +17,7 @@ import fr.pludov.utils.StarFinder;
 public class StarOccurence {
 	public final WeakListenerCollection<StarOccurenceListener> listeners = new WeakListenerCollection<StarOccurenceListener>(StarOccurenceListener.class);
 
-	final Focus focus;
+	final Mosaic mosaic;
 	final Image image;
 	final Star star;
 	
@@ -42,11 +42,11 @@ public class StarOccurence {
 	// Pic au centre
 	double picX, picY;
 	
-	public StarOccurence(Focus focus, Image image, Star star) {
+	public StarOccurence(Mosaic focus, Image image, Star star) {
 		if (focus == null) throw new NullPointerException("null focus");
 		if (image == null) throw new NullPointerException("null image");
 		if (star == null) throw new NullPointerException("null star");
-		this.focus = focus;
+		this.mosaic = focus;
 		this.image = image;
 		this.star = star;
 		this.analyseDone = false;
@@ -68,13 +68,13 @@ public class StarOccurence {
 			
 			private boolean isAnalysisOkForImage(Image previousImage)
 			{
-				StarOccurence previousOccurence = focus.getStarOccurence(star, previousImage);
+				StarOccurence previousOccurence = mosaic.getStarOccurence(star, previousImage);
 				return previousOccurence != null && previousOccurence.analyseDone;
 			}
 			
 			private boolean isAnalysisFoundForImage(Image previousImage)
 			{
-				StarOccurence previousOccurence = focus.getStarOccurence(star, previousImage);
+				StarOccurence previousOccurence = mosaic.getStarOccurence(star, previousImage);
 				return previousOccurence != null && previousOccurence.analyseDone && previousOccurence.starFound;
 			}
 			
@@ -82,10 +82,10 @@ public class StarOccurence {
 			public boolean readyToProceed() {
 				if (star.getClickImage() == image) return true;
 				
-				Image previousImage = focus.getPreviousImage(image);
+				Image previousImage = mosaic.getPreviousImage(image);
 				if (previousImage != null && isAnalysisOkForImage(previousImage)) return true;
 				
-				Image nextImage = focus.getNextImage(image);
+				Image nextImage = mosaic.getNextImage(image);
 				if (nextImage != null && isAnalysisOkForImage(nextImage)) return true;
 				
 				if (star.getClickImage() == null) return previousImage == null;
@@ -107,7 +107,7 @@ public class StarOccurence {
 					{
 						
 						// Trouver la dernière 
-						if (star.getClickImage() == image || (star.getClickImage() == null && focus.getPreviousImage(image) == null))
+						if (star.getClickImage() == image || (star.getClickImage() == null && mosaic.getPreviousImage(image) == null))
 						{
 							// On prend le click
 							centerX = star.getClickX();
@@ -115,16 +115,16 @@ public class StarOccurence {
 						} else {
 							Image reference = null;
 							
-							Image previous = focus.getPreviousImage(image);
+							Image previous = mosaic.getPreviousImage(image);
 							if (previous != null && isAnalysisOkForImage(previous)) reference = previous;
-							Image next = focus.getNextImage(image);
+							Image next = mosaic.getNextImage(image);
 							if (next != null && isAnalysisOkForImage(next) && (reference == null || !isAnalysisFoundForImage(reference))) {
 								reference = next;
 							}
 	
 							StarOccurence referenceStarOccurence = null;
 							if (reference != null) {
-								referenceStarOccurence = focus.getStarOccurence(star, reference);;
+								referenceStarOccurence = mosaic.getStarOccurence(star, reference);;
 							}
 							 
 							if ((referenceStarOccurence != null) && referenceStarOccurence.analyseDone) {
@@ -179,10 +179,10 @@ public class StarOccurence {
 					int maxX = frame.getWidth() / 2 - 1;
 					int maxY = frame.getHeight() / 2 - 1;
 					
-					int x0 = centerX - focus.getStarRay();
-					int y0 = centerY - focus.getStarRay();
-					int x1 = centerX + focus.getStarRay();
-					int y1 = centerY + focus.getStarRay();
+					int x0 = centerX - mosaic.getApplication().getStarRay();
+					int y0 = centerY - mosaic.getApplication().getStarRay();
+					int x1 = centerX + mosaic.getApplication().getStarRay();
+					int y1 = centerY + mosaic.getApplication().getStarRay();
 					
 					if (x0 < 0) x0 = 0;
 					if (y0 < 0) y0 = 0;
@@ -207,11 +207,11 @@ public class StarOccurence {
 			
 		};
 		
-		getFocus().getWorkStepProcessor().add(load);		
+		getMosaic().getApplication().getWorkStepProcessor().add(load);		
 	}
 
-	public Focus getFocus() {
-		return focus;
+	public Mosaic getMosaic() {
+		return mosaic;
 	}
 
 	public Image getImage() {

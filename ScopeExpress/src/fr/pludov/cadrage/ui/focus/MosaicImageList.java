@@ -11,16 +11,16 @@ import javax.swing.JPopupMenu;
 
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
-public class FocusImageList extends GenericList<Image, FocusImageListEntry> implements FocusListener {
-	final Focus focus;
+public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
+	Mosaic mosaic;
 	final FocusUi focusUi;
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
@@ -28,13 +28,13 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 	private final List<ColumnDefinition> columns = Arrays.asList(
 		new ColumnDefinition("Image", String.class, 120) {
 			@Override
-			public Object getValue(FocusImageListEntry ile) {
+			public Object getValue(MosaicImageListEntry ile) {
 				return ile.getTarget().getPath().getName();
 			}
 		},
 		new ColumnDefinition("Date", Date.class, 80) {
 			@Override
-			public Object getValue(FocusImageListEntry ile) {
+			public Object getValue(MosaicImageListEntry ile) {
 				return ile.getCreationDate();
 			}
 		}
@@ -79,24 +79,44 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 //		}
 	);
 
-	public FocusImageList(FocusUi focusUi) {
+	public MosaicImageList(FocusUi focusUi) {
 		setColumnDefinitions(columns);
 		this.focusUi = focusUi;
-		this.focus = focusUi.getFocus();
-		this.focus.listeners.addListener(this.listenerOwner, this);
+		this.mosaic = null;
 	}
 
+	void setMosaic(Mosaic mosaic)
+	{
+		if (this.mosaic == mosaic) return;
+		
+		if (this.mosaic != null) {
+			this.mosaic.listeners.removeListener(this.listenerOwner);
+			for(Image image : this.mosaic.getImages()) {
+				removeEntry(image);
+			}
+		}
+		
+		this.mosaic = mosaic;
+		
+		if (this.mosaic != null) {
+			this.mosaic.listeners.addListener(this.listenerOwner, this);
+			for(Image image : this.mosaic.getImages()) {
+				imageAdded(image, ImageAddedCause.Loading);
+			}
+		}
+	}
+	
 	@Override
-	public void imageAdded(Image image, ImageAddedCause cause) {
+	public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 		if (hasEntry(image)) return;
 		
-		FocusImageListEntry ile = new FocusImageListEntry(image); 
+		MosaicImageListEntry ile = new MosaicImageListEntry(image); 
 		
 		addEntry(ile);
 		
-		if (cause == ImageAddedCause.Explicit || cause == ImageAddedCause.AutoDetected)
+		if (cause == MosaicListener.ImageAddedCause.Explicit || cause == MosaicListener.ImageAddedCause.AutoDetected)
 		{
-			FocusImageListEntry listEntry = getEntryFor(image);
+			MosaicImageListEntry listEntry = getEntryFor(image);
 			selectEntry(listEntry);
 		}
 	}
@@ -123,7 +143,7 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 	}
 
 	@Override
-	protected JPopupMenu createContextMenu(final List<FocusImageListEntry> entries) {
+	protected JPopupMenu createContextMenu(final List<MosaicImageListEntry> entries) {
 		JPopupMenu contextMenu = new JPopupMenu();
 
 		// Déplacement
@@ -135,10 +155,10 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 		removeMenu.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				for(FocusImageListEntry entry : entries)
+				for(MosaicImageListEntry entry : entries)
 				{
 					Image image = entry.getTarget();
-					focus.removeImage(image);
+					mosaic.removeImage(image);
 				}
 			}
 		});
@@ -156,7 +176,7 @@ public class FocusImageList extends GenericList<Image, FocusImageListEntry> impl
 				
 				CorrelateTask task = new CorrelateTask(focusUi, entries.get(0).getTarget(), entries.get(1).getTarget());
 				
-				focusUi.getFocus().getBackgroundTaskQueue().addTask(task);
+				focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				
 				
 			}

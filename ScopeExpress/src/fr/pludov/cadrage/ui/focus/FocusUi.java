@@ -18,11 +18,11 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import fr.pludov.cadrage.focus.Focus;
-import fr.pludov.cadrage.focus.FocusListener;
+import fr.pludov.cadrage.focus.Application;
+import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
@@ -38,43 +38,45 @@ import fr.pludov.utils.StarFinder;
 public class FocusUi extends FocusUiDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
-	Focus focus;
-	FocusImageListView fd;
+	Application application;
+	Mosaic mosaic;
+	MosaicImageListView fd;
 	
 	ActionMonitor actionMonitor;
 
 	LocateStarParameter currentStarDetectionParameter;
 	
-	public FocusUi(final Focus focus) {
+	public FocusUi(final Application application, final Mosaic mosaic) {
+		this.application = application;
+		this.mosaic = mosaic;
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
-		this.focus = focus;
 
 		setupBackgroundTaskQueue();
 		
-		fd = new FocusImageListView(this);
+		fd = new MosaicImageListView(this);
 		this.imageViewPanel.add(fd);
-		fd.setOnClick(new FocusImageListView.ClicEvent() {
+		fd.setOnClick(new MosaicImageListView.ClicEvent() {
 			
 			@Override
 			public void clicked(FrameDisplay fdisplay, int scx, int scy, double imgx, double imgy) {
 				Image image = fd.getCurrentImage();
 				if (image == null) return;
 				Star star = new Star((int)imgx, (int)imgy, image);
-				FocusUi.this.focus.addStar(star);
-				StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
-				FocusUi.this.focus.addStarOccurence(occurence);
+				FocusUi.this.mosaic.addStar(star);
+				StarOccurence occurence = new StarOccurence(FocusUi.this.mosaic, image, star);
+				FocusUi.this.mosaic.addStarOccurence(occurence);
 				occurence.init(false);
 			}
 		});
 		
-		final StarOccurenceTable sot = new StarOccurenceTable(focus, fd.getDisplayParameter());
+		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, fd.getDisplayParameter());
 		JScrollPane sotScrollPane = new JScrollPane(sot);
 		this.detailsSplitPane.setTopComponent(sotScrollPane);
 		
-		final GraphPanel graph = new GraphPanel(focus);
+		final GraphPanel graph = new GraphPanel(mosaic);
 		this.detailsSplitPane.setBottomComponent(graph);
 		
-		final StarDetail starDetail = new StarDetail(focus);
+		final StarDetail starDetail = new StarDetail(mosaic);
 		this.starDetailPanel.add(starDetail);
 		
 		sot.listeners.addListener(this.listenerOwner, new StarOccurenceTableListener() {
@@ -110,7 +112,7 @@ public class FocusUi extends FocusUiDesign {
 				Image image = fd.getCurrentImage();
 				if (image == null) return;
 				BackgroundTask detectStar = createDetectStarTask(image);
-				focus.getBackgroundTaskQueue().addTask(detectStar);
+				application.getBackgroundTaskQueue().addTask(detectStar);
 			}
 		});
 		
@@ -121,7 +123,7 @@ public class FocusUi extends FocusUiDesign {
 				Image image = fd.getCurrentImage();
 				if (image == null) return;
 				
-				FWHM3DView view = new FWHM3DView(FocusUi.this.focus, image);
+				FWHM3DView view = new FWHM3DView(FocusUi.this.mosaic, image);
 				JFrame frame = new JFrame();
 				frame.getContentPane().add(view);
 				frame.setSize(640, 470);
@@ -134,7 +136,7 @@ public class FocusUi extends FocusUiDesign {
 		this.actionMonitor = new ActionMonitor(this);
 		this.actionMonitor.addPopupMenu(this.mnAutoOpen);
 		
-		this.currentStarDetectionParameter = new LocateStarParameter(focus);
+		this.currentStarDetectionParameter = new LocateStarParameter(mosaic);
 		
 		this.mnChercheEtoiles.addActionListener(new ActionListener() {
 			@Override
@@ -148,7 +150,7 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
-		this.focus.listeners.addListener(this.listenerOwner, new FocusListener() {
+		this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
 			
 			@Override
 			public void starRemoved(Star star) {
@@ -171,7 +173,7 @@ public class FocusUi extends FocusUiDesign {
 			}
 			
 			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 				if (!mnChercheEtoilesAuto.isSelected()) return;
 				
 				switch(currentStarDetectionParameter.correlationMode)
@@ -181,16 +183,16 @@ public class FocusUi extends FocusUiDesign {
 					referenceImage = currentStarDetectionParameter.getEffectiveReferenceImage(image);
 					if (referenceImage != null) {
 						// Ajouter toutes les étoiles, les correler
-						for(Star star : focus.getStars())
+						for(Star star : mosaic.getStars())
 						{
-							StarOccurence previous = focus.getStarOccurence(star, referenceImage);
+							StarOccurence previous = mosaic.getStarOccurence(star, referenceImage);
 							if (previous == null) continue;
 							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
 							
-							StarOccurence copy = new StarOccurence(focus, image, star);
+							StarOccurence copy = new StarOccurence(mosaic, image, star);
 							copy.setPicX(previous.getPicX());
 							copy.setPicY(previous.getPicY());
-							focus.addStarOccurence(copy);
+							mosaic.addStarOccurence(copy);
 							
 							copy.init(precise);
 						}
@@ -198,6 +200,8 @@ public class FocusUi extends FocusUiDesign {
 				}
 			}
 		});
+		
+		this.fd.setMosaic(mosaic);
 	}
 	
 	BackgroundTask createDetectStarTask(final Image image)
@@ -212,7 +216,7 @@ public class FocusUi extends FocusUiDesign {
 				
 				monitor.acquire();
 				try {
-					if (!focus.containsImage(image))
+					if (!mosaic.containsImage(image))
 					{
 						throw new BackgroundTaskCanceledException();
 					}
@@ -240,14 +244,14 @@ public class FocusUi extends FocusUiDesign {
 
 				monitor.acquire();
 				try {
-					if (!focus.containsImage(image))
+					if (!mosaic.containsImage(image))
 					{
 						throw new RuntimeException("Image discarded");
 					}
 
-					for(Star existingStar : FocusUi.this.focus.getStars())
+					for(Star existingStar : FocusUi.this.mosaic.getStars())
 					{
-						StarOccurence occurence = FocusUi.this.focus.getStarOccurence(existingStar, image);
+						StarOccurence occurence = FocusUi.this.mosaic.getStarOccurence(existingStar, image);
 						if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
 						{
 							continue;
@@ -266,7 +270,7 @@ public class FocusUi extends FocusUiDesign {
 
 				monitor.acquire();
 				try {
-					if (!focus.containsImage(image))
+					if (!mosaic.containsImage(image))
 					{
 						throw new RuntimeException("Image discarded");
 					}
@@ -274,11 +278,11 @@ public class FocusUi extends FocusUiDesign {
 					for(StarFinder sf : msf.getStars())
 					{
 						Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
-						FocusUi.this.focus.addStar(star);
-						StarOccurence occurence = new StarOccurence(FocusUi.this.focus, image, star);
+						FocusUi.this.mosaic.addStar(star);
+						StarOccurence occurence = new StarOccurence(FocusUi.this.mosaic, image, star);
 						occurence.setPicX(sf.getCenterX());
 						occurence.setPicY(sf.getCenterY());
-						FocusUi.this.focus.addStarOccurence(occurence);
+						FocusUi.this.mosaic.addStarOccurence(occurence);
 						// il faut que le init ne cherche pas la position trop loin !
 						occurence.init(true);
 					}
@@ -293,7 +297,7 @@ public class FocusUi extends FocusUiDesign {
 	
 	void refreshTaskQueue()
 	{
-		List<BackgroundTask> running = this.focus.getBackgroundTaskQueue().getRunningTasks();
+		List<BackgroundTask> running = this.application.getBackgroundTaskQueue().getRunningTasks();
 		
 		if (running.isEmpty())
 		{
@@ -326,7 +330,7 @@ public class FocusUi extends FocusUiDesign {
 	
 	void setupBackgroundTaskQueue()
 	{
-		this.focus.getBackgroundTaskQueue().listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
+		this.application.getBackgroundTaskQueue().listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
 			
 			@Override
 			public void stateChanged() {
@@ -338,7 +342,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				List<BackgroundTask> running = FocusUi.this.focus.getBackgroundTaskQueue().getRunningTasks();
+				List<BackgroundTask> running = FocusUi.this.application.getBackgroundTaskQueue().getRunningTasks();
 				if (running.isEmpty()) return;
 				BackgroundTask first = running.get(0);
 				first.abort();
@@ -354,13 +358,14 @@ public class FocusUi extends FocusUiDesign {
 	 */
 	public static void main(String[] args) {
 
-		final Focus focus = new Focus();
+		final Application focus = new Application();
+		final Mosaic mosaic = new Mosaic(focus);
 		
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					final FocusUi window = new FocusUi(focus);
+					final FocusUi window = new FocusUi(focus, mosaic);
 					window.getFrmFocus().setVisible(true);
 
 				} catch (Exception e) {
@@ -371,12 +376,16 @@ public class FocusUi extends FocusUiDesign {
 	}
 
 
-	public Focus getFocus() {
-		return focus;
+	public Mosaic getMosaic() {
+		return mosaic;
 	}
 
+	public Application getApplication()
+	{
+		return this.application;
+	}
 
-	public FocusImageListView getFd() {
+	public MosaicImageListView getFd() {
 		return fd;
 	}
 

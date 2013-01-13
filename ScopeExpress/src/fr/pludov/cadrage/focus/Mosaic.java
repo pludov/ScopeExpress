@@ -2,39 +2,34 @@ package fr.pludov.cadrage.focus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import fr.pludov.cadrage.async.WorkStepProcessor;
-import fr.pludov.cadrage.focus.FocusListener.ImageAddedCause;
+import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
-public class Focus {
-	public final WeakListenerCollection<FocusListener> listeners = new WeakListenerCollection<FocusListener>(FocusListener.class);
+public class Mosaic {
+	public final WeakListenerCollection<MosaicListener> listeners = new WeakListenerCollection<MosaicListener>(MosaicListener.class);
 	
+	final Application focus;
 	final List<Image> images;
 	final List<Star> stars;
-
+	final IdentityHashMap<Image, MosaicImageParameter> imageMosaicParameter;
 	final Map<Star, Map<Image, StarOccurence>> occurences;
 	
 	List<StarOccurence> todoList;
 	
-	// FIXME: il y a manifestement concurrence entre les deux...
-	WorkStepProcessor workStepProcessor;
-	final BackgroundTaskQueue backgroundTaskQueue;
-	
-	int starRay;
-	
-	public Focus() {
-		this.starRay = 25;
+	public Mosaic(Application focus) {
 		this.occurences = new HashMap<Star, Map<Image,StarOccurence>>();
 		this.images = new ArrayList<Image>();
+		this.imageMosaicParameter = new IdentityHashMap<Image, MosaicImageParameter>();
 		this.stars = new ArrayList<Star>();
 		this.todoList = new ArrayList<StarOccurence>();
-		this.workStepProcessor = new WorkStepProcessor();
-		this.backgroundTaskQueue = new BackgroundTaskQueue();
+		this.focus = focus;
 	}
 	
 	Image getPreviousImage(Image after)
@@ -76,11 +71,6 @@ public class Focus {
 		return occurenceForStar.get(image);
 	}
 	
-	int getStarRay()
-	{
-		return starRay;
-	}
-
 
 	public List<Image> getImages() {
 		return images;
@@ -144,9 +134,13 @@ public class Focus {
 		
 	}
 	
-	public void addImage(Image image, ImageAddedCause cause)
+	public void addImage(Image image, MosaicListener.ImageAddedCause cause)
 	{
+		if (this.imageMosaicParameter.get(image) != null) {
+			throw new RuntimeException("image already present");
+		}
 		images.add(image);
+		this.imageMosaicParameter.put(image,  new MosaicImageParameter());
 		listeners.getTarget().imageAdded(image, cause);
 		
 //		for(Star star : stars)
@@ -160,7 +154,7 @@ public class Focus {
 	public void removeImage(Image image)
 	{
 		if (!images.remove(image)) return;
-		
+		this.imageMosaicParameter.remove(image);
 		
 		for(Star star : stars)
 		{
@@ -173,12 +167,9 @@ public class Focus {
 		
 		listeners.getTarget().imageRemoved(image);
 	}
-
-	public WorkStepProcessor getWorkStepProcessor() {
-		return workStepProcessor;
-	}
-
-	public BackgroundTaskQueue getBackgroundTaskQueue() {
-		return backgroundTaskQueue;
+	
+	public final Application getApplication()
+	{
+		return this.focus;
 	}
 }

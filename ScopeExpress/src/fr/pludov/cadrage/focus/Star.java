@@ -9,6 +9,8 @@ public class Star {
 	Image clickImage;
 	boolean excludeFromStat;
 	
+	
+	
 	public Star(int clickX, int clickY, Image clickImage) {
 		this.clickX = clickX;
 		this.clickY = clickY;
