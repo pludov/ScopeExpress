@@ -97,12 +97,14 @@ public class MultiStarFinder {
 		{
 			percent(50 + 50 * coords[1] / frame.getHeight());
 			
-			BitMask mask = notBlack.getConnexArea(coords[0], coords[1], 50);
+			BitMask mask = notBlack.getConnexArea(coords[0], coords[1], 200);
 			notBlack.substract(mask);
-			
 			// Calculer le milieu du mask
+			double [] maskCenter = mask.getCenter();
+			if (maskCenter == null) continue;
 			
-			StarFinder finder = new StarFinder(frame, coords[0] / 2, coords[1] / 2, 25, 25);
+			
+			StarFinder finder = new StarFinder(frame, (int)Math.round(maskCenter[0] / 2.0), (int)Math.round(maskCenter[1] / 2.0), 25, 25);
 			finder.setExcludeMask(checkedArea);
 			finder.perform();
 			if (finder.starFound) {

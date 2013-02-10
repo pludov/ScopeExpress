@@ -72,6 +72,32 @@ public class BitMask {
 		}
 	}
 	
+	/**
+	 * Retourne le barycentre des points séléctionnés.
+	 * Si l'ensemble est vide, retourne null
+	 * @return
+	 */
+	public double [] getCenter()
+	{
+		int count = 0;
+		long sumx = 0, sumy = 0;
+		for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i+1)) {
+			int x = x0 + i % sx;
+			int y = y0 + i / sx;
+			
+			sumx += x;
+			sumy += y;
+			count ++;
+		}
+		
+		if (count == 0) return null;
+		double [] result = new double[2];
+		result[0] = sumx * 1.0 / count;
+		result[1] = sumy * 1.0 / count;
+		return result;
+		
+	}
+	
 	public BitMask getConnexArea(int x, int y, int size)
 	{
 		int [] [] shifts = {
