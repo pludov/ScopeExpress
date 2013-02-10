@@ -4,14 +4,16 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.cadrage.utils.cache.Cache;
 import fr.pludov.io.CameraFrame;
 
-public class ImageDisplayParameter implements Serializable {
+public class ImageDisplayParameter implements Serializable, Cloneable {
 	
 	public static enum TransfertFunction {
 		Linear,
@@ -23,10 +25,18 @@ public class ImageDisplayParameter implements Serializable {
 	 * Cet objet contient les métadata utilisée sur l'objet image.
 	 * La méthode equals permet de savoir si les métadatas utilisées ont changé.
 	 */
-	public static class ImageDisplayMetaDataInfo
+	public static class ImageDisplayMetaDataInfo implements Cloneable
 	{
 		public Double expositionDuration;
 		public Integer iso;
+		
+		public ImageDisplayMetaDataInfo clone()
+		{
+			ImageDisplayMetaDataInfo result = new ImageDisplayMetaDataInfo();
+			result.expositionDuration = this.expositionDuration;
+			result.iso = this.iso;
+			return result;
+		}
 		
 		@Override
 		public boolean equals(Object obj) {
@@ -34,6 +44,14 @@ public class ImageDisplayParameter implements Serializable {
 			ImageDisplayMetaDataInfo other = (ImageDisplayMetaDataInfo)obj;
 			return Utils.equalsWithNullity(this.expositionDuration, other.expositionDuration)
 					&& Utils.equalsWithNullity(this.iso,  other.iso);
+		}
+		
+		@Override
+		public int hashCode() {
+			int result = 42;
+			if (iso != null) result ^= iso.hashCode();
+			if (expositionDuration != null) result ^= expositionDuration.hashCode();
+			return result;
 		}
 	}
 	
@@ -68,7 +86,7 @@ public class ImageDisplayParameter implements Serializable {
 		
 		ImageDisplayParameter other = (ImageDisplayParameter)obj;
 		
-		if (other.autoHistogram == autoHistogram) return false;
+		if (other.autoHistogram != autoHistogram) return false;
 		if (other.channelMode != channelMode) return false;
 		if (other.zero != zero) return false;
 		if (other.transfertFunction != transfertFunction) return false;
@@ -92,6 +110,54 @@ public class ImageDisplayParameter implements Serializable {
 		return true;
 	}
 	
+	private static final int hashDouble(double d)
+	{
+		long l = Double.doubleToLongBits(d);
+		return (int)(l ^ (l >> 32));
+	}
+	
+	@Override
+	public int hashCode() {
+		int result = 1;
+		if (autoHistogram) result ^= 238;
+		result ^= channelMode.hashCode();
+		result ^= zero;
+		result ^= transfertFunction.hashCode();
+		
+		if (this.targetExposition != null) {
+			result ^= this.targetExposition.hashCode();
+		}
+
+		if (this.targetIso != null) {
+			result ^= this.targetIso.hashCode();
+		}
+
+		for(int i = 0; i < 3; ++i)
+		{
+			result ^= hashDouble(this.low[i]);
+			result ^= hashDouble(this.median[i]);
+			result ^= hashDouble(this.high[i]);
+		}
+		return result;
+	}
+	
+	@Override
+	public ImageDisplayParameter clone() {
+		ImageDisplayParameter result = new ImageDisplayParameter();
+		
+		result.channelMode = this.channelMode;
+		result.transfertFunction = this.transfertFunction;
+		result.targetExposition = this.targetExposition;
+		result.targetIso = this.targetIso;
+		result.zero = this.zero;
+		result.low = Arrays.copyOf(this.low, this.low.length);
+		result.median = Arrays.copyOf(this.median, this.median.length);
+		result.high = Arrays.copyOf(this.high, this.high.length);
+		result.autoHistogram = this.autoHistogram;
+
+		return result;
+	}
+	
 	/**
 	 * Retourne un objet contenant l'ensemble des méta data qui seront utilisée
 	 * pour calculer l'image d'une frame. Permet de comparer par la suite les métadata...
@@ -104,16 +170,14 @@ public class ImageDisplayParameter implements Serializable {
 		return result;
 	}
 	
-	public class AduLevelMapper
+	public static class AduLevelMapperId
 	{
 		final int black;
 		final int maximum;
 		final int channel;
 		final double mul;
-		
-		short [] mapping;
-		
-		AduLevelMapper(int black, int maximum, int channel, double mul)
+
+		AduLevelMapperId(int black, int maximum, int channel, double mul)
 		{
 			this.black = black;
 			this.maximum = maximum;
@@ -121,17 +185,59 @@ public class ImageDisplayParameter implements Serializable {
 			this.mul = mul;
 		}
 		
+		@Override
+		public boolean equals(Object obj) {
+			if (!(obj instanceof AduLevelMapperId)) return false;
+			AduLevelMapperId other = (AduLevelMapperId)obj;
+			return other.black == this.black
+					&& other.maximum == this.maximum
+					&& other.channel == this.channel
+					&& other.mul == this.mul;
+		}
+		
+		public int hashCode() {
+			return this.black ^ this.maximum ^ this.channel;
+		}
+
+		public int getBlack() {
+			return black;
+		}
+
+		public int getMaximum() {
+			return maximum;
+		}
+
+		public int getChannel() {
+			return channel;
+		}
+
+		public double getMul() {
+			return mul;
+		};
+	}
+	
+	public class AduLevelMapper
+	{
+		final AduLevelMapperId id;
+		
+		short [] mapping;
+		
+		AduLevelMapper(AduLevelMapperId id)
+		{
+			this.id = id;
+		}
+		
 		boolean shareParameters(AduLevelMapper other)
 		{
-			return other.black == black
-					&& other.maximum == maximum
-					&& other.channel == channel
-					&& other.mul == mul;
+			return other.id.getBlack() == id.getBlack()
+					&& other.id.getMaximum() == id.getMaximum()
+					&& other.id.getChannel() == id.getChannel()
+					&& other.id.getMul() == id.getMul();
 		}
 		
 		void init()
 		{
-			this.mapping = new short[maximum - black + 1];
+			this.mapping = new short[id.getMaximum() - id.getBlack() + 1];
 			for(int i = 0; i < mapping.length; ++i)
 			{
 				this.mapping[i] = -1;
@@ -140,24 +246,24 @@ public class ImageDisplayParameter implements Serializable {
 		
 		public int getLevelForAdu(int adu)
 		{
-			if (adu < black) {
+			if (adu < id.getBlack()) {
 				// System.err.println("adu is bellow min");
-				adu = black;
+				adu = id.getBlack();
 			}
 			
-			if (adu > maximum) {
+			if (adu > id.getMaximum()) {
 			//	System.err.println("adu is over max");
-				adu = maximum;
+				adu = id.getMaximum();
 			}
 			
-			int cacheId = adu - black;
+			int cacheId = adu - id.getBlack();
 			
 			int cacheValue = this.mapping[cacheId];
 			if (cacheValue != -1) {
 				return cacheValue;
 			}
 			
-			int normalizeAdu = 65535 * (adu - black) / (maximum - black);
+			int normalizeAdu = 65535 * (adu - id.getBlack()) / (id.getMaximum() - id.getBlack());
 			cacheValue = getLevelForNormalizedAdu(normalizeAdu);
 			this.mapping[cacheId] = (short)cacheValue;
 			
@@ -174,7 +280,7 @@ public class ImageDisplayParameter implements Serializable {
 			double adudouble;
 			
 			adudouble = adu;
-			adudouble *= mul;
+			adudouble *= id.getMul();
 			if (!autoHistogram) adudouble -= zero;
 			
 			// adu est normalisé entre 0 - 65535. Au delà, c'est non spécifié...
@@ -199,13 +305,13 @@ public class ImageDisplayParameter implements Serializable {
 			}
 			
 			if (!autoHistogram) {
-				if (adudouble < low[channel]) return 0;
-				if (adudouble < median[channel])
+				if (adudouble < low[id.getChannel()]) return 0;
+				if (adudouble < median[id.getChannel()])
 				{
-					int ret = (int)((adudouble - low[channel]) * 128.0 / (median[channel] - low[channel]));
+					int ret = (int)((adudouble - low[id.getChannel()]) * 128.0 / (median[id.getChannel()] - low[id.getChannel()]));
 					return ret;
-				} else if (adudouble < high[channel]) {
-					int ret = (int)(128.0 + (adudouble - median[channel]) * 128.0 / (high[channel] - median[channel]));
+				} else if (adudouble < high[id.getChannel()]) {
+					int ret = (int)(128.0 + (adudouble - median[id.getChannel()]) * 128.0 / (high[id.getChannel()] - median[id.getChannel()]));
 					if (ret > 255) ret = 255;
 					return ret;
 				} else {
@@ -223,6 +329,15 @@ public class ImageDisplayParameter implements Serializable {
 	}
 	
 	final List<SoftReference<AduLevelMapper>> mappers = new ArrayList<SoftReference<AduLevelMapper>>();
+	
+	final Cache<AduLevelMapperId, AduLevelMapper> levelMapperCache = new Cache<AduLevelMapperId, AduLevelMapper>() {
+			@Override
+			public AduLevelMapper produce(AduLevelMapperId identifier) {
+				AduLevelMapper result = new AduLevelMapper(identifier);
+				result.init();
+				return result;
+			}	
+	};
 	
 	private void clearAduLevelCache()
 	{
@@ -256,23 +371,10 @@ public class ImageDisplayParameter implements Serializable {
 			black = source.getBlack();
 			max = source.getMaximum();
 		}
-		AduLevelMapper result = new AduLevelMapper(black, max, channel, mul);
-		for(Iterator<SoftReference<AduLevelMapper>> it = mappers.iterator(); it.hasNext(); )
-		{
-			SoftReference<AduLevelMapper> softref = it.next();
-			AduLevelMapper mapper = softref.get();
-			
-			if (mapper == null) {
-				it.remove();
-			} else {
-				if (mapper.shareParameters(result)) {
-					return mapper;
-				}
-			}
-		}
-		result.init();
-		mappers.add(new SoftReference<ImageDisplayParameter.AduLevelMapper>(result));
-		return result;
+		
+		AduLevelMapperId id = new AduLevelMapperId(black, max, channel, mul);
+		
+		return levelMapperCache.get(id);
 	}
 	
 	public ImageDisplayParameter()

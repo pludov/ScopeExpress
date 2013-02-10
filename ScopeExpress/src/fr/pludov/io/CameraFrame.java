@@ -5,6 +5,7 @@ import java.awt.image.WritableRaster;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
+import fr.pludov.cadrage.utils.cache.Cache;
 
 public class CameraFrame {
 	int width, height;
@@ -105,8 +106,53 @@ public class CameraFrame {
 	}
 	
 	
+	private static class BufferCacheItem {
+		
+		final ImageDisplayParameter displayParameter;
+		final ImageDisplayMetaDataInfo metadataInfo;
+		
+		BufferCacheItem(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+		{
+			this.displayParameter = displayParameter.clone();
+			this.metadataInfo = metadataInfo.clone();
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (!(obj instanceof BufferCacheItem)) return false;
+			BufferCacheItem other = (BufferCacheItem)obj;
+			return other.displayParameter.equals(displayParameter)
+					&& other.metadataInfo.equals(metadataInfo);
+		}
+		
+		@Override
+		public int hashCode() {
+			return displayParameter.hashCode() ^ metadataInfo.hashCode();
+		}
+	}
+	
+	final Cache<BufferCacheItem, BufferedImage> cache = new Cache<BufferCacheItem, BufferedImage>() {
+		@Override
+		public BufferedImage produce(BufferCacheItem identifier) {
+			return produceImage(identifier.displayParameter, identifier.metadataInfo);
+		}
+	};
+	
+	/**
+	 * Le BufferedImage ne doit pas être modifié (il est partagé)
+	 * @param displayParameter
+	 * @param metadataInfo
+	 * @return
+	 */
 	public BufferedImage asImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
+		BufferCacheItem id = new BufferCacheItem(displayParameter, metadataInfo);
+		return cache.get(id);
+	}
+	
+	private BufferedImage produceImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	{
+		
 		switch(displayParameter.getChannelMode())
 		{
 		case Color:
