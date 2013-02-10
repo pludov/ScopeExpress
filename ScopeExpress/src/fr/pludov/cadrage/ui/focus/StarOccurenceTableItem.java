@@ -43,7 +43,7 @@ public class StarOccurenceTableItem extends FrameDisplay {
 		setCenter(image.getWidth() / 2.0, image.getHeight() / 2.0);
 		setZoom(2.0);
 		setZoomIsAbsolute(true);
-		setFrame(image);
+		setFrame(image, false);
 	}
 
 }

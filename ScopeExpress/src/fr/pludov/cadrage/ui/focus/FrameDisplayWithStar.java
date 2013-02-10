@@ -148,8 +148,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	}
 	
 	@Override
-	public void setFrame(BufferedImage plane) {
-		super.setFrame(plane);
+	public void setFrame(BufferedImage plane, boolean isTemporary) {
+		super.setFrame(plane, isTemporary);
 	}
 	
 	private void refreshFrame(final boolean resetSize, final boolean keepCurrentBufferUntilUpdate)
@@ -161,18 +161,12 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		if (image != null && imageDisplayParameter != null) {
 			if (resetSize || !keepCurrentBufferUntilUpdate) {
-				setFrame(null);
+				setFrame(null, true);
 			}
 		} else {
-			setFrame(null);
+			setFrame(null, false);
 		}
 		
-		if (resetSize)
-		{
-			setCenter(0, 0);
-			setZoom(1);
-			setZoomIsAbsolute(false);
-		}
 		
 		if (image != null && imageDisplayParameter != null) {
 			BackgroundTask loadImageTask = new BackgroundTask("Preparing display for " + image.getPath().getName())
@@ -208,7 +202,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				@Override
 				protected void onDone() {
 					if (getStatus() == Status.Done && taskToGetImageToDisplay == this) {
-						setFrame(buffimage);
+						setFrame(buffimage, false);
 						
 						if (resetSize)
 						{
@@ -217,6 +211,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 							} else {
 								setCenter(0, 0);
 							}
+
 							setZoom(1);
 							setZoomIsAbsolute(false);
 						}
@@ -226,6 +221,13 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			this.taskToGetImageToDisplay = loadImageTask;
 			// Load ASAP
 			application.getBackgroundTaskQueue().addTask(loadImageTask);
+		} else {
+			if (resetSize)
+			{
+				setCenter(0, 0);
+				setZoom(1);
+				setZoomIsAbsolute(false);
+			}
 		}
 	}
 	

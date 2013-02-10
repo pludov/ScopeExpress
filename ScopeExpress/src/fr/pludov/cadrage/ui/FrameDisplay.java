@@ -4,16 +4,20 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Panel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JPanel;
+import javax.swing.Timer;
 
 public class FrameDisplay extends JPanel {
 	BufferedImage plane;
 	java.awt.Image backBuffer;
+	final Timer repainter;
 	
 	double centerx, centery;
 	double zoom;
@@ -25,6 +29,16 @@ public class FrameDisplay extends JPanel {
 		this.zoom = 1.0;
 		this.zoomIsAbsolute = false;
 		setBackground(Color.RED);
+		
+		repainter = new Timer(250, new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				repaint();
+			}
+		});
+		repainter.setRepeats(false);
+		repainter.stop();
 		
 		updateBackBuffer();
 		this.addComponentListener(new ComponentListener() {
@@ -83,8 +97,20 @@ public class FrameDisplay extends JPanel {
         return transform;
 	}
 
+	void scheduleRepaint(boolean now)
+	{
+		if (now) {
+			repainter.stop();
+			repaint(50);
+		} else {
+			repainter.restart();
+		}
+	}
+	
 	public void paint(Graphics gPaint)
 	{
+		repainter.stop();
+		
 		// Afficher d'abord les images séléctionnées
         int w = getWidth();
         int h = getHeight();
@@ -116,13 +142,18 @@ public class FrameDisplay extends JPanel {
 		if (centerx == x && centery == y) return;
 		this.centerx = x;
 		this.centery = y;
-		repaint(100);
+		scheduleRepaint(true);
 	}
 	
-	public void setFrame(BufferedImage plane)
+	/**
+	 * @param plane
+	 * @param isTemporary Si true, alors on attend un peu avant de maj l'affichage, car une vrai image devrait arriver...
+	 */
+	public void setFrame(BufferedImage plane, boolean isTemporary)
 	{
 		this.plane = plane;
-		repaint();
+		
+		scheduleRepaint(!isTemporary);
 	}
 
 	public double getCenterx() {
@@ -140,7 +171,7 @@ public class FrameDisplay extends JPanel {
 	public void setZoom(double zoom) {
 		if (this.zoom == zoom) return;
 		this.zoom = zoom;
-		repaint(100);
+		scheduleRepaint(true);
 	}
 
 	public boolean isZoomIsAbsolute() {
@@ -150,7 +181,7 @@ public class FrameDisplay extends JPanel {
 	public void setZoomIsAbsolute(boolean zoomIsAbsolute) {
 		if (this.zoomIsAbsolute == zoomIsAbsolute) return;
 		this.zoomIsAbsolute = zoomIsAbsolute;
-		repaint(100);
+		scheduleRepaint(true);
 	}
 
 	
