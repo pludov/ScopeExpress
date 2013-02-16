@@ -9,6 +9,9 @@ public class Star {
 	Image clickImage;
 	boolean excludeFromStat;
 	
+	boolean hasCorrelatedPos;
+	double correlatedX, correlatedY;
+	
 	
 	
 	public Star(int clickX, int clickY, Image clickImage) {
@@ -16,6 +19,9 @@ public class Star {
 		this.clickY = clickY;
 		this.clickImage = clickImage;
 		this.excludeFromStat = false;
+		this.hasCorrelatedPos = false;
+		this.correlatedX = 0;
+		this.correlatedY = 0;
 	}
 
 	public String getTitre() {
@@ -50,4 +56,27 @@ public class Star {
 		this.excludeFromStat = excludeFromStat;
 	}
 
+	public void setCorrelatedPos(double x, double y)
+	{
+		this.hasCorrelatedPos = true;
+		this.correlatedX = x;
+		this.correlatedY = y;
+	}
+
+	public void unsetCorrelatedPos()
+	{
+		this.hasCorrelatedPos = false;
+	}
+
+	public boolean isHasCorrelatedPos() {
+		return hasCorrelatedPos;
+	}
+
+	public double getCorrelatedX() {
+		return correlatedX;
+	}
+
+	public double getCorrelatedY() {
+		return correlatedY;
+	}
 }

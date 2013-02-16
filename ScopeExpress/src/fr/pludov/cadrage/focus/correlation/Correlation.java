@@ -29,7 +29,7 @@ public class Correlation {
 		this.found = false;
 	}
 	
-	public void correlate(List<DynamicGridPoint> referenceStars, List<DynamicGridPoint> imageStars)
+	public void correlate(List<? extends DynamicGridPoint> referenceStars, List<? extends DynamicGridPoint> imageStars)
 	{
 		int maxTriangle = 30000; // FIXME : c'est ad hoc...
 		double starRay = 500; 	// Prendre en compte des triangles de au plus cette taille
@@ -232,10 +232,10 @@ public class Correlation {
 	}
 	
 
-	private List<Triangle> getTriangleList(List<DynamicGridPoint> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle)
+	private List<Triangle> getTriangleList(List<? extends DynamicGridPoint> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle)
 	{
 		// Trouver les points à moins de 50 pixels
-		DynamicGrid<DynamicGridPoint> reference = new DynamicGrid<DynamicGridPoint>(referenceStars);
+		DynamicGrid<DynamicGridPoint> reference = new DynamicGrid<DynamicGridPoint>((List<DynamicGridPoint>)referenceStars);
 		List<Triangle> result = new ArrayList<Triangle>();
 		
 		double [] i_d = new double[3];

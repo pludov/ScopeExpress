@@ -10,6 +10,7 @@ import java.util.Map;
 import fr.pludov.cadrage.async.WorkStepProcessor;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
+import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class Mosaic {
@@ -76,6 +77,10 @@ public class Mosaic {
 		return images;
 	}
 
+	public boolean hasImage(Image image)
+	{
+		return imageMosaicParameter.containsKey(image);
+	}
 
 	public List<Star> getStars() {
 		return stars;
@@ -103,6 +108,30 @@ public class Mosaic {
 			occurences.remove(star);
 		}
 		return result;
+	}
+	
+	/**
+	 * Fait en sorte que other soit en fait une reference à target.
+	 * On va supprimer l'image de other eventuellement
+	 */
+	public void mergeStarOccurence(Star target, StarOccurence other)
+	{
+		if (other.getStar() == target) return;
+		StarOccurence otherCopy = new StarOccurence(other, target);
+		
+		// On retire une éventuelle occurence déjà présence pour target sur l'image
+		removeStarOccurence(other.getImage(), target);
+		addStarOccurence(otherCopy);
+		
+		// On retire l'ancienne...
+		removeStarOccurence(other.getImage(), other.getStar());
+		Map m = occurences.get(other.getStar());
+		if (m == null || m.isEmpty()) {
+			removeStar(other.getStar());
+		} else {
+			System.out.println("Correlation sans suppression de l'image source => c'est louche");
+		}
+			
 	}
 	
 	public void addStar(Star star)
@@ -140,7 +169,7 @@ public class Mosaic {
 			throw new RuntimeException("image already present");
 		}
 		images.add(image);
-		this.imageMosaicParameter.put(image,  new MosaicImageParameter());
+		this.imageMosaicParameter.put(image,  new MosaicImageParameter(this, image));
 		listeners.getTarget().imageAdded(image, cause);
 		
 //		for(Star star : stars)
@@ -171,5 +200,98 @@ public class Mosaic {
 	public final Application getApplication()
 	{
 		return this.focus;
+	}
+	
+	public MosaicImageParameter getMosaicImageParameter(Image image)
+	{
+		return this.imageMosaicParameter.get(image);
+	}
+	
+	void updateCorrelatedStars(Star star)
+	{
+		Map<Image, StarOccurence> starOccurences = occurences.get(star);
+		double x = 0, y = 0;
+		double [] result = new double[2];
+		int count = 0;
+		for(Map.Entry<Image, StarOccurence> entry : starOccurences.entrySet())
+		{
+			Image image = entry.getKey();
+			StarOccurence soc = entry.getValue();
+			
+			MosaicImageParameter parameters = this.imageMosaicParameter.get(image);
+			if (parameters == null || !parameters.isCorrelated()) {
+				System.out.println("Suspect : une etoiles correllé a une occurence dans une image non correllée");
+				continue;
+			}
+			if (!soc.isStarFound() || !soc.isAnalyseDone()) continue;
+			
+			result = parameters.imageToMosaic(soc.getX(), soc.getY(), result);
+			
+			x += result[0];
+			y += result[1];
+			count ++;
+		}
+		
+		if (count > 0) {
+			star.setCorrelatedPos(x / count, y / count);
+		} else {
+			star.unsetCorrelatedPos();
+		}
+	}
+	
+	void updateCorrelatedStars(Image modified)
+	{
+		List<Star> stars = new ArrayList<Star>();
+		for(Map.Entry<Star, Map<Image, StarOccurence>> entry : occurences.entrySet())
+		{
+			Map<Image, StarOccurence> occByStar = entry.getValue();
+			if (occByStar.containsKey(modified)) {
+				stars.add(entry.getKey());
+			}
+		}
+		
+		for(Star star : stars) {
+			updateCorrelatedStars(star);
+		}
+	}
+	
+
+	public static class CorrelatedGridPoint implements DynamicGridPoint
+	{
+		final Star star;
+		final double x, y;
+		
+		CorrelatedGridPoint(Star star, double x, double y)
+		{
+			this.star = star;
+			this.x = x;
+			this.y = y;
+		}
+
+		@Override
+		public double getX() {
+			return this.x;
+		}
+
+		@Override
+		public double getY() {
+			return this.y;
+		}
+
+		public Star getStar() {
+			return star;
+		}
+	}
+	
+	public List<CorrelatedGridPoint> calcCorrelatedImages()
+	{
+		List<CorrelatedGridPoint> result = new ArrayList<CorrelatedGridPoint>();
+		for(Star star : stars)
+		{
+			if (star.isHasCorrelatedPos()) {
+				result.add(new CorrelatedGridPoint(star, star.getCorrelatedX(), star.getCorrelatedY()));
+			}
+		}
+		return result;
 	}
 }

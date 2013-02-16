@@ -168,15 +168,17 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		
 		correlateMenu = new JMenuItem();
 		correlateMenu.setText("Correler les images");
-		correlateMenu.setEnabled(entries.size() > 1);
+		correlateMenu.setEnabled(entries.size() >= 1);
 		correlateMenu.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (entries.size() < 2) return;
 				
-				CorrelateTask task = new CorrelateTask(focusUi, entries.get(0).getTarget(), entries.get(1).getTarget());
+				for(MosaicImageListEntry entry : entries)
+				{
+					CorrelateTask task = new CorrelateTask(focusUi, entry.getTarget());
 				
-				focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+				}
 				
 				
 			}

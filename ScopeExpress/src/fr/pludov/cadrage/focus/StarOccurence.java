@@ -1,5 +1,6 @@
 package fr.pludov.cadrage.focus;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,6 +43,36 @@ public class StarOccurence {
 	
 	// Pic au centre
 	double picX, picY;
+
+	protected StarOccurence(StarOccurence copy, Star newStar)
+	{
+		this.mosaic = copy.mosaic;
+		this.image = copy.image;
+		this.star = newStar;
+
+
+		this.analyseDone = copy.analyseDone;
+		this.starFound = copy.starFound;
+		this.blackLevelByChannel = Arrays.copyOf(copy.blackLevelByChannel, copy.blackLevelByChannel.length);
+		this.blackStddevByChannel = Arrays.copyOf(copy.blackStddevByChannel, copy.blackStddevByChannel.length);
+		this.aduSumByChannel = Arrays.copyOf(copy.aduSumByChannel, copy.aduSumByChannel.length);
+		this.aduMaxByChannel = Arrays.copyOf(copy.aduMaxByChannel, copy.aduMaxByChannel.length);
+
+		this.starMask = copy.starMask;
+
+		// Les données
+		this.subFrame = copy.subFrame;
+		this.dataX0 = copy.dataX0;
+		this.dataY0 = copy.dataY0;
+
+		this.fwhm = copy.fwhm;
+		this.peak = copy.peak;
+		this.stddev = copy.stddev;
+
+		this.picX = copy.picX;
+		this.picY = copy.picY;
+		
+	}
 	
 	public StarOccurence(Mosaic mosaic, Image image, Star star) {
 		if (mosaic == null) throw new NullPointerException("null focus");
