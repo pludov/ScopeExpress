@@ -97,7 +97,7 @@ public class FrameDisplay extends JPanel {
         return transform;
 	}
 
-	void scheduleRepaint(boolean now)
+	protected void scheduleRepaint(boolean now)
 	{
 		if (now) {
 			repainter.stop();

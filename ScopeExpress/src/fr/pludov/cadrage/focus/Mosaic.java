@@ -294,4 +294,25 @@ public class Mosaic {
 		}
 		return result;
 	}
+	
+	public List<StarOccurence> getStarOccurences(Star star)
+	{
+		List<StarOccurence> result = new ArrayList<StarOccurence>();
+		Map<?, StarOccurence> occurencesForStar = this.occurences.get(star);
+		if (occurencesForStar != null) {
+			result.addAll(occurencesForStar.values());
+		}
+		return result;
+	}
+	
+	public List<StarOccurence> getAllStarOccurences()
+	{
+		List<StarOccurence> result = new ArrayList<StarOccurence>();
+		for(Map<Image, StarOccurence> occList : occurences.values())
+		{
+			result.addAll(occList.values());
+		}
+		
+		return result;
+	}
 }

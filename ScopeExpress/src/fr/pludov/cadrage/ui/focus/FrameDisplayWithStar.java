@@ -11,6 +11,8 @@ import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicImageParameter;
+import fr.pludov.cadrage.focus.MosaicImageParameterListener;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Star;
@@ -23,11 +25,28 @@ import fr.pludov.io.CameraFrame;
 
 public class FrameDisplayWithStar extends FrameDisplay {
 	
+	public enum OtherStarDisplayMode
+	{
+		None(false),				// On ne les affiche pas
+		CorrelationDelta(true),		// Affiche les coordonnées projetée (donc probablement trés près)
+		Moved(true);				// Affiche selon les coordonnées dans les autres images
+		
+		final boolean wantsListeners;
+		
+		OtherStarDisplayMode(boolean wantsListeners)
+		{
+			this.wantsListeners = wantsListeners;
+		}
+	};
+	
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	
 	final Application application;
 	Mosaic mosaic;
 	Image image;
+	OtherStarDisplayMode otherStarDisplayMode;
+	boolean mindCorrelatedStars;
+	
 	ImageDisplayParameter imageDisplayParameter; 
 	BackgroundTask taskToGetImageToDisplay;
 	
@@ -36,6 +55,16 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		this.application = application;
 		this.mosaic = null;
 		this.taskToGetImageToDisplay = null;
+		this.otherStarDisplayMode = OtherStarDisplayMode.CorrelationDelta;
+	}
+	
+	boolean isImageCorrelated()
+	{
+		if (image == null) return false;
+		MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+		if (mip == null) return false;
+		
+		return mip.isCorrelated();
 	}
 	
 	public void setMosaic(Mosaic mosaic)
@@ -58,27 +87,30 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
 				
 				@Override
-				public void starRemoved(Star star) {
-				}
-				
-				@Override
 				public void starOccurenceRemoved(StarOccurence sco) {
-					if (sco.getImage() == image) {
-						repaint(50);
+					if (mindCorrelatedStars || sco.getImage() == image) {
+						sco.listeners.removeListener(listenerOwner);
+						scheduleRepaint(true);
 					}
 				}
 				
 				@Override
 				public void starOccurenceAdded(StarOccurence sco) {
-					if (sco.getImage() == image) {
+					if (mindCorrelatedStars || sco.getImage() == image) {
 						sco.listeners.addListener(listenerOwner, getStarOccurenceListener(sco));
-						repaint(50);
+						scheduleRepaint(true);
 					}
+				}
+				
+
+				@Override
+				public void starRemoved(Star star) {
+					scheduleRepaint(true);
 				}
 				
 				@Override
 				public void starAdded(Star star) {
-					repaint(50);
+					scheduleRepaint(true);
 				}
 				
 				@Override
@@ -91,7 +123,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				}
 			});
 		}
-		repaint(50);
+		scheduleRepaint(true);
 	}
 	
 	private StarOccurenceListener getStarOccurenceListener(final StarOccurence sco)
@@ -101,7 +133,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			@Override
 			public void analyseDone() {
 				if (sco.getImage() == image) {
-					repaint();
+					scheduleRepaint(true);
 				}
 			}
 
@@ -109,6 +141,27 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			public void imageUpdated() {
 			}
 		};
+	}
+	
+	private MosaicImageParameterListener getMosaicImageParameterListener(final MosaicImageParameter mip)
+	{
+		// Le listener ré-enregistre l'image si son status d'enregistrement est changé (pour afficher tout ou partie des étoiles)
+		return new MosaicImageParameterListener() {
+			
+			@Override
+			public void correlationStatusUpdated() {
+				
+				MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+				if (mindCorrelatedStars != mip.isCorrelated()) {
+					unregisterSocListeners();
+					mindCorrelatedStars = mip.isCorrelated();
+					registerSocListeners();
+				}
+				
+				scheduleRepaint(true);
+			}
+		};
+		
 	}
 	
 	@Override
@@ -119,11 +172,17 @@ public class FrameDisplayWithStar extends FrameDisplay {
     	Graphics2D g2d = (Graphics2D)gPaint;
     	   
     	if (mosaic != null) {
+    		double [] tmpPoint = new double[2];
+    		// Dessiner les étoiles des autres images
+    		
+    		
+    		// Dessiner les étoiles de l'image
 	        for(Star star : mosaic.getStars())
 	        {
 	        	
 	        	StarOccurence sco = mosaic.getStarOccurence(star, image);
 	        	if (sco == null) continue;
+	        	
 	        	
 	        	double x = star.getClickX();
 	        	double y = star.getClickY();
@@ -143,6 +202,56 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	gPaint.drawLine(centerx + 20, centery, centerx + 5, centery);
 	        	gPaint.drawLine(centerx, centery - 20, centerx, centery - 5);
 	        	gPaint.drawLine(centerx, centery + 20, centerx, centery + 5);
+	        	
+	        	if (this.getOtherStarDisplayMode() != OtherStarDisplayMode.None)
+	        	{
+		        	MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+		        	
+		        	for(StarOccurence other : mosaic.getStarOccurences(star))
+	    			{
+		        		if (other == sco) continue;
+		        		if (!other.isAnalyseDone() || !other.isStarFound()) continue;
+		        		
+		        		double ox = other.getX();
+		        		double oy = other.getY();
+	
+
+		        		if (getOtherStarDisplayMode() == OtherStarDisplayMode.CorrelationDelta)
+		        		{
+		        			MosaicImageParameter otherMip = mosaic.getMosaicImageParameter(other.getImage());
+				        	
+		        			if (mip == null || !mip.isCorrelated()) continue;
+		        			if (otherMip == null || !otherMip.isCorrelated()) continue;
+		        			// On la transforme selon la correlation de l'image...
+		        			tmpPoint = otherMip.imageToMosaic(ox, oy, tmpPoint);
+		        			
+		        			// Et on la retransforme dans cette image		        			
+		        			tmpPoint = mip.mosaicToImage(tmpPoint[0], tmpPoint[1], tmpPoint);
+		        			
+		        			ox = tmpPoint[0];
+		        			oy = tmpPoint[1];
+		        		}
+		        		
+			        	Point2D otherResult = imageToScreen.transform(new Point2D.Double(ox, oy), null);
+			        	
+			        	double vx = otherResult.getX() - result.getX();
+			        	double vy = otherResult.getY() - result.getY();
+			        	double length = Math.sqrt(vx * vx + vy * vy);
+			        	double oxscreen , oyscreen;
+			        	if (length > 100) {
+			        		double fact = 100.0 / length;
+			        		oxscreen = result.getX() + vx * fact;
+			        		oyscreen = result.getY() + vy * fact;
+			        	} else {
+			        		oxscreen = otherResult.getX();
+			        		oyscreen = otherResult.getY();
+			        	}
+			        	
+			        	int ocenterx = (int)Math.round(oxscreen);
+			        	int ocentery = (int)Math.round(oyscreen);
+			        	gPaint.drawLine(centerx, centery, ocenterx, ocentery);
+	    			}
+	        	}
 	        }
     	}
 	}
@@ -266,24 +375,86 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		if (this.image != null)
 		{
-			for(Star star : mosaic.getStars())
-			{
-				StarOccurence oc = mosaic.getStarOccurence(star, this.image);
-				if (oc != null) oc.listeners.removeListener(this.listenerOwner);
-			}
+			unregisterSocListeners();
+			MosaicImageParameter mip = this.mosaic.getMosaicImageParameter(image);
+			if (mip != null) mip.listeners.removeListener(this.listenerOwner);
 		}
 		
 		this.image = image;
 		
 		if (this.image != null)
 		{
+			MosaicImageParameter mip = this.mosaic.getMosaicImageParameter(image);
+			this.mindCorrelatedStars = getOtherStarDisplayMode().wantsListeners && mip.isCorrelated();
+			if (mip != null) mip.listeners.addListener(this.listenerOwner, getMosaicImageParameterListener(mip));
+			registerSocListeners();
+		} else {
+			mindCorrelatedStars = false;
+		}
+		
+		refreshFrame(resetImagePosition, false);
+	}
+
+	/**
+	 * Dépend de this.displayCorrelatedStars
+	 */
+	private void registerSocListeners() {
+		if (this.mindCorrelatedStars) {
+			for(StarOccurence oc : mosaic.getAllStarOccurences())
+			{
+				oc.listeners.addListener(this.listenerOwner, getStarOccurenceListener(oc));
+			}
+		} else {
 			for(Star star : mosaic.getStars())
 			{
 				StarOccurence oc = mosaic.getStarOccurence(star, this.image);
 				if (oc != null) oc.listeners.addListener(this.listenerOwner, getStarOccurenceListener(oc));
 			}
 		}
+	}
+
+	private void unregisterSocListeners() {
+		for(Star star : mosaic.getStars())
+		{
+			StarOccurence oc = mosaic.getStarOccurence(star, this.image);
+			if (oc != null) oc.listeners.removeListener(this.listenerOwner);
+		}
+	}
+
+	public OtherStarDisplayMode getOtherStarDisplayMode() {
+		return otherStarDisplayMode;
+	}
+
+	public void setOtherStarDisplayMode(OtherStarDisplayMode otherStarDisplayMode) {
+		if (this.otherStarDisplayMode == otherStarDisplayMode) return;
 		
-		refreshFrame(resetImagePosition, false);
+		boolean relisten = false;
+		
+		if (this.otherStarDisplayMode.wantsListeners != this.otherStarDisplayMode.wantsListeners)
+		{
+			unregisterSocListeners();
+			relisten = true;
+			
+			boolean futurDisplayCorrelatedStars = false;
+			
+			if (image != null) {
+				MosaicImageParameter mip = this.mosaic.getMosaicImageParameter(image);
+				futurDisplayCorrelatedStars = getOtherStarDisplayMode().wantsListeners && mip != null && mip.isCorrelated();
+			}
+			
+			relisten = futurDisplayCorrelatedStars != this.mindCorrelatedStars;
+			
+			if (relisten) {
+				unregisterSocListeners();
+				this.mindCorrelatedStars = futurDisplayCorrelatedStars;
+			}
+		}
+		
+		this.otherStarDisplayMode = otherStarDisplayMode;
+		
+		if (relisten) {
+			registerSocListeners();
+		}
+		scheduleRepaint(true);
 	}
 }

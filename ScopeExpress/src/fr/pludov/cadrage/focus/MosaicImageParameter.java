@@ -1,6 +1,10 @@
 package fr.pludov.cadrage.focus;
 
+import fr.pludov.cadrage.utils.WeakListenerCollection;
+
 public class MosaicImageParameter {
+	public final WeakListenerCollection<MosaicImageParameterListener> listeners = new WeakListenerCollection<MosaicImageParameterListener>(MosaicImageParameterListener.class);
+
 	final Image image;
 	final Mosaic mosaic;
 	
@@ -51,14 +55,25 @@ public class MosaicImageParameter {
 		
 		// Mettre à jour la position des etoiles correllées
 		this.mosaic.updateCorrelatedStars(this.image);
+		
+		listeners.getTarget().correlationStatusUpdated();
 	}
 	
-	public double [] imageToMosaic(double x, double y, double [] result)
+	public double [] mosaicToImage(double x, double y, double [] result)
 	{
 		if (result == null) result = new double[2];
 		result[0] = tx + x * cs + y * sn;
 		result[1] = ty + y * cs - x * sn;
 		return result;
 		
+	}
+	
+	public double [] imageToMosaic(double rx, double ry, double [] result)
+	{
+		if (result == null) result = new double[2];
+		double norm = cs * cs + sn * sn;
+		result[0] =  (sn * (ty - ry) + cs * (rx - tx)) / norm;
+		result[1] = (sn * (rx - tx) + cs * (ry - ty)) / norm;
+		return result;
 	}
 }
