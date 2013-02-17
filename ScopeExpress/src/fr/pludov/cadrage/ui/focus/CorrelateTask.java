@@ -17,16 +17,38 @@ import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 
 public class CorrelateTask extends BackgroundTask {
-	final FocusUi focusUi;	
+	final Mosaic mosaic;
 	final Image image;
 	
-	public CorrelateTask(FocusUi focusUi, Image image)
+	public CorrelateTask(Mosaic mosaic, Image image)
 	{
-		super("Correlation des étoiles");
-		this.focusUi = focusUi;
+		super("Correlation de " + image.getPath().getName());
+		this.mosaic = mosaic;
 		this.image = image;
 	}
 
+	@Override
+	protected boolean isReady() {
+		for(CorrelateTask task : getQueue().getTasksWithStatus(CorrelateTask.class, Status.Running))
+		{
+			if (task.mosaic == this.mosaic) {
+				// Une autre travaille déjà sur la mosaic... On attend gentillement.
+				return false;
+			}
+		}
+		
+		// Les recherches d'étoiles en attente ou en cours sont bloquante pour la correlation...
+		for(FindStarTask findStarTask : getQueue().getTasksWithStatus(FindStarTask.class, Status.Pending, Status.Running))
+		{
+			if (findStarTask.getMosaic() == this.mosaic && findStarTask.getImage() == this.image) {
+				// Une détection en cours sur la mosaic... On attend gentillement
+				return false;
+			}
+		}
+
+		return super.isReady();
+	}
+	
 	private static class ImageStar implements DynamicGridPoint
 	{
 		StarOccurence so;
@@ -50,7 +72,7 @@ public class CorrelateTask extends BackgroundTask {
 	private List<DynamicGridPoint> getImageStars(Image image)
 	{
 		List<DynamicGridPoint> imageStars = new ArrayList<DynamicGridPoint>();
-		Mosaic focus = focusUi.getMosaic();
+		Mosaic focus = this.mosaic;
 		
 		for(Star star : focus.getStars())
 		{
@@ -79,20 +101,20 @@ public class CorrelateTask extends BackgroundTask {
 		SwingThreadMonitor.acquire();
 		try {
 			// Vérifier que l'image n'est pas déjà correllée... Sinon, remonter une erreur
-			if (!focusUi.getMosaic().hasImage(image)) {
+			if (!this.mosaic.hasImage(image)) {
 				throw new TaskException("L'image a été retirée de la mosaique");
 			}
 			
-			MosaicImageParameter parameter = focusUi.getMosaic().getMosaicImageParameter(image);
+			MosaicImageParameter parameter = this.mosaic.getMosaicImageParameter(image);
 			if (parameter.isCorrelated()) {
 				throw new TaskException("L'image est déjà corellée");
 			}
 			
 			// Vérifier qu'il y a une image correllée
 			boolean hasCorrelatedImage = false;
-			for(Image candidates : focusUi.getMosaic().getImages())
+			for(Image candidates : this.mosaic.getImages())
 			{
-				MosaicImageParameter candidateParameter = focusUi.getMosaic().getMosaicImageParameter(candidates);
+				MosaicImageParameter candidateParameter = this.mosaic.getMosaicImageParameter(candidates);
 				if (candidateParameter.isCorrelated()) {
 					hasCorrelatedImage = true;
 					break;
@@ -105,7 +127,7 @@ public class CorrelateTask extends BackgroundTask {
 				return;
 			}
 			
-			referenceStars = focusUi.getMosaic().calcCorrelatedImages();
+			referenceStars = this.mosaic.calcCorrelatedImages();
 			
 			if (referenceStars.isEmpty()) {
 				throw new TaskException("Il n'y a pas d'étoiles de référence disponibles pour la correlation");
@@ -125,7 +147,7 @@ public class CorrelateTask extends BackgroundTask {
 			
 			SwingThreadMonitor.acquire(); 
 			try {
-				Mosaic mosaic = focusUi.getMosaic();
+				Mosaic mosaic = this.mosaic;
 	
 				List<Mosaic.CorrelatedGridPoint> referenceStarList = referenceStars;
 				List<StarOccurence> otherStarList = new ArrayList<StarOccurence>();
@@ -204,5 +226,13 @@ public class CorrelateTask extends BackgroundTask {
 		{
 			t.printStackTrace();
 		}
+	}
+
+	public Image getImage() {
+		return image;
+	}
+
+	public Mosaic getMosaic() {
+		return mosaic;
 	}
 }

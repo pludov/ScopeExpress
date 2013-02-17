@@ -22,6 +22,7 @@ import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
@@ -29,11 +30,7 @@ import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
-import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
-import fr.pludov.io.CameraFrame;
-import fr.pludov.utils.MultiStarFinder;
-import fr.pludov.utils.StarFinder;
 
 public class FocusUi extends FocusUiDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -200,6 +197,18 @@ public class FocusUi extends FocusUiDesign {
 					}
 				}
 			}
+
+			@Override
+			public void pointOfInterestAdded(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestRemoved(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
 		
 		this.fd.setMosaic(mosaic);
@@ -207,87 +216,7 @@ public class FocusUi extends FocusUiDesign {
 	
 	BackgroundTask createDetectStarTask(final Image image)
 	{
-		BackgroundTask result = new BackgroundTask("Recherche d'étoiles dans " + image.getPath().getName())
-		{
-			CameraFrame frame;
-			
-			@Override
-			protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-				
-				SwingThreadMonitor.acquire();
-				try {
-					if (!mosaic.containsImage(image))
-					{
-						throw new BackgroundTaskCanceledException();
-					}
-					
-				} finally {
-					SwingThreadMonitor.release();
-				}
-
-				frame = image.getCameraFrame();
-				setPercent(20);
-				
-				final MultiStarFinder msf = new MultiStarFinder(frame) {
-					@Override
-					public void percent(int pct) {
-						setPercent(30 + pct * (98 - 30) / 100);
-						try {
-							checkInterrupted();
-						} catch(BackgroundTaskCanceledException ex)
-						{
-							throw new RuntimeException("stopped");
-						}
-					}
-				};
-				frame = null;
-
-				SwingThreadMonitor.acquire();
-				try {
-					if (!mosaic.containsImage(image))
-					{
-						throw new RuntimeException("Image discarded");
-					}
-
-					for(Star existingStar : FocusUi.this.mosaic.getStars())
-					{
-						StarOccurence occurence = FocusUi.this.mosaic.getStarOccurence(existingStar, image);
-						if (occurence == null || !occurence.isAnalyseDone() || !occurence.isStarFound())
-						{
-							continue;
-						}
-						msf.getCheckedArea().add(occurence.getStarMask());
-					}
-				} finally {
-					SwingThreadMonitor.release();
-				}
-				
-				setPercent(30);
-				
-				msf.proceed();
-				
-				setPercent(98);
-
-				SwingThreadMonitor.acquire();
-				try {
-					if (!mosaic.containsImage(image))
-					{
-						throw new RuntimeException("Image discarded");
-					}
-
-					for(StarFinder sf : msf.getStars())
-					{
-						Star star = new Star(sf.getCenterX(), sf.getCenterY(), image);
-						FocusUi.this.mosaic.addStar(star);
-						StarOccurence occurence = new StarOccurence(FocusUi.this.mosaic, image, star);
-						occurence.initFromStarFinder(sf);
-						FocusUi.this.mosaic.addStarOccurence(occurence);
-					}
-				} finally {
-					SwingThreadMonitor.release();
-				};
-			}
-		};
+		BackgroundTask result = new FindStarTask(mosaic, image);
 		
 		return result;
 	}

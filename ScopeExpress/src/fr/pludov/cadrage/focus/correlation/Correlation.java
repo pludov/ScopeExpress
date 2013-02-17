@@ -3,6 +3,8 @@ package fr.pludov.cadrage.focus.correlation;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.utils.CorrelationAlgo;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
@@ -20,6 +22,8 @@ import fr.pludov.cadrage.utils.Ransac;
  *
  */
 public class Correlation {
+	private static final Logger logger = Logger.getLogger(Correlation.class);
+	
 	double tx, ty;
 	double cs, sn;
 	boolean found;
@@ -41,18 +45,18 @@ public class Correlation {
 		List<Triangle> imageTriangle;
 		
 		do {
-			System.err.println("Looking for source triangles, max size = " + starRay);
+			logger.debug("Looking for source triangles, max size = " + starRay);
 			referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay, maxTriangle);
 			if (referenceTriangle == null) {
-				System.err.println("Too many triangles found, search for smaller ones");
+				logger.warn("Too many triangles found, search for smaller ones");
 				starRay *= 0.75;
 				continue;
 			}
 			
-			System.err.println("Looking for image triangles, max size = " + starRay);
+			logger.debug("Looking for image triangles, max size = " + starRay);
 			imageTriangle = getTriangleList(imageStars, starMinRay, starRay, maxTriangle);
 			if (imageTriangle == null) {
-				System.err.println("Too many triangles found in image, search for smaller ones");
+				logger.warn("Too many triangles found in image, search for smaller ones");
 				starRay *= 0.75;
 				continue;
 			}
@@ -69,12 +73,12 @@ public class Correlation {
 		
 		while((ransacPoints = getRansacPoints(imageTriangle, referenceTriangleGrid, maxNbRansacPoints, tolerance)) == null)
 		{
-			System.err.println("Too many possible translations. Filter wiht more aggressive values...");
+			logger.warn("Too many possible translations. Filter wiht more aggressive values...");
 			tolerance *= 0.6;
 		}
 		
 		
-		System.err.println("Performing RANSAC with " + ransacPoints.size());
+		logger.info("Performing RANSAC with " + ransacPoints.size());
 		
 		CorrelationAlgo ransac = new Ransac();
 		
@@ -106,7 +110,7 @@ public class Correlation {
 		}
 		
 		
-		System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
+		logger.debug("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
 				" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
 				" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
 		this.tx = bestParameter[0];
@@ -218,10 +222,10 @@ public class Correlation {
 				
 				ransacPoints.add(rp);
 				
-				System.err.println("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
+				logger.debug("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
 				
 				if (ransacPoints.size() > maxCount) {
-					System.err.println("Too many translation founds. Retry with stricter filter");
+					logger.warn("Too many translation founds. Retry with stricter filter");
 					return null;
 				}
 				
@@ -243,7 +247,7 @@ public class Correlation {
 
 		minTriangleSize = minTriangleSize * minTriangleSize;
 		
-		System.err.println("Searching for triangles in " + referenceStars.size() + " stars - minsize=" + Math.sqrt(minTriangleSize) + ", maxsize=" + triangleSearchRadius);
+		logger.info("Searching for triangles in " + referenceStars.size() + " stars - minsize=" + Math.sqrt(minTriangleSize) + ", maxsize=" + triangleSearchRadius);
 		for(DynamicGridPoint rst1 : referenceStars)
 		{
 			List<DynamicGridPoint> referencePeerList = reference.getNearObject(rst1.getX(), rst1.getY(), triangleSearchRadius);
@@ -273,15 +277,15 @@ public class Correlation {
 					
 					result.add(t);
 					if (result.size() >  maxTriangle) {
-						System.err.println("Found too many triangles... retry with stricter filter");
+						logger.warn("Found too many triangles... retry with stricter filter");
 						return null;
 					}
-					System.err.println("Found triangle : " + Math.sqrt(r_d[0]) + " - " + Math.sqrt(r_d[1]) + " - " + Math.sqrt(r_d[2]));
+					logger.debug("Found triangle : " + Math.sqrt(r_d[0]) + " - " + Math.sqrt(r_d[1]) + " - " + Math.sqrt(r_d[2]));
 				}
 			}
 		}
 		
-		System.err.println("Found " + result.size());
+		logger.info("Found " + result.size());
 		
 		return result;
 	}

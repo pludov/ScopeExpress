@@ -11,9 +11,12 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.io.FitsPlane;
 
 public class StarDetection {
+	private static final Logger logger = Logger.getLogger(StarDetection.class);
 	
 	StarDetectionParameters parameters;
 	
@@ -442,7 +445,7 @@ public class StarDetection {
 		
 		for(int i = 0; i < 8; ++i)
 		{
-			System.err.println("Before step " + i + " : " + gaussCenterX+"," + gaussCenterY+"=>"+gaussIntensity+", fwhm=" + gaussFwhm + ", mean relative error=" + gaussEvaluation);
+			logger.debug("Before step " + i + " : " + gaussCenterX+"," + gaussCenterY+"=>"+gaussIntensity+", fwhm=" + gaussFwhm + ", mean relative error=" + gaussEvaluation);
 
 			// On divise par 4 la marge à chaque itération
 			double fact = Math.pow(0.5, i);
@@ -786,7 +789,7 @@ public class StarDetection {
 					star.fwhm = ecartType * binFactor;
 					result.add(star);
 					
-					System.err.println("Star found at " + bary[0]+","+bary[1]+ " E=" + bary[2] + " fwhm=" + ecartType);
+					logger.debug("Star found at " + bary[0]+","+bary[1]+ " E=" + bary[2] + " fwhm=" + ecartType);
 					
 					clearTopAdu(x0, y0, x1, y1);
 					try {
@@ -819,7 +822,7 @@ public class StarDetection {
 			}
 		}
 		
-		System.err.println("Star detected : " + result.size());
+		logger.info("Star detected : " + result.size());
 		
 //		try {
 //			ImageIO.write(mask, "png", new File("c:/mask.png"));

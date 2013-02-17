@@ -5,9 +5,13 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.utils.CorrelationAlgo.RansacPoint;
 
 public class Ransac extends CorrelationAlgo {
+	private static final Logger logger = Logger.getLogger(Ransac.class);
+	
 	protected BitSet currentSetIds;
 	protected double [] parameter;
 	
@@ -72,7 +76,7 @@ public class Ransac extends CorrelationAlgo {
 				
 		currentSetIds = new BitSet(points.size());
 		
-		System.err.println("Ransac going for " + iterCount + " iterations with " + candidate + " candidates each; proba echec=" + probaEchec);
+		logger.debug("Ransac going for " + iterCount + " iterations with " + candidate + " candidates each; proba echec=" + probaEchec);
 		
 		for(int iter = 0; iter < iterCount; ++iter)
 		{
@@ -140,13 +144,13 @@ public class Ransac extends CorrelationAlgo {
 		}
 		
 		if (bestParameter != null) {
-			System.err.println("Ransac terminé avec " + possibleParameterCount + " possibilities; top erreur : " + bestErreur+", top ratio : " + bestRatio);
+			logger.info("Ransac terminé avec " + possibleParameterCount + " possibilities; top erreur : " + bestErreur+", top ratio : " + bestRatio);
 			if (bestRatio < candidateRatio) {
-				System.err.println("Solution sous la probabilité de valeur correcte. Abandonnnée");
+				logger.warn("Solution sous la probabilité de valeur correcte. Abandonnnée");
 				return null;
 			}
 		} else {
-			System.err.println("Ransac terminé sans solution");
+			logger.warn("Ransac terminé sans solution");
 		}
 		
 		

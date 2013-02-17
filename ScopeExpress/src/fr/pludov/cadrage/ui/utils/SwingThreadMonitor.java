@@ -2,6 +2,8 @@ package fr.pludov.cadrage.ui.utils;
 
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
+
 /**
  * Ce monitor permet d'avoir un accès exclusif au thread de dispatch des evenements:
  * il bloque tous les autres evenements pendant qu'il est acquéri.
@@ -12,6 +14,7 @@ import javax.swing.SwingUtilities;
  * En tout cas, ça devrait permettre d'acceder sereinement aux données spécifique au programme.
  */
 public class SwingThreadMonitor {
+	private static final Logger logger = Logger.getLogger(SwingThreadMonitor.class);
 	
 	int lockCount;
 	Runnable synchronizer;
@@ -38,7 +41,7 @@ public class SwingThreadMonitor {
 			{
 				@Override
 				public void run() {
-					System.out.println("acquired swing global lock");
+					logger.debug("acquired swing global lock");
 					synchronized(SwingThreadMonitor.this)
 					{
 						SwingThreadMonitor.this.lockCount++;
@@ -52,7 +55,7 @@ public class SwingThreadMonitor {
 							}
 						}
 					}
-					System.out.println("released swing global lock");
+					logger.debug("released swing global lock");
 				}
 			};
 			

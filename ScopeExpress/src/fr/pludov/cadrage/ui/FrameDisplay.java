@@ -14,7 +14,11 @@ import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import org.apache.log4j.Logger;
+
 public class FrameDisplay extends JPanel {
+	private static final Logger logger = Logger.getLogger(FrameDisplay.class);
+	
 	BufferedImage plane;
 	java.awt.Image backBuffer;
 	final Timer repainter;
@@ -93,7 +97,7 @@ public class FrameDisplay extends JPanel {
         AffineTransform transform = AffineTransform.getTranslateInstance(widgetCenterX, widgetCenterY);
         transform.scale(realZoom, realZoom);
         transform.translate(-centerx, -centery);
-        System.out.println("realZoom is " + realZoom);
+        logger.debug("realZoom is " + realZoom);
         return transform;
 	}
 

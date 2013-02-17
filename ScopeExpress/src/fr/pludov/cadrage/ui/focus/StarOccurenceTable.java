@@ -34,11 +34,14 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
@@ -49,6 +52,8 @@ import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 
 public class StarOccurenceTable extends JTable {
+	private static final Logger logger = Logger.getLogger(StarOccurenceTable.class);
+	
 	public final WeakListenerCollection<StarOccurenceTableListener> listeners = new WeakListenerCollection<StarOccurenceTableListener>(StarOccurenceTableListener.class);
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
@@ -225,6 +230,18 @@ public class StarOccurenceTable extends JTable {
 					scrollRectToVisible(getCellRect(firstSelected, getColumnModel().getColumnCount() - 1, true));
 				}
 			}
+
+			@Override
+			public void pointOfInterestAdded(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestRemoved(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
 		
 		getSelectionModel().addListSelectionListener(new ListSelectionListener() {
@@ -233,7 +250,7 @@ public class StarOccurenceTable extends JTable {
 			public void valueChanged(ListSelectionEvent e) {
 				if (e.getValueIsAdjusting()) return;
 				int index = getSelectionModel().getMinSelectionIndex();
-				System.out.println("Row selected=" + index);
+				logger.debug("Row selected=" + index);
 				
 				listeners.getTarget().currentStarChanged();
 			}

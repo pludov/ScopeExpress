@@ -22,6 +22,9 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.LogMF;
+import org.apache.log4j.Logger;
+
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.metadata.Directory;
 import com.drew.metadata.Metadata;
@@ -62,6 +65,8 @@ import fr.pludov.io.ImageProvider;
  *
  */
 public class Correlation implements Serializable {
+	private static final Logger logger = Logger.getLogger(Correlation.class);
+	
 	private static final long serialVersionUID = 7257085749793760384L;
 
 	public transient WeakListenerCollection<CorrelationListener> listeners;
@@ -303,7 +308,7 @@ public class Correlation implements Serializable {
 				
 				for (Directory directory2 : metadata.getDirectories()) {
 				    for (Tag tag : directory2.getTags()) {
-				        System.out.println(tag);
+				        logger.debug("tag : " + tag);
 				    }
 				}
 				
@@ -327,7 +332,7 @@ public class Correlation implements Serializable {
 //				// query the tag's value
 //				Date date = directory.getDate(ExifIFD0Directory.TAG_DATETIME);
 //				
-				System.out.println("metadata read");
+				logger.debug("metadata read");
 			}
 			
 			@Override
@@ -623,7 +628,7 @@ public class Correlation implements Serializable {
 
 		minTriangleSize = minTriangleSize * minTriangleSize;
 		
-		System.err.println("Searching for triangles in " + referenceStars.size() + " stars");
+		LogMF.info(logger, "Searching for triangles in {0} stars", referenceStars.size());
 		for(ImageStar rst1 : referenceStars)
 		{
 			List<ImageStar> referencePeerList = reference.getNearObject(rst1.x, rst1.y, triangleSearchRadius);
@@ -653,14 +658,14 @@ public class Correlation implements Serializable {
 					
 					result.add(t);
 					if (result.size() >  maxTriangle) {
-						System.err.println("Found too many triangles... retry with stricter filter");
+						logger.warn("Found too many triangles... retry with stricter filter");
 						return null;
 					}
 				}
 			}
 		}
 		
-		System.err.println("Found " + result.size());
+		logger.info("Found " + result.size());
 		
 		return result;
 	}
@@ -915,18 +920,18 @@ public class Correlation implements Serializable {
 				List<Triangle> imageTriangle;
 				
 				do {
-					System.err.println("Looking for source triangles, max size = " + starRay);
+					logger.info("Looking for source triangles, max size = " + starRay);
 					referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay, maxTriangle);
 					if (referenceTriangle == null) {
-						System.err.println("Too many triangles found, search for smaller ones");
+						logger.warn("Too many triangles found, search for smaller ones");
 						starRay *= 0.75;
 						continue;
 					}
 					
-					System.err.println("Looking for image triangles, max size = " + starRay);
+					logger.info("Looking for image triangles, max size = " + starRay);
 					imageTriangle = getTriangleList(imageStars, starMinRay, starRay, maxTriangle);
 					if (imageTriangle == null) {
-						System.err.println("Too many triangles found in image, search for smaller ones");
+						logger.warn("Too many triangles found in image, search for smaller ones");
 						starRay *= 0.75;
 						continue;
 					}
@@ -943,12 +948,12 @@ public class Correlation implements Serializable {
 				
 				while((ransacPoints = getRansacPoints(imageTriangle, referenceTriangleGrid, maxNbRansacPoints, tolerance)) == null)
 				{
-					System.err.println("Too many possible translations. Filter wiht more aggressive values...");
+					logger.warn("Too many possible translations. Filter wiht more aggressive values...");
 					tolerance *= 0.6;
 				}
 				
 				
-				System.err.println("Performing RANSAC with " + ransacPoints.size());
+				logger.info("Performing RANSAC with " + ransacPoints.size());
 				
 				CorrelationAlgo ransac = new Ransac();
 				
@@ -980,7 +985,7 @@ public class Correlation implements Serializable {
 				}
 				
 				
-				System.err.println("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
+				logger.info("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
 						" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
 						" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
 				tx = bestParameter[0];
@@ -1094,10 +1099,10 @@ public class Correlation implements Serializable {
 						
 						ransacPoints.add(rp);
 						
-						System.err.println("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
+						logger.debug("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
 						
 						if (ransacPoints.size() > maxCount) {
-							System.err.println("Too many translation founds. Retry with stricter filter");
+							logger.warn("Too many translation founds. Retry with stricter filter");
 							return null;
 						}
 						

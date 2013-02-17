@@ -12,11 +12,14 @@ import javax.swing.JPopupMenu;
 import fr.pludov.cadrage.ImageStar;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
@@ -141,7 +144,17 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 	@Override
 	public void starOccurenceRemoved(StarOccurence sco) {
 	}
-
+	@Override
+	public void pointOfInterestAdded(PointOfInterest poi) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void pointOfInterestRemoved(PointOfInterest poi) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	@Override
 	protected JPopupMenu createContextMenu(final List<MosaicImageListEntry> entries) {
 		JPopupMenu contextMenu = new JPopupMenu();
@@ -164,6 +177,27 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		contextMenu.add(removeMenu);
 
+		JMenuItem findStarMenu;
+		findStarMenu = new JMenuItem();
+		findStarMenu.setText("Trouver les étoiles");
+		findStarMenu.setEnabled(entries.size() >= 1);
+		findStarMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				for(MosaicImageListEntry entry : entries)
+				{
+					FindStarTask task = new FindStarTask(focusUi.getMosaic(), entry.getTarget());
+				
+					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+				}
+				
+				
+			}
+		});
+		contextMenu.add(findStarMenu);
+		
+		
 		JMenuItem correlateMenu;
 		
 		correlateMenu = new JMenuItem();
@@ -175,7 +209,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					CorrelateTask task = new CorrelateTask(focusUi, entry.getTarget());
+					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), entry.getTarget());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}
@@ -185,6 +219,41 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		contextMenu.add(correlateMenu);
 
+		JMenuItem poleMenu;
+		
+		poleMenu = new JMenuItem();
+		poleMenu.setText("Déduire le pôle");
+		poleMenu.setToolTipText("A partir d'image prises sans bouger la monture...");
+		poleMenu.setEnabled(entries.size() > 1);
+		poleMenu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// On veut trouver le point invariant entre les différentes images
+				// (celui pour le quel imageToMosaic donne la même chose d'une image à l'autre)
+				
+				PoleFindAlgorithm pfa = new PoleFindAlgorithm();
+				
+				for(MosaicImageListEntry entry : entries)
+				{
+					Image image = entry.getTarget();
+					MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+					if (mip == null) continue;
+					
+					pfa.addMosaicImageParameter(mip);
+				}
+				pfa.perform();
+				
+				if (pfa.isFound()) {
+					PointOfInterest poi = new PointOfInterest("pole", false);
+					poi.setX(pfa.getX());
+					poi.setY(pfa.getY());
+					poi.setSecondaryPoints(pfa.getPoints());
+					mosaic.addPointOfInterest(poi);
+				}
+					
+			}
+		});
+	
+		contextMenu.add(poleMenu);
 		
 		return contextMenu;
 	}

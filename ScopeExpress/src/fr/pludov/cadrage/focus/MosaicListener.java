@@ -16,4 +16,7 @@ public interface MosaicListener {
 	
 	void starOccurenceAdded(StarOccurence sco);
 	void starOccurenceRemoved(StarOccurence sco);
+	
+	void pointOfInterestAdded(PointOfInterest poi);
+	void pointOfInterestRemoved(PointOfInterest poi);
 }

@@ -9,6 +9,9 @@ import javax.swing.table.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileSystemView;
 import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
+
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
@@ -41,7 +44,8 @@ rename/delete etc. are called that update nodes & file lists.
 @license LGPL
 */
 class FileBrowser {
-
+	private static final Logger logger = Logger.getLogger(FileBrowser.class);
+	
     /** Title of the application */
     public static final String APP_TITLE = "FileBro";
     /** Used to open/edit/print files. */
@@ -199,7 +203,7 @@ class FileBrowser {
             locateFile.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ae) {
                     try {
-                        System.out.println("Locate: " + currentFile.getParentFile());
+                        logger.info("Locate: " + currentFile.getParentFile());
                         desktop.open(currentFile.getParentFile());
                     } catch(Throwable t) {
                         showThrowable(t);
@@ -215,7 +219,7 @@ class FileBrowser {
             openFile.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ae) {
                     try {
-                        System.out.println("Open: " + currentFile);
+                        logger.info("Open: " + currentFile);
                         desktop.open(currentFile);
                     } catch(Throwable t) {
                         showThrowable(t);
@@ -467,7 +471,8 @@ class FileBrowser {
 
 /** A TableModel to hold File[]. */
 class FileTableModel extends AbstractTableModel {
-
+	private static final Logger logger = Logger.getLogger(FileTableModel.class);
+	
     private static final long serialVersionUID = -6101682212645378856L;
 
     private File[] files;
@@ -499,7 +504,7 @@ class FileTableModel extends AbstractTableModel {
             case 3:
                 return file.lastModified();
             default:
-                System.err.println("Logic Error");
+                logger.error("Logic Error");
         }
         return "";
     }

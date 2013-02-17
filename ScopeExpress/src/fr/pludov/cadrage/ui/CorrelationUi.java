@@ -33,6 +33,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.Image;
 import fr.pludov.cadrage.StarDetectionParameters;
@@ -47,6 +49,8 @@ import fr.pludov.cadrage.ui.settings.StarDetectionParameterPanel;
 import fr.pludov.cadrage.ui.utils.ListEntry;
 
 public class CorrelationUi {
+	private static final Logger logger = Logger.getLogger(CorrelationUi.class);
+	
 	Correlation correlation;
 	
 	CorrelationImageDisplay display;
@@ -451,7 +455,7 @@ public class CorrelationUi {
 								file.toLowerCase().endsWith(".tif") || file.toLowerCase().endsWith(".tiff"))
 						{
 							final File newFile = new File(watch, file);
-							System.err.println("nouvelle image : " + newFile);
+							logger.info("nouvelle image : " + newFile);
 							
 							SwingUtilities.invokeLater(new Runnable() {
 								public void run() {

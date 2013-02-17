@@ -6,6 +6,9 @@ import java.util.List;
 
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
+
+import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
@@ -14,6 +17,8 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
  * Les ajouts/suppressions sont fait dans le thread swing
  */
 public final class BackgroundTaskQueue {
+	private static final Logger logger = Logger.getLogger(BackgroundTaskQueue.class);
+	
 	public final WeakListenerCollection<BackgroundTaskQueueListener> listeners = new WeakListenerCollection<BackgroundTaskQueueListener>(BackgroundTaskQueueListener.class);
 	List<BackgroundTask> tasks;
 	int runningCount;
@@ -24,20 +29,48 @@ public final class BackgroundTaskQueue {
 		this.tasks = new ArrayList<BackgroundTask>();
 		this.runningCount = 0;
 		this.maxRunCount = Runtime.getRuntime().availableProcessors();
+		logger.info("Background task queue started with " + maxRunCount + " max active tasks");
 	}
 	
 	public synchronized void addTask(BackgroundTask task)
 	{
+		logger.info("Adding task: " + task.getTitle());
 		task.queue = this;
 		tasks.add(task);
 		somethingChanged();
 	}
 
+	
+	public <M extends BackgroundTask> List<M> getTasksWithStatus(Class<M> clazz, Status ... status)
+	{
+		List<M> result = new ArrayList<M>();
+		synchronized(this)
+		{
+			for(BackgroundTask task : this.tasks)
+			{
+				if (clazz.isAssignableFrom(task.getClass()))
+				{
+					M taskOfType = (M)task;
+					
+					for(int i = 0; i < status.length; ++i)
+					{
+						if (taskOfType.getStatus() == status[i]) {	
+							result.add(taskOfType);
+							break;
+						}
+					}
+				}
+			}
+		}
+		return result;
+	}
 	/**
 	 * Doit être appellé uniquement depuis le thread swing
 	 */
 	public void abortTask(BackgroundTask task)
 	{
+		logger.info("Abort task: " + task.getTitle());
+
 		synchronized(this)
 		{
 			switch(task.status) {
@@ -84,6 +117,8 @@ public final class BackgroundTaskQueue {
 	 */
 	synchronized void taskDone(final BackgroundTask task)
 	{
+		logger.info("Task done: " + task.getTitle());
+
 		boolean callOnDone;
 		synchronized(this)
 		{
@@ -114,6 +149,8 @@ public final class BackgroundTaskQueue {
 	 */
 	synchronized void startTask(final BackgroundTask task)
 	{
+		logger.info("Starting task: " + task.getTitle());
+
 		task.status = Status.Running;
 		task.startTime = System.currentTimeMillis();
 		Thread t = new Thread(task.getTitle())
@@ -124,8 +161,9 @@ public final class BackgroundTaskQueue {
 					task.checkInterrupted();
 					task.proceed();
 				} catch(BackgroundTaskCanceledException e) {
+					logger.info("Task canceled: " + task.getTitle());
 				} catch(Throwable t) {
-					t.printStackTrace();
+					logger.error("Task error for " + task.getTitle(), t);
 				} finally {
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override

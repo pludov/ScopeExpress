@@ -35,6 +35,7 @@ public abstract class BackgroundTask {
 	
 	long startTime;
 	long endTime;
+	// Positionné par BackgroundTaskQueue.addTask
 	BackgroundTaskQueue queue;
 	Status status;
 
@@ -194,5 +195,9 @@ public abstract class BackgroundTask {
 
 	public long getEndTime() {
 		return endTime;
+	}
+
+	public BackgroundTaskQueue getQueue() {
+		return queue;
 	}
 }

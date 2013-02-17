@@ -20,6 +20,8 @@ import javax.swing.JScrollPane;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
@@ -34,6 +36,8 @@ import fr.pludov.io.ImageProvider;
 import net.miginfocom.swing.MigLayout;
 
 public class MosaicImageListView extends MosaicImageListViewDesign {
+	private static final Logger logger = Logger.getLogger(MosaicImageListView.class);
+	
 	ImageDisplayParameter displayParameter;
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
@@ -170,7 +174,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 					throw new RuntimeException("non invertible", ex);
 				}
 				Point2D coord = transform.transform(new Point(x, y), null);
-				System.out.println("x=" + coord.getX() + " y=" + coord.getY());
+				logger.debug("x=" + coord.getX() + " y=" + coord.getY());
 				
 				zoomed.setCenter(coord.getX(), coord.getY());
 			}

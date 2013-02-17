@@ -12,6 +12,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.async.AsyncOperation;
 import fr.pludov.cadrage.correlation.Correlation;
 import fr.pludov.cadrage.correlation.ImageCorrelation;
@@ -80,7 +82,8 @@ import fr.pludov.cadrage.ui.ViewPortList;
  *
  */
 public class Cadrage {
-
+	private static final Logger logger = Logger.getLogger(Cadrage.class);
+	
 	public static StarDetectionParameters defaultStarDetectionParameters;
 	public static JFrame mainFrame;
 	public static Correlation correlation;
@@ -249,7 +252,7 @@ public class Cadrage {
 					double radec [] = (double[])o;
 					
 					while (scopeInterface == null) {
-						System.err.println("Scenario en attente de téléscope");
+						logger.info("Scenario en attente de téléscope");
 						Thread.sleep(2000);
 					}
 					
@@ -277,7 +280,7 @@ public class Cadrage {
 					while((images =
 							correlationUi.filtrerPourCalibration(correlationUi.getImageTable().getEntryList())).size() < 3)
 					{
-						System.err.println("Scenario en attente d'images pour correlation");
+						logger.info("Scenario en attente d'images pour correlation");
 						Thread.sleep(2000);
 					}
 					

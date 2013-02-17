@@ -1,5 +1,6 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
@@ -15,6 +16,7 @@ import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicImageParameterListener;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
@@ -121,6 +123,16 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
 					
 				}
+				
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					scheduleRepaint(true);
+				}
+				
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					scheduleRepaint(true);
+				}
 			});
 		}
 		scheduleRepaint(true);
@@ -173,8 +185,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
     	   
     	if (mosaic != null) {
     		double [] tmpPoint = new double[2];
-    		// Dessiner les étoiles des autres images
-    		
+
     		
     		// Dessiner les étoiles de l'image
 	        for(Star star : mosaic.getStars())
@@ -252,6 +263,62 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			        	gPaint.drawLine(centerx, centery, ocenterx, ocentery);
 	    			}
 	        	}
+	        }
+	        
+	        // Dessiner les points d'intéret
+	        g2d.setColor(Color.GREEN);
+	        for(PointOfInterest poi : mosaic.getAllPointsOfInterest())
+	        {
+	        	MosaicImageParameter mip = null;
+	        	if (!poi.isImageRelative()) {
+	        		mip = mosaic.getMosaicImageParameter(image);
+	        		if (mip == null) continue;
+	        	}
+	        	double x, y;
+	        	
+	        	x = poi.getX();
+	        	y = poi.getY();
+	        	
+	        	if (mip != null) {
+	        		tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
+	        		x = tmpPoint[0];
+	        		y = tmpPoint[1];
+	        	}
+
+	        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
+	        	
+
+	        	int centerx = (int)Math.round(screenPos.getX());
+	        	int centery = (int)Math.round(screenPos.getY());
+	        	
+	        	gPaint.drawLine(centerx - 20, centery - 20, centerx - 3, centery - 3);
+	        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
+	        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
+	        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
+	        	gPaint.drawString(poi.getName(), centerx - 20, centery + 32);
+
+	        	
+	        	double [] points = poi.getSecondaryPoints();
+	        	for(int i = 0; i < points.length; i += 2)
+	        	{
+		        	x = points[i];
+		        	y = points[i + 1];
+		        	
+		        	if (mip != null) {
+		        		tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
+		        		x = tmpPoint[0];
+		        		y = tmpPoint[1];
+		        	}
+
+		        	screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
+		        	
+
+		        	int secx = (int)Math.round(screenPos.getX());
+		        	int secy = (int)Math.round(screenPos.getY());
+		        	
+		        	gPaint.drawOval(secx - 2, secy - 2, 4, 4);
+	        	}
+
 	        }
     	}
 	}

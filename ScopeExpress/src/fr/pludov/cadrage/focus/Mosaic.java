@@ -6,6 +6,9 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+
+import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.async.WorkStepProcessor;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
@@ -14,6 +17,8 @@ import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class Mosaic {
+	private static final Logger logger = Logger.getLogger(Mosaic.class);
+	
 	public final WeakListenerCollection<MosaicListener> listeners = new WeakListenerCollection<MosaicListener>(MosaicListener.class);
 	
 	final Application focus;
@@ -21,6 +26,8 @@ public class Mosaic {
 	final List<Star> stars;
 	final IdentityHashMap<Image, MosaicImageParameter> imageMosaicParameter;
 	final Map<Star, Map<Image, StarOccurence>> occurences;
+	final Map<String, PointOfInterest> pointOfInterest;
+	
 	
 	List<StarOccurence> todoList;
 	
@@ -31,6 +38,7 @@ public class Mosaic {
 		this.stars = new ArrayList<Star>();
 		this.todoList = new ArrayList<StarOccurence>();
 		this.focus = focus;
+		this.pointOfInterest = new TreeMap<String, PointOfInterest>();
 	}
 	
 	Image getPreviousImage(Image after)
@@ -129,7 +137,7 @@ public class Mosaic {
 		if (m == null || m.isEmpty()) {
 			removeStar(other.getStar());
 		} else {
-			System.out.println("Correlation sans suppression de l'image source => c'est louche");
+			logger.error("Correlation sans suppression de l'image source => c'est louche");
 		}
 			
 	}
@@ -200,6 +208,30 @@ public class Mosaic {
 	public final Application getApplication()
 	{
 		return this.focus;
+	}
+	
+	public List<PointOfInterest> getAllPointsOfInterest()
+	{
+		return new ArrayList<PointOfInterest>(pointOfInterest.values());
+	}
+	
+	public void addPointOfInterest(PointOfInterest poi)
+	{
+		PointOfInterest old = pointOfInterest.put(poi.getName(), poi);
+		
+		if (old != null) {
+			this.listeners.getTarget().pointOfInterestRemoved(old);
+		}
+		this.listeners.getTarget().pointOfInterestAdded(poi);
+	}
+
+	public void removePointOfInterest(PointOfInterest poi)
+	{
+		PointOfInterest current = pointOfInterest.get(poi.getName());
+		if (current == poi) {
+			pointOfInterest.remove(poi.getName());
+			this.listeners.getTarget().pointOfInterestRemoved(poi);
+		}
 	}
 	
 	public MosaicImageParameter getMosaicImageParameter(Image image)

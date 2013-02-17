@@ -6,7 +6,10 @@ import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 class ReferenceCleaner extends Thread {
+	private static final Logger logger = Logger.getLogger(ReferenceCleaner.class);
 	
 	final ReferenceQueue queue;
 	
@@ -32,7 +35,7 @@ class ReferenceCleaner extends Thread {
 					{
 						CacheSoftReference cacheEntry = (CacheSoftReference)ref;
 						
-						System.out.println("Dead ref: " + cacheEntry.identifier);
+						logger.debug("Dead ref: " + cacheEntry.identifier);
 						cacheEntry.cache.removeFromCache(cacheEntry);
 					}
 				}

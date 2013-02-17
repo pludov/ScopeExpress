@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.swing.SwingUtilities;
 
+import org.apache.log4j.Logger;
 import org.jawin.COMException;
 import org.jawin.DispatchPtr;
 import org.jawin.win32.Ole32;
@@ -16,6 +17,8 @@ import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.utils.WorkThread;
 
 public class AscomScope extends WorkThread implements Scope {
+	private static final Logger logger = Logger.getLogger(AscomScope.class);
+	
 	boolean isOleInitialized;
 	
 	double decBias, raBias;
@@ -49,7 +52,7 @@ public class AscomScope extends WorkThread implements Scope {
 	// Bloque l'appelant
 	public void slew(final double ra, final double dec) throws ScopeException
 	{
-		System.err.println("Slew to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
+		logger.info("Slew to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
 		try {
 			exec(new AsyncOrder() {
 				
@@ -113,8 +116,7 @@ public class AscomScope extends WorkThread implements Scope {
 		try {
 			Ole32.CoUninitialize();
 		} catch(COMException e) {
-			System.err.println("Unable to uninitialize Ole32");
-			e.printStackTrace();
+			logger.error("Unable to uninitialize Ole32", e);
 		}
 	}
 	
@@ -135,7 +137,7 @@ public class AscomScope extends WorkThread implements Scope {
 				throw new CancelationException("Pas de driver séléctionné");
 			}
 			
-			System.err.println("driver : " + result);
+			logger.debug("driver : " + result);
 			driver = result;
 			
 			scope = new DispatchPtr(result);

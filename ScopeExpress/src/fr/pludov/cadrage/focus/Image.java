@@ -133,7 +133,7 @@ public class Image implements WorkStepResource {
 		}
 		CameraFrame loaded;
 		try {
-			System.out.println("Loading " + path);
+			logger.info("Loading " + path);
 			loaded = ImageProvider.readImage(path);
 		} catch(IOException ex) {
 			ex.printStackTrace();
