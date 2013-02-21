@@ -19,6 +19,7 @@ import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.utils.AxeFindAlgorithm;
 import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
@@ -219,6 +220,42 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		contextMenu.add(correlateMenu);
 
+		JMenuItem axeMenu;
+		
+		axeMenu = new JMenuItem();
+		axeMenu.setText("Déduire l'axe mécanique");
+		axeMenu.setToolTipText("A partir d'image prises en bougeant la monture...");
+		axeMenu.setEnabled(entries.size() > 1);
+		axeMenu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				// On veut trouver le point invariant entre les différentes images
+				// (celui pour le quel imageToMosaic donne la même chose d'une image à l'autre)
+				
+				AxeFindAlgorithm pfa = new AxeFindAlgorithm();
+				
+				for(MosaicImageListEntry entry : entries)
+				{
+					Image image = entry.getTarget();
+					MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+					if (mip == null) continue;
+					
+					pfa.addMosaicImageParameter(mip);
+				}
+				pfa.perform();
+				
+				if (pfa.isFound()) {
+					PointOfInterest poi = new PointOfInterest("axe", true);
+					poi.setX(pfa.getX());
+					poi.setY(pfa.getY());
+					poi.setSecondaryPoints(pfa.getPoints());
+					mosaic.addPointOfInterest(poi);
+				}
+					
+			}
+		});
+	
+		contextMenu.add(axeMenu);
+		
 		JMenuItem poleMenu;
 		
 		poleMenu = new JMenuItem();
