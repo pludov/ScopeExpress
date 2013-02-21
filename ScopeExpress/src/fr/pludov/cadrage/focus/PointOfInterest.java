@@ -17,7 +17,7 @@ public class PointOfInterest {
 		this.x = 0;
 		this.y = 0;
 		this.name = name;
-		this.isImageRelative = false;
+		this.isImageRelative = isImageRelative;
 	}
 
 	public void setSecondaryPoints(List<Double> points)
