@@ -4,7 +4,11 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.lang.ref.WeakReference;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,12 +21,17 @@ import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.utils.Ransac;
 
 public class ActionMonitor implements ActionListener {
+	private static final Logger logger = Logger.getLogger(ActionMonitor.class);
+
 	public final StringConfigItem lastMonitorLocation = new StringConfigItem(ActionOpen.class, "lastMonitorLocation", "");
 
 	final FocusUi focusUi;
@@ -105,6 +114,8 @@ public class ActionMonitor implements ActionListener {
 								
 							} catch(InterruptedException e) {
 								
+							} catch(Throwable t) {
+								logger.error("Monitoring died", t);
 							}
 						}
 					};
@@ -168,6 +179,47 @@ public class ActionMonitor implements ActionListener {
 						}
 
 						final File currentSearchPath = path;
+						final File newItem = new File(currentSearchPath, item);
+						logger.info("Detected new file : " + newItem);						
+						// Essaye de locker le fichier
+						
+						boolean locked = false;
+						while(!locked && newItem.exists())
+						{
+							RandomAccessFile raf = null;
+							
+							try {
+								raf = new RandomAccessFile(newItem, "rw");
+								FileChannel fileChannel = raf.getChannel();
+								fileChannel.lock();
+								locked = true;
+								logger.info("File locked : " + newItem);
+							} catch(FileNotFoundException e) {
+								logger.debug("File probably already locked", e);
+								synchronized(this)
+								{
+									getCurrentPath();
+									wait(125);
+									getCurrentPath();
+								}				
+								continue;
+							} catch(IOException e) {
+								logger.warn("Failed to lock " + newItem, e);
+								break;
+							} catch(Throwable e) {
+								logger.error("General error with " + newItem, e);
+								break;
+							} finally {
+								if (raf != null) {
+									try {
+										raf.close();
+									} catch (IOException e) {
+										logger.warn("Failed to close", e);
+									}
+								}
+							}
+						}
+						if (!locked) continue;
 						SwingUtilities.invokeLater(new Runnable() {
 							@Override
 							public void run() {
@@ -179,8 +231,15 @@ public class ActionMonitor implements ActionListener {
 										return;
 									}
 								}
-								fr.pludov.cadrage.focus.Image image = focusUi.getApplication().getImage(new File(currentSearchPath, item));
+								fr.pludov.cadrage.focus.Image image = focusUi.getApplication().getImage(newItem);
 								focusUi.getMosaic().addImage(image, MosaicListener.ImageAddedCause.AutoDetected);
+								
+								FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
+								focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+								
+								CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), image);
+								focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
+								
 							}
 						});
 
@@ -191,7 +250,7 @@ public class ActionMonitor implements ActionListener {
 				synchronized(this)
 				{
 					getCurrentPath();
-					wait(250);
+					wait(125);
 					getCurrentPath();
 				}
 			}
