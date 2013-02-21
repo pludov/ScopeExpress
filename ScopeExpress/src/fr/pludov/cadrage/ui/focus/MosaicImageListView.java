@@ -258,7 +258,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		currentImage = image;
 		
-		principal.setImage(image, true);
+		principal.setImage(image, false);
 		zoomed.setZoom(2);
 		zoomed.setZoomIsAbsolute(true);
 		zoomed.setImage(image, false);
