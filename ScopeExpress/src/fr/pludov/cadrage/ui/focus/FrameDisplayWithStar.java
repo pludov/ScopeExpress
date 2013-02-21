@@ -1,6 +1,7 @@
 package fr.pludov.cadrage.ui.focus;
 
 import java.awt.Color;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
@@ -273,6 +274,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	if (!poi.isImageRelative()) {
 	        		mip = mosaic.getMosaicImageParameter(image);
 	        		if (mip == null) continue;
+	        		if (!mip.isCorrelated()) continue;
 	        	}
 	        	double x, y;
 	        	
@@ -287,15 +289,77 @@ public class FrameDisplayWithStar extends FrameDisplay {
 
 	        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
 	        	
-
-	        	int centerx = (int)Math.round(screenPos.getX());
-	        	int centery = (int)Math.round(screenPos.getY());
+	        	FontMetrics metrics = gPaint.getFontMetrics(gPaint.getFont());
+	        	int hgt = metrics.getHeight();
+	        	int descent = metrics.getDescent();
+	        	int adv = metrics.stringWidth(poi.getName());
 	        	
-	        	gPaint.drawLine(centerx - 20, centery - 20, centerx - 3, centery - 3);
-	        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
-	        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
-	        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
-	        	gPaint.drawString(poi.getName(), centerx - 20, centery + 32);
+	        	
+	        	if (screenPos.getX() < -0.5 || screenPos.getY() < -0.5 || screenPos.getX() >= getWidth() || screenPos.getY() >= getHeight()) {
+	        		
+	        		int margin = 15;
+	        		int size = 40;
+	        		int arcSize = 15;
+	        		double angle = 0.5;
+	        		
+	        		// En dehors de la fenetre...
+	        		double vecX = screenPos.getX();
+	        		double vecY = screenPos.getY();
+	        		if (vecX < margin) vecX = margin;
+	        		if (vecY < margin) vecY = margin;
+	        		if (vecX > getWidth() - margin - 1) vecX = getWidth() - margin - 1;
+	        		if (vecY > getHeight() - margin - 1) vecY = getHeight() - margin - 1;
+	        		
+	        		double dltX = vecX - screenPos.getX();
+	        		double dltY = vecY - screenPos.getY();
+	        		double dltSize = Math.sqrt(dltX * dltX + dltY * dltY);
+	        		int orgx = (int)Math.round(vecX);
+	        		int orgy = (int)Math.round(vecY);
+	        		
+	        		
+	        		int dstx = (int) Math.round(vecX + size * dltX / dltSize);
+	        		int dsty = (int) Math.round(vecY + size * dltY / dltSize);
+	        		
+
+		        	gPaint.drawLine(orgx, orgy, dstx, dsty);
+		        	
+		        	for(int i = -1; i <= 1; i +=2)
+		        	{
+		        		
+		        		double cs = Math.cos(i * angle);
+		        		double sn = Math.sin(i * angle);
+		        		
+		        		int coordx = (int)Math.round(orgx + (dltX * cs + dltY * sn) * arcSize / dltSize);
+		        		int coordy = (int)Math.round(orgy + (dltY * cs - dltX * sn) * arcSize / dltSize);
+		        		
+		        		gPaint.drawLine(orgx, orgy, coordx, coordy);
+		        	}
+		        	
+		        	int textX, textY;
+		        	
+		        	textX = dstx - (adv + 1) / 2;
+		        	textY = dsty + (hgt + 1) / 2 - descent;
+	        		
+		        	if (dltX > 0) textX = dstx;
+		        	if (dltX < 0) textX = dstx - (adv + 1);
+		        	if (dltY < 0) textY = dsty - descent;
+		        	if (dltY > 0) textY = dsty + (hgt + 1) - descent;
+		        	
+		        	
+		        	
+		        	gPaint.drawString(poi.getName(), textX, textY );
+	        	} else {
+	        		int centerx = (int)Math.round(screenPos.getX());
+		        	int centery = (int)Math.round(screenPos.getY());
+		        	
+		        	gPaint.drawLine(centerx - 20, centery - 20, centerx - 3, centery - 3);
+		        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
+		        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
+		        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
+		        	
+	        		gPaint.drawString(poi.getName(), centerx - (adv + 1)/ 2, centery + 20 + hgt - descent);
+	        	}
+	        	
 
 	        	
 	        	double [] points = poi.getSecondaryPoints();
