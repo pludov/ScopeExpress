@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.AbstractButton;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
@@ -39,20 +40,20 @@ public class ActionMonitor implements ActionListener {
 	final FocusUi focusUi;
 	File currentMonitoringPath;
 	Thread monitoringThread;
-	List<WeakReference<JMenuItem>> onOffMenus;
+	List<WeakReference<AbstractButton>> onOffMenus;
 	List<WeakReference<JButton>> shootButtons;
 	
 	public ActionMonitor(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.currentMonitoringPath = null;
 		this.monitoringThread = null;
-		this.onOffMenus = new ArrayList<WeakReference<JMenuItem>>();
+		this.onOffMenus = new ArrayList<WeakReference<AbstractButton>>();
 		this.shootButtons = new ArrayList<WeakReference<JButton>>();
 	}
 
-	public void addPopupMenu(JMenuItem item)
+	public void addPopupMenu(AbstractButton item)
 	{
-		onOffMenus.add(new WeakReference<JMenuItem>(item));
+		onOffMenus.add(new WeakReference<AbstractButton>(item));
 		item.addActionListener(this);
 		
 		refreshMenus();
@@ -88,7 +89,7 @@ public class ActionMonitor implements ActionListener {
 		shootButton.setEnabled(currentMonitoringPath != null);	
 	}
 
-	private void refreshMonitoringMenuStatus(JMenuItem jmenu) {
+	private void refreshMonitoringMenuStatus(AbstractButton jmenu) {
 		jmenu.setText(currentMonitoringPath != null ?
 					"Arrêter la surveillance du répertoire" :
 						"Surveiller un répertoire");
@@ -107,10 +108,10 @@ public class ActionMonitor implements ActionListener {
 			refreshShootButtonStatus(button);
 		}
 		
-		for(Iterator<WeakReference<JMenuItem>> it = onOffMenus.iterator(); it.hasNext(); )
+		for(Iterator<WeakReference<AbstractButton>> it = onOffMenus.iterator(); it.hasNext(); )
 		{
-			WeakReference<JMenuItem> wr = it.next();
-			JMenuItem jmenu = wr.get();
+			WeakReference<AbstractButton> wr = it.next();
+			AbstractButton jmenu = wr.get();
 			if (jmenu == null) {
 				it.remove();
 				continue;
