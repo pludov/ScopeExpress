@@ -132,6 +132,7 @@ public class FocusUi extends FocusUiDesign {
 		
 		this.actionMonitor = new ActionMonitor(this);
 		this.actionMonitor.addPopupMenu(this.mnAutoOpen);
+		this.actionMonitor.makeShootButton(this.shootButton);
 		
 		this.currentStarDetectionParameter = new LocateStarParameter(mosaic);
 		

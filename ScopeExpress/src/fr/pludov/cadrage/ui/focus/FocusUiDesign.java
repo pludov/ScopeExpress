@@ -45,6 +45,7 @@ public class FocusUiDesign {
 	protected JLabel taskQueueStatus;
 	protected JProgressBar taskQueueProgress;
 	protected JButton taskQueueStop;
+	protected JButton shootButton;
 
 	/**
 	 * Create the application.
@@ -101,6 +102,11 @@ public class FocusUiDesign {
 		this.followDirBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/com/sun/java/swing/plaf/motif/icons/ScrollRightArrow.gif")));
 		this.followDirBton.setToolTipText("Surveiller les nouvelles photos dans un r\u00E9pertoire");
 		this.toolBar.add(this.followDirBton);
+		
+		this.shootButton = new JButton("");
+		this.shootButton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/com/sun/java/swing/plaf/motif/icons/ScrollKnobH.gif")));
+		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
+		this.toolBar.add(this.shootButton);
 		
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		this.frmFocus.getContentPane().add(this.tabbedPane, BorderLayout.CENTER);

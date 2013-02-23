@@ -15,9 +15,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -37,26 +39,75 @@ public class ActionMonitor implements ActionListener {
 	final FocusUi focusUi;
 	File currentMonitoringPath;
 	Thread monitoringThread;
-	List<WeakReference<JMenuItem>> menus;
+	List<WeakReference<JMenuItem>> onOffMenus;
+	List<WeakReference<JButton>> shootButtons;
 	
 	public ActionMonitor(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.currentMonitoringPath = null;
 		this.monitoringThread = null;
-		this.menus = new ArrayList<WeakReference<JMenuItem>>();
+		this.onOffMenus = new ArrayList<WeakReference<JMenuItem>>();
+		this.shootButtons = new ArrayList<WeakReference<JButton>>();
 	}
 
 	public void addPopupMenu(JMenuItem item)
 	{
-		menus.add(new WeakReference<JMenuItem>(item));
+		onOffMenus.add(new WeakReference<JMenuItem>(item));
 		item.addActionListener(this);
 		
 		refreshMenus();
 	}
 	
+	public void makeShootButton(JButton button)
+	{
+		this.shootButtons.add(new WeakReference<JButton>(button));
+		button.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				File exec = new File("dll/aptclick.exe");
+				if (!exec.exists()) {
+					logger.error("File not found: " + exec);
+					JOptionPane.showMessageDialog(
+							null, "file not found: " + exec, 
+							"file not found: " + exec, JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+				try {
+					Runtime.getRuntime().exec(exec.getAbsolutePath());
+				} catch(Throwable t) {
+					logger.error("Unable to exec : " + exec.getAbsolutePath(), t);
+				}
+			}
+		});
+		refreshShootButtonStatus(button);
+	}
+	
+	private void refreshShootButtonStatus(JButton shootButton)
+	{
+		shootButton.setEnabled(currentMonitoringPath != null);	
+	}
+
+	private void refreshMonitoringMenuStatus(JMenuItem jmenu) {
+		jmenu.setText(currentMonitoringPath != null ?
+					"Arrêter la surveillance du répertoire" :
+						"Surveiller un répertoire");
+	}
+
 	public void refreshMenus()
 	{
-		for(Iterator<WeakReference<JMenuItem>> it = menus.iterator(); it.hasNext(); )
+		for(Iterator<WeakReference<JButton>> it = shootButtons.iterator(); it.hasNext(); )
+		{
+			WeakReference<JButton> wr = it.next();
+			JButton button = wr.get();
+			if (button == null) {
+				it.remove();
+				continue;
+			}
+			refreshShootButtonStatus(button);
+		}
+		
+		for(Iterator<WeakReference<JMenuItem>> it = onOffMenus.iterator(); it.hasNext(); )
 		{
 			WeakReference<JMenuItem> wr = it.next();
 			JMenuItem jmenu = wr.get();
@@ -64,9 +115,7 @@ public class ActionMonitor implements ActionListener {
 				it.remove();
 				continue;
 			}
-			jmenu.setText(currentMonitoringPath != null ?
-						"Arrêter la surveillance du répertoire" :
-							"Surveiller un répertoire");	
+			refreshMonitoringMenuStatus(jmenu);	
 		}
 	}
 	
