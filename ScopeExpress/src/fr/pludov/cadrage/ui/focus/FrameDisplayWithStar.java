@@ -19,6 +19,7 @@ import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
 import fr.pludov.cadrage.ui.FrameDisplay;
@@ -186,8 +187,35 @@ public class FrameDisplayWithStar extends FrameDisplay {
     	   
     	if (mosaic != null) {
     		double [] tmpPoint = new double[2];
-
+    		gPaint.setColor(Color.green);
     		
+    		for(Star star : mosaic.getStars())
+    		{
+    			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
+    			
+    			double x = star.getCorrelatedX();
+    			double y = star.getCorrelatedY();
+    			
+	        	MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+    			if (mip != null) {
+    				tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
+    			} else {
+    				tmpPoint [0] = x;
+    				tmpPoint [1] = y;
+    				
+    			}
+    			Point2D result = imageToScreen.transform(new Point2D.Double(tmpPoint[0], tmpPoint[1]), null);
+	        	
+	        	int centerx = (int)Math.round(result.getX());
+	        	int centery = (int)Math.round(result.getY());
+	        	
+	        	int mag = (int)Math.round(6 - star.getMagnitude());
+	        	if (mag < 0) mag = 0;
+	        	mag++;
+	        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
+    		}
+    		
+    		gPaint.setColor(Color.red);
     		// Dessiner les étoiles de l'image
 	        for(Star star : mosaic.getStars())
 	        {
@@ -292,7 +320,6 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	FontMetrics metrics = gPaint.getFontMetrics(gPaint.getFont());
 	        	int hgt = metrics.getHeight();
 	        	int descent = metrics.getDescent();
-	        	int adv = metrics.stringWidth(poi.getName());
 	        	
 	        	
 	        	if (screenPos.getX() < -0.5 || screenPos.getY() < -0.5 || screenPos.getX() >= getWidth() || screenPos.getY() >= getHeight()) {
@@ -320,6 +347,10 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        		int dstx = (int) Math.round(vecX + size * dltX / dltSize);
 	        		int dsty = (int) Math.round(vecY + size * dltY / dltSize);
 	        		
+	        		double leftDst = (dstx - screenPos.getX()) * (dstx - screenPos.getX()) + (dsty - screenPos.getY()) * (dsty - screenPos.getY());
+	        		leftDst = Math.sqrt(leftDst);
+	        		
+	        		
 
 		        	gPaint.drawLine(orgx, orgy, dstx, dsty);
 		        	
@@ -336,7 +367,11 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	}
 		        	
 		        	int textX, textY;
+
+		        	String title = poi.getName() + " - " + ((int)Math.round(leftDst)) + "px";
 		        	
+		        	int adv = metrics.stringWidth(title);
+
 		        	textX = dstx - (adv + 1) / 2;
 		        	textY = dsty + (hgt + 1) / 2 - descent;
 	        		
@@ -347,7 +382,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	
 		        	
 		        	
-		        	gPaint.drawString(poi.getName(), textX, textY );
+		        	gPaint.drawString(title, textX, textY );
 	        	} else {
 	        		int centerx = (int)Math.round(screenPos.getX());
 		        	int centery = (int)Math.round(screenPos.getY());
@@ -356,6 +391,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
 		        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
 		        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
+
+		        	int adv = metrics.stringWidth(poi.getName());
 		        	
 	        		gPaint.drawString(poi.getName(), centerx - (adv + 1)/ 2, centery + 20 + hgt - descent);
 	        	}
@@ -363,6 +400,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 
 	        	
 	        	double [] points = poi.getSecondaryPoints();
+	        	if (points == null) points = new double[0];
 	        	for(int i = 0; i < points.length; i += 2)
 	        	{
 		        	x = points[i];

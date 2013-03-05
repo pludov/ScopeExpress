@@ -112,9 +112,11 @@ public class Mosaic {
 		Map<Image, StarOccurence> imageMap = occurences.get(star);
 		if (imageMap == null) return null;
 		StarOccurence result = imageMap.remove(image);
-		if (imageMap.isEmpty()) {
-			occurences.remove(star);
-		}
+		
+		// FIXME: ce code doit être assuré par les appelants!
+//		if (imageMap.isEmpty()) {
+//			occurences.remove(star);
+//		}
 		return result;
 	}
 	
@@ -125,6 +127,9 @@ public class Mosaic {
 	public void mergeStarOccurence(Star target, StarOccurence other)
 	{
 		if (other.getStar() == target) return;
+		if (other.getStar().getPositionStatus() == StarCorrelationPosition.Reference) {
+			throw new RuntimeException("Cannot merge a reference star");
+		}
 		StarOccurence otherCopy = new StarOccurence(other, target);
 		
 		// On retire une éventuelle occurence déjà présence pour target sur l'image
@@ -241,6 +246,9 @@ public class Mosaic {
 	
 	void updateCorrelatedStars(Star star)
 	{
+		if (star.getPositionStatus() == StarCorrelationPosition.Reference) {
+			throw new RuntimeException("Cannot update reference star");
+		}
 		Map<Image, StarOccurence> starOccurences = occurences.get(star);
 		double x = 0, y = 0;
 		double [] result = new double[2];
@@ -276,6 +284,10 @@ public class Mosaic {
 		List<Star> stars = new ArrayList<Star>();
 		for(Map.Entry<Star, Map<Image, StarOccurence>> entry : occurences.entrySet())
 		{
+			if (entry.getKey().getPositionStatus() == StarCorrelationPosition.Reference) {
+				continue;
+			}
+			
 			Map<Image, StarOccurence> occByStar = entry.getValue();
 			if (occByStar.containsKey(modified)) {
 				stars.add(entry.getKey());
@@ -320,7 +332,7 @@ public class Mosaic {
 		List<CorrelatedGridPoint> result = new ArrayList<CorrelatedGridPoint>();
 		for(Star star : stars)
 		{
-			if (star.isHasCorrelatedPos()) {
+			if (star.getPositionStatus().hasPosition()) {
 				result.add(new CorrelatedGridPoint(star, star.getCorrelatedX(), star.getCorrelatedY()));
 			}
 		}

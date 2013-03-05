@@ -9,9 +9,10 @@ public class Star {
 	Image clickImage;
 	boolean excludeFromStat;
 	
-	boolean hasCorrelatedPos;
+	StarCorrelationPosition positionStatus;
 	double correlatedX, correlatedY;
-	
+
+	double magnitude;
 	
 	
 	public Star(int clickX, int clickY, Image clickImage) {
@@ -19,9 +20,10 @@ public class Star {
 		this.clickY = clickY;
 		this.clickImage = clickImage;
 		this.excludeFromStat = false;
-		this.hasCorrelatedPos = false;
+		this.positionStatus = StarCorrelationPosition.None;
 		this.correlatedX = 0;
 		this.correlatedY = 0;
+		this.magnitude = Double.NaN;
 	}
 
 	public String getTitre() {
@@ -58,18 +60,14 @@ public class Star {
 
 	public void setCorrelatedPos(double x, double y)
 	{
-		this.hasCorrelatedPos = true;
+		this.positionStatus = StarCorrelationPosition.Deducted;
 		this.correlatedX = x;
 		this.correlatedY = y;
 	}
 
 	public void unsetCorrelatedPos()
 	{
-		this.hasCorrelatedPos = false;
-	}
-
-	public boolean isHasCorrelatedPos() {
-		return hasCorrelatedPos;
+		this.positionStatus = StarCorrelationPosition.None;
 	}
 
 	public double getCorrelatedX() {
@@ -78,5 +76,21 @@ public class Star {
 
 	public double getCorrelatedY() {
 		return correlatedY;
+	}
+
+	public StarCorrelationPosition getPositionStatus() {
+		return positionStatus;
+	}
+
+	public void setPositionStatus(StarCorrelationPosition positionStatus) {
+		this.positionStatus = positionStatus;
+	}
+
+	public double getMagnitude() {
+		return magnitude;
+	}
+
+	public void setMagnitude(double magnitude) {
+		this.magnitude = magnitude;
 	}
 }
