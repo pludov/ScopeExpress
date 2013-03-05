@@ -69,9 +69,9 @@ public class CorrelateTask extends BackgroundTask {
 		}
 	}
 	
-	private List<DynamicGridPoint> getImageStars(Image image)
+	private List<ImageStar> getImageStars(Image image)
 	{
-		List<DynamicGridPoint> imageStars = new ArrayList<DynamicGridPoint>();
+		List<ImageStar> imageStars = new ArrayList<ImageStar>();
 		Mosaic focus = this.mosaic;
 		
 		for(Star star : focus.getStars())
@@ -94,7 +94,7 @@ public class CorrelateTask extends BackgroundTask {
 	@Override
 	protected void proceed() throws BackgroundTaskCanceledException, Throwable {
 		List<Mosaic.CorrelatedGridPoint> referenceStars;
-		List<DynamicGridPoint> destStars;
+		List<ImageStar> destStars;
 		
 		Correlation correlation = new Correlation();
 
@@ -141,66 +141,68 @@ public class CorrelateTask extends BackgroundTask {
 		try {
 			correlation.correlate(destStars, referenceStars);
 			
+
+			List<Mosaic.CorrelatedGridPoint> referenceStarList = referenceStars;
+
+			double [] referenceX = new double[referenceStarList.size()];
+			double [] referenceY = new double[referenceStarList.size()];
+			for(int i = 0; i < referenceStarList.size(); ++i)
+			{
+				Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(i);
+				
+				double x = referenceSo.getX();
+				double y = referenceSo.getY();
+
+				double nvx = correlation.getTx() + x * correlation.getCs() + y * correlation.getSn();
+				double nvy = correlation.getTy() + y * correlation.getCs() - x * correlation.getSn();
+				
+				referenceX[i] = nvx;
+				referenceY[i] = nvy;
+			}
+
+			double [] otherX = new double[destStars.size()];
+			double [] otherY = new double[destStars.size()];
+			
+			for(int i = 0; i < destStars.size(); ++i)
+			{
+				ImageStar otherSo = destStars.get(i);
+				otherX[i] = otherSo.getX();
+				otherY[i] = otherSo.getY();
+			}
+
+			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 14);
+			
+			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
+
+			double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()};
+			
+			if (correlations.size() > 0) {
+				// Procéder à l'ajustement
+				adjustCorrelationParams(correlationParams, correlations, referenceStarList, destStars);
+			}
 			
 			SwingThreadMonitor.acquire(); 
 			try {
 				Mosaic mosaic = this.mosaic;
 	
-				List<Mosaic.CorrelatedGridPoint> referenceStarList = referenceStars;
-				List<StarOccurence> otherStarList = new ArrayList<StarOccurence>();
-				
-				for(Star star : mosaic.getStars())
-				{
-					StarOccurence otherSo = mosaic.getStarOccurence(star, this.image);
-					if (otherSo != null && otherSo.isAnalyseDone() && otherSo.isStarFound())
-					{
-						otherStarList.add(otherSo);
-					}
-				}
-
-				double [] referenceX = new double[referenceStarList.size()];
-				double [] referenceY = new double[referenceStarList.size()];
-				for(int i = 0; i < referenceStarList.size(); ++i)
-				{
-					Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(i);
-					
-					double x = referenceSo.getX();
-					double y = referenceSo.getY();
-
-					double nvx = correlation.getTx() + x * correlation.getCs() + y * correlation.getSn();
-					double nvy = correlation.getTy() + y * correlation.getCs() - x * correlation.getSn();
-					
-					referenceX[i] = nvx;
-					referenceY[i] = nvy;
-				}
-				
-				double [] otherX = new double[otherStarList.size()];
-				double [] otherY = new double[otherStarList.size()];
-				
-				for(int i = 0; i < otherStarList.size(); ++i)
-				{
-					StarOccurence otherSo = otherStarList.get(i);
-					otherX[i] = otherSo.getX();
-					otherY[i] = otherSo.getY();
-				}
-
-				PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 14);
-				
-				List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
 				
 				if (correlations.size() > 0) {
-					// Procéder à l'ajustement
-					double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()}; 
-					
-					adjustCorrelationParams(correlationParams, correlations, referenceStarList, otherStarList);
-					
 					for(PointMatchAlgorithm.Correlation c : correlations)
 					{
 						int refStarId = c.getP1();
 						int otherStarId = c.getP2();
 						
 						Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(refStarId);
-						StarOccurence otherSo = otherStarList.get(otherStarId);
+						ImageStar iStar = destStars.get(otherStarId);
+						StarOccurence otherSo = iStar.so;
+						
+						if (!mosaic.exists(otherSo)) {
+							continue;
+						}
+						
+						if (!mosaic.exists(referenceSo.getStar())) {
+							continue;
+						}
 						
 						// On déplacer la starOccurence de other vers ref.
 						StarOccurence currenOtherSo = mosaic.getStarOccurence(referenceSo.getStar(), this.image);
@@ -253,7 +255,7 @@ public class CorrelateTask extends BackgroundTask {
 	private static void adjustCorrelationParams(double [] correlationCsSnTxTy, 
 								List<PointMatchAlgorithm.Correlation> correlations,
 								List<Mosaic.CorrelatedGridPoint> referenceStarList,
-								List<StarOccurence> otherStarList)
+								List<? extends DynamicGridPoint> otherStarList)
 	{
 		// Pour chaque segment disponible, on va calculer la rotation
 		// On fait la moyenne des angles et on retient cet angle
