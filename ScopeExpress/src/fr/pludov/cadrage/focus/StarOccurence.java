@@ -43,6 +43,8 @@ public class StarOccurence {
 	
 	// Pic au centre
 	double picX, picY;
+	
+	Mosaic owner;
 
 	protected StarOccurence(StarOccurence copy, Star newStar)
 	{

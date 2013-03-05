@@ -96,6 +96,9 @@ public class Mosaic {
 	
 	public void addStarOccurence(StarOccurence sco)
 	{
+		if (sco.owner != null) throw new RuntimeException("adding already owned staroccurence");
+		sco.owner = this;
+		
 		Map<Image, StarOccurence> imageMap = occurences.get(sco.getStar());
 		if (imageMap == null) {
 			imageMap = new HashMap<Image, StarOccurence>();
@@ -112,7 +115,7 @@ public class Mosaic {
 		Map<Image, StarOccurence> imageMap = occurences.get(star);
 		if (imageMap == null) return null;
 		StarOccurence result = imageMap.remove(image);
-		
+		if (result != null) result.owner = null;
 		// FIXME: ce code doit être assuré par les appelants!
 //		if (imageMap.isEmpty()) {
 //			occurences.remove(star);
@@ -149,6 +152,10 @@ public class Mosaic {
 	
 	public void addStar(Star star)
 	{
+		if (star.mosaic != null) {
+			throw new RuntimeException("add star of already owned star");
+		}
+		star.mosaic = this;
 		stars.add(star);
 		listeners.getTarget().starAdded(star);
 		
@@ -162,6 +169,10 @@ public class Mosaic {
 	
 	public void removeStar(Star star)
 	{
+		if (star.mosaic != this) {
+			throw new RuntimeException("Removing star from other mosaic");
+		}
+		star.mosaic = null;
 		if (!stars.remove(star)) return;
 		
 		for(Image image : images)
@@ -337,6 +348,16 @@ public class Mosaic {
 			}
 		}
 		return result;
+	}
+	
+	public boolean exists(Star star)
+	{
+		return star.mosaic == this;
+	}
+	
+	public boolean exists(StarOccurence soc)
+	{
+		return soc.owner == this;
 	}
 	
 	public List<StarOccurence> getStarOccurences(Star star)

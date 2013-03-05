@@ -14,6 +14,8 @@ public class Star {
 
 	double magnitude;
 	
+	Mosaic mosaic;
+	
 	
 	public Star(int clickX, int clickY, Image clickImage) {
 		this.clickX = clickX;
@@ -24,6 +26,7 @@ public class Star {
 		this.correlatedX = 0;
 		this.correlatedY = 0;
 		this.magnitude = Double.NaN;
+		this.mosaic = null;
 	}
 
 	public String getTitre() {
