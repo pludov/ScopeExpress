@@ -18,12 +18,14 @@ import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import fr.pludov.cadrage.catalogs.StarProvider;
 import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
@@ -210,6 +212,54 @@ public class FocusUi extends FocusUiDesign {
 			public void pointOfInterestRemoved(PointOfInterest poi) {
 				// TODO Auto-generated method stub
 				
+			}
+		});
+	
+		this.mnPolaire.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				double radius = 4;
+				List<Double> stars = StarProvider.getStarAroundNorth(90 - radius, 10.5);
+				
+				double pixelArcSec = 2 * 2.23;
+				double pixelRad = 2 * Math.PI * pixelArcSec / (3600 * 360);
+				
+				double raToRad = Math.PI / 180.0;
+				double decToRad = Math.PI / 180.0;
+				
+				for(int i = 0; i < stars.size(); i += 3)
+				{
+					double ra = stars.get(i);
+					double dec = stars.get(i + 1);
+					double mag = stars.get(i + 2);
+
+					double angle = raToRad * ra;
+					double anglePolaire = (90 - dec) *decToRad;
+					
+					double x = Math.cos(angle);
+					double y = Math.sin(angle);
+					
+					double mult = Math.tan(anglePolaire);
+					mult /= pixelRad;
+					// Facteur d'échelle, ad-hoc
+					// mult *= 10240 / radius;
+					
+					x *= mult;
+					y *= mult;
+					
+					Star star = new Star(0, 0, null);
+					star.setCorrelatedPos(x, y);
+					star.setPositionStatus(StarCorrelationPosition.Reference);
+					star.setMagnitude(mag);
+					mosaic.addStar(star);
+				}
+				
+				PointOfInterest poi = new PointOfInterest("pole (carte)", false);
+				poi.setX(0);
+				poi.setY(0);
+				// poi.setSecondaryPoints(pfa.getPoints());
+				mosaic.addPointOfInterest(poi);
 			}
 		});
 		
