@@ -28,6 +28,8 @@ public class Mosaic {
 	final Map<Star, Map<Image, StarOccurence>> occurences;
 	final Map<String, PointOfInterest> pointOfInterest;
 	
+	// Est-ce que la mosaique a des coordonnées célestes
+	SkyProjection skyProjection;
 	
 	List<StarOccurence> todoList;
 	
@@ -379,5 +381,13 @@ public class Mosaic {
 		}
 		
 		return result;
+	}
+
+	public SkyProjection getSkyProjection() {
+		return skyProjection;
+	}
+
+	public void setSkyProjection(SkyProjection skyProjection) {
+		this.skyProjection = skyProjection;
 	}
 }
