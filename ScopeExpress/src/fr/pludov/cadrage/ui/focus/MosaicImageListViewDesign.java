@@ -10,6 +10,7 @@ import javax.swing.border.BevelBorder;
 import java.awt.Dimension;
 import javax.swing.UIManager;
 import javax.swing.JSplitPane;
+import javax.swing.JLabel;
 
 public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel imageViewPanel;
@@ -19,6 +20,7 @@ public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel leftPanel;
 	protected JPanel zoomPanel;
 	protected JPanel viewParameterPanel;
+	protected JLabel lblStatus;
 
 	/**
 	 * Create the panel.
@@ -45,14 +47,17 @@ public class MosaicImageListViewDesign extends JPanel {
 		
 		this.leftPanel = new JPanel();
 		this.splitPane.setLeftComponent(this.leftPanel);
-		this.leftPanel.setLayout(new MigLayout("", "[200px:n,grow,fill]", "[200px:n,grow,fill][fill]"));
+		this.leftPanel.setLayout(new MigLayout("", "[200px:n,grow,fill]", "[200px:n,grow,fill][][fill]"));
 		
 		this.imageViewPanel = new JPanel();
 		this.leftPanel.add(this.imageViewPanel, "cell 0 0,grow");
 		this.imageViewPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		
+		this.lblStatus = new JLabel("");
+		this.leftPanel.add(this.lblStatus, "cell 0 1,alignx left");
+		
 		this.viewParameterPanel = new JPanel();
-		this.leftPanel.add(this.viewParameterPanel, "cell 0 1,grow");
+		this.leftPanel.add(this.viewParameterPanel, "cell 0 2,grow");
 		this.viewParameterPanel.setLayout(new BoxLayout(this.viewParameterPanel, BoxLayout.X_AXIS));
 
 	}

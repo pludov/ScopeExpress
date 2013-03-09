@@ -1,9 +1,11 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
@@ -18,6 +20,7 @@ import fr.pludov.cadrage.focus.MosaicImageParameterListener;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
@@ -178,6 +181,59 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 	}
 	
+	private boolean isIntBound(double d)
+	{
+		if (Double.isNaN(d)) return false;
+		if (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE) return false;
+		return true;
+	}
+	
+	private void drawLines(Graphics2D g2d, double [] srcPts, double [] dstPts)
+	{
+		for(int i = 0; i < srcPts.length; i += 2)
+		
+		{
+			double oldX = srcPts[i];
+			double oldY = srcPts[i + 1];
+			if (!isIntBound(oldX)) continue;
+			if (!isIntBound(oldY)) continue;
+			
+			if (oldX < Integer.MIN_VALUE || oldX > Integer.MAX_VALUE) continue;
+			if (oldY < Integer.MIN_VALUE || oldX > Integer.MAX_VALUE) continue;
+			
+			double newX = dstPts[i];
+			double newY = dstPts[i + 1];
+			if (!isIntBound(newX)) continue;
+			if (!isIntBound(newY)) continue;
+			
+			g2d.drawLine((int)Math.round(oldX), (int)Math.round(oldY), 
+						  (int)Math.round(newX), (int)Math.round(newY));
+		}
+	}	
+	
+	private void drawCircle(Graphics2D g2d, double [] srcPts)
+	{
+		for(int i = 0; i < srcPts.length; i += 2)
+		{
+			int prevI = (i == 0 ? srcPts.length - 2 : i - 2);
+			double oldX = srcPts[prevI];
+			double oldY = srcPts[prevI + 1];
+			if (!isIntBound(oldX)) continue;
+			if (!isIntBound(oldY)) continue;
+			
+			if (oldX < Integer.MIN_VALUE || oldX > Integer.MAX_VALUE) continue;
+			if (oldY < Integer.MIN_VALUE || oldX > Integer.MAX_VALUE) continue;
+			
+			double newX = srcPts[i];
+			double newY = srcPts[i + 1];
+			if (!isIntBound(newX)) continue;
+			if (!isIntBound(newY)) continue;
+			
+			g2d.drawLine((int)Math.round(oldX), (int)Math.round(oldY), 
+						  (int)Math.round(newX), (int)Math.round(newY));
+		}
+	}
+	
 	@Override
 	public void paint(Graphics gPaint) {
 		super.paint(gPaint);
@@ -189,6 +245,64 @@ public class FrameDisplayWithStar extends FrameDisplay {
     		double [] tmpPoint = new double[2];
     		gPaint.setColor(Color.green);
     		
+    		MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+
+    		// Dessiner les graduations polaires
+    		SkyProjection skyproj = mosaic.getSkyProjection();
+    		if (skyproj != null) {
+    			Stroke original = g2d.getStroke();
+//    			Stroke drawingStroke = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0);
+//    			drawingStroke= new BasicStroke(1, BasicStroke.CAP_BUTT, 
+//    				     BasicStroke.JOIN_MITER, 1.0f, new float[]{4, 0, 4}, 2f );
+    			g2d.setColor(Color.GRAY);
+//    			g2d.setStroke(drawingStroke);
+    			double [] tmp = new double[2];
+    			double [] tmp2 = new double[2];
+    			
+	    		int raStepCount = 24;
+
+    			int decStepCount = 180;
+    		
+    			double [] lastRa = null;
+    			double [] firstRa = null;
+	    		for(int raStep = 0; raStep < raStepCount; raStep++)
+	    		{	
+	    			double [] pt = new double[decStepCount * 2];
+	    			if (firstRa == null) firstRa = pt;
+	    			
+	    			for(int decStep = 0; decStep < decStepCount; ++decStep)
+	    			{
+	    				tmp [0] = (360.0 * raStep) / raStepCount;
+	    				tmp [1] = 90 - (180.0 * decStep) / decStepCount;
+	    				
+	    				if (!skyproj.project(tmp))
+	    				{
+	    					pt[2 * decStep] = Double.NaN;
+	    					pt[2 * decStep + 1] = Double.NaN;
+	    					continue;
+	    				}
+	    				if (mip != null) {
+	    					tmp = mip.mosaicToImage(tmp[0], tmp[1], tmp);
+	    				}
+
+	        			imageToScreen.transform(tmp, 0, tmp2, 0, 1);
+	    	        	
+	        			pt[2 * decStep] = tmp2[0];
+	        			pt[2 * decStep + 1] = tmp2[1];
+	    			}
+	    			drawCircle(g2d, pt);
+	    			if (lastRa != null) {
+	    				drawLines(g2d, pt, lastRa);
+	    			}
+	    			lastRa = pt;
+	    		}
+	    		
+	    		if (lastRa != null && firstRa != null) {
+	    			drawLines(g2d, lastRa, firstRa);
+	    		}
+	    		g2d.setStroke(original);
+    		}
+    		g2d.setColor(Color.GREEN);
     		for(Star star : mosaic.getStars())
     		{
     			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
@@ -196,7 +310,6 @@ public class FrameDisplayWithStar extends FrameDisplay {
     			double x = star.getCorrelatedX();
     			double y = star.getCorrelatedY();
     			
-	        	MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
     			if (mip != null) {
     				tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
     			} else {
@@ -245,8 +358,6 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	
 	        	if (this.getOtherStarDisplayMode() != OtherStarDisplayMode.None)
 	        	{
-		        	MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
-		        	
 		        	for(StarOccurence other : mosaic.getStarOccurences(star))
 	    			{
 		        		if (other == sco) continue;
@@ -298,19 +409,19 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        g2d.setColor(Color.GREEN);
 	        for(PointOfInterest poi : mosaic.getAllPointsOfInterest())
 	        {
-	        	MosaicImageParameter mip = null;
+	        	MosaicImageParameter mip2 = null;
 	        	if (!poi.isImageRelative()) {
-	        		mip = mosaic.getMosaicImageParameter(image);
-	        		if (mip == null) continue;
-	        		if (!mip.isCorrelated()) continue;
+	        		mip2 = mosaic.getMosaicImageParameter(image);
+	        		if (mip2 == null) continue;
+	        		if (!mip2.isCorrelated()) continue;
 	        	}
 	        	double x, y;
 	        	
 	        	x = poi.getX();
 	        	y = poi.getY();
 	        	
-	        	if (mip != null) {
-	        		tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
+	        	if (mip2 != null) {
+	        		tmpPoint = mip2.mosaicToImage(x, y, tmpPoint);
 	        		x = tmpPoint[0];
 	        		y = tmpPoint[1];
 	        	}
@@ -625,5 +736,9 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			registerSocListeners();
 		}
 		scheduleRepaint(true);
+	}
+
+	public Image getImage() {
+		return image;
 	}
 }

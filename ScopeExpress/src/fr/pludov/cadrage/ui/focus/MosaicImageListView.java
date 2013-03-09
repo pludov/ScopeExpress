@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -27,6 +26,7 @@ import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
@@ -119,6 +119,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	{
 		if (this.mosaic == mosaic) return;
 		
+		this.mosaic = mosaic;
 		principal.setMosaic(mosaic);
 		zoomed.setMosaic(mosaic);
 		focusImageList.setMosaic(mosaic);
@@ -130,6 +131,17 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 
 		principal = new FrameDisplayWithStar(focusUi.application);
 		principal.setImageDisplayParameter(displayParameter);
+		principal.addMouseMotionListener(new MouseMotionListener() {
+			@Override
+			public void mouseDragged(MouseEvent e) {
+				updateMousePosition(principal, e.getX(), e.getY());	
+			}
+			
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				updateMousePosition(principal, e.getX(), e.getY());				
+			}
+		});
 		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
 		
@@ -243,6 +255,46 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			}
 		});
 		
+	}
+	
+	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
+	{
+		if (display == null) return "";
+		Image image = display.getImage();
+		if (image == null) return "";
+		if (mosaic.getSkyProjection() == null) return "";
+		
+		MosaicImageParameter mip = mosaic.getMosaicImageParameter(display.getImage());
+		if (mip == null || !mip.isCorrelated()) return "pas de correlation";
+		try {
+			double [] tmp1 = new double[2];
+			double [] tmp2 = new double[2];
+			
+			AffineTransform imageToScreen = display.getImageToScreen();
+			AffineTransform screenToImage = imageToScreen;
+			screenToImage.invert();
+			
+			tmp1[0] = x;
+			tmp1[1] = y;
+			screenToImage.transform(tmp1, 0, tmp2, 0, 1);
+			double imgX = tmp2[0];
+			double imgY = tmp2[1];
+			
+			tmp1 = mip.imageToMosaic(imgX, imgY, tmp1);
+			mosaic.getSkyProjection().unproject(tmp1);
+			double ra = tmp1[0];
+			double dec = tmp1[1];
+			return String.format("%.2f %.2f", ra, dec);
+		} catch(Exception e) {
+			logger.warn("unable to find coord for screen: " , e);
+			return e.getMessage();
+			
+		}
+	}
+	
+	void updateMousePosition(FrameDisplayWithStar display, int x, int y)
+	{
+		lblStatus.setText(getPositionLabel(display, x, y));
 	}
 
 	private void loadCurrentFrame()
