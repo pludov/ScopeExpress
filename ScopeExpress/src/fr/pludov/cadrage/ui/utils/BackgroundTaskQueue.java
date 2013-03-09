@@ -123,6 +123,7 @@ public final class BackgroundTaskQueue {
 		synchronized(this)
 		{
 			task.endTime = System.currentTimeMillis();
+			this.runningCount--;
 			callOnDone = !task.status.isFinal;
 			switch(task.status)
 			{
@@ -188,6 +189,7 @@ public final class BackgroundTaskQueue {
 			if ((task.status == Status.Pending) && task.isReady())
 			{
 				startTask(task);
+				runningCount++;
 				if (runningCount >= maxRunCount) return;
 			}
 		}
