@@ -7,12 +7,14 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
+import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
@@ -234,6 +236,26 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		}
 	}
 	
+	/**
+	 * Converti une position sur l'écran en position 3D dans le repère de skyproj
+	 */
+	private void screenTo3DMosaic(int x, int y, MosaicImageParameter mip, AffineTransform imageToScreen, SkyProjection skyproj, double [] result)
+	{
+		double [] src = new double[] { x, y};
+		try {
+			imageToScreen.inverseTransform(src, 0, src, 0, 1);
+		} catch(NoninvertibleTransformException e) {
+			throw new RuntimeException("should not happen", e);
+		}
+		if (mip != null) {
+			mip.imageToMosaic(src[0], src[1], src);
+		}
+			
+		skyproj.unprojectPreTransformed3d(src, result);
+		skyproj.unproject(src);
+		System.out.println(" glop");
+	}
+	
 	@Override
 	public void paint(Graphics gPaint) {
 		super.paint(gPaint);
@@ -256,50 +278,94 @@ public class FrameDisplayWithStar extends FrameDisplay {
 //    				     BasicStroke.JOIN_MITER, 1.0f, new float[]{4, 0, 4}, 2f );
     			g2d.setColor(Color.GRAY);
 //    			g2d.setStroke(drawingStroke);
-    			double [] tmp = new double[2];
-    			double [] tmp2 = new double[2];
     			
-	    		int raStepCount = 24;
-
-    			int decStepCount = 180;
-    		
-    			double [] lastRa = null;
-    			double [] firstRa = null;
-	    		for(int raStep = 0; raStep < raStepCount; raStep++)
-	    		{	
-	    			double [] pt = new double[decStepCount * 2];
-	    			if (firstRa == null) firstRa = pt;
-	    			
-	    			for(int decStep = 0; decStep < decStepCount; ++decStep)
-	    			{
-	    				tmp [0] = (360.0 * raStep) / raStepCount;
-	    				tmp [1] = 90 - (180.0 * decStep) / decStepCount;
-	    				
-	    				if (!skyproj.project(tmp))
-	    				{
-	    					pt[2 * decStep] = Double.NaN;
-	    					pt[2 * decStep + 1] = Double.NaN;
-	    					continue;
-	    				}
-	    				if (mip != null) {
-	    					tmp = mip.mosaicToImage(tmp[0], tmp[1], tmp);
-	    				}
-
-	        			imageToScreen.transform(tmp, 0, tmp2, 0, 1);
-	    	        	
-	        			pt[2 * decStep] = tmp2[0];
-	        			pt[2 * decStep + 1] = tmp2[1];
-	    			}
-	    			drawCircle(g2d, pt);
-	    			if (lastRa != null) {
-	    				drawLines(g2d, pt, lastRa);
-	    			}
-	    			lastRa = pt;
-	    		}
-	    		
-	    		if (lastRa != null && firstRa != null) {
-	    			drawLines(g2d, lastRa, firstRa);
-	    		}
+    			
+    			double [] pt00 = new double[3];
+    			double [] pt01 = new double[3];
+    			screenTo3DMosaic(10, 0, mip, imageToScreen, skyproj, pt00);
+    			screenTo3DMosaic(10, getHeight(), mip, imageToScreen, skyproj, pt01);
+    			
+    			double [] planeLeft = new double[4];
+    			planeLeft[0] = -(pt00[1] * pt01[2] - pt00[2] * pt01[1]);
+    			planeLeft[1] = -(pt00[2] * pt01[0] - pt00[0] * pt01[2]);
+    			planeLeft[2] = -(pt00[0] * pt01[1] - pt00[1] * pt01[0]);
+    			planeLeft[3] = 0;
+    			
+    			for(int dec = -89; dec <= 89; ++dec)
+    			{
+    				
+    				
+    				AffineTransform3D at = AffineTransform3D.identity;
+    				double scale = Math.cos(dec * Math.PI / 180);
+    				double high = Math.sin(dec * Math.PI / 180);
+    				at = at.scale(scale);
+    				at = at.translate(0, 0, high);
+    				
+    				at = at.combine(skyproj.getTransform());
+    				Circle circle = new Circle(at);
+    				for(Circle c : circle.cut(planeLeft)) {
+    					c.draw(g2d, skyproj, mip, imageToScreen);
+    				}
+    			}
+    			
+    			for(int ra = 0; ra < 12; ++ra)
+    			{
+    				AffineTransform3D at = AffineTransform3D.identity;
+    				// Mettre le pole à l'angle 0
+    				at = at.rotateY(0, 1);
+    				at = at.rotateZ(Math.cos(ra * 2 * Math.PI / 24), Math.sin(ra * 2 * Math.PI / 24));
+    				at = at.combine(skyproj.getTransform());
+    				Circle circle = new Circle(at);
+    				
+    				for(Circle c : circle.cut(planeLeft)) {
+    					c.draw(g2d, skyproj, mip, imageToScreen);
+    				}
+    			}
+    			
+//    			double [] tmp = new double[2];
+//    			double [] tmp2 = new double[2];
+//    			
+//	    		int raStepCount = 24;
+//
+//    			int decStepCount = 180;
+//    		
+//    			double [] lastRa = null;
+//    			double [] firstRa = null;
+//	    		for(int raStep = 0; raStep < raStepCount; raStep++)
+//	    		{	
+//	    			double [] pt = new double[decStepCount * 2];
+//	    			if (firstRa == null) firstRa = pt;
+//	    			
+//	    			for(int decStep = 0; decStep < decStepCount; ++decStep)
+//	    			{
+//	    				tmp [0] = (360.0 * raStep) / raStepCount;
+//	    				tmp [1] = 90 - (180.0 * decStep) / decStepCount;
+//	    				
+//	    				if (!skyproj.project(tmp))
+//	    				{
+//	    					pt[2 * decStep] = Double.NaN;
+//	    					pt[2 * decStep + 1] = Double.NaN;
+//	    					continue;
+//	    				}
+//	    				if (mip != null) {
+//	    					tmp = mip.mosaicToImage(tmp[0], tmp[1], tmp);
+//	    				}
+//
+//	        			imageToScreen.transform(tmp, 0, tmp2, 0, 1);
+//	    	        	
+//	        			pt[2 * decStep] = tmp2[0];
+//	        			pt[2 * decStep + 1] = tmp2[1];
+//	    			}
+//	    			drawCircle(g2d, pt);
+//	    			if (lastRa != null) {
+//	    				drawLines(g2d, pt, lastRa);
+//	    			}
+//	    			lastRa = pt;
+//	    		}
+//	    		
+//	    		if (lastRa != null && firstRa != null) {
+//	    			drawLines(g2d, lastRa, firstRa);
+//	    		}
 	    		g2d.setStroke(original);
     		}
     		g2d.setColor(Color.GREEN);
@@ -412,8 +478,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	MosaicImageParameter mip2 = null;
 	        	if (!poi.isImageRelative()) {
 	        		mip2 = mosaic.getMosaicImageParameter(image);
-	        		if (mip2 == null) continue;
-	        		if (!mip2.isCorrelated()) continue;
+	        		// if (mip2 == null) continue;
+	        		// if (!mip2.isCorrelated()) continue;
 	        	}
 	        	double x, y;
 	        	

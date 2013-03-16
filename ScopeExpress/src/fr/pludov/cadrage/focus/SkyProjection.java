@@ -39,6 +39,18 @@ public class SkyProjection {
 		}
 	}
 
+	
+	public void setTransform(AffineTransform3D transform)
+	{
+		try {
+			this.invertedTransform = transform.invert();
+			this.transform = transform;
+		} catch(NoninvertibleTransformException e) {
+			throw new RuntimeException("parameter not invertible", e);
+		}
+
+	}
+	
 	// Projette une étoile sur la sphere 3D.
 	// Dans cette projectino le pole nord pointe vers z (0,0,1).
 	public static void convertRaDecTo3D(double [] radec, double [] rslt3d)
@@ -61,8 +73,8 @@ public class SkyProjection {
 	public static void convert3DToRaDec(double [] pt3d, double [] radec)
 	{
 		double x = pt3d[0];
-		double y = pt3d[0];
-		double z = pt3d[0];
+		double y = pt3d[1];
+		double z = pt3d[2];
 		
 		// z = cos((90 - dec) * decToRad)
 		// (90 - dec) * decToRad = cos-1(z)
@@ -81,7 +93,27 @@ public class SkyProjection {
 		radec[0] = ra;
 		radec[1] = dec;
 	}
-
+	/**
+	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
+	 */
+	public boolean projectPreTransformed3d(double [] pos3d, double [] pos2d)
+	{
+		double x = pos3d[0];
+		double y = pos3d[1];
+		double z = pos3d[2];
+		if (z < epsilon) {
+			return false;
+		}
+		double iz = 1.0/(pixelRad * z);
+		x *= iz;
+		y *= iz;
+		pos2d[0] = x;
+		pos2d[1] = y;
+		
+		return true;
+		
+	}
+	
 	/**
 	 * Convertir ra/dec en coordonnées sur la mosaic
 	 * 
@@ -109,15 +141,30 @@ public class SkyProjection {
 		
 		return true;
 	}
+
+
+	public void unprojectPreTransformed3d(double [] pos2d, double[] pos3d)
+	{
+		double x = pos2d[0] * pixelRad;
+		double y = pos2d[1] * pixelRad;
+		
+		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
+		double x3d = x * z3d;
+		double y3d = y * z3d;
+		pos3d[0] = x3d;
+		pos3d[1] = y3d;
+		pos3d[2] = z3d;
+	}
 	
+
 	public void unproject(double [] xy)
 	{
 		// On veut retrouver les coordonnées 3D.
 		// x = x3d / z3d
 		// y = y3d / z3d
 		// x3d * x3d + y3d * y3d + z3d * z3d = 1
-		double x = xy[0];
-		double y = xy[1];
+		double x = xy[0]  * pixelRad;
+		double y = xy[1]  * pixelRad;
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
@@ -150,6 +197,10 @@ public class SkyProjection {
 //		double ra = raRad / raToRad;
 //		xy[0] = ra;
 //		xy[1] = dec;
+	}
+
+	public AffineTransform3D getTransform() {
+		return transform;
 	}
 	
 }

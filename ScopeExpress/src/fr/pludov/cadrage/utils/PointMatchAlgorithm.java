@@ -23,6 +23,22 @@ public class PointMatchAlgorithm {
 		public double getDst() {
 			return dst;
 		}
+		
+		@Override
+		public int hashCode() {
+			return p1 * 13 + p2 * 247;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if ((obj instanceof Correlation)) 
+			{
+				Correlation other = (Correlation)obj;
+				return other.p1 == this.p1 && other.p2 == this.p2;
+			}
+			return false;
+		}
+		
 	}
 	
 	final double [] x1;
@@ -40,7 +56,7 @@ public class PointMatchAlgorithm {
 		this.maxdst = maxdst;
 	}
 	
-	public List<Correlation> proceed()
+	public ArrayList<Correlation> proceed()
 	{
 		double maxdst2 = maxdst * maxdst;
 		
@@ -80,7 +96,7 @@ public class PointMatchAlgorithm {
 		
 		boolean [] p1used = new boolean[x1.length];
 		boolean [] p2used = new boolean[x2.length];
-		List<Correlation> result = new ArrayList<Correlation>(correlations.size());
+		ArrayList<Correlation> result = new ArrayList<Correlation>(correlations.size());
 		for(Correlation c : correlations)
 		{
 			if (p1used[c.p1]) continue;

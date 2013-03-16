@@ -2,8 +2,10 @@ package fr.pludov.cadrage.ui.focus;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.NoninvertibleTransformException;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
@@ -14,11 +16,15 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.apache.commons.collections.primitives.DoubleList;
+
 import fr.pludov.cadrage.catalogs.StarProvider;
+import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicListener;
@@ -29,6 +35,7 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
+import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
@@ -221,44 +228,56 @@ public class FocusUi extends FocusUiDesign {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				double pixelArcSec = 2 * 2.23;
-				
-				SkyProjection projection = new SkyProjection(pixelArcSec);
-				mosaic.setSkyProjection(projection);
+
+				double raTarget = 0.0;
+				double decTarget = 89;
 
 				double radius = 4;
-
-				List<Double> stars = StarProvider.getStarAroundNorth(90 - radius, 10.5);
-
-				double [] tmp = new double[2];
+				double maxMag = 10.5;
+//				La polaire
+//				raTarget = (360/24.0) * (02 + 31/60.0 + 49.09456/3600.0);
+//				decTarget = 89 + 15/60.0 + 50/3600.0;
 				
-				for(int i = 0; i < stars.size(); i += 3)
-				{
-					double ra = stars.get(i);
-					double dec = stars.get(i + 1);
-					double mag = stars.get(i + 2);
-
-					tmp[0] = ra;
-					tmp[1] = dec;
-					if (!projection.project(tmp)) continue;
-					
-					double x = tmp[0];
-					double y = tmp[1];
-					
-					Star star = new Star(0, 0, null);
-					star.setCorrelatedPos(x, y);
-					star.setPositionStatus(StarCorrelationPosition.Reference);
-					star.setMagnitude(mag);
-					mosaic.addStar(star);
-				}
+// 				America:
+				raTarget = (360/24.0) * (20 + 58/60.0 + 47.856/3600.0);
+				decTarget = 44 + 28 / 60.0 + 19.08 / 3600.0;
 				
-				PointOfInterest poi = new PointOfInterest("pole (carte)", false);
-				poi.setX(0);
-				poi.setY(0);
-				// poi.setSecondaryPoints(pfa.getPoints());
-				mosaic.addPointOfInterest(poi);
+				createStarProjection(mosaic, raTarget, decTarget, radius, maxMag, pixelArcSec);
 			}
 		});
 		
+		this.mntmAutre.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				MosaicStarter dialog = new MosaicStarter(FocusUi.this.getFrmFocus().getOwner());
+				dialog.setModalityType(ModalityType.APPLICATION_MODAL);
+				dialog.setVisible(true);
+				
+				if (dialog.isValidated() && dialog.includeStar()) {
+					createStarProjection(mosaic, 0, 0, 6, 10, 4);
+
+					double pixelArcSec = 2 * 2.23;
+
+					Double raTarget = 0.0;
+					Double decTarget = 89.0;
+
+					Double radius;
+					Double maxMag;
+
+					
+					raTarget = dialog.getRa();
+					decTarget = dialog.getDec();
+					radius = dialog.getRadius();
+					maxMag = dialog.getMag();
+					
+					if (raTarget != null && decTarget != null && radius != null && maxMag != null) {
+						createStarProjection(mosaic, raTarget, decTarget, radius, maxMag, pixelArcSec);
+					}
+				}
+				
+			}
+		});
 		this.fd.setMosaic(mosaic);
 	}
 	
@@ -331,7 +350,12 @@ public class FocusUi extends FocusUiDesign {
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch(Throwable t) {
+			t.printStackTrace();
+		}
+		
 		final Application focus = new Application();
 		final Mosaic mosaic = new Mosaic(focus);
 		
@@ -361,6 +385,57 @@ public class FocusUi extends FocusUiDesign {
 
 	public MosaicImageListView getFd() {
 		return fd;
+	}
+
+	private void createStarProjection(final Mosaic mosaic, double raTarget,
+			double decTarget, double radius, double maxMag, double pixelArcSec) {
+		SkyProjection projection = new SkyProjection(pixelArcSec);
+		
+		
+		double rotateZ = Math.PI * raTarget / 180.0;
+		double rotateY = - Math.PI * (90 - decTarget) / 180.0;
+		
+		AffineTransform3D xform = AffineTransform3D.identity;
+		xform = xform.rotateZ(Math.cos(rotateZ), Math.sin(rotateZ));
+		xform = xform.rotateY(Math.cos(rotateY), Math.sin(rotateY));
+//				try {
+//					xform = xform.invert();
+//				} catch(NoninvertibleTransformException e2) {
+//					throw new RuntimeException("invertible ?", e2);
+//				}
+		projection.setTransform(xform);
+		
+		mosaic.setSkyProjection(projection);
+		
+		DoubleList stars = StarProvider.getStarAroundNorth(projection, radius, maxMag);
+
+		double [] tmp = new double[2];
+		
+		for(int i = 0; i < stars.size(); i += 3)
+		{
+			double x = stars.get(i);
+			double y = stars.get(i + 1);
+			double mag = stars.get(i + 2);
+			
+			Star star = new Star(0, 0, null);
+			star.setCorrelatedPos(x, y);
+			star.setPositionStatus(StarCorrelationPosition.Reference);
+			star.setMagnitude(mag);
+			mosaic.addStar(star);
+		}
+		
+		PointOfInterest poi = new PointOfInterest("projection", false);
+		poi.setX(0);
+		poi.setY(0);
+		// poi.setSecondaryPoints(pfa.getPoints());
+		mosaic.addPointOfInterest(poi);
+		
+		double [] radec0 = new double[] {0.0, 89.0};
+		projection.project(radec0);
+		PointOfInterest poi2 = new PointOfInterest("ra=0", false);
+		poi2.setX(radec0[0]);
+		poi2.setY(radec0[1]);
+		mosaic.addPointOfInterest(poi2);
 	}
 
 }

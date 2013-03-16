@@ -47,6 +47,7 @@ public class FocusUiDesign {
 	protected JButton taskQueueStop;
 	protected JButton shootButton;
 	protected JMenuItem mnPolaire;
+	protected JMenuItem mntmAutre;
 
 	/**
 	 * Create the application.
@@ -90,6 +91,9 @@ public class FocusUiDesign {
 		
 		this.mnPolaire = new JMenuItem("Polaire");
 		this.mnEtoiles.add(this.mnPolaire);
+		
+		this.mntmAutre = new JMenuItem("Autre");
+		this.mnEtoiles.add(this.mntmAutre);
 		
 		this.toolBar = new JToolBar();
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);

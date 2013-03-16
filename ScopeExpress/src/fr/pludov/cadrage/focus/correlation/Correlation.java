@@ -1,13 +1,18 @@
 package fr.pludov.cadrage.focus.correlation;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.utils.CorrelationAlgo;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
+import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 import fr.pludov.cadrage.utils.Ransac;
 
 /**
@@ -33,9 +38,16 @@ public class Correlation {
 		this.found = false;
 	}
 	
+	private static class CorrelationStatus
+	{
+		List<PointMatchAlgorithm.Correlation> correlation;
+		int count;
+		double cs, sn, tx, ty;
+	}
+	
 	public void correlate(List<? extends DynamicGridPoint> referenceStars, List<? extends DynamicGridPoint> imageStars)
 	{
-		int maxTriangle = 30000; // FIXME : c'est ad hoc...
+		int maxTriangle = 120000; // FIXME : c'est ad hoc...
 		double starRay = 500; 	// Prendre en compte des triangles de au plus cette taille
 		double starMinRay = 20;	// Elimine les petits triangles
 		
@@ -77,48 +89,135 @@ public class Correlation {
 			tolerance *= 0.6;
 		}
 		
+		double [] srcX = new double[referenceStars.size()];
+		double [] srcY = new double[referenceStars.size()];
 		
-		logger.info("Performing RANSAC with " + ransacPoints.size());
 		
-		CorrelationAlgo ransac = new Ransac();
+		double [] dstX = new double[imageStars.size()];
+		double [] dstY = new double[imageStars.size()];
 		
-		ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
-			@Override
-			public double getEvaluator(Ransac.RansacPoint p) {
-				return Math.sqrt(p.getRansacParameter(2) * p.getRansacParameter(2) + p.getRansacParameter(3) * p.getRansacParameter(3));
-			}
-		});
+		
+		for(int i = 0; i < referenceStars.size(); ++i)
+		{
+			DynamicGridPoint dgp = referenceStars.get(i);
+			double x = dgp.getX();
+			double y = dgp.getY();
 
 		
-		ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
-			@Override
-			public double getEvaluator(Ransac.RansacPoint p) {
-				return Math.sqrt(p.getRansacParameter(0) * p.getRansacParameter(0) + p.getRansacParameter(1) * p.getRansacParameter(1));
-			}
-		});
-		
-		
-//		double [] bestParameter = ransac.proceed(ransacPoints, 4, 
-//				new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
-//				0.1, 0.5);
-		double [] bestParameter = ransac.proceed(ransacPoints, 4, 
-				new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
-				1 / Math.sqrt(ransacPoints.size()), 0.1);
-		
-		if (bestParameter == null) {
-			throw new RuntimeException("Pas de corrélation trouvée");
+			srcX[i] = x;
+			srcY[i] = y;
 		}
 		
 		
-		logger.debug("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
-				" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
-				" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
-		this.tx = bestParameter[0];
-		this.ty = bestParameter[1];
-		this.cs = bestParameter[2];
-		this.sn = bestParameter[3];
+		Map<List<PointMatchAlgorithm.Correlation>, CorrelationStatus> correlations = new HashMap<List<PointMatchAlgorithm.Correlation>, Correlation.CorrelationStatus>(ransacPoints.size());
+		for(RansacPoint rp : ransacPoints)
+		{
+			
+			for(int i = 0; i < imageStars.size(); ++i)
+			{
+				DynamicGridPoint dgp = imageStars.get(i);
+				double x = dgp.getX();
+				double y = dgp.getY();
+
+				double nvx = rp.tx + x * rp.cs + y * rp.sn;
+				double nvy = rp.ty + y * rp.cs - x * rp.sn;
+
+				dstX[i] = nvx;
+				dstY[i] = nvy;
+			}
+
+			PointMatchAlgorithm pma = new PointMatchAlgorithm(srcX, srcY, dstX, dstY, 15);
+			List<PointMatchAlgorithm.Correlation> correlation = pma.proceed();
+			
+			if (correlation.isEmpty()) continue;
+			
+			Collections.sort(correlation, new Comparator<PointMatchAlgorithm.Correlation>() {
+				@Override
+				public int compare(PointMatchAlgorithm.Correlation o1, PointMatchAlgorithm.Correlation o2) {
+					return o1.getP1() - o2.getP1();
+				}
+			});
+
+			CorrelationStatus status = correlations.get(correlation);
+			if (status != null) {
+				// Ajouter simplement à celui-ci
+				status.count++;
+			} else {
+				status = new CorrelationStatus();
+				status.correlation = correlation;
+				status.cs = rp.cs;
+				status.sn = rp.sn;
+				status.tx = rp.tx;
+				status.ty = rp.ty;
+				status.count = 1;
+				correlations.put(correlation, status);
+			}
+		}
+
+		// Trouver la meilleure correlation
+		CorrelationStatus best = null;
+		for(CorrelationStatus cs : correlations.values())
+		{
+			if (best == null || cs.correlation.size() > best.correlation.size())
+			{
+				best = cs;
+			}
+		}
 		
-		found = true;
+		if (best == null) {
+			found = false;
+		} else {
+			found = true;
+
+			this.tx = best.tx;
+			this.ty = best.ty;
+			this.cs = best.cs;
+			this.sn = best.sn;
+
+		}
+		
+//		
+//		logger.info("Performing RANSAC with " + ransacPoints.size());
+//		
+//		CorrelationAlgo ransac = new Ransac();
+//		
+//		ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+//			@Override
+//			public double getEvaluator(Ransac.RansacPoint p) {
+//				return Math.sqrt(p.getRansacParameter(2) * p.getRansacParameter(2) + p.getRansacParameter(3) * p.getRansacParameter(3));
+//			}
+//		});
+//
+//		
+//		ransac.addEvaluator(new Ransac.AdditionalEvaluator() {
+//			@Override
+//			public double getEvaluator(Ransac.RansacPoint p) {
+//				return Math.sqrt(p.getRansacParameter(0) * p.getRansacParameter(0) + p.getRansacParameter(1) * p.getRansacParameter(1));
+//			}
+//		});
+//		
+//		
+////		double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+////				new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+////				0.1, 0.5);
+//		double [] bestParameter = ransac.proceed(ransacPoints, 4, 
+//				new double[] {	1024, 1024, 1, 1, 0.2, 100.0 },
+//				1 / Math.sqrt(ransacPoints.size()), 0.1);
+//		
+//		if (bestParameter == null) {
+//			throw new RuntimeException("Pas de corrélation trouvée");
+//		}
+//		
+//		
+//		logger.debug("Transformation is : translate:" + bestParameter[0]+"," + bestParameter[1]+
+//				" rotate=" + 180 * Math.atan2(bestParameter[3], bestParameter[2])/Math.PI +
+//				" scale=" + Math.sqrt(bestParameter[2] * bestParameter[2] + bestParameter[3] * bestParameter[3]));
+//		this.tx = bestParameter[0];
+//		this.ty = bestParameter[1];
+//		this.cs = bestParameter[2];
+//		this.sn = bestParameter[3];
+//		
+//		found = true;
 	}
 
 	private List<RansacPoint> getRansacPoints(
@@ -184,8 +283,11 @@ public class Correlation {
 					double xRotateScale = xRef * cs + yRef * sn; 
 					double yRotateScale = yRef * cs - xRef * sn; 
 					
-					tx += c.getPointX(i) - xRotateScale;
-					ty += c.getPointY(i) - yRotateScale;
+					double dltx = c.getPointX(i) - xRotateScale;
+					double dlty = c.getPointY(i) - yRotateScale;
+					
+					tx += dltx;
+					ty += dlty;
 				}
 				
 				tx /= 3;
