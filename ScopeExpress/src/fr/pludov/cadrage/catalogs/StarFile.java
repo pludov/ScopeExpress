@@ -3,7 +3,7 @@ package fr.pludov.cadrage.catalogs;
 public class StarFile extends TableFile {
 
 	public StarFile() {
-		super(206, 256);
+		super(206, 4096);
 	}
 	
 	long getTyc1()
