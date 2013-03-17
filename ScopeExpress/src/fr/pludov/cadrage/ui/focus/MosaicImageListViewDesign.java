@@ -50,6 +50,7 @@ public class MosaicImageListViewDesign extends JPanel {
 		this.leftPanel.setLayout(new MigLayout("", "[200px:n,grow,fill]", "[200px:n,grow,fill][][fill]"));
 		
 		this.imageViewPanel = new JPanel();
+		this.imageViewPanel.setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
 		this.leftPanel.add(this.imageViewPanel, "cell 0 0,grow");
 		this.imageViewPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		

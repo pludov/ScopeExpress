@@ -1,18 +1,16 @@
 package fr.pludov.cadrage.ui.focus;
 
 import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 import javax.swing.JScrollPane;
@@ -23,17 +21,13 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
-import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
+import fr.pludov.cadrage.ui.utils.PanelFocusBorderHandler;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
-import fr.pludov.io.CameraFrame;
-import fr.pludov.io.ImageProvider;
-
-import net.miginfocom.swing.MigLayout;
 
 public class MosaicImageListView extends MosaicImageListViewDesign {
 	private static final Logger logger = Logger.getLogger(MosaicImageListView.class);
@@ -125,8 +119,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		focusImageList.setMosaic(mosaic);
 	}
 	
-	public MosaicImageListView(FocusUi focusUi) {
+	public MosaicImageListView(FocusUi focusUi, final ViewControler viewControler) {
 		super();
+		setFocusable(true);
 		displayParameter = new ImageDisplayParameter();
 
 		principal = new FrameDisplayWithStar(focusUi.application);
@@ -142,6 +137,22 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 				updateMousePosition(principal, e.getX(), e.getY());				
 			}
 		});
+		
+		principal.addFocusListener(new FocusListener() {
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+				viewControler.setView(principal);
+			}
+		});
+		principal.setFocusable(true);
+		principal.setRequestFocusEnabled(true);
+		
 		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
 		
@@ -152,6 +163,20 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		JScrollPane imageListScrollPane = new JScrollPane(focusImageList);
         
 		super.imageViewPanel.add(principal);
+		
+		new PanelFocusBorderHandler(imageViewPanel, principal);
+		
+		principal.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				principal.requestFocusInWindow();
+			}
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				principal.requestFocusInWindow();
+			}
+		});
+		
 		super.zoomPanel.add(zoomed);
 		super.imageListPanel.add(imageListScrollPane);
 		super.viewParameterPanel.add(displayParameterPanel);
@@ -330,5 +355,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 
 	public Image getCurrentImage() {
 		return currentImage;
+	}
+
+	public FrameDisplayWithStar getPrincipal() {
+		return principal;
 	}
 }

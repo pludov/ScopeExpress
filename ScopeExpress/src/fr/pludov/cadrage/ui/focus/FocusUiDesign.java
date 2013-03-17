@@ -20,6 +20,8 @@ import javax.swing.JLabel;
 import java.awt.Font;
 import javax.swing.JProgressBar;
 import java.awt.Insets;
+import org.eclipse.wb.swing.FocusTraversalOnArray;
+import java.awt.Component;
 
 public class FocusUiDesign {
 
@@ -120,10 +122,12 @@ public class FocusUiDesign {
 		this.frmFocus.getContentPane().add(this.tabbedPane, BorderLayout.CENTER);
 		
 		this.imageViewPanel = new JPanel();
+		this.imageViewPanel.setFocusable(false);
 		this.tabbedPane.addTab("Images", null, this.imageViewPanel, null);
 		this.imageViewPanel.setLayout(new BoxLayout(this.imageViewPanel, BoxLayout.X_AXIS));
 		
 		this.detailsPanel = new JPanel();
+		this.detailsPanel.setFocusable(false);
 		this.tabbedPane.addTab("D\u00E9tails", null, this.detailsPanel, null);
 		this.detailsPanel.setLayout(new MigLayout("", "[593px,grow][210px:n:210px]", "[369px,grow]"));
 		
@@ -151,6 +155,7 @@ public class FocusUiDesign {
 		this.taskQueueStop.setIconTextGap(2);
 		this.taskQueueStop.setIcon(null);
 		this.statusPanel.add(this.taskQueueStop, "cell 2 0");
+		this.frmFocus.getContentPane().setFocusTraversalPolicy(new FocusTraversalOnArray(new Component[]{this.imageViewPanel, this.detailsPanel, this.toolBar, this.tabbedPane}));
 	}
 
 	protected JFrame getFrmFocus() {

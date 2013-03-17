@@ -50,7 +50,8 @@ public class FocusUi extends FocusUiDesign {
 	MosaicImageListView fd;
 	
 	ActionMonitor actionMonitor;
-
+	ViewControler viewControl;
+	
 	LocateStarParameter currentStarDetectionParameter;
 	
 	public FocusUi(final Application application, final Mosaic mosaic) {
@@ -60,7 +61,10 @@ public class FocusUi extends FocusUiDesign {
 
 		setupBackgroundTaskQueue();
 		
-		fd = new MosaicImageListView(this);
+
+		viewControl = new ViewControler(this.toolBar);
+		
+		fd = new MosaicImageListView(this, viewControl);
 		this.imageViewPanel.add(fd);
 		fd.setOnClick(new MosaicImageListView.ClicEvent() {
 			
@@ -279,6 +283,10 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		this.fd.setMosaic(mosaic);
+		
+		
+		// Donner le focus à chaque activation de la fenêtre
+		this.getFd().getPrincipal().requestFocusInWindow();
 	}
 	
 	BackgroundTask createDetectStarTask(final Image image)
