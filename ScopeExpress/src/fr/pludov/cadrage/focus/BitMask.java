@@ -1,6 +1,11 @@
 package fr.pludov.cadrage.focus;
 
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
+
+import org.apache.commons.collections.primitives.ArrayIntList;
+import org.apache.commons.collections.primitives.IntList;
 
 public class BitMask {
 	int sx, sy;
@@ -55,6 +60,18 @@ public class BitMask {
 			if (y < y0 || y > y1) continue;
 
 			unset(x, y);
+		}
+	}
+
+	public void intersect(BitMask other)
+	{
+		if (other == null) return;
+		for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i+1)) {
+			int x = x0 + i % sx;
+			int y = y0 + i / sx;
+			if (!other.get(x, y)) {
+				unset(x, y);
+			}
 		}
 	}
 
@@ -170,6 +187,133 @@ public class BitMask {
 		coords[0] = x0 + nextBit % sx;
 		coords[1] = y0 + nextBit / sx;
 		return coords;
+	}
+	
+	public static class ConnexityGroup
+	{
+		// Interne, invalide en sortie de calcConnexityGroup
+		private int uniqId;
+		private ConnexityGroup mergedInto;
+		
+		private boolean returned;
+		
+		public final IntList pixelPositions;
+		
+		public double weight;
+		public double centerx, centery;
+		public double stddev;
+		
+		ConnexityGroup(int uniqId) {
+			this.uniqId = uniqId;
+			this.pixelPositions = new ArrayIntList();
+			this.returned = false;
+			this.mergedInto = null;
+		}
+		
+		ConnexityGroup getEffective()
+		{
+			ConnexityGroup result = this;
+			while(result.mergedInto != null) {
+				result = result.mergedInto;
+			}
+			return result;
+		}
+		
+		public BitMask getBitMask()
+		{
+			int minx = 0 , miny = 0, maxx = 0, maxy = 0;
+			for(int i = 0; i < this.pixelPositions.size(); i += 2)
+			{
+				int x = this.pixelPositions.get(i);
+				int y = this.pixelPositions.get(i + 1);
+				
+				if (i == 0 || x < minx) minx = x;
+				if (i == 0 || x > maxx) maxx = x;
+				if (i == 0 || y < miny) miny = y;
+				if (i == 0 || y > maxy) maxy = y;
+			}
+			
+			BitMask result = new BitMask(minx, miny, maxx, maxy);
+			for(int i = 0; i < this.pixelPositions.size(); i += 2)
+			{
+				int x = this.pixelPositions.get(i);
+				int y = this.pixelPositions.get(i + 1);
+				result.set(x, y);
+			}
+			return result;
+		}
+	}
+	
+	/**
+	 * Remplace c1 par c2, joint tous les pixels de c1 à c2.
+	 */
+	private static void mergeGroups(List<ConnexityGroup> result, ConnexityGroup c1, ConnexityGroup c2)
+	{
+		c1.mergedInto = c2;
+		c2.pixelPositions.addAll(c1.pixelPositions);
+	}
+	
+	public List<ConnexityGroup> calcConnexityGroups()
+	{
+		List<ConnexityGroup> groupsByUniqId = new ArrayList<ConnexityGroup>();
+		int mergeCount = 0;
+		
+		int [] groupPos = new int[sx * sy];
+		
+		int [] coords = null;
+		
+		// Il n'y a pas de group d'id 0.
+		groupsByUniqId.add(null);
+		
+		for(coords = nextPixel(coords); coords != null; coords = nextPixel(coords))
+		{
+			int x = coords[0];
+			int y = coords[1];
+			
+			ConnexityGroup c = null;
+			
+			if (x > 0) {
+				int prevPixelGroup = groupPos[x - 1 + y * sx];
+				if (prevPixelGroup != 0) {
+					c = groupsByUniqId.get(prevPixelGroup).getEffective();
+				}
+			}
+			if (y > 0) {
+				int prevPixelGroup = groupPos[x + (y - 1) * sx];
+				if (prevPixelGroup != 0) {
+					ConnexityGroup c2 = groupsByUniqId.get(prevPixelGroup).getEffective();
+					if (c == null || c == c2) {
+						c = c2;
+					} else {
+						// Il faut merger les deux groups...
+						mergeGroups(groupsByUniqId, c2, c);
+						mergeCount++;
+					}
+				}
+			}
+			
+			if (c == null) {
+				c = new ConnexityGroup(groupsByUniqId.size());
+				groupsByUniqId.add(c);
+			}
+			
+			c.pixelPositions.add(x);
+			c.pixelPositions.add(y);
+			
+			groupPos[x + sx * y] = c.uniqId;
+		}
+		
+		List<ConnexityGroup> result = new ArrayList<BitMask.ConnexityGroup>(groupsByUniqId.size() - mergeCount);
+		for(ConnexityGroup c :  groupsByUniqId)
+		{
+			if (c == null) continue;
+			if (c.returned) continue;
+			if (c.mergedInto != null) continue;
+			result.add(c);
+			c.returned = true;
+		}
+		
+		return result;
 	}
 	
 	/**
