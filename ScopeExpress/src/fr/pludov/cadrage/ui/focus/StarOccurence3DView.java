@@ -83,19 +83,31 @@ public class StarOccurence3DView extends Generic3DView {
 					int adu = cf.getAdu(x + 1, y);
 					
 					Point2D pt = getPointForPixel(echelleXY * (x - shiftX), echelleXY * (y - shiftY), adu / 5000.0);
-					boolean highlight = false;
-					if (starMask != null) {
-						highlight = starMask.get(x + 2 * so.getDataX0(), y + 2 * so.getDataY0());
-					}
-					
-					g.setColor(highlight ? Color.RED: Color.GRAY);
 					
 					if (previousX != null)
 					{
+						boolean highlight = false;
+						if (starMask != null) {
+							int curx = x + 2 * so.getDataX0();
+							int cury = y + 2 * so.getDataY0();
+							highlight = starMask.get(curx, cury) || starMask.get(curx - 1, cury);
+						}
+						
+						g.setColor(highlight ? Color.RED: Color.GRAY);
+						
 						drawLine(previousX, pt);
 					}
 					if (previousLine[x] != null) 
 					{
+						boolean highlight = false;
+						if (starMask != null) {
+							int curx = x + 2 * so.getDataX0();
+							int cury = y + 2 * so.getDataY0();
+							highlight = starMask.get(curx, cury) || starMask.get(curx, cury - 1);
+						}
+						
+						g.setColor(highlight ? Color.RED: Color.GRAY);
+						
 						drawLine(previousLine[x], pt);
 					}
 					
