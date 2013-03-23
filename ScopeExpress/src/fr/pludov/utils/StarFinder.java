@@ -31,6 +31,9 @@ public class StarFinder {
 	
 	BitMask excludeMask;
 	
+	// Si positionné, on ne cherche que dans ce mask;
+	BitMask includeMask;
+	
 	// Trouver une étoile à environ centerX, dans un rayon de square.
 	public StarFinder(CameraFrame frame, int centerX, int centerY, int square, int searchRadius) {
 		this.centerX = centerX;
@@ -49,15 +52,15 @@ public class StarFinder {
 		Histogram histogram = new Histogram();
 
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Red);
-		blackLevelByChannel[0] = histogram.getBlackLevel(0.25);
+		blackLevelByChannel[0] = histogram.getBlackLevel(0.5);
 		blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
 		
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Green);
-		blackLevelByChannel[1] = histogram.getBlackLevel(0.25);
+		blackLevelByChannel[1] = histogram.getBlackLevel(0.5);
 		blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(1, blackLevelByChannel[1]));
 		
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Blue);
-		blackLevelByChannel[2] = histogram.getBlackLevel(0.25);
+		blackLevelByChannel[2] = histogram.getBlackLevel(0.5);
 		blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(2, blackLevelByChannel[2]));
 		
 		// Calcul des pixels "non noirs"
@@ -83,6 +86,7 @@ public class StarFinder {
 		notBlackEroded.substract(excludeMask);
 		notBlackEroded.grow(null);
 		notBlackEroded.substract(excludeMask);
+		notBlackEroded.intersect(includeMask);
 		
 		int maxAdu = 0;
 		int maxAduX = 2 * centerX, maxAduY = 2 * centerY;
@@ -122,7 +126,12 @@ public class StarFinder {
 				int adu = frame.getAdu(x, y);
 				int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
 				if (adu > black) {
-					notBlack.set(x, y);
+					adu -= black;
+					
+					// FIXME: 0.25 = en dur
+					if (adu > 0.25 * maxAdu) {
+						notBlack.set(x, y);
+					}
 				}
 			}
 		}
@@ -131,6 +140,7 @@ public class StarFinder {
 		notBlackEroded.erode();
 		notBlackEroded.grow(null);
 		notBlackEroded.substract(excludeMask);
+		notBlackEroded.intersect(includeMask);
 		
 		if (!notBlackEroded.get(maxAduX, maxAduY)) {
 			// Rien trouvé
@@ -306,5 +316,13 @@ public class StarFinder {
 
 	public void setExcludeMask(BitMask excludeMask) {
 		this.excludeMask = excludeMask;
+	}
+
+	public BitMask getIncludeMask() {
+		return includeMask;
+	}
+
+	public void setIncludeMask(BitMask includeMask) {
+		this.includeMask = includeMask;
 	}
 }
