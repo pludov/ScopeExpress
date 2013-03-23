@@ -32,12 +32,17 @@ public class StarDetailDesign extends JPanel {
 	protected JLabel lblValAduSumRed;
 	protected JLabel lblValAduSumGreen;
 	protected JLabel lblValAduSumBlue;
+	protected JLabel lblPosimg;
+	protected JLabel lblX;
+	protected JLabel lblNewLabel;
+	protected JLabel lblPosXImage;
+	protected JLabel lblPosYImage;
 
 	/**
 	 * Create the panel.
 	 */
 	public StarDetailDesign() {
-		setLayout(new MigLayout("", "[right][grow][grow][grow][grow]", "[280px:n:280px,fill][][][][][][]"));
+		setLayout(new MigLayout("", "[right][grow][grow][grow][grow]", "[280px:n:280px,fill][][][][][][][]"));
 		
 		this.graphPanel = new JPanel();
 		add(this.graphPanel, "cell 0 0 5 1,grow");
@@ -125,6 +130,25 @@ public class StarDetailDesign extends JPanel {
 		this.lblValAduSumBlue = new JLabel("New label");
 		this.lblValAduSumBlue.setFont(new Font("Tahoma", Font.PLAIN, 9));
 		add(this.lblValAduSumBlue, "cell 4 6");
+		
+		this.lblPosimg = new JLabel("Pos (img)");
+		add(this.lblPosimg, "cell 0 7");
+		
+		this.lblX = new JLabel("x:");
+		this.lblX.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		add(this.lblX, "cell 1 7,alignx right");
+		
+		this.lblPosXImage = new JLabel("New label");
+		this.lblPosXImage.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		add(this.lblPosXImage, "cell 2 7");
+		
+		this.lblNewLabel = new JLabel("y:");
+		this.lblNewLabel.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		add(this.lblNewLabel, "cell 3 7,alignx right");
+		
+		this.lblPosYImage = new JLabel("New label");
+		this.lblPosYImage.setFont(new Font("Tahoma", Font.PLAIN, 9));
+		add(this.lblPosYImage, "cell 4 7");
 
 	}
 }

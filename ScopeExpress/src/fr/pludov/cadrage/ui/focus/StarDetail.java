@@ -104,11 +104,16 @@ public class StarDetail extends StarDetailDesign {
 		return Double.toString(d);
 	}
 	
+	private String doubleToString(double d, int pres)
+	{
+		return String.format("%." + Integer.toString(pres) +"f", d);
+	}
+	
 	private void refreshLabels()
 	{
 		if (this.so != null && this.so.isAnalyseDone() && this.so.isStarFound()) {
-			this.lblFWHM.setText(doubleToString(this.so.getFwhm()));
-			this.lblStdDev.setText(doubleToString(this.so.getStddev()));
+			this.lblFWHM.setText(doubleToString(this.so.getFwhm(), 2));
+			this.lblStdDev.setText(doubleToString(this.so.getStddev(), 2));
 			int aduMax = 0;
 			int aduSum = 0;
 			for(int i = 0; i < 3; ++i)
@@ -128,10 +133,18 @@ public class StarDetail extends StarDetailDesign {
 			this.lblAduMaxList[3].setText(Integer.toString(aduMax));
 			this.lblAduSumList[3].setText(Integer.toString(aduSum));
 			this.lblBlackList[3].setText("");
+			
+
+			this.lblPosXImage.setText(doubleToString(so.getPicX(), 2));
+			this.lblPosYImage.setText(doubleToString(so.getPicY(), 2));
+
 		} else {
 			this.lblFWHM.setText("");
 			this.lblStdDev.setText("");
 
+			this.lblPosXImage.setText("");
+			this.lblPosYImage.setText("");
+			
 			if (this.so != null) {
 				if (!this.so.isAnalyseDone()) {
 					this.lblFWHM.setText("** en attente **");
