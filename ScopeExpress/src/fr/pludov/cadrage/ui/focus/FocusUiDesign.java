@@ -35,7 +35,6 @@ public class FocusUiDesign {
 	protected JSplitPane detailsSplitPane;
 	protected JToolBar toolBar;
 	protected JButton followDirBton;
-	protected JPanel starDetailPanel;
 	protected JButton detectBton;
 	protected JButton fwhmGraphBton;
 	protected JMenuItem mnOpen;
@@ -50,6 +49,9 @@ public class FocusUiDesign {
 	protected JButton shootButton;
 	protected JMenuItem mnPolaire;
 	protected JMenuItem mntmAutre;
+	protected JTabbedPane starOccurenceControlPane;
+	protected JPanel starDetailPanel;
+	protected JPanel graphParamPanel;
 
 	/**
 	 * Create the application.
@@ -129,15 +131,20 @@ public class FocusUiDesign {
 		this.detailsPanel = new JPanel();
 		this.detailsPanel.setFocusable(false);
 		this.tabbedPane.addTab("D\u00E9tails", null, this.detailsPanel, null);
-		this.detailsPanel.setLayout(new MigLayout("", "[593px,grow][210px:n:210px]", "[369px,grow]"));
+		this.detailsPanel.setLayout(new MigLayout("", "[593px,grow][235px:n:235px,grow]", "[369px,grow]"));
 		
 		this.detailsSplitPane = new JSplitPane();
 		this.detailsSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		this.detailsPanel.add(this.detailsSplitPane, "cell 0 0,grow");
 		
+		this.starOccurenceControlPane = new JTabbedPane(JTabbedPane.TOP);
+		this.detailsPanel.add(this.starOccurenceControlPane, "cell 1 0,grow");
+		
 		this.starDetailPanel = new JPanel();
-		this.detailsPanel.add(this.starDetailPanel, "cell 1 0,grow");
-		this.starDetailPanel.setLayout(new BoxLayout(this.starDetailPanel, BoxLayout.X_AXIS));
+		this.starOccurenceControlPane.addTab("Etoile", null, this.starDetailPanel, null);
+		
+		this.graphParamPanel = new JPanel();
+		this.starOccurenceControlPane.addTab("Graphique", null, this.graphParamPanel, null);
 		
 		this.statusPanel = new JPanel();
 		this.frmFocus.getContentPane().add(this.statusPanel, BorderLayout.SOUTH);

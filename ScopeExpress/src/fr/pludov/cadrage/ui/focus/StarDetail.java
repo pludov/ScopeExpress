@@ -9,6 +9,7 @@ import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.utils.ChannelMode;
 
@@ -98,22 +99,12 @@ public class StarDetail extends StarDetailDesign {
 		
 		refreshLabels();
 	}
-
-	private String doubleToString(double d)
-	{
-		return Double.toString(d);
-	}
-	
-	private String doubleToString(double d, int pres)
-	{
-		return String.format("%." + Integer.toString(pres) +"f", d);
-	}
 	
 	private void refreshLabels()
 	{
 		if (this.so != null && this.so.isAnalyseDone() && this.so.isStarFound()) {
-			this.lblFWHM.setText(doubleToString(this.so.getFwhm(), 2));
-			this.lblStdDev.setText(doubleToString(this.so.getStddev(), 2));
+			this.lblFWHM.setText(Utils.doubleToString(this.so.getFwhm(), 2));
+			this.lblStdDev.setText(Utils.doubleToString(this.so.getStddev(), 2));
 			int aduMax = 0;
 			int aduSum = 0;
 			for(int i = 0; i < 3; ++i)
@@ -135,8 +126,8 @@ public class StarDetail extends StarDetailDesign {
 			this.lblBlackList[3].setText("");
 			
 
-			this.lblPosXImage.setText(doubleToString(so.getPicX(), 2));
-			this.lblPosYImage.setText(doubleToString(so.getPicY(), 2));
+			this.lblPosXImage.setText(Utils.doubleToString(so.getPicX(), 2));
+			this.lblPosYImage.setText(Utils.doubleToString(so.getPicY(), 2));
 
 		} else {
 			this.lblFWHM.setText("");

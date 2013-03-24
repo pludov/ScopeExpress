@@ -84,11 +84,23 @@ public class FocusUi extends FocusUiDesign {
 		JScrollPane sotScrollPane = new JScrollPane(sot);
 		this.detailsSplitPane.setTopComponent(sotScrollPane);
 		
-		final GraphPanel graph = new GraphPanel(mosaic);
+		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
+		final FWHMEvolutionGraphPanel graph = new FWHMEvolutionGraphPanel(mosaic, starFocusFilter);
 		this.detailsSplitPane.setBottomComponent(graph);
 		
 		final StarDetail starDetail = new StarDetail(mosaic);
 		this.starDetailPanel.add(starDetail);
+		
+		
+		this.graphParamPanel.add(starFocusFilter);
+		
+		graph.listeners.addListener(this.listenerOwner, new GraphPanelListener() {
+			
+			@Override
+			public void starClicked(Image image, Star star) {
+				sot.select(star, image);
+			}
+		});
 		
 		sot.listeners.addListener(this.listenerOwner, new StarOccurenceTableListener() {
 			private void setStarDetail()
@@ -106,6 +118,7 @@ public class FocusUi extends FocusUiDesign {
 				Image image = sot.getCurrentImage();
 				graph.setCurrentImage(image);
 				setStarDetail();
+				starOccurenceControlPane.setSelectedComponent(starDetailPanel);
 			}
 			
 			@Override
@@ -113,6 +126,7 @@ public class FocusUi extends FocusUiDesign {
 				Star star = sot.getCurrentStar();
 				graph.setCurrentStar(star);
 				setStarDetail();
+				starOccurenceControlPane.setSelectedComponent(starDetailPanel);
 			}
 		});
 		

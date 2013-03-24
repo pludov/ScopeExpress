@@ -1,24 +1,10 @@
 package fr.pludov.cadrage.ui.focus;
 
 import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JPanel;
-
 import fr.pludov.cadrage.focus.BitMask;
-import fr.pludov.cadrage.focus.Image;
-import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
-import fr.pludov.cadrage.ui.focus.GraphPanel.CurveProvider;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
 

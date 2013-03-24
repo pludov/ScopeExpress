@@ -490,6 +490,30 @@ public class StarOccurenceTable extends JTable {
 		return tableModel.getStarForRow(row);
 	}
 	
+	public void select(Star star, Image image)
+	{
+		Integer row = null;
+		if (star != null) {
+			row = tableModel.getRowOfStar(star);
+		}
+		
+		Integer col = null;
+		if (image != null) {
+			col = tableModel.getColumnOfImage(image);
+		}
+		
+		if (row == null && col == null) return;
+		
+		if (col != null) {
+			getColumnModel().getSelectionModel().setSelectionInterval(col, col);
+		}
+		if (row != null) {
+			setRowSelectionInterval(row, row);
+		}
+		
+		scrollRectToVisible(getCellRect(getSelectedRow(), getSelectedColumn(), true));
+	}
+	
 	@Override
 	public TableCellRenderer getCellRenderer(int row, int column) {
 		 

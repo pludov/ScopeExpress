@@ -2,16 +2,10 @@ package fr.pludov.cadrage.ui.focus;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.ui.focus.LocateStarParameter.CorrelationMode;
+import fr.pludov.cadrage.ui.utils.Utils;
 
 public class LocateStarParameterPanel extends LocateStarParameterPanelDesign {
 	LocateStarParameter target;
@@ -53,7 +47,7 @@ public class LocateStarParameterPanel extends LocateStarParameterPanelDesign {
 			this.comboSearchMode.addItem(item);
 		}
 
-		addTextChange(this.txtBlackLevel, new Runnable() {
+		Utils.addTextFieldChangeListener(this.txtBlackLevel, new Runnable() {
 			
 			@Override
 			public void run() {
@@ -68,7 +62,7 @@ public class LocateStarParameterPanel extends LocateStarParameterPanelDesign {
 			}
 		});
 		
-		addTextChange(this.txtAduMin, new Runnable() {
+		Utils.addTextFieldChangeListener(this.txtAduMin, new Runnable() {
 			@Override
 			public void run() {
 				String currentValue = LocateStarParameterPanel.this.txtAduMin.getText();
@@ -103,28 +97,6 @@ public class LocateStarParameterPanel extends LocateStarParameterPanelDesign {
 		setWidgetValues();
 	}
 	
-	private void addTextChange(JTextField field, final Runnable listener)
-	{
-		field.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				listener.run();
-			}	
-		});
-		field.addFocusListener(new FocusListener() {
-			
-			@Override
-			public void focusLost(FocusEvent e) {
-				listener.run();
-			}
-			
-			@Override
-			public void focusGained(FocusEvent e) {
-				
-			}
-		});
-	}
-
 	public void setWidgetValues()
 	{
 		this.txtAduMin.setText(Integer.toString(target.getAduSumMini()));
