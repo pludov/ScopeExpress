@@ -1,16 +1,24 @@
 package fr.pludov.cadrage.focus;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 import org.apache.commons.collections.primitives.ArrayIntList;
 import org.apache.commons.collections.primitives.IntList;
 
+import fr.pludov.utils.PerfCounter;
+import fr.pludov.utils.FixedSizeBitSet;
+
 public class BitMask {
+	
+	// Substract/intersect/add
+	public static final PerfCounter arithmeticPerf = new PerfCounter();
+	public static final PerfCounter morphPerf = new PerfCounter();
+	public static final PerfCounter morphBitmaskPerf = new PerfCounter();
+	
 	int sx, sy;
 	int x0, y0, x1, y1;
-	BitSet bitSet;
+	FixedSizeBitSet bitSet;
 	
 	public BitMask(BitMask copy)
 	{
@@ -20,7 +28,7 @@ public class BitMask {
 		this.y0 = copy.y0;
 		this.x1 = copy.x1;
 		this.y1 = copy.y1;
-		this.bitSet = (BitSet) copy.bitSet.clone();
+		this.bitSet = (FixedSizeBitSet) copy.bitSet.clone();
 	}
 	
 	public BitMask(int x0, int y0, int x1, int y1) {
@@ -30,9 +38,9 @@ public class BitMask {
 		this.y0 = y0;
 		this.x1 = x1;
 		this.y1 = y1;
-		bitSet = new BitSet(sx * sy);
+		bitSet = new FixedSizeBitSet(sx * sy);
 	}
-
+	
 	public void set(int x, int y)
 	{
 		bitSet.set(x - x0 + (y - y0) * sx);
@@ -52,40 +60,68 @@ public class BitMask {
 
 	public void substract(BitMask other)
 	{
-		if (other == null) return;
-		for (int i = other.bitSet.nextSetBit(0); i >= 0; i = other.bitSet.nextSetBit(i+1)) {
-			int x = other.x0 + i % other.sx;
-			int y = other.y0 + i / other.sx;
-			if (x < x0 || x > x1) continue;
-			if (y < y0 || y > y1) continue;
-
-			unset(x, y);
+		arithmeticPerf.enter();
+		try {
+			if (other == null) return;
+			// Si other est plus grand que this, plutot parcourir tous les bit de this
+			if (other.size() < this.size())
+			{
+				for (int i = other.bitSet.nextSetBit(0); i >= 0; i = other.bitSet.nextSetBit(i+1)) {
+					int x = other.x0 + i % other.sx;
+					int y = other.y0 + i / other.sx;
+					if (x < x0 || x > x1) continue;
+					if (y < y0 || y > y1) continue;
+		
+					unset(x, y);
+				}
+			} else {
+				for (int i = this.bitSet.nextSetBit(0); i >= 0; i = this.bitSet.nextSetBit(i + 1)) {
+					int x = this.x0 + i % this.sx;
+					int y = this.y0 + i / this.sx;
+					if (other.get(x, y)) {
+						this.bitSet.clear(i);
+					}
+				}
+			}
+		} finally {
+			arithmeticPerf.leave();
 		}
 	}
 
 	public void intersect(BitMask other)
 	{
-		if (other == null) return;
-		for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i+1)) {
-			int x = x0 + i % sx;
-			int y = y0 + i / sx;
-			if (!other.get(x, y)) {
-				unset(x, y);
+		arithmeticPerf.enter();
+		try {
+			if (other == null) return;
+			for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i+1)) {
+				int x = x0 + i % sx;
+				int y = y0 + i / sx;
+				if (!other.get(x, y)) {
+					unset(x, y);
+				}
 			}
+		} finally {
+			arithmeticPerf.leave();
 		}
 	}
 
 	public void add(BitMask other)
 	{
-		if (other == null) return;
-		for (int i = other.bitSet.nextSetBit(0); i >= 0; i = other.bitSet.nextSetBit(i+1)) {
-			int x = other.x0 + i % other.sx;
-			int y = other.y0 + i / other.sx;
+		arithmeticPerf.enter();
+		try {
+			if (other == null) return;
 			
-			if (x < x0 || x > x1) continue;
-			if (y < y0 || y > y1) continue;
-
-			set(x, y);
+			for (int i = other.bitSet.nextSetBit(0); i >= 0; i = other.bitSet.nextSetBit(i+1)) {
+				int x = other.x0 + i % other.sx;
+				int y = other.y0 + i / other.sx;
+				
+				if (x < x0 || x > x1) continue;
+				if (y < y0 || y > y1) continue;
+	
+				set(x, y);
+			}
+		} finally {
+			arithmeticPerf.leave();
 		}
 	}
 	
@@ -188,7 +224,32 @@ public class BitMask {
 		coords[1] = y0 + nextBit / sx;
 		return coords;
 	}
+
+	public int [] nextCleanPixel(int [] coords)
+	{
+		int nextSearchIndex;
+		if (coords == null) {
+			nextSearchIndex = 0;
+		} else {
+			nextSearchIndex = (coords[0] - x0) + sx * (coords[1] - y0) + 1;
+		}
+		int nextBit = bitSet.nextClearBit(nextSearchIndex);
+		if (nextBit == -1) {
+			return null;
+		}
+		if (nextBit == sx * sy) {
+			return null;
+		}
+		
+		if (coords == null) {
+			coords = new int[2];
+		}
+		coords[0] = x0 + nextBit % sx;
+		coords[1] = y0 + nextBit / sx;
+		return coords;
+	}
 	
+
 	public static class ConnexityGroup
 	{
 		// Interne, invalide en sortie de calcConnexityGroup
@@ -217,6 +278,19 @@ public class BitMask {
 				result = result.mergedInto;
 			}
 			return result;
+		}
+		
+		public boolean contains(int x, int y)
+		{
+			for(int i = 0; i < this.pixelPositions.size(); i += 2)
+			{
+				int xp = this.pixelPositions.get(i);
+				int yp = this.pixelPositions.get(i + 1);
+			
+				if (xp == x && yp == y) return true;
+			}
+			
+			return false;
 		}
 		
 		public BitMask getBitMask()
@@ -316,27 +390,210 @@ public class BitMask {
 		return result;
 	}
 	
+	private FixedSizeBitSet eraseCol(FixedSizeBitSet fs, int col)
+	{
+		for(int y = 0; y < sy; ++y)
+		{
+			// fs.clear(y * sx + col);
+		}
+		return fs;
+	}
+	
 	/**
-	 * Retire tous les pixels qui n'ont pas au moins deux voisin
+	 * Retire tous les pixels qui ont au moin un voisin blanc
 	 */
 	public void erode()
 	{
-		morph(null, false);
+
+		morphPerf.enter();
+		try {
+			// Trouver tous les pixels ayant au moins un zero voisin :
+			// bitset et (zero << 1 | zero >> 1 | zero << sx | zero >> sx)
+			// => ils doivent disparaitre
+			
+			FixedSizeBitSet zeroes = new FixedSizeBitSet(this.bitSet);
+			zeroes.invert();
+			
+			FixedSizeBitSet zeroesNeighboors;
+			zeroesNeighboors = eraseCol(zeroes.shift(-1), sx - 1);
+			zeroesNeighboors.or(eraseCol(zeroes.shift(1), 0));
+			zeroesNeighboors.or(zeroes.shift(-sx));
+			zeroesNeighboors.or(zeroes.shift(sx));
+			
+			// Calculer les pixels qui n'ont aucun zero adjascent
+			FixedSizeBitSet mask = zeroesNeighboors;
+			mask.invert();
+			
+			// Maintenant, result contient uniquement les bits à effacer.
+			bitSet.and(mask);
+		
+// 			morph(null, false);
+		} finally {
+			morphPerf.leave();
+		}
 	}
-	
+
+	/**
+	 * Marquer tous les pixels qui ont au moins un voisin noir
+	 */
+	public void grow()
+	{
+
+		morphPerf.enter();
+		try {
+			// Trouver tous les pixels vide ayant au moins un one voisin :
+			// (!bitset) et (one << 1 | one >> 1 | one << sx | one >> sx)
+			// => ils doivent être ajoutés
+			
+			FixedSizeBitSet ones = new FixedSizeBitSet(this.bitSet);
+			
+			FixedSizeBitSet oneNeighboors;
+			oneNeighboors = eraseCol(ones.shift(-1), sx - 1);
+			oneNeighboors.or(eraseCol(ones.shift(1), 0));
+			oneNeighboors.or(ones.shift(-sx));
+			oneNeighboors.or(ones.shift(sx));
+			
+			bitSet.or(oneNeighboors);
+		
+// 			morph(null, false);
+		} finally {
+			morphPerf.leave();
+		}
+	}
+
 	public void grow(BitMask mask)
 	{
-		morph(mask, true);
+		if (mask == null) {
+			grow();
+			return;
+		}
+		morphBitmaskPerf.enter();
+		try {
+			morph(mask, true);
+		} finally {
+			morphBitmaskPerf.leave();
+		}
 	}
 	
 	private void morph(BitMask mask, boolean isGrow)
 	{
-		boolean updated;
 		int [] dirx = {-1, 1, 0, 0};
 		int [] diry = {0, 0, -1, 1};
 		
+//		// Les points qui s'étalent sont ceux qui valent 
+//		//    - !isGrow dans mask
+//		//    - 1 dans mask
+//
+//		// Ces points sont susceptibles de grossir
+//		int [] todo;
+//		if (isGrow) {
+//			// Si le nombre de pixel à 0 est faible par rapport aux pixels à 1, on va plutot cibler les pixels à 0.
+//			int numberOfBitSet = this.bitSet.cardinality();
+//			
+//			if (numberOfBitSet > sx * sy / 4)
+//			{
+//				todo = new int[2 * numberOfBitSet * 4];
+//				int todoLength = 0;
+//				
+//				for(int [] xy = nextCleanPixel(null); xy != null; xy = nextCleanPixel(xy))
+//				{
+//					int x = xy[0];
+//					int y = xy[1];
+//					
+//					for(int spread = 0; spread < dirx.length; ++spread)
+//					{
+//						int nvx = x + dirx[spread];
+//						int nvy = y + diry[spread];
+//						
+//						if (nvx < x0 || nvx > x1) continue;
+//						if (nvy < y0 || nvy > y1) continue;
+//						
+//						if (get(nvx, nvy)) {
+//							todo[todoLength++] = nvx;
+//							todo[todoLength++] = nvy;
+//						}
+//					}
+//				}
+//				
+//				todo = Arrays.copyOf(todo, todoLength);
+//			} else {
+//				todo = getSetPixels();
+//			}
+//			
+//		} else {
+//			// Si le nombre de pixel à 1 est faible par rapport aux pixels à 0, on va plutot cibler les pixels à 1.
+//			int numberOfBitSet = this.bitSet.cardinality();
+//			if (numberOfBitSet < sx * sy / 4)
+//			{
+//				todo = new int[2 * numberOfBitSet * 4];
+//				int todoLength = 0;
+//				
+//				for(int [] xy = nextPixel(null); xy != null; xy = nextPixel(xy))
+//				{
+//					int x = xy[0];
+//					int y = xy[1];
+//					
+//					for(int spread = 0; spread < dirx.length; ++spread)
+//					{
+//						int nvx = x + dirx[spread];
+//						int nvy = y + diry[spread];
+//						
+//						if (nvx < x0 || nvx > x1) continue;
+//						if (nvy < y0 || nvy > y1) continue;
+//						
+//						if (!get(nvx, nvy)) {
+//							todo[todoLength++] = nvx;
+//							todo[todoLength++] = nvy;
+//						}
+//					}
+//				}
+//				
+//				todo = Arrays.copyOf(todo, todoLength);
+//			} else {
+//				// On prend tous les pixels qui valent 0
+//				todo = getCleanPixels();
+//			}
+//		}
+//		
+//		while(todo.length > 0)
+//		{
+//			int [] newTodo = new int[2 * sx * sy];
+//			int newTodoLength = 0;
+//			for(int id = 0; id < todo.length; id += 2)
+//			{
+//				int x = todo[id];
+//				int y = todo[id + 1];
+//
+//				for(int spread = 0; spread < dirx.length; ++spread)
+//				{
+//					int nvx = x  + dirx[spread];
+//					int nvy = y  + diry[spread];
+//					
+//					if (nvx < x0 || nvx > x1) continue;
+//					if (nvy < y0 || nvy > y1) continue;
+//					
+//					// Le pixel est déjà positionné
+//					if (get(nvx, nvy) == isGrow) continue;
+//					if (mask != null && !mask.get(nvx, nvy)) continue;
+//					if (isGrow) {
+//						set(nvx, nvy);
+//					} else {
+//						unset(nvx, nvy);
+//					}
+//					newTodo[newTodoLength] = nvx;
+//					newTodo[newTodoLength + 1] = nvx;
+//					newTodoLength += 2;
+//				}
+//			}
+//			todo = Arrays.copyOf(newTodo, newTodoLength);
+//		}
+//		
+		boolean updated;
+		
+		
 		do {
 			updated = false;
+			
 			BitMask added = new BitMask(this.x0, this.y0, this.x1, this.y1);
 			for(int y = y0; y <= y1; ++y)
 				for(int x = x0; x <= x1; ++x)
@@ -362,10 +619,12 @@ public class BitMask {
 				if (isGrow) {
 					this.bitSet.or(added.bitSet);
 				} else {
-					this.bitSet.andNot(added.bitSet);
+					FixedSizeBitSet bs = added.bitSet;
+					bs.invert();
+					this.bitSet.and(bs);
 				}
 			}
-		} while(mask != null && updated);				
+		} while(mask != null && updated);
 	}
 	
 	@Override
@@ -384,5 +643,26 @@ public class BitMask {
 			result.append("\n");
 		}
 		return result.toString();
+	}
+	
+	int size()
+	{
+		return sx * sy;
+	}
+	
+	public static void main(String[] args) {
+		BitMask bm = new BitMask(0, 0, 50, 50);
+		for(int i = 0; i <= 50; ++i)
+			for(int j = 0; j <= 50; ++j)
+			{
+				int dst = 2 * (i - 25) * (i - 25) + (j - 25) * (j - 25);
+				if (dst < 300) {
+					bm.set(i, j);
+				}
+			}
+		System.out.println("before:\n" + bm);
+		bm.erode();
+		System.out.println("after:\n" + bm);
+		
 	}
 }
