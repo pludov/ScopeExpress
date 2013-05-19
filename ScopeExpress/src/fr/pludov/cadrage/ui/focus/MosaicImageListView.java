@@ -12,6 +12,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.Locale;
 
 import javax.swing.JScrollPane;
 import javax.swing.event.ListSelectionEvent;
@@ -282,15 +283,30 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 	}
 	
+	private static String formatDegMinSec(double raHourDouble)
+	{
+		boolean negate = raHourDouble < 0;
+		if (negate) raHourDouble = -raHourDouble;
+
+		int raHour, raMin;
+		double raSec;
+		raHour = (int)Math.floor(raHourDouble);
+		raMin = (int)Math.floor((raHourDouble - raHour) * 60);
+		raSec = (int)Math.floor((raHourDouble - raHour - raMin / 60.0) * 3600);
+		
+		if (negate) {
+			return String.format(Locale.US, "-%d %02d %02.2f", raHour, raMin, raSec);
+		} else {
+			return String.format(Locale.US, "%d %02d %02.2f", raHour, raMin, raSec);
+		}
+	}
+	
 	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
 	{
 		if (display == null) return "";
 		Image image = display.getImage();
 		if (image == null) return "";
-		if (mosaic.getSkyProjection() == null) return "";
 		
-		MosaicImageParameter mip = mosaic.getMosaicImageParameter(display.getImage());
-		if (mip == null || !mip.isCorrelated()) return "pas de correlation";
 		try {
 			double [] tmp1 = new double[2];
 			double [] tmp2 = new double[2];
@@ -304,12 +320,23 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			screenToImage.transform(tmp1, 0, tmp2, 0, 1);
 			double imgX = tmp2[0];
 			double imgY = tmp2[1];
+		
+			String result = String.format(Locale.US, "X/Y: %.1f %.1f", imgX, imgY);
+			
+			if (mosaic.getSkyProjection() == null) return result;
+			
+			result += "    ";
+			
+			MosaicImageParameter mip = mosaic.getMosaicImageParameter(display.getImage());
+			if (mip == null || !mip.isCorrelated()) return result + "pas de correlation";
 			
 			tmp1 = mip.imageToMosaic(imgX, imgY, tmp1);
 			mosaic.getSkyProjection().unproject(tmp1);
 			double ra = tmp1[0];
 			double dec = tmp1[1];
-			return String.format("%.2f %.2f", ra, dec);
+			
+			// return formatDegMinSec(ra * 24 / 360) + " " + formatDegMinSec(dec);
+			return result + String.format(Locale.US, "RA/DEC: %.2f %+.2f", ra, dec);
 		} catch(Exception e) {
 			logger.warn("unable to find coord for screen: " , e);
 			return e.getMessage();
