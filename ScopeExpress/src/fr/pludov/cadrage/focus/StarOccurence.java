@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.jws.WebParam.Mode;
 
+import org.w3c.dom.Element;
+
 import fr.pludov.cadrage.async.WorkStep;
 import fr.pludov.cadrage.async.WorkStepResource;
 import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
@@ -15,6 +17,7 @@ import fr.pludov.io.FitsPlane;
 import fr.pludov.utils.ChannelMode;
 import fr.pludov.utils.Histogram;
 import fr.pludov.utils.StarFinder;
+import fr.pludov.utils.XmlSerializationContext;
 
 public class StarOccurence {
 	public final WeakListenerCollection<StarOccurenceListener> listeners = new WeakListenerCollection<StarOccurenceListener>(StarOccurenceListener.class);
@@ -37,9 +40,12 @@ public class StarOccurence {
 	CameraFrame subFrame;
 	int dataX0, dataY0;
 	
-	double fwhm;
+	double fwhm, stddev;
+	double minFwhm, minStddev;
+	double maxFwhm, maxStddev;
+	
 	double peak;
-	double stddev;
+	
 	
 	// Pic au centre
 	double picX, picY;
@@ -68,8 +74,12 @@ public class StarOccurence {
 		this.dataY0 = copy.dataY0;
 
 		this.fwhm = copy.fwhm;
-		this.peak = copy.peak;
 		this.stddev = copy.stddev;
+		this.maxFwhm = copy.maxFwhm;
+		this.maxStddev = copy.maxStddev;
+		this.minFwhm = copy.minFwhm;
+		this.minStddev = copy.minStddev;
+		this.peak = copy.peak;
 
 		this.picX = copy.picX;
 		this.picY = copy.picY;
@@ -91,10 +101,44 @@ public class StarOccurence {
 		this.aduSumByChannel = new int[3];
 	}
 	
+	public Element save(XmlSerializationContext xsc, 
+			XmlSerializationContext.NodeDictionary<Image> imageDict, 
+			XmlSerializationContext.NodeDictionary<Star> starDict)
+	{
+		Element result = xsc.newNode(StarOccurence.class.getSimpleName());
+		
+		xsc.setNodeAttribute(result, "image", imageDict.getIdForObject(this.image));
+		xsc.setNodeAttribute(result, "star", starDict.getIdForObject(this.star));
+		xsc.setNodeAttribute(result, "analyseDone", this.analyseDone);
+		xsc.setNodeAttribute(result, "analyseDone", this.analyseDone);
+		xsc.setNodeAttribute(result, "fwhm", this.fwhm);
+		xsc.setNodeAttribute(result, "peak", this.peak);
+		xsc.setNodeAttribute(result, "stddev", this.stddev);
+		xsc.setNodeAttribute(result, "maxFwhm", this.maxFwhm);
+		xsc.setNodeAttribute(result, "maxStddev", this.maxStddev);
+		xsc.setNodeAttribute(result, "minFwhm", this.minFwhm);
+		xsc.setNodeAttribute(result, "minStddev", this.minStddev);
+		xsc.setNodeAttribute(result, "picX", this.picX);
+		xsc.setNodeAttribute(result, "picY", this.picY);
+		xsc.addNodeArray(result, "blackLevelByChannel", blackLevelByChannel);
+		xsc.addNodeArray(result, "blackStddevByChannel", blackStddevByChannel);
+		xsc.addNodeArray(result, "aduSumByChannel", aduSumByChannel);
+		xsc.addNodeArray(result, "aduMaxByChannel", aduMaxByChannel);
+		
+		// FIXME: 	BitMask starMask;
+		// FIXME:   CameraFrame subFrame;
+		return result;
+		
+	}
+	
 	void copyFromStarFinder(StarFinder finder)
 	{
 		this.fwhm = finder.getFwhm();
 		this.stddev = finder.getStddev();
+		this.minFwhm = finder.getMinFwhm();
+		this.minStddev = finder.getMinStddev();
+		this.maxFwhm = finder.getMaxFwhm();
+		this.maxStddev = finder.getMaxStddev();
 		this.picX = finder.getPicX();
 		this.picY = finder.getPicY();
 		this.starMask = finder.getStarMask();
@@ -334,6 +378,12 @@ public class StarOccurence {
 		return picY;
 	}
 	
+	public double getAspectRatio()
+	{
+		if (this.maxFwhm == 0) return 0;
+		return this.minFwhm / this.maxFwhm;
+	}
+	
 	public double getFwhm() {
 		return fwhm;
 	}
@@ -344,6 +394,22 @@ public class StarOccurence {
 
 	public double getStddev() {
 		return stddev;
+	}
+
+	public double getMinFwhm() {
+		return minFwhm;
+	}
+
+	public double getMinStddev() {
+		return minStddev;
+	}
+
+	public double getMaxFwhm() {
+		return maxFwhm;
+	}
+
+	public double getMaxStddev() {
+		return maxStddev;
 	}
 
 	public int getBlackLevel(ChannelMode channel) {
