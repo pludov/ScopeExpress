@@ -2,6 +2,10 @@ package fr.pludov.cadrage.focus;
 
 import java.awt.geom.NoninvertibleTransformException;
 
+import org.w3c.dom.Element;
+
+import fr.pludov.utils.XmlSerializationContext;
+
 /**
  * Classe responsable de la projection du ciel sur un plan.
  * Pour l'instant, on a une projection polaire sur le nord uniquement.
@@ -21,8 +25,6 @@ public class SkyProjection {
 	public final static double decToRad = Math.PI / 180.0;
 	public final static double epsilon = 1E-10;
 	
-	// Taille d'un pixel en arcsec
-	double pixelArcSec;
 	// Taille d'un pixel (unité) en radian
 	double pixelRad;
 
@@ -37,6 +39,18 @@ public class SkyProjection {
 		} catch(NoninvertibleTransformException e) {
 			throw new RuntimeException("identity not invertible", e);
 		}
+	}
+
+	public Element save(XmlSerializationContext xsc)
+	{
+		Element result = xsc.newNode(SkyProjection.class.getSimpleName());
+		xsc.setNodeAttribute(result, "pixelRad", this.pixelRad);
+		for(int i = 0; i < 12; ++i)
+		{
+			xsc.setNodeAttribute(result, "m"+i, transform.fact(i));
+		}
+		
+		return result;
 	}
 
 	
@@ -92,6 +106,28 @@ public class SkyProjection {
 		
 		radec[0] = ra;
 		radec[1] = dec;
+	}
+	
+	/**
+	 * Donne la distance en degré entre deux point du ciel
+	 */
+	public static double getDegreeDistance(double [] raDec1, double [] raDec2)
+	{
+		double [] expected3d = new double[3];
+		SkyProjection.convertRaDecTo3D(raDec1, expected3d);
+		
+		double [] found3d = new double[3];
+		SkyProjection.convertRaDecTo3D(raDec2, found3d);
+		
+		double dst = Math.sqrt(
+					(expected3d[0] - found3d[0]) * (expected3d[0] - found3d[0])
+					+ (expected3d[1] - found3d[1]) * (expected3d[1] - found3d[1])
+					+ (expected3d[2] - found3d[2]) * (expected3d[2] - found3d[2]));
+		
+		double raAngle = Math.asin(dst / 2);
+		double angle = raAngle * 180 / Math.PI;
+		
+		return angle;
 	}
 	/**
 	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
