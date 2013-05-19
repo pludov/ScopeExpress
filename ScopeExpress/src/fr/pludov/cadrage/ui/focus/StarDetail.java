@@ -103,8 +103,10 @@ public class StarDetail extends StarDetailDesign {
 	private void refreshLabels()
 	{
 		if (this.so != null && this.so.isAnalyseDone() && this.so.isStarFound()) {
-			this.lblFWHM.setText(Utils.doubleToString(this.so.getFwhm(), 2));
-			this.lblStdDev.setText(Utils.doubleToString(this.so.getStddev(), 2));
+			this.lblFWHM.setText(Utils.doubleToString(this.so.getFwhm(), 2) 
+					+ " (" + Utils.doubleToString(this.so.getMinFwhm(),  2)+" < " + Utils.doubleToString(this.so.getMaxFwhm(),  2) + ") ratio: " + Utils.doubleToString(this.so.getMinFwhm() / this.so.getFwhm(), 2));
+			this.lblStdDev.setText(Utils.doubleToString(this.so.getStddev(), 2)
+					+ " (" + Utils.doubleToString(this.so.getMinStddev(),  2)+" < " + Utils.doubleToString(this.so.getMaxStddev(),  2) + ")");
 			int aduMax = 0;
 			int aduSum = 0;
 			for(int i = 0; i < 3; ++i)
