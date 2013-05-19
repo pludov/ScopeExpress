@@ -6,9 +6,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.focus.BitMask;
 import fr.pludov.cadrage.focus.BitMask.ConnexityGroup;
@@ -19,7 +22,8 @@ import fr.pludov.io.CameraFrame;
  *
  */
 public class MultiStarFinder {
-
+	private static final Logger logger = Logger.getLogger(MultiStarFinder.class);
+	
 	List<StarFinder> stars;
 	CameraFrame frame;
 	BitMask checkedArea;
@@ -118,12 +122,15 @@ public class MultiStarFinder {
 		// Taille maxi d'une étoile (32 x 32) 
 		int maxSurface = 2048;
 		double maxStddev = 8;
-		
+
+		logger.info("Calc connexity groups");
 		List<ConnexityGroup> groups = notBlack.calcConnexityGroups();
+		logger.debug("evaluation groups statistics");
 		
 		for(Iterator<ConnexityGroup> it = groups.iterator(); it.hasNext();)
 		{
 			ConnexityGroup c = it.next();
+			
 			if (c.pixelPositions.size() > 2 * maxSurface)
 			{
 				it.remove();
@@ -178,7 +185,7 @@ public class MultiStarFinder {
 				}
 			}
 		}
-		
+		logger.debug("sorting groups");
 		Collections.sort(groups, new Comparator<ConnexityGroup>() {
 			@Override
 			public int compare(ConnexityGroup o1, ConnexityGroup o2) {
@@ -188,46 +195,64 @@ public class MultiStarFinder {
 		
 		percent(70);
 
-
+		logger.debug("iterating groups");
+		int aduSeuil = 0;
+		int minimumAduSum = 0;
+		List<StarFinder> finalStarFinderList = new LinkedList<StarFinder>();
+		int maxStarCount = 400;
+		int cgId = -1;
 		for(ConnexityGroup cg : groups)
 		{
-			if (Math.abs(cg.centerx - 2 * 1372) < 12 && Math.abs(cg.centery - 2 * 520) < 12)
-			{
-				System.out.println("suspect star");
-			}
+			cgId++;
+			percent(70 + Math.max((30 * cgId) / groups.size(), 30 * finalStarFinderList.size() / maxStarCount));
+			
 			StarFinder finder = new StarFinder(frame, (int)Math.round(cg.centerx / 2.0), (int)Math.round(cg.centery / 2.0), 25, 25);
 			finder.setExcludeMask(checkedArea);
 			
 			finder.setIncludeMask(cg.getBitMask());
 			finder.perform();
-			
-			if (Math.abs(finder.getPicX() - 1372) < 8 && Math.abs(finder.getPicY() - 520) < 8)
-			{
-				System.out.println("suspect star");
-			}
 
 			if (finder.starFound) {
-				boolean isBright = false;
 				
-				int totalAduSum = 0;
-				for(int i = 0; i < finder.aduSumByChannel.length; ++i)
+				if (finder.getTotalAduSum() >= aduSeuil)
 				{
-					totalAduSum += finder.aduSumByChannel[i];
+					if (finalStarFinderList.isEmpty()) {
+						minimumAduSum = finder.getTotalAduSum();
+					}
+					finalStarFinderList.add(finder);
+					
+					if (finalStarFinderList.size() > maxStarCount)
+					{
+						break;
+//						// Retirer le minimum
+//						int newMinimumAduSum = 0;
+//						boolean hasNewMinimumAduSum = false;
+//						for(Iterator<StarFinder> it = finalStarFinderList.iterator(); it.hasNext(); )
+//						{
+//							StarFinder sf = it.next();
+//							int sfAduSum = sf.getTotalAduSum();
+//							if (sfAduSum <= minimumAduSum) {
+//								it.remove();
+//							} else {
+//								// On le garde, mais on met peut être à jour le minimum
+//								if ((!hasNewMinimumAduSum) || newMinimumAduSum > sfAduSum)
+//								{
+//									newMinimumAduSum = sfAduSum;
+//									hasNewMinimumAduSum = true;
+//								}
+//							}
+//						}
+//						minimumAduSum = newMinimumAduSum;
+//						aduSeuil = minimumAduSum;
+					}
 				}
-				
-				// FIXME: seuil en dur pour la détection des etoiles faibles
-				isBright = totalAduSum > 1000;
-				if (isBright) {
-					stars.add(finder);
-					percent(70 + 30 * stars.size() / 400);
-				}
-				
 				// FIXME: detection des images saturées
 				checkedArea.add(finder.getStarMask());
 			}
-			// FIXME : nombre d'étoiles en dur
-			if (stars.size() > 400) break;
 		}
+		
+		stars.addAll(finalStarFinderList);
+		
 		
 //		int [] coords = null;
 //		for(coords = notBlack.nextPixel(coords); coords != null; coords = notBlack.nextPixel(coords))
