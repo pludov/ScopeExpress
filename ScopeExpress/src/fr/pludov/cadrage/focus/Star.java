@@ -1,8 +1,10 @@
 package fr.pludov.cadrage.focus;
 
-public class Star {
+import org.w3c.dom.Element;
 
-	String titre;
+import fr.pludov.utils.XmlSerializationContext;
+
+public class Star {
 	
 	// Les coordonnées de l'étoiles
 	final int clickX, clickY;
@@ -13,6 +15,9 @@ public class Star {
 	double correlatedX, correlatedY;
 
 	double magnitude;
+	
+	// Si l'étoile vient d'un catalogue... FIXME: quel format ?
+	String reference;
 	
 	Mosaic mosaic;
 	
@@ -27,14 +32,30 @@ public class Star {
 		this.correlatedY = 0;
 		this.magnitude = Double.NaN;
 		this.mosaic = null;
+		this.reference = null;
 	}
 
-	public String getTitre() {
-		return titre;
+	public Element save(XmlSerializationContext xsc, XmlSerializationContext.NodeDictionary<Image> images)
+	{
+		Element result = xsc.newNode(Star.class.getSimpleName());
+		xsc.setNodeAttribute(result, "clickX", this.clickX);
+		xsc.setNodeAttribute(result, "clickY", this.clickY);
+		xsc.setNodeAttribute(result, "clickImage", clickImage != null ? images.getIdForObject(this.clickImage) : null);
+		xsc.setNodeAttribute(result, "excludeFromStat", this.excludeFromStat);
+		xsc.setNodeAttribute(result, "positionStatus", this.positionStatus.name());
+		xsc.setNodeAttribute(result, "correlatedX", this.correlatedX);
+		xsc.setNodeAttribute(result, "correlatedY", this.correlatedY);
+		xsc.setNodeAttribute(result, "magnitude", this.magnitude);
+		xsc.setNodeAttribute(result, "reference", this.reference);
+		return result;
+	}
+	
+	public String getReference() {
+		return reference;
 	}
 
-	public void setTitre(String titre) {
-		this.titre = titre;
+	public void setReference(String titre) {
+		this.reference = titre;
 	}
 
 	public int getClickX() {
