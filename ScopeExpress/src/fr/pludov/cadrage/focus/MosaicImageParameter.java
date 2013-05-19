@@ -1,6 +1,9 @@
 package fr.pludov.cadrage.focus;
 
+import org.w3c.dom.Element;
+
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.utils.XmlSerializationContext;
 
 public class MosaicImageParameter {
 	public final WeakListenerCollection<MosaicImageParameterListener> listeners = new WeakListenerCollection<MosaicImageParameterListener>(MosaicImageParameterListener.class);
@@ -24,6 +27,19 @@ public class MosaicImageParameter {
 		this.isCorrelated = false;
 	}
 
+	public Element save(XmlSerializationContext xsc, XmlSerializationContext.NodeDictionary<Image> imageDict)
+	{
+		Element result = xsc.newNode(MosaicImageParameter.class.getSimpleName());
+		xsc.setNodeAttribute(result, "image", imageDict.getIdForObject(this.image));
+		xsc.setNodeAttribute(result, "correlated", this.isCorrelated);
+		xsc.setNodeAttribute(result, "tx", this.tx);
+		xsc.setNodeAttribute(result, "ty", this.ty);
+		xsc.setNodeAttribute(result, "cs", this.cs);
+		xsc.setNodeAttribute(result, "sn", this.sn);
+		
+		return result;
+	}
+	
 	public double getTx() {
 		return tx;
 	}
