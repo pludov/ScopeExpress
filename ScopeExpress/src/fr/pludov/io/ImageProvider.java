@@ -31,6 +31,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
 
+import fr.pludov.utils.ChannelMode;
+
 public class ImageProvider {
 	private static final Logger logger = Logger.getLogger(ImageProvider.class);
 	
@@ -179,8 +181,68 @@ public class ImageProvider {
 			result.histogramNbPix[2] = width * height / 4;
 			
 			return result;
-		}		
-		throw new RuntimeException("unsupported file type");
+		} else {
+			
+			
+			BufferedImage buffer = ImageIO.read(file);
+			if (buffer == null) {
+				throw new IOException("Unsupported file format: " + file);
+			}
+			
+			int width = buffer.getWidth();
+			int height = buffer.getHeight();
+			
+			int outwidth = width + (width & 1);
+			int outheight = height + (height & 1);
+			char [] charBuffer = new char[outwidth * outheight];
+			// On fait un "rebayer"
+			for(int y = 0; y < height; ++y)
+			{
+				int basey = 2 * (y / 2);
+				for(int x = 0; x < width; ++x)
+				{
+					int basex = 2 * (x/2);
+					
+					int rgb = buffer.getRGB(x, y);
+					int r = rgb & 0xff;
+					int g = (rgb >> 8) & 0xff;
+					int b = (rgb >> 16) & 0xff;
+					
+					// G R
+					// B G
+					charBuffer[basex + outwidth * basey] += r;
+					charBuffer[basex + 1 + outwidth * basey] += g;
+					charBuffer[basex + outwidth * (basey + 1)] += g;
+					charBuffer[basex + 1 + outwidth * (basey + 1)] += b;
+				}
+			}
+			
+			CameraFrame result = new CameraFrame();
+			result.buffer = charBuffer;
+			result.width = outwidth;
+			result.height = outheight;
+			result.maximum = 4 * 255;
+			result.black = 0;
+			result.histogram = new int[3][];
+			result.histogram[0] = new int[4 * 255 + 1];
+			result.histogram[1] = new int[4 * 255 + 1];
+			result.histogram[2] = new int[4 * 255 + 1];
+			
+			for(int y = 0; y < outheight; ++y)
+				for(int x = 0; x < outwidth; ++x)
+				{
+					int chid = ChannelMode.getRGBBayerId(x, y);
+					int adu = charBuffer[x + (width / 2) * y];
+					result.histogram[chid][adu]++;
+				}
+			
+			result.histogramNbPix = new int[3];
+			result.histogramNbPix[0] = outwidth * outheight / 4;
+			result.histogramNbPix[1] = outwidth * outheight / 2;
+			result.histogramNbPix[2] = outwidth * outheight / 4;
+			
+			return result;
+		}
 	}
 	
 //	public static BufferedImage readImage(final File file) throws IOException
@@ -224,3 +286,4 @@ public class ImageProvider {
 //		}
 //	}
 }
+
