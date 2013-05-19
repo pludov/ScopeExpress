@@ -34,6 +34,8 @@ public class Image implements WorkStepResource {
 	Metadata metadata;
 	Double pause;
 	Integer iso;
+	volatile boolean hasSize;
+	int width, height;
 	
 	/**
 	 * Une image ne doit pas être construite directement.
@@ -131,22 +133,31 @@ public class Image implements WorkStepResource {
 			}
 			loading = true;
 		}
-		CameraFrame loaded;
+		CameraFrame loaded = null;
 		try {
-			logger.info("Loading " + path);
-			loaded = ImageProvider.readImage(path);
-		} catch(IOException ex) {
-			ex.printStackTrace();
-			loaded = new CameraFrame();
-		}
-		
-		synchronized(this)
-		{
-			this.loading = false;
-			this.cameraFrame = new SoftReference<CameraFrame>(loaded);
-			this.cameraFrameLocked = loaded;
-			this.cameraFrameLockCount++;
-			notifyAll();
+			try {
+				logger.info("Loading " + path);
+				loaded = ImageProvider.readImage(path);
+			} catch(IOException ex) {
+				ex.printStackTrace();
+			}
+		} finally {
+			if (loaded == null) {
+				loaded = new CameraFrame();
+			}
+			
+			synchronized(this)
+			{
+				this.loading = false;
+				this.cameraFrame = new SoftReference<CameraFrame>(loaded);
+				this.cameraFrameLocked = loaded;
+				this.cameraFrameLockCount++;
+				this.hasSize = true;
+				this.width = loaded.getWidth();
+				this.height = loaded.getHeight();
+				
+				notifyAll();
+			}
 		}
 	}
 	
@@ -173,4 +184,29 @@ public class Image implements WorkStepResource {
 	public String toString() {
 		return this.path.getName();
 	}
+	
+	public int getWidth() {
+		if (!hasSize) {
+			synchronized(this) {
+				if (!hasSize) {
+					getCameraFrame();
+				}
+			}
+			
+		}
+		return width;
+	}
+
+	public int getHeight() {
+		if (!hasSize) {
+			synchronized(this) {
+				if (!hasSize) {
+					getCameraFrame();
+				}
+			}
+			
+		}
+		return height;
+	}
+
 }
