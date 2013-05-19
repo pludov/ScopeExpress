@@ -9,12 +9,12 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
+import org.w3c.dom.Element;
 
-import fr.pludov.cadrage.async.WorkStepProcessor;
-import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
-import fr.pludov.cadrage.ui.utils.BackgroundTaskQueue;
-import fr.pludov.cadrage.utils.DynamicGridPoint;
+import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.utils.XmlSerializationContext;
+import fr.pludov.utils.XmlSerializationContext.NodeDictionary;
 
 public class Mosaic {
 	private static final Logger logger = Logger.getLogger(Mosaic.class);
@@ -31,16 +31,65 @@ public class Mosaic {
 	// Est-ce que la mosaique a des coordonnées célestes
 	SkyProjection skyProjection;
 	
-	List<StarOccurence> todoList;
-	
 	public Mosaic(Application focus) {
 		this.occurences = new HashMap<Star, Map<Image,StarOccurence>>();
 		this.images = new ArrayList<Image>();
 		this.imageMosaicParameter = new IdentityHashMap<Image, MosaicImageParameter>();
 		this.stars = new ArrayList<Star>();
-		this.todoList = new ArrayList<StarOccurence>();
 		this.focus = focus;
 		this.pointOfInterest = new TreeMap<String, PointOfInterest>();
+	}
+	
+	
+	public Element save(XmlSerializationContext context)
+	{
+		Element mosaic = context.newNode(Mosaic.class.getSimpleName());
+
+		if (this.skyProjection != null) {
+			Element skyProjectionNode = this.skyProjection.save(context);
+			mosaic.appendChild(skyProjectionNode);
+		}
+		
+		NodeDictionary<Image> imageDict = context.new NodeDictionary<Image>();
+		// Sauver les images
+		for(Image image : images)
+		{
+			// Enregistrer l'image
+			Element imageNode = context.newNode(Image.class.getSimpleName());
+			context.setNodeAttribute(imageNode, "path", image.getPath().getPath());
+			
+			imageDict.addNodeForObject(image, imageNode);
+			
+			mosaic.appendChild(imageNode);
+		}
+		
+		// Sauver les étoiles
+		NodeDictionary<Star> starDict = context.new NodeDictionary<Star>();
+		for(Star star : stars)
+		{
+			Element starElement = star.save(context, imageDict);
+			starDict.addNodeForObject(star, starElement);
+			
+			mosaic.appendChild(starElement);
+		}
+		
+		for(MosaicImageParameter mip : this.imageMosaicParameter.values())
+		{
+			Element mipElement = mip.save(context, imageDict);
+			mosaic.appendChild(mipElement);
+		}
+		
+		for(Map<Image, StarOccurence> imgMap : this.occurences.values())
+		{
+			for(StarOccurence oc : imgMap.values())
+			{
+				Element occNode = oc.save(context, imageDict, starDict);
+				mosaic.appendChild(occNode);
+			}
+		}
+		
+		return mosaic;
+		
 	}
 	
 	Image getPreviousImage(Image after)
@@ -313,16 +362,18 @@ public class Mosaic {
 	}
 	
 
-	public static class CorrelatedGridPoint implements DynamicGridPoint
+	public static class CorrelatedGridPoint implements DynamicGridPointWithAdu
 	{
 		final Star star;
 		final double x, y;
+		final double adu;
 		
 		CorrelatedGridPoint(Star star, double x, double y)
 		{
 			this.star = star;
 			this.x = x;
 			this.y = y;
+			this.adu = Math.pow(2.512, -star.getMagnitude());
 		}
 
 		@Override
@@ -337,6 +388,11 @@ public class Mosaic {
 
 		public Star getStar() {
 			return star;
+		}
+		
+		@Override
+		public double getAduLevel() {
+			return adu;
 		}
 	}
 	
