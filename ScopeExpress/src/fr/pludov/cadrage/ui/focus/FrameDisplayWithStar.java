@@ -253,7 +253,6 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			
 		skyproj.unprojectPreTransformed3d(src, result);
 		skyproj.unproject(src);
-		System.out.println(" glop");
 	}
 	
 	@Override
@@ -394,7 +393,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
     		}
     		
-    		gPaint.setColor(Color.red);
+    		
     		// Dessiner les étoiles de l'image
 	        for(Star star : mosaic.getStars())
 	        {
@@ -416,6 +415,17 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	
 	        	int centerx = (int)Math.round(result.getX());
 	        	int centery = (int)Math.round(result.getY());
+	        	
+	        	
+	        	switch(star.getPositionStatus())
+	        	{
+	        	case Reference:
+	        		gPaint.setColor(Color.blue);
+	        		break;
+	        	default:
+	        		gPaint.setColor(Color.red);
+	        		break;
+	        	}
 	        	
 	        	gPaint.drawLine(centerx - 20, centery, centerx - 5, centery);
 	        	gPaint.drawLine(centerx + 20, centery, centerx + 5, centery);
