@@ -52,6 +52,12 @@ public class FocusUiDesign {
 	protected JTabbedPane starOccurenceControlPane;
 	protected JPanel starDetailPanel;
 	protected JPanel graphParamPanel;
+	protected JMenu mnTests;
+	protected JButton scriptAdvanceBton;
+	protected JMenuItem mnProjectSave;
+	protected JTabbedPane graphsPane;
+	protected JPanel fwhmEvolutionPanel;
+	protected JPanel fwhmRepartitionPanel;
 
 	/**
 	 * Create the application.
@@ -81,6 +87,9 @@ public class FocusUiDesign {
 		this.mnAutoOpen = new JMenuItem("Surveiller un r\u00E9pertoire");
 		this.mnfichier.add(this.mnAutoOpen);
 		
+		this.mnProjectSave = new JMenuItem("Sauver le projet");
+		this.mnfichier.add(this.mnProjectSave);
+		
 		this.mnQuitter = new JMenu("Quitter");
 		this.mnfichier.add(this.mnQuitter);
 		
@@ -98,6 +107,9 @@ public class FocusUiDesign {
 		
 		this.mntmAutre = new JMenuItem("Autre");
 		this.mnEtoiles.add(this.mntmAutre);
+		
+		this.mnTests = new JMenu("Tests");
+		this.menuBar.add(this.mnTests);
 		
 		this.toolBar = new JToolBar();
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);
@@ -120,6 +132,9 @@ public class FocusUiDesign {
 		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
 		this.toolBar.add(this.shootButton);
 		
+		this.scriptAdvanceBton = new JButton("Avancer le script");
+		this.toolBar.add(this.scriptAdvanceBton);
+		
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		this.frmFocus.getContentPane().add(this.tabbedPane, BorderLayout.CENTER);
 		
@@ -136,6 +151,17 @@ public class FocusUiDesign {
 		this.detailsSplitPane = new JSplitPane();
 		this.detailsSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		this.detailsPanel.add(this.detailsSplitPane, "cell 0 0,grow");
+		
+		this.graphsPane = new JTabbedPane(JTabbedPane.TOP);
+		this.detailsSplitPane.setRightComponent(this.graphsPane);
+		
+		this.fwhmEvolutionPanel = new JPanel();
+		this.graphsPane.addTab("Evolution", null, this.fwhmEvolutionPanel, null);
+		this.fwhmEvolutionPanel.setLayout(new BoxLayout(this.fwhmEvolutionPanel, BoxLayout.X_AXIS));
+		
+		this.fwhmRepartitionPanel = new JPanel();
+		this.graphsPane.addTab("R\u00E9partition", null, this.fwhmRepartitionPanel, null);
+		this.fwhmRepartitionPanel.setLayout(new BoxLayout(this.fwhmRepartitionPanel, BoxLayout.X_AXIS));
 		
 		this.starOccurenceControlPane = new JTabbedPane(JTabbedPane.TOP);
 		this.detailsPanel.add(this.starOccurenceControlPane, "cell 1 0,grow");
