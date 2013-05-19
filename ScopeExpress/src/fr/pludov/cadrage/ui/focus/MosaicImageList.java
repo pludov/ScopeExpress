@@ -1,5 +1,8 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.awt.Component;
+import java.awt.HeadlessException;
+import java.awt.TrayIcon.MessageType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
@@ -7,10 +10,12 @@ import java.util.Date;
 import java.util.List;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
+import javax.swing.JTextArea;
 
-import fr.pludov.cadrage.ImageStar;
-import fr.pludov.cadrage.correlation.ImageCorrelation;
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicListener;
@@ -24,6 +29,7 @@ import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
+	private static final Logger logger = Logger.getLogger(MosaicImageList.class);
 	Mosaic mosaic;
 	final FocusUi focusUi;
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -291,6 +297,60 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 	
 		contextMenu.add(poleMenu);
+		
+		JMenuItem imageCorrelationDetailsMenu = new JMenuItem();
+		imageCorrelationDetailsMenu.setText("Détails de la position");
+		imageCorrelationDetailsMenu.setEnabled(entries.size() == 1);
+		imageCorrelationDetailsMenu.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				MosaicImageListEntry mile = entries.get(0);
+				Image image = mile.getTarget();
+				MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+				if (mip == null) return;
+				String message;
+				
+				if (!mip.isCorrelated()) {
+					message = "pas de correlation";
+				} else if (mosaic.getSkyProjection() == null) {
+					message = "pas de position du ciel";
+				} else {
+					
+					Object [] position  = {
+							"center",	new double[] { 0.5, 0.5},
+							"top", new double[] { 0.5, 0},
+							"right", new double[] { 0, 0.5 }
+					};
+					
+					message = "";
+					for(int i = 0; i < position.length; i += 2)
+					{
+						String title = (String)position[i];
+						double [] imgPos = (double[])position[i + 1];
+						
+						double [] mosaicPos = new double[2];
+						
+						mip.imageToMosaic(0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1], mosaicPos);
+						mosaic.getSkyProjection().unproject(mosaicPos);
+						message += title + " = [" + mosaicPos[0] +";" + mosaicPos[1]+"]\n";
+					}
+				}
+				
+				try {
+					JTextArea textArea = new JTextArea(message);
+					textArea.setColumns(30);
+					// textArea.setLineWrap( true );
+					//textArea.setWrapStyleWord( true );
+					textArea.setSize(textArea.getPreferredSize().width, textArea.getPreferredSize().height);
+					JOptionPane.showMessageDialog((Component)MosaicImageList.this.getTopLevelAncestor(), textArea, "Position de l'image", MessageType.INFO.ordinal());
+				} catch (HeadlessException e2) {
+					logger.error("headless", e2);
+				}
+			}
+		});
+		
+		contextMenu.add(imageCorrelationDetailsMenu);
 		
 		return contextMenu;
 	}

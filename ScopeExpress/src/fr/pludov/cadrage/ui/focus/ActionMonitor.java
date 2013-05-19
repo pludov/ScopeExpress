@@ -224,7 +224,7 @@ public class ActionMonitor implements ActionListener {
 					{
 						if (!known.add(item)) continue;
 						
-						if (!item.matches(".*\\.cr.")) {
+						if (!item.toLowerCase().matches(".*\\.cr.")) {
 							continue;
 						}
 
@@ -281,15 +281,8 @@ public class ActionMonitor implements ActionListener {
 										return;
 									}
 								}
-								fr.pludov.cadrage.focus.Image image = focusUi.getApplication().getImage(newItem);
-								focusUi.getMosaic().addImage(image, MosaicListener.ImageAddedCause.AutoDetected);
 								
-								FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
-								focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
-								
-								CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), image);
-								focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
-								
+								addImage(newItem);
 							}
 						});
 
@@ -306,5 +299,17 @@ public class ActionMonitor implements ActionListener {
 			}
 		}
 
+	}
+	
+	public void addImage(File newItem)
+	{
+		fr.pludov.cadrage.focus.Image image = focusUi.getApplication().getImage(newItem);
+		focusUi.getMosaic().addImage(image, MosaicListener.ImageAddedCause.AutoDetected);
+		
+		FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
+		focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+		
+		CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), image);
+		focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);	
 	}
 }
