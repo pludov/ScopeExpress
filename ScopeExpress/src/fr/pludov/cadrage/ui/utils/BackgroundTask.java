@@ -120,7 +120,7 @@ public abstract class BackgroundTask {
 		{
 			if (this.title.equals(title)) return;
 			this.title = title;
-			queue.somethingChanged();
+			queue.detailsChanged();
 		}
 	}
 
@@ -139,7 +139,7 @@ public abstract class BackgroundTask {
 		{
 			if (this.runningDetails.equals(subTitle)) return;
 			this.runningDetails = subTitle;
-			queue.somethingChanged();
+			queue.detailsChanged();
 		}
 	}
 
@@ -159,7 +159,7 @@ public abstract class BackgroundTask {
 		{
 			if (this.percent == percent) return;
 			this.percent = percent;
-			queue.somethingChanged();
+			queue.detailsChanged();
 		}
 	}
 

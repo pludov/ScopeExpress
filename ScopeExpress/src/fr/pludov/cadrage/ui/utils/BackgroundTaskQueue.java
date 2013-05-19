@@ -183,6 +183,7 @@ public final class BackgroundTaskQueue {
 	
 	synchronized void startSomeTask()
 	{
+		logger.info("Checking for task ready to start");
 		if (runningCount >= maxRunCount) return;
 		for(BackgroundTask task : tasks)
 		{
@@ -215,21 +216,49 @@ public final class BackgroundTaskQueue {
 		}
 	}
 	
+	Runnable periodic = new Runnable()
+	{
+		@Override
+		public void run() {
+			boolean wantRemoveAddTask;
+			synchronized(periodic) {
+				pending = false;
+				wantRemoveAddTask = removeAddTaskPending;
+				removeAddTaskPending = false;
+			}
+			
+			if (wantRemoveAddTask) {
+				removeDoneTasks();
+				startSomeTask();
+			}
+			listeners.getTarget().stateChanged();
+		}
+	};
+	boolean pending;
+	boolean removeAddTaskPending;
 	
 	// Appellé quand quelque chose change.
 	// Peut relancer une nouvelle tache, déclencher la mise à jour des titre & co, ...
 	void somethingChanged()
 	{
-		Runnable periodic = new Runnable()
+		synchronized(periodic)
 		{
-			@Override
-			public void run() {
-				removeDoneTasks();
-				startSomeTask();
-				listeners.getTarget().stateChanged();
+			if (!pending) {
+				SwingUtilities.invokeLater(periodic);
+				pending = true;
 			}
-		};
-		
-		SwingUtilities.invokeLater(periodic);
+			removeAddTaskPending = true;
+		}
+	}
+	
+	void detailsChanged()
+	{
+		synchronized(periodic)
+		{
+			if (!pending) {
+				SwingUtilities.invokeLater(periodic);
+				pending = true;
+			}
+		}
 	}
 }
