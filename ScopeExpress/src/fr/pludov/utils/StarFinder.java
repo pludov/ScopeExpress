@@ -1,7 +1,8 @@
 package fr.pludov.utils;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.focus.BitMask;
-import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.io.CameraFrame;
 
 /**
@@ -9,7 +10,8 @@ import fr.pludov.io.CameraFrame;
  * 
  */
 public class StarFinder {
-
+	private static final Logger logger = Logger.getLogger(StarFinder.class);
+	
 	final int square;
 	final int searchRadius;
 	final CameraFrame frame;
@@ -26,6 +28,9 @@ public class StarFinder {
 	double picX, picY;
 	// Etalement
 	double stddev, fwhm;
+	// Sous l'angle le plus gentil...
+	double minStddev, minFwhm;
+	double maxStddev, maxFwhm;
 	// Masque de l'étoile (les pixels considérés comme appartenant)
 	BitMask starMask;
 	
@@ -71,6 +76,7 @@ public class StarFinder {
 		{
 			for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
 			{
+				if (includeMask != null && !includeMask.get(x, y)) continue;
 				int adu = frame.getAdu(x, y);
 				if (adu > blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)]) {
 					notBlack.set(x, y);
@@ -86,24 +92,23 @@ public class StarFinder {
 		notBlackEroded.substract(excludeMask);
 		notBlackEroded.grow(null);
 		notBlackEroded.substract(excludeMask);
-		notBlackEroded.intersect(includeMask);
+		// notBlackEroded.intersect(includeMask);
 		
 		int maxAdu = 0;
 		int maxAduX = 2 * centerX, maxAduY = 2 * centerY;
 		
-		for(int y = 2 * centerY - searchRadius; y <= 2 * centerY + searchRadius; ++y)
+		for(int [] xy = notBlackEroded.nextPixel(null); xy != null; xy = notBlackEroded.nextPixel(xy))
 		{
-			for(int x = 2 * centerX - searchRadius; x <= 2 * centerX + searchRadius; ++x)
-			{
-				if (!notBlackEroded.get(x, y)) continue;
-				int adu = frame.getAdu(x, y);
-				int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-				adu -= black;
-				if (adu >= maxAdu) {
-					maxAdu = adu;
-					maxAduX = x;
-					maxAduY = y;
-				}
+			int x = xy[0];
+			int y = xy[1];
+
+			int adu = frame.getAdu(x, y);
+			int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+			adu -= black;
+			if (adu >= maxAdu) {
+				maxAdu = adu;
+				maxAduX = x;
+				maxAduY = y;
 			}
 		}
 		
@@ -128,8 +133,8 @@ public class StarFinder {
 				if (adu > black) {
 					adu -= black;
 					
-					// FIXME: 0.25 = en dur
-					if (adu > 0.25 * maxAdu) {
+					// FIXME: avant on avait 0.25 * maxAdu
+					if (adu > 0) {
 						notBlack.set(x, y);
 					}
 				}
@@ -140,7 +145,7 @@ public class StarFinder {
 		notBlackEroded.erode();
 		notBlackEroded.grow(null);
 		notBlackEroded.substract(excludeMask);
-		notBlackEroded.intersect(includeMask);
+		// notBlackEroded.intersect(includeMask);
 		
 		if (!notBlackEroded.get(maxAduX, maxAduY)) {
 			// Rien trouvé
@@ -168,25 +173,24 @@ public class StarFinder {
 		long ySum = 0;
 		long aduSum = 0;
 		
-		for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
+		for(int xy [] = star.nextPixel(null); xy != null; xy = star.nextPixel(xy))
 		{
-			for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
-			{
-				if (!star.get(x, y)) continue;
-				int channelId = ChannelMode.getRGBBayerId(x, y);
-				int adu = frame.getAdu(x, y);
-				int black = blackLevelByChannel[channelId];
-				if (adu <= black) continue;
-				adu -= black;
-				this.aduSumByChannel[channelId] += adu;
-				if (adu > this.aduMaxByChannel[channelId]) {
-					this.aduMaxByChannel[channelId] = adu;
-				}
-				
-				xSum += x * adu;
-				ySum += y * adu;
-				aduSum += adu;
+			int x = xy[0];
+			int y = xy[1];
+
+			int channelId = ChannelMode.getRGBBayerId(x, y);
+			int adu = frame.getAdu(x, y);
+			int black = blackLevelByChannel[channelId];
+			if (adu <= black) continue;
+			adu -= black;
+			this.aduSumByChannel[channelId] += adu;
+			if (adu > this.aduMaxByChannel[channelId]) {
+				this.aduMaxByChannel[channelId] = adu;
 			}
+			
+			xSum += x * adu;
+			ySum += y * adu;
+			aduSum += adu;
 		}
 		
 		
@@ -203,8 +207,7 @@ public class StarFinder {
 		centerX = (int)Math.round(picX);
 		centerY = (int)Math.round(picY);
 
-		double sumDstSquare = 0;
-		long aduDst = 0;
+		
 //				for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
 //				{
 //					for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
@@ -224,35 +227,96 @@ public class StarFinder {
 //						aduDst += adu;
 //					}
 //				}
-
-		for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
+		starFound = true;
+		
+		double maxAngle = 0, minAngle = 0;
+		double maxFwhm = 0, minFwhm = 0;
+		double fwhmSum = 0;
+		int stepCount = 16;
+		for(int step = 0; step < stepCount; ++step)
 		{
-			long aduForX = 0;
-			for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
+			double angle = step * Math.PI / stepCount;
+		
+			double cs = Math.cos(angle);
+			double sn = Math.sin(angle);
+			
+			double sumDstSquare = 0;
+			double sumDstSquareDivider = 0;
+		
+			// MedianCalculator medianCalculator = new MedianCalculator();	
+			
+			// on veut le x moyen tel que : 
+			//    Centerx = somme(x.adu) / somme(adu)
+			// Et après l'écart type:
+			//    Stddev = somme(adu.(x - centerx)) / somme(adu)
+			for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
 			{
-				if (!star.get(x, y)) continue;
-				
-				int adu = frame.getAdu(x, y);
-				int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
-				
-				if (adu <= black) continue;
-				adu -= black;
-				aduForX += adu;
+				for(int y = 2 * centerY - square; y <= 2 * centerY + square; ++y)
+				{
+					if (!star.get(x, y)) continue;
+					
+					int adu = frame.getAdu(x, y);
+					int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+					
+					if (adu <= black) continue;
+					adu -= black;
+					
+					double dx = (x - 2 * picX);
+					double dy = (y - 2 * picY);
+					double dst = cs * dx + sn * dy;
+					
+//					
+//					double dst = cs * (x - 2 * picX) * cs * (x - 2 * picX) +
+//							sn * (y - 2 * picY) * sn * (y - 2 * picY);
+//					
+					// medianCalculator.addEntry(adu, dst);
+					double adus = adu;
+					sumDstSquare += adus * dst * dst;
+					sumDstSquareDivider += adus;
+				}
+			}
+	
+			
+			double stddev = Math.sqrt(sumDstSquare / sumDstSquareDivider);
+			// double meandev = Math.sqrt(medianCalculator.getMedian());
+			// logger.info("found stddev = " + stddev + "  meandev = " + meandev);
+			double fwhm = 2.35 * stddev;
+			
+			if (step == 0 || fwhm > maxFwhm)
+			{
+				maxFwhm = fwhm;
+				maxAngle = angle;
 			}
 			
-			double dst = (x - 2 * picX) * (x - 2 * picX);
+			if (step == 0 || fwhm < minFwhm)
+			{
+				minFwhm = fwhm;
+				minAngle = angle;
+			}
 			
-			sumDstSquare += aduForX * dst;
-			aduDst += aduForX;
-
+			fwhmSum += fwhm;
 		}
-
 		
-		stddev = Math.sqrt(sumDstSquare / aduDst);
+		this.fwhm = fwhmSum / stepCount;
+		this.stddev = this.fwhm / 2.35;
 		
-		fwhm = 2.35 * stddev;
-		starFound = true;
+		this.maxFwhm = maxFwhm;
+		this.maxStddev = maxFwhm / 2.35;
+		this.minFwhm = minFwhm;
+		this.minStddev = minFwhm / 2.35;
+		
+		logger.info("found fwhm in " + minFwhm +" ... " + maxFwhm + " min=" + (minAngle * 180/Math.PI) + " max=" + + (maxAngle * 180/Math.PI));
 	}
+	
+	public int getTotalAduSum()
+	{
+		int totalAduSum = 0;
+		for(int i = 0; i < aduSumByChannel.length; ++i)
+		{
+			totalAduSum += aduSumByChannel[i];
+		}
+		return totalAduSum;
+	}	
 
 	public int getSquare() {
 		return square;
@@ -298,6 +362,22 @@ public class StarFinder {
 		return fwhm;
 	}
 
+	public double getMinStddev() {
+		return minStddev;
+	}
+
+	public double getMinFwhm() {
+		return minFwhm;
+	}
+
+	public double getMaxStddev() {
+		return maxStddev;
+	}
+
+	public double getMaxFwhm() {
+		return maxFwhm;
+	}
+	
 	public BitMask getStarMask() {
 		return starMask;
 	}
