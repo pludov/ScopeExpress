@@ -47,9 +47,9 @@ public class StarProvider {
 	/**
 	 * retourne une liste de position 2D, magnitude
 	 */
-	public static DoubleList getStarAroundNorth(SkyProjection sky, double angle, double maxMag)
+	public static StarCollection getStarAroundNorth(SkyProjection sky, double angle, double maxMag)
 	{
-		DoubleList result = new ArrayDoubleList(10000);
+		StarCollection result = new StarCollection();
 		int starCount = 0;
 		
 		// Calculer les mindec/maxdec
@@ -107,9 +107,7 @@ public class StarProvider {
 						
 						sky.projectPreTransformed3d(star3d, star2d);
 						
-						result.add(star2d[0]);
-						result.add(star2d[1]);
-						result.add(starFile.getMagnitude());
+						result.addStar(star2d[0], star2d[1], starFile.getMagnitude(), "TYC " + starFile.getTyc1() + "-" + starFile.getTyc2() + "-" + starFile.getTyc3());
 						starCount ++;
 					}
 
@@ -132,9 +130,7 @@ public class StarProvider {
 						
 						sky.projectPreTransformed3d(star3d, star2d);
 						
-						result.add(star2d[0]);
-						result.add(star2d[1]);
-						result.add(supplFile.getMagnitude());
+						result.addStar(star2d[0], star2d[1], supplFile.getMagnitude(), "TYC " + supplFile.getTyc1()+"-" + supplFile.getTyc2() + "-" + supplFile.getTyc3());
 						starCount ++;
 					}
 				}

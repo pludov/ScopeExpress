@@ -15,6 +15,11 @@ public class StarFile extends TableFile {
 	{
 		return getInt(6, 10);
 	}
+	
+	long getTyc3()
+	{
+		return getInt(12, 13);
+	}
 
 	double getMeanRa()
 	{
