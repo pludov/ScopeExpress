@@ -14,6 +14,7 @@ import fr.pludov.cadrage.focus.correlation.Correlation;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
+import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 
 public class CorrelateTask extends BackgroundTask {
@@ -49,10 +50,10 @@ public class CorrelateTask extends BackgroundTask {
 		return super.isReady();
 	}
 	
-	private static class ImageStar implements DynamicGridPoint
+	private static class ImageStar implements DynamicGridPointWithAdu
 	{
 		StarOccurence so;
-		
+		double adu;
 		ImageStar(StarOccurence so)
 		{
 			this.so = so;
@@ -66,6 +67,17 @@ public class CorrelateTask extends BackgroundTask {
 		@Override
 		public double getY() {
 			return so.getY();
+		}
+		
+		@Override
+		public double getAduLevel() {
+			double rslt = 0;
+			int [] aduSum = so.getAduSumByChannel();
+			for(int i : aduSum)
+			{
+				rslt += i;
+			}
+			return rslt;
 		}
 	}
 	
@@ -140,8 +152,11 @@ public class CorrelateTask extends BackgroundTask {
 		
 		try {
 			correlation.correlate(destStars, referenceStars);
+			// correlation.identity();
+			if (!correlation.isFound()) {
+				throw new TaskException("Pas de correlation trouvée");
+			}
 			
-
 			List<Mosaic.CorrelatedGridPoint> referenceStarList = referenceStars;
 
 			double [] referenceX = new double[referenceStarList.size()];
@@ -170,22 +185,37 @@ public class CorrelateTask extends BackgroundTask {
 				otherY[i] = otherSo.getY();
 			}
 
-			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 14);
+			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 20);
 			
 			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
 
 			double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()};
 			
+			for(int i = 0; i < correlationParams.length; ++i)
+			{
+				if (Double.isNaN(correlationParams[i])) {
+					throw new TaskException("Correlation invalide trouvée (erreur interne!)");
+				}
+			}
 			if (correlations.size() > 0) {
 				// Procéder à l'ajustement
 				adjustCorrelationParams(correlationParams, correlations, referenceStarList, destStars);
+				
+				for(int i = 0; i < correlationParams.length; ++i)
+				{
+					if (Double.isNaN(correlationParams[i])) {
+						throw new TaskException("Correlation invalide trouvée (erreur interne!)");
+					}
+				}
 			}
 			
 			SwingThreadMonitor.acquire(); 
 			try {
 				Mosaic mosaic = this.mosaic;
 	
-				
+				if (mosaic.getMosaicImageParameter(this.image) == null) {
+					throw new TaskException("L'image a été retirée de la mosaique");
+				}
 				if (correlations.size() > 0) {
 					for(PointMatchAlgorithm.Correlation c : correlations)
 					{
@@ -218,7 +248,6 @@ public class CorrelateTask extends BackgroundTask {
 					}
 					
 					// FIXME : rompre les associations éventuelles pour les StarOccurence source ou dest qui n'ont pas été trouvés
-					
 					mosaic.getMosaicImageParameter(this.image).setCorrelated(correlationParams[0], correlationParams[1], correlationParams[2], correlationParams[3]);
 				}
 			} finally {
@@ -296,16 +325,21 @@ public class CorrelateTask extends BackgroundTask {
 				double thisDst = Math.sqrt((thisP2X - thisP1X) * (thisP2X - thisP1X) + (thisP2Y - thisP1Y) * (thisP2Y - thisP1Y));
 				double otherDst = Math.sqrt((otherP2X - otherP1X) * (otherP2X - otherP1X) + (otherP2Y - otherP1Y) * (otherP2Y - otherP1Y));
 				
+				if (thisDst <= 0.0001) continue;
 				
 				calcAngleRatio(otherP1X, otherP1Y, otherP2X, otherP2Y, otherDst, thisP1X, thisP1Y, thisP2X, thisP2Y, thisDst, tmpVec);
 				double thisWeight = (thisDst + otherDst);
+				
 				sumVec[0] += tmpVec[0] * thisWeight;
 				sumVec[1] += tmpVec[1] * thisWeight;
 				sumVec[2] += tmpVec[2] * thisWeight;
+				
 				ptCount ++;
 				weight += thisWeight;
 			}
 		}
+		
+		if (weight == 0) return;
 		
 		sumVec[0] /= weight;
 		sumVec[1] /= weight;
@@ -352,8 +386,6 @@ public class CorrelateTask extends BackgroundTask {
 		
 		correlationCsSnTxTy[2] = tx;
 		correlationCsSnTxTy[3] = ty;
-		
-		System.out.println("finished");
 	}
 	
 	public Image getImage() {

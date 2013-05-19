@@ -1,17 +1,28 @@
 package fr.pludov.cadrage.focus.correlation;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.utils.CorrelationAlgo;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
+import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 import fr.pludov.cadrage.utils.Ransac;
 
@@ -44,62 +55,295 @@ public class Correlation {
 		int count;
 		double cs, sn, tx, ty;
 	}
-	
-	public void correlate(List<? extends DynamicGridPoint> referenceStars, List<? extends DynamicGridPoint> imageStars)
+
+	private static int incChannel(int ch, double value)
 	{
-		int maxTriangle = 120000; // FIXME : c'est ad hoc...
-		double starRay = 500; 	// Prendre en compte des triangles de au plus cette taille
+		ch = 255 - ch;
+		ch *= value;
+		ch = 255 - ch;
+		return ch;
+	}
+	
+	private static int incRgb(int rgb)
+	{
+		int r = rgb & 255;
+		int g = (rgb >> 8) & 255;
+		int b = (rgb >> 16) & 255;
+		
+		r = incChannel(rgb, 0.5);
+		g = incChannel(rgb, 0.25);
+		b = incChannel(rgb, 0.125);
+		
+		rgb = r | (g << 8) | (b << 16);
+		return rgb;
+	}
+	
+	private static void saveDGP(List<? extends DynamicGridPoint> triangles, File pathName)
+	{
+		BufferedImage bi;
+		int maxWidth = 512;
+		bi = new BufferedImage(maxWidth, maxWidth, BufferedImage.TYPE_INT_RGB);
+		
+		double x0, y0, x1, y1;
+		x0 = 0;
+		y0 = 0;
+		x1 = 1;
+		y1 = 1;
+	
+		if (!triangles.isEmpty()) {
+			
+			for(DynamicGridPoint point : triangles)
+			{
+				double x = (double)point.getX();
+				double y = (double)point.getY();
+				if (x > x1) x1 = x;
+				if (y > y1) y1 = y;
+				if (x < x0) x0 = x;
+				if (y < y0) y0 = y;
+			}
+			
+			x0 -= 0.01;
+			y0 -= 0.01;
+			x1 += 0.01;
+			y1 += 0.01;
+			
+			double scale = maxWidth * 1.0 / Math.max(x1 - x0, y1 - y0);
+			for(DynamicGridPoint point : triangles)
+			{
+				int scx = (int)Math.round((point.getX() - x0) * scale);
+				int scy = (int)Math.round((point.getY() - y0) * scale);
+				
+				
+				int rgb = bi.getRGB(scx, scy);
+				rgb = incRgb(rgb);
+				bi.setRGB(scx, scy, rgb);
+			}
+			
+		}
+		try {
+			ImageIO.write(bi, "bmp", pathName);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Enregistre une image de debug présentant les étoiles et les triangles
+	 */
+	private static void saveTriangles(List<? extends DynamicGridPointWithAdu> stars, List<Triangle> triangles, File pathName)
+	{
+		BufferedImage bi;
+		int maxWidth = 2048;
+		bi = new BufferedImage(maxWidth, maxWidth, BufferedImage.TYPE_INT_RGB);
+		logger.debug("drawing " + stars.size() + " stars, " + triangles.size() + " triangles");
+		if (!stars.isEmpty()) {
+			int x0, y0, x1, y1;
+			double maxAdu;
+			x0 = (int)stars.get(0).getX();
+			y0 = (int)stars.get(0).getY();
+			maxAdu = stars.get(0).getAduLevel();
+			x1 = x0;
+			y1 = y0;
+			
+			for(DynamicGridPointWithAdu point : stars)
+			{
+				int x = (int)point.getX();
+				int y = (int)point.getY();
+				if (x > x1) x1 = x;
+				if (y > y1) y1 = y;
+				if (x < x0) x0 = x;
+				if (y < y0) y0 = y;
+				if (point.getAduLevel() > maxAdu) maxAdu = point.getAduLevel();
+			}
+			
+			
+			double scale = maxWidth * 1.0 / Math.max(x1 - x0, y1 - y0);
+			
+			Graphics2D g2d = bi.createGraphics();
+			g2d.setColor(Color.white);
+			for(DynamicGridPointWithAdu point : stars)
+			{
+				double scx = (point.getX() - x0) * scale;
+				double scy = (point.getY() - y0) * scale;
+				
+				double mag = 6 - (Math.log(maxAdu) - Math.log(point.getAduLevel()));
+				if (mag < 1) mag = 1;
+				g2d.drawOval((int)Math.round(scx - mag), (int)Math.round(scy - mag), (int)Math.round(2 * mag + 1), (int)Math.round(2 * mag + 1));
+			}
+			
+			int cid = 0;
+			Color [] colors = {Color.red, Color.blue, Color.green, Color.cyan, Color.magenta, Color.orange, Color.pink, Color.yellow}; 
+			for(Triangle t : triangles)
+			{
+				g2d.setColor(colors[cid]);
+				cid++;
+				if (cid == colors.length) cid = 0;
+				
+				DynamicGridPoint point = t.s1;
+				double scx0 = (point.getX() - x0) * scale;
+				double scy0 = (point.getY() - y0) * scale;
+				
+				point = t.s2;
+				double scx1 = (point.getX() - x0) * scale;
+				double scy1 = (point.getY() - y0) * scale;
+				
+				point = t.s3;
+				double scx2 = (point.getX() - x0) * scale;
+				double scy2 = (point.getY() - y0) * scale;
+				
+				g2d.drawLine((int)Math.round(scx0), (int)Math.round(scy0), (int)Math.round(scx1), (int)Math.round(scy1));
+				g2d.drawLine((int)Math.round(scx0), (int)Math.round(scy0), (int)Math.round(scx2), (int)Math.round(scy2));
+				g2d.drawLine((int)Math.round(scx2), (int)Math.round(scy2), (int)Math.round(scx1), (int)Math.round(scy1));
+			
+			}
+			
+		}
+		logger.debug("saving stars");
+		try {
+			Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("BMP");
+			
+			if (!writers.hasNext()) {
+				throw new Exception("bmp not supported");
+			}
+			ImageWriter iw = writers.next();
+			try {
+				ImageWriteParam params = iw.getDefaultWriteParam();
+				ImageOutputStream stream = ImageIO.createImageOutputStream(pathName);
+				try {
+					iw.setOutput(stream);
+					
+					iw.write(null, new IIOImage(bi, null, null), params);
+				} finally {
+					stream.close();
+				}
+			} finally {
+				iw.dispose();
+			}
+			
+//			ImageIO.write(bi, "png", pathName);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void identity()
+	{
+		// logger.info("Found best translation with " + best.correlation.size() + " star correlations (found by " + best.count + " ransac points)");
+		found = true;
+		this.tx = 0.0;
+		this.ty = 0.0;
+		this.cs = 1.0;
+		this.sn = 1.0;	
+	}
+	
+	public void correlate(List<? extends DynamicGridPointWithAdu> starsFromImage, List<? extends DynamicGridPointWithAdu> starsFromRef)
+	{
+		int maxTriangle = 250; // FIXME : c'est ad hoc...
+		double starRay = 1500; 	// Prendre en compte des triangles de au plus cette taille
 		double starMinRay = 20;	// Elimine les petits triangles
+		double maxBrightnessRatio = 1.8;	// On considère des triplet d'étoiles avec ce rapport maxi d'éclat 
+		double minGeoRatio = 0.15;	// Facteur par rapport au triangle "8-9-10" (à 1 on ne retiendra que lui) 
 		
+		List<Triangle> trianglesFromImage;
 		
-		List<Triangle> referenceTriangle;
+		List<Triangle> trianglesFromRef;
+		starsFromImage = new ArrayList<DynamicGridPointWithAdu>(starsFromImage);
+		Collections.sort(starsFromImage, new Comparator<DynamicGridPointWithAdu>() {
+			@Override
+			public int compare(DynamicGridPointWithAdu o1, DynamicGridPointWithAdu o2) {
+				
+				double thisVal = o1.getAduLevel();
+				double anotherVal = o2.getAduLevel();
+				return (thisVal<anotherVal ? 1 : (thisVal==anotherVal ? 0 : -1));
+			}
+		});
 		
-		List<Triangle> imageTriangle;
+		starsFromRef = new ArrayList<DynamicGridPointWithAdu>(starsFromRef);
+		Collections.sort(starsFromRef, new Comparator<DynamicGridPointWithAdu>() {
+			@Override
+			public int compare(DynamicGridPointWithAdu o1, DynamicGridPointWithAdu o2) {
+				
+				double thisVal = o1.getAduLevel();
+				double anotherVal = o2.getAduLevel();
+				return (thisVal<anotherVal ? 1 : (thisVal==anotherVal ? 0 : -1));
+			}
+		});
 		
+
+		int lengthToTest = starsFromImage.size();
+		int lengthForRef = starsFromRef.size();
 		do {
-			logger.debug("Looking for source triangles, max size = " + starRay);
-			referenceTriangle = getTriangleList(referenceStars, starMinRay, starRay, maxTriangle);
-			if (referenceTriangle == null) {
-				logger.warn("Too many triangles found, search for smaller ones");
-				starRay *= 0.75;
+			// FIXME : on voudrait que les triangles ne se recouvrent pas trop !
+			logger.debug("Looking for image triangles, max size = " + starRay + " brightness ratio = " + maxBrightnessRatio);
+			trianglesFromImage = getTriangleList(starsFromImage.subList(0, lengthToTest), starMinRay, starRay, maxTriangle, maxBrightnessRatio, minGeoRatio);
+			if (trianglesFromImage == null) {
+				
+				if (lengthToTest > 10) {
+					logger.warn("Too many triangles found, restrict to brightest stars");
+					lengthToTest = (int)Math.round(0.75 * lengthToTest);
+				} else {
+					logger.warn("Too many triangles found, restrict morphology/brightness");
+					maxBrightnessRatio = 1 + (maxBrightnessRatio - 1) * 0.95;
+					minGeoRatio = Math.pow(minGeoRatio, 0.8);
+				}
 				continue;
 			}
 			
-			logger.debug("Looking for image triangles, max size = " + starRay);
-			imageTriangle = getTriangleList(imageStars, starMinRay, starRay, maxTriangle);
-			if (imageTriangle == null) {
-				logger.warn("Too many triangles found in image, search for smaller ones");
-				starRay *= 0.75;
+			logger.debug("Looking for references triangles, max size = " + starRay);
+			trianglesFromRef = getTriangleList(starsFromRef.subList(0, lengthForRef), starMinRay / 3, 3 * starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+			if (trianglesFromRef == null) {
+				
+				if (lengthForRef > 10) {
+					logger.warn("Too many triangles found, restrict to brightest stars");
+					lengthForRef = (int)Math.round(0.75 * lengthForRef);
+				} else {
+					logger.warn("Too many triangles found, restrict morphology/brightness");
+					maxBrightnessRatio = 1 + (maxBrightnessRatio - 1) * 0.95;
+					minGeoRatio = Math.pow(minGeoRatio, 0.8);
+				}
 				continue;
 			}
 			
 			break;
 		} while(true);
 		
-		DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(referenceTriangle);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Saving images");
+			saveTriangles(starsFromRef/*.subList(0, lengthForRef)*/, trianglesFromRef, new File("c:\\triangles-ref.bmp"));
+			saveDGP(trianglesFromRef, new File("c:\\triangles-ref-ratio.bmp"));
+			saveTriangles(starsFromImage/*.subList(0, lengthToTest)*/, trianglesFromImage, new File("c:\\triangles-image.bmp"));
+			saveDGP(trianglesFromImage, new File("c:\\triangles-image-ratio.bmp"));
+		}
 		
-		double tolerance = 0.005;
-		int maxNbRansacPoints = 15000;
+		logger.debug("Creating dynamic grid table");
+		DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(trianglesFromImage);
+		logger.debug("Dynamic grid table created");
+		
+		// FIXME: il faut ajuster et voir la répartition des points
+		double tolerance = 0.00075;
+		int maxNbRansacPoints = 200000;
 		
 		List<RansacPoint> ransacPoints;
 		
-		while((ransacPoints = getRansacPoints(imageTriangle, referenceTriangleGrid, maxNbRansacPoints, tolerance)) == null)
+		while((ransacPoints = getRansacPoints(trianglesFromRef, referenceTriangleGrid, maxNbRansacPoints, tolerance)) == null)
 		{
 			logger.warn("Too many possible translations. Filter wiht more aggressive values...");
 			tolerance *= 0.6;
 		}
 		
-		double [] srcX = new double[referenceStars.size()];
-		double [] srcY = new double[referenceStars.size()];
+		logger.info("Found " + ransacPoints.size() + " translations");
+		
+		double [] srcX = new double[lengthToTest];
+		double [] srcY = new double[lengthToTest];
 		
 		
-		double [] dstX = new double[imageStars.size()];
-		double [] dstY = new double[imageStars.size()];
+		double [] dstX = new double[lengthForRef];
+		double [] dstY = new double[lengthForRef];
 		
 		
-		for(int i = 0; i < referenceStars.size(); ++i)
+		for(int i = 0; i < lengthToTest; ++i)
 		{
-			DynamicGridPoint dgp = referenceStars.get(i);
+			DynamicGridPoint dgp = starsFromImage.get(i);
 			double x = dgp.getX();
 			double y = dgp.getY();
 
@@ -112,10 +356,10 @@ public class Correlation {
 		Map<List<PointMatchAlgorithm.Correlation>, CorrelationStatus> correlations = new HashMap<List<PointMatchAlgorithm.Correlation>, Correlation.CorrelationStatus>(ransacPoints.size());
 		for(RansacPoint rp : ransacPoints)
 		{
-			
-			for(int i = 0; i < imageStars.size(); ++i)
+			// FIXME: inverser ici: pour faire ce calcul sur le plus petit ensemble
+			for(int i = 0; i < lengthForRef; ++i)
 			{
-				DynamicGridPoint dgp = imageStars.get(i);
+				DynamicGridPoint dgp = starsFromRef.get(i);
 				double x = dgp.getX();
 				double y = dgp.getY();
 
@@ -126,15 +370,21 @@ public class Correlation {
 				dstY[i] = nvy;
 			}
 
-			PointMatchAlgorithm pma = new PointMatchAlgorithm(srcX, srcY, dstX, dstY, 15);
+			// FIXME : introduire un paramètre "distance maxi en pixel"
+			// FIXME : sur quelle base on évalue les pixels ici ?
+			PointMatchAlgorithm pma = new PointMatchAlgorithm(srcX, srcY, dstX, dstY, 4);
 			List<PointMatchAlgorithm.Correlation> correlation = pma.proceed();
 			
-			if (correlation.isEmpty()) continue;
+			if (correlation.size() < 4) continue;
 			
 			Collections.sort(correlation, new Comparator<PointMatchAlgorithm.Correlation>() {
 				@Override
 				public int compare(PointMatchAlgorithm.Correlation o1, PointMatchAlgorithm.Correlation o2) {
-					return o1.getP1() - o2.getP1();
+					if (o1.getP1() == o2.getP1()) {
+						return o1.getP2() - o2.getP2();
+					} else {
+						return o1.getP1() - o2.getP1();
+					}
 				}
 			});
 
@@ -154,21 +404,29 @@ public class Correlation {
 			}
 		}
 
+		logger.info("Found " + correlations.values().size() + " different correlations");
 		// Trouver la meilleure correlation
 		CorrelationStatus best = null;
+		int maxPleb = 0;
 		for(CorrelationStatus cs : correlations.values())
 		{
-			if (best == null || cs.correlation.size() > best.correlation.size())
+			if (cs.count > maxPleb) maxPleb = cs.count;
+//			if (best == null || cs.correlation.size() > best.correlation.size())
+			if (best == null || cs.count > best.count)
+			{
+				best = cs;
+			} else if (best != null && cs.count == best.count && cs.correlation.size() > best.correlation.size())
 			{
 				best = cs;
 			}
 		}
 		
+		logger.info("Biggest attractor = " + maxPleb);
 		if (best == null) {
 			found = false;
 		} else {
 			found = true;
-
+			logger.info("Found best translation with " + best.correlation.size() + " star correlations (found by " + best.count + " ransac points)");
 			this.tx = best.tx;
 			this.ty = best.ty;
 			this.cs = best.cs;
@@ -252,6 +510,8 @@ public class Correlation {
 				double angle = 180 * Math.atan2(sn, cs) / Math.PI;
 				
 				double div = Math.sqrt(cs * cs + sn * sn);
+				// Ici, on s'attend à avoir une norme trés proche de 3 (atteignable uniquement si les 3 rotations sont identiques)
+				if (div < 2.95 || div > 3.05) continue;
 				div = 1.0 / div;
 				cs *= div;
 				sn *= div;
@@ -270,7 +530,7 @@ public class Correlation {
 				}
 				
 				// On  met un filtre sur le grossissement également
-				if (ratio < 0.5 || ratio > 1.5) continue;
+				if (ratio < 0.2 || ratio > 5) continue;
 				
 				double tx = 0, ty = 0;
 				
@@ -337,52 +597,104 @@ public class Correlation {
 		return ransacPoints;
 	}
 	
+	static int filtered = 0;
+	static int retained = 0;
 
-	private List<Triangle> getTriangleList(List<? extends DynamicGridPoint> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle)
+	/**
+	 * @param referenceStars
+	 * @param minTriangleSize
+	 * @param triangleSearchRadius
+	 * @param maxTriangle
+	 * @param maxRatio : rapport de luminosité max entre la plus faible et la plus lumineuse étoile d'un triangle
+	 * @param geoRatio : filtre (de 0 à 1) sur la forme des triangle. 1 = uniquement des equilateral, 0 = n'importe
+	 * @return
+	 */
+	private List<Triangle> getTriangleList(List<? extends DynamicGridPointWithAdu> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle, double maxRatio, double geoRatio)
 	{
 		// Trouver les points à moins de 50 pixels
-		DynamicGrid<DynamicGridPoint> reference = new DynamicGrid<DynamicGridPoint>((List<DynamicGridPoint>)referenceStars);
+		DynamicGrid<DynamicGridPointWithAdu> reference = new DynamicGrid<DynamicGridPointWithAdu>((List<DynamicGridPointWithAdu>)referenceStars);
 		List<Triangle> result = new ArrayList<Triangle>();
 		
 		double [] i_d = new double[3];
 		double [] r_d = new double[3];
 
 		minTriangleSize = minTriangleSize * minTriangleSize;
+		double maxTriangleSize2 = triangleSearchRadius * triangleSearchRadius;
 		
-		logger.info("Searching for triangles in " + referenceStars.size() + " stars - minsize=" + Math.sqrt(minTriangleSize) + ", maxsize=" + triangleSearchRadius);
-		for(DynamicGridPoint rst1 : referenceStars)
+		logger.info("Searching for triangles in " + referenceStars.size() + " stars - minsize=" + Math.sqrt(minTriangleSize) + ", maxsize=" + triangleSearchRadius + ", brightness ratio=" + maxRatio + ", geo ratio=" + geoRatio);
+		for(DynamicGridPointWithAdu rst1 : referenceStars)
 		{
-			List<DynamicGridPoint> referencePeerList = reference.getNearObject(rst1.getX(), rst1.getY(), triangleSearchRadius);
+			List<DynamicGridPointWithAdu> referencePeerList = reference.getNearObject(rst1.getX(), rst1.getY(), triangleSearchRadius);
 			
 			for(int a = 0; a < referencePeerList.size(); ++a)
 			{
-				DynamicGridPoint rst2 = referencePeerList.get(a);
+				DynamicGridPointWithAdu rst2 = referencePeerList.get(a);
 				if (rst2 == rst1) continue;
 				if (compareTo(rst1, rst2) >= 0) continue;
 			
 				double r_d1 = d2(rst1, rst2);
 				if (r_d1 < minTriangleSize) continue;
+				if (r_d1 > maxTriangleSize2) continue;
+				
+				double minAdu = rst1.getAduLevel();
+				double maxAdu = rst2.getAduLevel();
+				
+				if (minAdu > maxAdu) {
+					double tmp = minAdu;
+					minAdu = maxAdu;
+					maxAdu = tmp;
+				}
+				if (maxAdu > minAdu * maxRatio) continue;
 				
 				for(int b = a + 1; b < referencePeerList.size(); ++b)
 				{
-					DynamicGridPoint rst3 = referencePeerList.get(b);
+					DynamicGridPointWithAdu rst3 = referencePeerList.get(b);
 					if (rst3 == rst1) continue;
 					if (compareTo(rst2, rst3) >= 0) continue;
+				
+					double newAdu = rst3.getAduLevel();
+					if (newAdu < minAdu && newAdu * maxRatio < maxAdu) {
+						// Trop petit
+						continue;
+					}
+					if (newAdu > maxAdu && minAdu * maxRatio < newAdu) {
+						// Trop gran
+						continue;
+					}
 					
 					r_d[0] = r_d1;
 					r_d[1] = d2(rst1, rst3);
 					r_d[2] = d2(rst2, rst3);
-					
+
 					if (r_d[0] < minTriangleSize || r_d[1] < minTriangleSize || r_d[2] < minTriangleSize) continue;
-					
+					if (r_d[0] > maxTriangleSize2 || r_d[1] > maxTriangleSize2 || r_d[2] > maxTriangleSize2) continue;
+						
 					Triangle t = new Triangle(rst1, rst2, rst3, r_d[0], r_d[1], r_d[2]);
+					// Exclure les triangles trop symétriques
+					if (((filtered + retained) & 0xfff) == 0)
+					{
+					//	System.out.println("filtered : " + filtered + "  retained : " + retained);
+					}
 					
+					if (t.getX() > 0.90 || t.getY() > 0.9) {
+						filtered ++;
+						continue;
+					} else {
+						retained++;
+					}
+					
+					// Avec ces critère, le geoRation maxi est 0.8 * 0.6
+					if (geoRatio > 0 && t.getX() * t.getY() < geoRatio * 0.9 * 0.9) {
+						continue;
+					}
 					result.add(t);
 					if (result.size() >  maxTriangle) {
 						logger.warn("Found too many triangles... retry with stricter filter");
 						return null;
 					}
-					logger.debug("Found triangle : " + Math.sqrt(r_d[0]) + " - " + Math.sqrt(r_d[1]) + " - " + Math.sqrt(r_d[2]));
+//					if (logger.isDebugEnabled()) {
+//						logger.debug("Found triangle : " + Math.sqrt(r_d[0]) + " - " + Math.sqrt(r_d[1]) + " - " + Math.sqrt(r_d[2]));
+//					}
 				}
 			}
 		}
@@ -425,7 +737,7 @@ public class Correlation {
 		
 		double dst12, dst13, dst23;
 		
-		// Les rapports
+		// Les rapports : moyen / grand et petit/moyen
 		double x, y;
 		
 		Triangle(DynamicGridPoint s1, DynamicGridPoint s2, DynamicGridPoint s3, double dst12, double dst13, double dst23)
@@ -476,7 +788,7 @@ public class Correlation {
 			
 
 			//dst12 est maintenant le plus petit
-			if (dst12 > dst23 || dst12 > dst13) {
+			if (dst12 > dst23 || dst12 > dst13 || dst13 > dst23) {
 				throw new RuntimeException("Ca marche pas ton truc ! (2)");
 			}
 			
@@ -484,8 +796,8 @@ public class Correlation {
 			this.dst13 = Math.sqrt(dst13);
 			this.dst23 = Math.sqrt(dst23);
 			
-			x = this.dst12 / this.dst23;
-			y = this.dst13 / this.dst23;
+			x = this.dst13 / this.dst23;
+			y = this.dst12 / this.dst13;
 			
 		}
 		
