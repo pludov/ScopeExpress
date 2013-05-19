@@ -89,7 +89,7 @@ public class PoleFindAlgorithm {
 	
 		double denominateur = (bcs * bcs + acs * acs + bsn * bsn + asn * asn - (2*((bcs*acs) + (bsn*asn))) );
 		// FIXME: le denominateur est une mesure de l'angle en fait
-		if (denominateur < 2E-4) {
+		if (denominateur < 0.5E-4) {
 			return;
 		}
 		double xnum = (((bty - aty)*(bsn - asn)) + ((btx - atx)*(acs - bcs)));
