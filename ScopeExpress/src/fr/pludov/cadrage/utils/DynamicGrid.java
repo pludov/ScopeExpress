@@ -79,8 +79,8 @@ public class DynamicGrid<OBJECT extends DynamicGridPoint> {
 		int gridMinX = (int)Math.floor((x - size - minx) / divx);
 		int gridMinY = (int)Math.floor((y - size - miny) / divy);
 
-		int gridMaxX = (int)Math.floor((x + size - minx) / divx);
-		int gridMaxY = (int)Math.floor((y + size - miny) / divy);
+		int gridMaxX = (int)Math.ceil((x + size - minx) / divx);
+		int gridMaxY = (int)Math.ceil((y + size - miny) / divy);
 
 		if (gridMinX < 0) gridMinX = 0;
 		if (gridMaxX >= sizex) gridMaxX = sizex - 1;

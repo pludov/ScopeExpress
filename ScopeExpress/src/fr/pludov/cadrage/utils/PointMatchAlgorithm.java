@@ -39,6 +39,11 @@ public class PointMatchAlgorithm {
 			return false;
 		}
 		
+		@Override
+		public String toString() {
+			return "[" + p1 + ":" + p2 + "]";
+		}
+		
 	}
 	
 	final double [] x1;
