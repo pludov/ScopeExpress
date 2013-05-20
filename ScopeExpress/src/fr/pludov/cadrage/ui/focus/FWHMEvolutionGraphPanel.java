@@ -5,8 +5,15 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
@@ -14,14 +21,37 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class FWHMEvolutionGraphPanel extends GraphPanel {
 	public final WeakListenerCollection<GraphPanelListener> listeners = new WeakListenerCollection<GraphPanelListener>(GraphPanelListener.class);
-
+	private final WeakListenerCollection<HistogramWidgetListeners> histograms = new WeakListenerCollection<FWHMEvolutionGraphPanel.HistogramWidgetListeners>(HistogramWidgetListeners.class);
 
 	public FWHMEvolutionGraphPanel(Mosaic focus, GraphPanelParameters filter)
 	{
 		super(focus, filter, false);
+		
+		addComponentListener(new ComponentListener() {
+			
+			@Override
+			public void componentShown(ComponentEvent e) {
+				
+			}
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				invalidateData();
+			}
+			
+			@Override
+			public void componentMoved(ComponentEvent e) {
+				
+			}
+			
+			@Override
+			public void componentHidden(ComponentEvent e) {
+			}
+		});
 	}
 	
 	@Override
@@ -85,6 +115,8 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 		abstract boolean select(Image image);
 		abstract Double getValue(Image image);
 		abstract boolean isExcludeFromStat();
+		/// Si la courbe correspond bien à une étoile...
+		abstract Star getStar();
 	}
 	
 	private CurveProvider getProvider(final Star star)
@@ -108,6 +140,11 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 			boolean select(Image image) {
 				listeners.getTarget().starClicked(image, star);
 				return true;
+			}
+			
+			@Override
+			Star getStar() {
+				return star;
 			}
 		};
 	}
@@ -182,6 +219,11 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 			boolean select(Image image) {
 				return false;
 			}
+			
+			@Override
+			Star getStar() {
+				return null;
+			}
 		};
 		
 		curves.add(moyenne);
@@ -212,6 +254,88 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 		
 	}
 	
+	public interface HistogramWidgetListeners
+	{
+		void dataInvalidated();
+	}
+	
+	public class HistogramPanel extends JPanel
+	{
+		protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
+		
+		public HistogramPanel()
+		{
+			histograms.addListener(listenerOwner, new HistogramWidgetListeners() {
+				
+				@Override
+				public void dataInvalidated() {
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							repaint();	
+						}
+					});
+				}
+			});
+		}
+		
+		@Override
+		public void paint(Graphics gPaint)
+		{
+			super.paint(gPaint);
+			ensureDataReady();
+			
+			int height = getHeight();
+			int width = getWidth();
+
+			Graphics2D g2d = (Graphics2D)gPaint;
+			drawVLegend(g2d, getWidth(), height);
+			
+			
+			
+			// On prend la fwhm en dizième
+			Map<Integer, Integer> counts = new TreeMap<Integer, Integer>();
+			
+			double echelleIv = 10;
+			if (currentImage != null) {
+				
+				for(CurveProvider cp : curves)
+				{
+					if (cp.isExcludeFromStat()) continue;
+					if (cp.getStar() == null) continue;
+					Double value = cp.getValue(currentImage);
+					if (value == null) continue;
+					
+					Integer vvalue = (int)Math.floor(value * echelleIv);
+					Integer current = counts.get(vvalue);
+					counts.put(vvalue, current != null ? current + 1 : 1);
+				}
+			}
+			
+			int maxCount = 0;
+			for(Integer count : counts.values())
+			{
+				if (count > maxCount) maxCount = count;
+			}
+			gPaint.setColor(Color.BLUE);
+
+			for(Map.Entry<Integer, Integer> entry : counts.entrySet())
+			{
+				Integer vvalue= entry.getKey();
+				Integer count = entry.getValue();
+				double start = vvalue / echelleIv;
+				double stop = (vvalue + 1) / echelleIv;
+				int y1 = (int)Math.floor(height - (start - min) * echelle);
+				int y0 = (int)Math.floor(height - (stop - min) * echelle) + 1;
+				if (y1 < y0) y1 = y0;
+				
+				int x1 = 30 + ((width - 30) * count) / maxCount;
+				
+				gPaint.fillRect(30, y0, x1 - 30, y1 - y0 + 1);
+			}
+		}
+	}
+	
 	
 	public void paint(Graphics gPaint)
 	{
@@ -221,41 +345,10 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 		
 		Graphics2D g2d = (Graphics2D)gPaint;
 
-		// Tracer une echelle de min à max
-		double size = max - min;
-		if (size > 0.0001) {
-			int nbRow = getHeight()  / 60;
-			if (nbRow < 3) nbRow = 3;
-			double sizeRange = Math.pow(10, Math.round(Math.log10(size / nbRow)));
-			
-			if (2 * size / sizeRange < nbRow) {
-				sizeRange /= 2;
-			}
-				
-			int nbDigit = (int)Math.ceil(-Math.log10(sizeRange));
-			if (nbDigit < 0) nbDigit = 0;
-			
-			double level = sizeRange * Math.floor(min / sizeRange);
-			while(level < max)
-			{
-				int y = (int)Math.round(getHeight() - (level - min) * echelle);
-				g2d.setColor(Color.gray);
-				g2d.drawLine(0, y, getWidth() - 1, y);
-				g2d.drawString(Utils.doubleToString(level, nbDigit), 0, y);
-				
-				Stroke original = g2d.getStroke();
-				g2d.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, 
-	  				     BasicStroke.JOIN_MITER, 1.0f, new float[]{4, 0, 4}, 2f ));
-				g2d.setColor(Color.lightGray);
-				for(int i = 1; i < 5; ++i) {
-					y = (int)Math.round(getHeight() - (level + (sizeRange * i) / 5 - min) * echelle);
-					g2d.drawLine(0, y, getWidth() - 1, y);
-				}
-				g2d.setStroke(original);
-				
-				level += sizeRange;
-			}
-		}
+		int height = getHeight();
+		int width = getWidth();
+		
+		drawVLegend(g2d, width, height);
 		// Tracer les courbes
 		for(CurveProvider cp : curves)
 		{
@@ -272,7 +365,7 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 					g2d.setStroke(new BasicStroke(2.0f));
 
 					
-					g2d.drawLine(xint, 0, xint, getHeight() - 1);
+					g2d.drawLine(xint, 0, xint, height - 1);
 				}
 
 				gPaint.setColor(cp.color);
@@ -284,8 +377,8 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 				if (curVal != null) {
 					
 					double curX = xint;
-					// double curY = getHeight() - (0.5 + curVal - min) * getHeight() / (max - min + 1);
-					double curY = getHeight() - (curVal - min) * echelle;
+					// double curY = height - (0.5 + curVal - min) * height / (max - min + 1);
+					double curY = height - (curVal - min) * echelle;
 
 					if (hasPrevious) {
 						gPaint.drawLine((int)Math.round(curX), (int)Math.round(curY), (int)Math.round(prevx), (int)Math.round(prevy));
@@ -301,5 +394,52 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 				}
 			}	
 		}
+	}
+
+	private void drawVLegend(Graphics2D g2d, int width, int height) {
+		// Tracer une echelle de min à max
+		double size = max - min;
+		if (size > 0.0001) {
+			int nbRow = height  / 60;
+			if (nbRow < 3) nbRow = 3;
+			double sizeRange = Math.pow(10, Math.round(Math.log10(size / nbRow)));
+			
+			if (2 * size / sizeRange < nbRow) {
+				sizeRange /= 2;
+			}
+				
+			int nbDigit = (int)Math.ceil(-Math.log10(sizeRange));
+			if (nbDigit < 0) nbDigit = 0;
+			
+			double level = sizeRange * Math.floor(min / sizeRange);
+			while(level < max)
+			{
+				int y = (int)Math.round(height - (level - min) * echelle);
+				g2d.setColor(Color.gray);
+				
+				g2d.drawLine(0, y, width - 1, y);
+				g2d.setColor(Color.black);
+				g2d.drawString(Utils.doubleToString(level, nbDigit), 0, y);
+				
+				
+				Stroke original = g2d.getStroke();
+				g2d.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, 
+	  				     BasicStroke.JOIN_MITER, 1.0f, new float[]{4, 0, 4}, 2f ));
+				g2d.setColor(Color.lightGray);
+				for(int i = 1; i < 5; ++i) {
+					y = (int)Math.round(height - (level + (sizeRange * i) / 5 - min) * echelle);
+					g2d.drawLine(0, y, width - 1, y);
+				}
+				g2d.setStroke(original);
+				
+				level += sizeRange;
+			}
+		}
+	}
+	
+	@Override
+	protected void invalidateData() {
+		histograms.getTarget().dataInvalidated();
+		super.invalidateData();
 	}
 }

@@ -22,6 +22,8 @@ import javax.swing.JProgressBar;
 import java.awt.Insets;
 import org.eclipse.wb.swing.FocusTraversalOnArray;
 import java.awt.Component;
+import javax.swing.JSeparator;
+import javax.swing.SwingConstants;
 
 public class FocusUiDesign {
 
@@ -58,6 +60,8 @@ public class FocusUiDesign {
 	protected JTabbedPane graphsPane;
 	protected JPanel fwhmEvolutionPanel;
 	protected JPanel fwhmRepartitionPanel;
+	protected JPanel fwhmEvolutionGraphPanel;
+	protected JPanel fwhmEvolutionHistoPanel;
 
 	/**
 	 * Create the application.
@@ -157,7 +161,15 @@ public class FocusUiDesign {
 		
 		this.fwhmEvolutionPanel = new JPanel();
 		this.graphsPane.addTab("Evolution", null, this.fwhmEvolutionPanel, null);
-		this.fwhmEvolutionPanel.setLayout(new BoxLayout(this.fwhmEvolutionPanel, BoxLayout.X_AXIS));
+		this.fwhmEvolutionPanel.setLayout(new MigLayout("", "[grow,fill][250px,fill]", "[grow,fill]"));
+		
+		this.fwhmEvolutionGraphPanel = new JPanel();
+		this.fwhmEvolutionPanel.add(this.fwhmEvolutionGraphPanel, "cell 0 0,alignx center,aligny center");
+		this.fwhmEvolutionGraphPanel.setLayout(new BoxLayout(this.fwhmEvolutionGraphPanel, BoxLayout.X_AXIS));
+		
+		this.fwhmEvolutionHistoPanel = new JPanel();
+		this.fwhmEvolutionPanel.add(this.fwhmEvolutionHistoPanel, "cell 1 0,grow");
+		this.fwhmEvolutionHistoPanel.setLayout(new BoxLayout(this.fwhmEvolutionHistoPanel, BoxLayout.X_AXIS));
 		
 		this.fwhmRepartitionPanel = new JPanel();
 		this.graphsPane.addTab("R\u00E9partition", null, this.fwhmRepartitionPanel, null);

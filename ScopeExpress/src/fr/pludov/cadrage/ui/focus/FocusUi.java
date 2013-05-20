@@ -81,7 +81,10 @@ public class FocusUi extends FocusUiDesign {
 		
 		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
 		final FWHMEvolutionGraphPanel graph = new FWHMEvolutionGraphPanel(mosaic, starFocusFilter);
-		this.fwhmEvolutionPanel.add(graph);
+		this.fwhmEvolutionGraphPanel.add(graph);
+		
+		final FWHMEvolutionGraphPanel.HistogramPanel graphHisto = graph.new HistogramPanel();
+		this.fwhmEvolutionHistoPanel.add(graphHisto);
 		
 		final DefectMapGraphPanel defects = new DefectMapGraphPanel(mosaic, starFocusFilter);
 		this.fwhmRepartitionPanel.add(defects);
