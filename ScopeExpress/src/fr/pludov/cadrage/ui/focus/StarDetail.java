@@ -7,6 +7,7 @@ import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
 import fr.pludov.cadrage.ui.utils.Utils;
@@ -126,6 +127,13 @@ public class StarDetail extends StarDetailDesign {
 			this.lblAduMaxList[3].setText(Integer.toString(aduMax));
 			this.lblAduSumList[3].setText(Integer.toString(aduSum));
 			this.lblBlackList[3].setText("");
+
+			if (this.so != null && this.so.getStar().getPositionStatus() == StarCorrelationPosition.Reference)
+			{
+				double aduExpected = Math.pow(2.512, -this.so.getStar().getMagnitude());
+				double ratio = aduSum / aduExpected;
+				System.out.println("ratio = " + ratio);
+			}
 			
 
 			this.lblPosXImage.setText(Utils.doubleToString(so.getPicX(), 2));
@@ -154,6 +162,14 @@ public class StarDetail extends StarDetailDesign {
 				this.lblAduSumList[i].setText("");
 				this.lblBlackList[i].setText("");
 			}
+		}
+		
+		if (this.so != null && this.so.getStar().getPositionStatus() == StarCorrelationPosition.Reference)
+		{
+			this.lblIdent.setText(this.so.getStar().getReference()+ " mag=" + Utils.doubleToString(this.so.getStar().getMagnitude(), 3));
+			
+		} else {
+			this.lblIdent.setText("");
 		}
 	}
 	
