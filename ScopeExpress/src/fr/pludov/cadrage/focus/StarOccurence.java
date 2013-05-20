@@ -43,7 +43,7 @@ public class StarOccurence {
 	double fwhm, stddev;
 	double minFwhm, minStddev;
 	double maxFwhm, maxStddev;
-	
+	boolean saturationDetected;
 	double peak;
 	
 	
@@ -80,6 +80,7 @@ public class StarOccurence {
 		this.minFwhm = copy.minFwhm;
 		this.minStddev = copy.minStddev;
 		this.peak = copy.peak;
+		this.saturationDetected = copy.saturationDetected;
 
 		this.picX = copy.picX;
 		this.picY = copy.picY;
@@ -118,6 +119,7 @@ public class StarOccurence {
 		xsc.setNodeAttribute(result, "maxStddev", this.maxStddev);
 		xsc.setNodeAttribute(result, "minFwhm", this.minFwhm);
 		xsc.setNodeAttribute(result, "minStddev", this.minStddev);
+		xsc.setNodeAttribute(result, "saturationDetected", this.saturationDetected);
 		xsc.setNodeAttribute(result, "picX", this.picX);
 		xsc.setNodeAttribute(result, "picY", this.picY);
 		xsc.addNodeArray(result, "blackLevelByChannel", blackLevelByChannel);
@@ -139,6 +141,7 @@ public class StarOccurence {
 		this.minStddev = finder.getMinStddev();
 		this.maxFwhm = finder.getMaxFwhm();
 		this.maxStddev = finder.getMaxStddev();
+		this.saturationDetected = finder.isSaturationDetected();
 		this.picX = finder.getPicX();
 		this.picY = finder.getPicY();
 		this.starMask = finder.getStarMask();
@@ -458,5 +461,9 @@ public class StarOccurence {
 
 	public void setPicY(double picY) {
 		this.picY = picY;
+	}
+
+	public boolean isSaturationDetected() {
+		return saturationDetected;
 	}
 }

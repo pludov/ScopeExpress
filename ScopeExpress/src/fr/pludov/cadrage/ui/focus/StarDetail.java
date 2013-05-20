@@ -124,7 +124,7 @@ public class StarDetail extends StarDetailDesign {
 				
 				aduSum += aduSumC;
 			}
-			this.lblAduMaxList[3].setText(Integer.toString(aduMax));
+			this.lblAduMaxList[3].setText(Integer.toString(aduMax) + (this.so.isSaturationDetected() ? " (sat)" : ""));
 			this.lblAduSumList[3].setText(Integer.toString(aduSum));
 			this.lblBlackList[3].setText("");
 

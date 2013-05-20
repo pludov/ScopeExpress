@@ -15,6 +15,7 @@ public class CameraFrame {
 	boolean isCfa;
 	
 	int black;
+	// Les pixels atteignant cette valeur sont considéré comme saturés
 	int maximum;
 
 	int [] [] histogram;

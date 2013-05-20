@@ -23,6 +23,9 @@ public class StarFinder {
 	
 	// En sortie
 	boolean starFound;
+
+	// Si un pixel atteint le niveau de saturation (cameraFrame.maximum)
+	boolean saturationDetected;
 	
 	// Centre de l'étoile
 	double picX, picY;
@@ -173,6 +176,8 @@ public class StarFinder {
 		long ySum = 0;
 		long aduSum = 0;
 		
+		int cameraSat = frame.getMaximum();
+		this.saturationDetected = false;
 		for(int xy [] = star.nextPixel(null); xy != null; xy = star.nextPixel(xy))
 		{
 			int x = xy[0];
@@ -180,6 +185,10 @@ public class StarFinder {
 
 			int channelId = ChannelMode.getRGBBayerId(x, y);
 			int adu = frame.getAdu(x, y);
+			// FIXME: en cas d'utilisation de black, on a peut être un pixel chaud qui sera ignoré
+			if (adu >= cameraSat) {
+				this.saturationDetected = true;
+			}
 			int black = blackLevelByChannel[channelId];
 			if (adu <= black) continue;
 			adu -= black;
@@ -404,5 +413,9 @@ public class StarFinder {
 
 	public void setIncludeMask(BitMask includeMask) {
 		this.includeMask = includeMask;
+	}
+
+	public boolean isSaturationDetected() {
+		return saturationDetected;
 	}
 }

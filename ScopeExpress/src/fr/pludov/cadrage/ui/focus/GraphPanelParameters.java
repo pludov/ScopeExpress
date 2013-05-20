@@ -18,7 +18,7 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 	enum EnergyLimitType { None, Raw, Tantieme };
 	Mosaic focus;
 	
-	public GraphPanelParameters(	Mosaic focus) {
+	public GraphPanelParameters(Mosaic focus) {
 		this.focus = focus;
 		
 		for(EnergyLimitType elt : EnergyLimitType.values())
@@ -36,6 +36,8 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 			}
 		};
 		
+		Utils.addCheckboxChangeListener(this.chckbxCacherLesSatures, refilter);
+		
 		Utils.addComboChangeListener(this.energyLimitTypeSel, refilter);
 		Utils.addTextFieldChangeListener(this.energyMinTextField, refilter);
 		Utils.addTextFieldChangeListener(this.energyMaxTextField, refilter);
@@ -44,7 +46,11 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		Utils.addTextFieldChangeListener(this.maxRangeHTextField, refilter);
 		Utils.addTextFieldChangeListener(this.minRangeVTextField, refilter);
 		Utils.addTextFieldChangeListener(this.maxRangeVTextField, refilter);
-
+		
+		this.chckbxCacherLesSatures.setSelected(true);
+		
+		// FIXME : mettre en conf et retenir !
+		
 		refreshUi();
 	}
 	
@@ -167,6 +173,11 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		setErrorLabel(this.missingMaxCountErrorLbl, maxCountLblText);
 	}
 	
+	private boolean isFilterSaturation()
+	{
+		return this.chckbxCacherLesSatures.isSelected();
+	}
+	
 	private Double getEnergyLimitMin() throws NumberFormatException
 	{
 		String text = this.energyMinTextField.getText();
@@ -251,6 +262,26 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 			if (max != null && !hasLowerThanMax) {
 				it.remove();
 				continue;
+			}
+		}
+	}
+	
+	private void filterForSaturation(List<Image> images, List<Star> starListToFilter)
+	{
+		for(Iterator<Star> it = starListToFilter.iterator(); it.hasNext();)
+		{
+			Star s = it.next();
+			
+			for(Image image : images)
+			{
+				StarOccurence so = focus.getStarOccurence(s, image);
+				if (so == null || !so.isAnalyseDone() || !so.isStarFound()) {
+					continue;
+				}
+				if (so.isSaturationDetected()) {
+					it.remove();
+					break;
+				}
 			}
 		}
 	}
@@ -352,6 +383,9 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		if (minH != null || maxH != null || minV != null || maxV != null)
 		{
 			filterForCurrentPos(images, currentImage, starListToFilter, minH, maxH, minV, maxV);
+		}
+		if (isFilterSaturation()) {
+			filterForSaturation(images, starListToFilter);
 		}
 	}
 	

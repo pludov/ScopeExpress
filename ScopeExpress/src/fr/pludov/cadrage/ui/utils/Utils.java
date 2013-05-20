@@ -5,8 +5,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 public final class Utils {
 
@@ -19,6 +22,17 @@ public final class Utils {
 		// TODO Auto-generated constructor stub
 	}
 
+	public static void addCheckboxChangeListener(JCheckBox box, final Runnable listener)
+	{
+		box.addChangeListener(new ChangeListener() {
+			
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				listener.run();
+			}	
+		});
+	}
+	
 	public static void addComboChangeListener(JComboBox field, final Runnable listener)
 	{
 		field.addActionListener(new ActionListener() {
