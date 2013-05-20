@@ -19,4 +19,7 @@ public interface MosaicListener {
 	
 	void pointOfInterestAdded(PointOfInterest poi);
 	void pointOfInterestRemoved(PointOfInterest poi);
+	
+	void exclusionZoneAdded(ExclusionZone ze);
+	void exclusionZoneRemoved(ExclusionZone ze);
 }

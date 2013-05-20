@@ -24,6 +24,7 @@ public class Mosaic {
 	final Application focus;
 	final List<Image> images;
 	final List<Star> stars;
+	final List<ExclusionZone> exclusionZones;
 	final IdentityHashMap<Image, MosaicImageParameter> imageMosaicParameter;
 	final Map<Star, Map<Image, StarOccurence>> occurences;
 	final Map<String, PointOfInterest> pointOfInterest;
@@ -36,6 +37,7 @@ public class Mosaic {
 		this.images = new ArrayList<Image>();
 		this.imageMosaicParameter = new IdentityHashMap<Image, MosaicImageParameter>();
 		this.stars = new ArrayList<Star>();
+		this.exclusionZones = new ArrayList<ExclusionZone>();
 		this.focus = focus;
 		this.pointOfInterest = new TreeMap<String, PointOfInterest>();
 	}
@@ -86,6 +88,12 @@ public class Mosaic {
 				Element occNode = oc.save(context, imageDict, starDict);
 				mosaic.appendChild(occNode);
 			}
+		}
+		
+		for(ExclusionZone ze : this.exclusionZones)
+		{
+			Element zeNode = ze.save(context);
+			mosaic.appendChild(zeNode);
 		}
 		
 		return mosaic;
@@ -143,6 +151,25 @@ public class Mosaic {
 
 	public List<Star> getStars() {
 		return stars;
+	}
+	
+	public List<ExclusionZone> getExclusionZones()
+	{
+		return exclusionZones;
+	}
+	
+	public void addExclusionZone(ExclusionZone ze)
+	{
+		this.exclusionZones.add(ze);
+		listeners.getTarget().exclusionZoneAdded(ze);
+	}
+	
+	public void removeExclusionZone(ExclusionZone ze)
+	{
+		if (this.exclusionZones.remove(ze))
+		{
+			listeners.getTarget().exclusionZoneRemoved(ze);
+		}
 	}
 	
 	public void addStarOccurence(StarOccurence sco)

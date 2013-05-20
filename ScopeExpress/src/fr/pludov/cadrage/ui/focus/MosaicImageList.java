@@ -23,6 +23,7 @@ import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.utils.AxeFindAlgorithm;
 import fr.pludov.cadrage.utils.PoleFindAlgorithm;
@@ -354,5 +355,12 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		
 		return contextMenu;
 	}
-	
+
+	@Override
+	public void exclusionZoneAdded(ExclusionZone ze) {
+	}
+
+	@Override
+	public void exclusionZoneRemoved(ExclusionZone ze) {
+	}
 }

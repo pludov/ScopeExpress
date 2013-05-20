@@ -10,6 +10,7 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.utils.ChannelMode;
@@ -95,6 +96,14 @@ public class StarDetail extends StarDetailDesign {
 			public void pointOfInterestRemoved(PointOfInterest poi) {
 				// TODO Auto-generated method stub
 				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {
 			}
 		});
 		

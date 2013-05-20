@@ -128,6 +128,7 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 				if (so == null) return null;
 				if (!so.isAnalyseDone()) return null;
 				if (!so.isStarFound()) return null;
+				if (!FWHMEvolutionGraphPanel.this.starOccurences.contains(so)) return null;
 				return so.getFwhm();
 			}
 			

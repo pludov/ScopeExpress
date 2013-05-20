@@ -1,19 +1,33 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JLabel;
 
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicListener;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
+/**
+ * @author utilisateur
+ *
+ */
 public class GraphPanelParameters extends GraphPanelParametersDesign {
 	public final WeakListenerCollection<GraphPanelParametersListener> listeners = new WeakListenerCollection<GraphPanelParametersListener>(GraphPanelParametersListener.class);
+	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	enum EnergyLimitType { None, Raw, Tantieme };
 	Mosaic focus;
@@ -31,8 +45,8 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		Runnable refilter = new Runnable() {
 			@Override
 			public void run() {
+				invalidateData();
 				refreshUi();
-				listeners.getTarget().filterUpdated();
 			}
 		};
 		
@@ -48,6 +62,76 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		Utils.addTextFieldChangeListener(this.maxRangeVTextField, refilter);
 		
 		this.chckbxCacherLesSatures.setSelected(true);
+		
+
+		focus.listeners.addListener(listenerOwner, new MosaicListener() {
+
+			@Override
+			public void starAdded(Star star) {
+				invalidateData();
+			}
+			
+			@Override
+			public void starRemoved(Star star) {
+				invalidateData();
+			}
+			
+			@Override
+			public void starOccurenceRemoved(StarOccurence sco) {
+				sco.listeners.removeListener(listenerOwner);
+				invalidateData();
+			}
+			
+			@Override
+			public void starOccurenceAdded(final StarOccurence sco) {
+				repaint();
+				sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
+					
+					@Override
+					public void analyseDone() {
+						invalidateData();	
+					}
+
+					@Override
+					public void imageUpdated() {
+					}
+				});
+			}
+			
+			
+			@Override
+			public void imageRemoved(Image image) {
+				invalidateData();
+			}
+			
+			@Override
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+				invalidateData();				
+			}
+
+			@Override
+			public void pointOfInterestAdded(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestRemoved(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+				invalidateData();				
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {
+				invalidateData();				
+			}
+		});
+		
 		
 		// FIXME : mettre en conf et retenir !
 		
@@ -220,53 +304,48 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		return Double.parseDouble(text);
 	}
 	
-	private void filterForEnergy(List<Image> images, Image currentImage, List<Star> starListToFilter, Double min, Double max)
+	private void filterForEnergy(List<Image> images, List<Star> starListToFilter, IdentityHashMap<StarOccurence, Boolean> starOccurencesToFilter, Double min, Double max)
 	{
 		for(Iterator<Star> it = starListToFilter.iterator(); it.hasNext();)
 		{
 			Star s = it.next();
-			boolean hasBiggerThanMin = false;
-			boolean hasLowerThanMax = false;
 			for(Image img : images)
 			{
 				StarOccurence so = focus.getStarOccurence(s, img);
 				if (so == null) continue;
-				if (so.isAnalyseDone() && so.isStarFound())
-				{
-					int [] adus = so.getAduSumByChannel();
-					long v = 0;
-					for(int i = 0; i < adus.length; ++i)
-					{
-						v += adus[i];
-					}
-					if (min != null && !hasBiggerThanMin && v > min)
-					{
-						hasBiggerThanMin = true;
-					}
-					
-					if (max != null && !hasLowerThanMax && v < max)
-					{
-						hasLowerThanMax = true;
-					}
-					
-					if ((min == null || hasBiggerThanMin) && (max == null || hasLowerThanMax)) {
-						break;
-					}
+				if (!so.isAnalyseDone()) {
+					continue;
 				}
-			}
+				if (!so.isStarFound()) {
+					continue;
+				}
 				
-			if (min != null && !hasBiggerThanMin) {
-				it.remove();
-				continue;
-			}
-			if (max != null && !hasLowerThanMax) {
-				it.remove();
-				continue;
+				if (!starOccurencesToFilter.containsKey(so)) continue;
+				
+				
+				int [] adus = so.getAduSumByChannel();
+				long v = 0;
+				for(int i = 0; i < adus.length; ++i)
+				{
+					v += adus[i];
+				}
+				if (min != null && v < min)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
+				
+				if (max != null && v > max)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
+				
 			}
 		}
 	}
 	
-	private void filterForSaturation(List<Image> images, List<Star> starListToFilter)
+	private void filterForSaturation(List<Image> images, List<Star> starListToFilter, IdentityHashMap<StarOccurence, Boolean> starOccurencesToFilter)
 	{
 		for(Iterator<Star> it = starListToFilter.iterator(); it.hasNext();)
 		{
@@ -279,59 +358,137 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 					continue;
 				}
 				if (so.isSaturationDetected()) {
-					it.remove();
-					break;
+					starOccurencesToFilter.remove(so);
+					continue;
 				}
 			}
 		}
 	}
 	
-	private void filterForCurrentPos(List<Image> images, Image currentImage, List<Star> starListToFilter, Double minX, Double maxX, Double minY, Double maxY)
+	private void filterForCurrentPos(List<Image> images, List<Star> starListToFilter, IdentityHashMap<StarOccurence, Boolean> starOccurencesToFilter, Double minX, Double maxX, Double minY, Double maxY)
 	{
-		if (currentImage == null) {
-			starListToFilter.clear();
-			return;
-		}
-		double width = currentImage.getCameraFrame().getWidth() / 100.0;
-		double height = currentImage.getCameraFrame().getHeight() / 100.0;
-		int kept = 0;
-		int size = starListToFilter.size();
 		for(Iterator<Star> it = starListToFilter.iterator(); it.hasNext();)
 		{
 			Star s = it.next();
 
-			StarOccurence so = focus.getStarOccurence(s, currentImage);
-			if (so == null || !so.isAnalyseDone() || !so.isStarFound()) {
-				it.remove();
-				continue;
-			}
-			if (minX != null && 2 * so.getPicX() < minX * width)
+			for(Image currentImage : images)
 			{
-				it.remove();
-				continue;
+				StarOccurence so = focus.getStarOccurence(s, currentImage);
+				if (so == null || !so.isAnalyseDone() || !so.isStarFound()) {
+					continue;
+				}
+			
+				double width = currentImage.getCameraFrame().getWidth() / 100.0;
+				double height = currentImage.getCameraFrame().getHeight() / 100.0;
+				
+				if (minX != null && 2 * so.getPicX() < minX * width)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
+				if (minY != null && 2 * so.getPicY() < minY * height)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
+				if (maxX != null && 2 * so.getPicX() > maxX * width)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
+				if (maxY != null && 2 * so.getPicY() > maxY * height)
+				{
+					starOccurencesToFilter.remove(so);
+					continue;
+				}
 			}
-			if (minY != null && 2 * so.getPicY() < minY * height)
-			{
-				it.remove();
-				continue;
-			}
-			if (maxX != null && 2 * so.getPicX() > maxX * width)
-			{
-				it.remove();
-				continue;
-			}
-			if (maxY != null && 2 * so.getPicY() > maxY * height)
-			{
-				it.remove();
-				continue;
-			}
-			kept++;
 		}
-		System.out.println("filter left " + kept + " / " + size);
 	}
 	
-	public void filter(List<Image> images, Image currentImage, List<Star> starListToFilter)
+	
+	List<Image> images;
+	List<Star> stars;
+	IdentityHashMap<StarOccurence, Boolean> starOccurences;
+	
+	public List<Image> getImages()
 	{
+		ensureDataIsReady();
+		return this.images;
+	}
+	
+	public List<Star> getStars()
+	{
+		ensureDataIsReady();
+		return this.stars;
+	}
+	
+	/**
+	 * C'est evidemment un IdentityHashSet 
+	 * @return
+	 */
+	public Set<StarOccurence> getStarOccurences()
+	{
+		ensureDataIsReady();
+		return this.starOccurences.keySet();
+	}
+	
+	protected void invalidateData()
+	{
+		if (this.images == null) return;
+		this.images = null;
+		this.stars = null;
+		this.starOccurences = null;
+		listeners.getTarget().filterUpdated();
+	}
+	
+	private void ensureDataIsReady()
+	{
+		if (this.images != null) return;
+	
+		images = new ArrayList<Image>(focus.getImages());
+		stars = new ArrayList<Star>(focus.getStars());
+		// Filtrer les étoiles selon leur état de correlation
+		for(Iterator<Star> it = stars.iterator(); it.hasNext(); )
+		{
+			Star star = it.next();
+			
+			if (star.getPositionStatus() == StarCorrelationPosition.None) continue;
+			
+			for(ExclusionZone ez : focus.getExclusionZones())
+			{
+				if (ez.intersect(star)) {
+					it.remove();
+					break;
+				}
+			}
+		}
+		
+		starOccurences = new IdentityHashMap<StarOccurence, Boolean>();
+		for(Star star : stars)
+		{
+			for(StarOccurence so : focus.getStarOccurences(star))
+			{
+				starOccurences.put(so, Boolean.TRUE);
+			}
+		}
+		applyFilter(this.images, this.stars, this.starOccurences);
+	}
+	
+	private void applyFilter(List<Image> images, List<Star> starListToFilter, IdentityHashMap<StarOccurence, Boolean> starOccurencesToFilter)
+	{
+		for(Iterator<Star> it = starListToFilter.iterator(); it.hasNext(); )
+		{
+			Star star = it.next();
+			for(ExclusionZone ze : focus.getExclusionZones())
+			{
+				if (ze.intersect(star)) 
+				{
+					it.remove();
+					break;
+				}
+			}
+		}
+		
 		// 1 - Applique un filtre sur l'énergie ?
 		Double minVal, maxVal;
 		try {
@@ -350,7 +507,7 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 			break;
 		case Raw:
 			if (minVal != null || maxVal != null) {
-				filterForEnergy(images, currentImage, starListToFilter, minVal, maxVal);
+				filterForEnergy(images, starListToFilter, starOccurencesToFilter, minVal, maxVal);
 			}
 			break;
 		}
@@ -382,10 +539,10 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		
 		if (minH != null || maxH != null || minV != null || maxV != null)
 		{
-			filterForCurrentPos(images, currentImage, starListToFilter, minH, maxH, minV, maxV);
+			filterForCurrentPos(images, starListToFilter, starOccurencesToFilter, minH, maxH, minV, maxV);
 		}
 		if (isFilterSaturation()) {
-			filterForSaturation(images, starListToFilter);
+			filterForSaturation(images, starListToFilter, starOccurencesToFilter);
 		}
 	}
 	

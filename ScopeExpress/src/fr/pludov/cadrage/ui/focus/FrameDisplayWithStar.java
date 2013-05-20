@@ -27,6 +27,7 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
@@ -139,6 +140,14 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				@Override
 				public void pointOfInterestRemoved(PointOfInterest poi) {
 					scheduleRepaint(true);
+				}
+
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {					
+				}
+
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {					
 				}
 			});
 		}

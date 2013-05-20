@@ -43,10 +43,13 @@ import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
@@ -61,6 +64,7 @@ public class StarOccurenceTable extends JTable {
 	Mosaic focus;
 	StarOccurenceTableModel tableModel;
 	ImageDisplayParameter displayParameter;
+	final GraphPanelParameters graphParameter;
 	
 	
 	class StarOccurenceTableModel extends AbstractTableModel
@@ -147,7 +151,8 @@ public class StarOccurenceTable extends JTable {
 		
 	}
 	
-	public StarOccurenceTable(Mosaic pFocus, ImageDisplayParameter displayParameter) {
+	public StarOccurenceTable(Mosaic pFocus, ImageDisplayParameter displayParameter, GraphPanelParameters graphParameter) {
+		this.graphParameter = graphParameter;
 		this.focus = pFocus;
 		this.displayParameter = displayParameter;
 		tableModel = new StarOccurenceTableModel();
@@ -155,6 +160,14 @@ public class StarOccurenceTable extends JTable {
 		setRowHeight(128);
 		setAutoResizeMode(AUTO_RESIZE_OFF);
 		setColumnSelectionAllowed(true);
+		
+		this.graphParameter.listeners.addListener(listenerOwner, new GraphPanelParametersListener() {
+			
+			@Override
+			public void filterUpdated() {
+				tableModel.fireTableDataChanged();
+			}
+		});
 		
 		focus.listeners.addListener(listenerOwner, new MosaicListener() {
 			
@@ -241,6 +254,14 @@ public class StarOccurenceTable extends JTable {
 			public void pointOfInterestRemoved(PointOfInterest poi) {
 				// TODO Auto-generated method stub
 				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {		
 			}
 		});
 		
@@ -334,6 +355,15 @@ public class StarOccurenceTable extends JTable {
 		return result;
 	}
 
+	private boolean isStarExcluded(Star star)
+	{
+		for(ExclusionZone ze : focus.getExclusionZones())
+		{
+			if (ze.intersect(star)) return true;
+		}
+		return false;
+	}
+	
 	public JPopupMenu createContextMenu()
 	{
 		final List<StarOccurence> menuSelection = getCurrentSelection();
@@ -341,6 +371,72 @@ public class StarOccurenceTable extends JTable {
 		
 		JPopupMenu contextMenu = new JPopupMenu();
 
+		// Zones d'exclusions
+		boolean areAllExcluded = true;
+		boolean areAllIncluded = true;
+		boolean hasStar = false;
+		for(StarOccurence so : menuSelection)
+		{
+			if (so.getStar().getPositionStatus() == StarCorrelationPosition.None) continue;
+			hasStar = true;
+			boolean isExcluded = isStarExcluded(so.getStar());
+			if (areAllExcluded && !isExcluded) areAllExcluded = false;
+			if (areAllIncluded && isExcluded) areAllIncluded = false;
+		}
+		
+		JMenuItem addExclusionZoneMenu;
+		addExclusionZoneMenu = new JMenuItem();
+		addExclusionZoneMenu.setText("Exclure cette zone");
+		addExclusionZoneMenu.setEnabled(hasStar && !areAllExcluded);
+		addExclusionZoneMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(StarOccurence so : menuSelection)
+				{
+					if (so.getStar().getPositionStatus() == StarCorrelationPosition.None) continue;
+					if (!isStarExcluded(so.getStar()))
+					{
+						// Ajouter une zone d'exclusion
+						ExclusionZone ez = new ExclusionZone();
+						ez.setCenterx(so.getStar().getCorrelatedX());
+						ez.setCentery(so.getStar().getCorrelatedY());
+						
+						// FIXME : c'est en dûr !
+						ez.setRayon(10);
+						
+						focus.addExclusionZone(ez);
+					}
+				}
+			}
+		});
+		contextMenu.add(addExclusionZoneMenu);
+
+		JMenuItem removeExclusionZoneMenu;
+		removeExclusionZoneMenu = new JMenuItem();
+		removeExclusionZoneMenu.setText("Ne plus exclure cette zone");
+		removeExclusionZoneMenu.setEnabled(hasStar && !areAllIncluded);
+		removeExclusionZoneMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				for(StarOccurence so : menuSelection)
+				{
+					if (so.getStar().getPositionStatus() == StarCorrelationPosition.None) continue;
+					if (isStarExcluded(so.getStar()))
+					{
+						for(ExclusionZone ez : new ArrayList<ExclusionZone>(focus.getExclusionZones()))
+						{
+							if (ez.intersect(so.getStar())) {
+								focus.removeExclusionZone(ez);
+							}
+						}
+					}
+				}
+			}
+		});
+		contextMenu.add(removeExclusionZoneMenu);
+
+		
+		
 		// Déplacement
 		JMenuItem removeStarMenu;
 		
@@ -535,7 +631,11 @@ public class StarOccurenceTable extends JTable {
 				result.add(display, BorderLayout.CENTER);
 
 				JLabel label = new JLabel();
-				label.setText("stddev: " + (so != null ? so.getStddev() : ""));
+				if (so != null && !graphParameter.getStarOccurences().contains(so))
+				{
+					label.setForeground(Color.red);
+				}
+				label.setText("fwhm: " + (so != null ? Utils.doubleToString(so.getFwhm(), 2) : "n/a"));
 				label.setVisible(true);
 				result.add(label, BorderLayout.SOUTH);
 				if (isSelected) {

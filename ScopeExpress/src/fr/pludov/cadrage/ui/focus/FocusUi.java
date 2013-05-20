@@ -28,6 +28,7 @@ import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
@@ -74,12 +75,12 @@ public class FocusUi extends FocusUiDesign {
 				occurence.asyncSearch(false);
 			}
 		});
+		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
 		
-		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, fd.getDisplayParameter());
+		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, fd.getDisplayParameter(), starFocusFilter);
 		JScrollPane sotScrollPane = new JScrollPane(sot);
 		this.detailsSplitPane.setTopComponent(sotScrollPane);
 		
-		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
 		final FWHMEvolutionGraphPanel graph = new FWHMEvolutionGraphPanel(mosaic, starFocusFilter);
 		this.fwhmEvolutionGraphPanel.add(graph);
 		
@@ -261,6 +262,14 @@ public class FocusUi extends FocusUiDesign {
 			public void pointOfInterestRemoved(PointOfInterest poi) {
 				// TODO Auto-generated method stub
 				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {
 			}
 		});
 	

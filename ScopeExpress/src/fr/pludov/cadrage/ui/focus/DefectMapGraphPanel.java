@@ -62,6 +62,8 @@ public class DefectMapGraphPanel extends GraphPanel {
 				if (so == null) continue;
 				if (!so.isAnalyseDone()) continue;
 				if (!so.isStarFound()) continue;
+				if (!this.starOccurences.contains(so)) continue;
+				
 				occList.add(so);
 				if (isFirst) {
 					minfwhm = so.getAspectRatio();

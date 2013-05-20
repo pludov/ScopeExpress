@@ -4,7 +4,9 @@ import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -16,6 +18,7 @@ import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 /**
@@ -136,6 +139,14 @@ public abstract class GraphPanel extends JPanel {
 				// TODO Auto-generated method stub
 				
 			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {				
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {				
+			}
 		});
 		
 		filter.listeners.addListener(this.listenerOwner, new GraphPanelParametersListener() {
@@ -181,6 +192,7 @@ public abstract class GraphPanel extends JPanel {
 	// Ces variables sont initialisées par calcData
 	List<Image> images = null;
 	List<Star> stars = null;
+	Set<StarOccurence> starOccurences = null;
 	
 	protected void calcData()
 	{
@@ -192,8 +204,8 @@ public abstract class GraphPanel extends JPanel {
 		} else {
 			images = focus.getImages();
 		}
-		stars = new ArrayList<Star>(focus.getStars());
-		filter.filter(images, currentImage, stars);
+		stars = filter.getStars();
+		starOccurences = filter.getStarOccurences();
 	}
 	
 	/**
