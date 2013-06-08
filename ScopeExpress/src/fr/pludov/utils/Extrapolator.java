@@ -76,7 +76,7 @@ public class Extrapolator {
 			{
 				double x2 = x * x;
 				double y2 = y * y;
-				
+				double xy = x * y;
 				double dltSum = 0;
 				double vSum = 0;
 				for(int i = 0; i < grids.length; ++i)
@@ -88,7 +88,7 @@ public class Extrapolator {
 					double dlt = dltx * dlty;
 					
 					dltSum += dlt;
-					vSum += dlt * (g.factors[0] * x2 + g.factors[1] * x + g.factors[2] * y2 + g.factors[3] * y + g.factors[4]);
+					vSum += dlt * (g.factors[0] * x2 + g.factors[1] * x + g.factors[2] * y2 + g.factors[3] * y + g.factors[4] * xy + g.factors[5]);
 				}
 				
 				float v = (float)(vSum / dltSum);

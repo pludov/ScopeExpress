@@ -22,7 +22,7 @@ public class EquationSolver {
 	}
 	
 	/**
-	 * Trouve le polynome a.x^2 + b*x + c * y^2 + d * x + e
+	 * Trouve le polynome a.x^2 + b*x + c * y^2 + d * x + e * x*y + f
 	 * approchant les points passés en paramètre
 	 */
 	public static double [] findPolynome2d(double [] xi, double [] yi, double [] vi)
@@ -32,7 +32,9 @@ public class EquationSolver {
 		double Sxi2yi2 = 0, Sxi2yi = 0, Sxiyi2 = 0, Sxiyi = 0;
 		double Sxi2vi = 0, Sxivi = 0, Syi2vi = 0, Syivi = 0, Svi = 0;
 		double Svi2 = 0;
+		double Sxi3yi = 0, Sx1yi3 = 0, Sxiyivi = 0;
 		double S1 = xi.length;
+		
 		
 		for(int i = 0; i < xi.length; ++i)
 		{
@@ -59,6 +61,9 @@ public class EquationSolver {
 			Syivi += y * v;
 			Svi += v;
 			Svi2 += v*v;
+			Sxi3yi += p3(x)*y;
+			Sx1yi3 += x * p3(y);
+			Sxiyivi += x * y * v;
 		}
 
 		double A1 = 1;
@@ -66,13 +71,22 @@ public class EquationSolver {
 		double A3 = 1;
 		double A4 = 1;
 		double A5 = 1;
+		double A6 = 1;
+		
+
 		
 		double [] factors = new double [] {
-				(A1*Sxi4), (A2*Sxi3), (A3*Sxi2yi2), (A4*Sxi2yi), (A5*Sxi2),
-				(A1*Sxi3), (A2*Sxi2), (A3*Sxiyi2), (A4*Sxiyi), (A5*Sxi),
-				(A1*Sxi2yi2), (A2*Sxiyi2), (A3*Syi4), (A4*Syi3), (A5*Syi2),
-				(A1*Sxi2yi), (A2*Sxiyi), (A3*Syi3), (A4*Syi2), (A5*Syi),
-				(A1*Sxi2), (A2*Sxi), (A3*Syi2), (A4*Syi), A5*S1
+				(A1*Sxi4), + (A2*Sxi3), + (A3*Sxi2yi2), + (A4*Sxi2yi), + (A5*Sxi3yi), + (A6*Sxi2),
+				(A1*Sxi3), + (A2*Sxi2), + (A3*Sxiyi2), + (A4*Sxiyi), + (A5*Sxi2yi), + (A6*Sxi),
+				(A1*Sxi2yi2), + (A2*Sxiyi2), + (A3*Syi4), + (A4*Syi3), + (A5*Sx1yi3), + (A6*Syi2),
+				(A1*Sxi2yi), + (A2*Sxiyi), + (A3*Syi3), + (A4*Syi2), + (A5*Sxiyi2), + (A6*Syi),
+				(A1*Sxi3yi), + (A2*Sxi2yi), + (A3*Sx1yi3), + (A4*Sxiyi2), + (A5*Sxi2yi2), + (A6*Sxiyi),
+				(A1*Sxi2), + (A2*Sxi), + (A3*Syi2), + (A4*Syi), + (A5*Sxiyi), + (A6*S1)
+//				(A1*Sxi4), (A2*Sxi3), (A3*Sxi2yi2), (A4*Sxi2yi), (A5*Sxi2),
+//				(A1*Sxi3), (A2*Sxi2), (A3*Sxiyi2), (A4*Sxiyi), (A5*Sxi),
+//				(A1*Sxi2yi2), (A2*Sxiyi2), (A3*Syi4), (A4*Syi3), (A5*Syi2),
+//				(A1*Sxi2yi), (A2*Sxiyi), (A3*Syi3), (A4*Syi2), (A5*Syi),
+//				(A1*Sxi2), (A2*Sxi), (A3*Syi2), (A4*Syi), A5*S1
 		};
 		
 
@@ -82,6 +96,7 @@ public class EquationSolver {
 				Sxivi,
 				Syi2vi,
 				Syivi,
+				Sxiyivi,
 				Svi
 		};
 		
@@ -91,21 +106,22 @@ public class EquationSolver {
 		A3 = v[2];
 		A4 = v[3];
 		A5 = v[4];
+		A5 = v[5];
 		
-		A1 = 1;
-		A2 = 5;
-		A3 = -1;
-		A4 = +4;
-		A5 = 625;
-				
-		
-		double d1 = 2*((A1*Sxi4) + (A2*Sxi3) + (A3*Sxi2yi2) + (A4*Sxi2yi) + (A5*Sxi2) - Sxi2vi);
-		double d2 = 2*((A1*Sxi3) + (A2*Sxi2) + (A3*Sxiyi2) + (A4*Sxiyi) + (A5*Sxi) - Sxivi); 
-		double d3 = 2*((A1*Sxi2yi2) + (A2*Sxiyi2) + (A3*Syi4) + (A4*Syi3) + (A5*Syi2) - Syi2vi);
-		double d4 = 2*((A1*Sxi2yi) + (A2*Sxiyi) + (A3*Syi3) + (A4*Syi2) + (A5*Syi) - Syivi);
-		double d5 = 2*((A1*Sxi2) + (A2*Sxi) + (A3*Syi2) + (A4*Syi) + S1 * A5 - Svi);
-
-		double delta = ((A1*A1)*Sxi4) + (2*A1*A2*Sxi3) + (2*A1*A3*Sxi2yi2) + (2*A1*A4*Sxi2yi) + (2*A1*A5*Sxi2) - (2*A1*Sxi2vi) + ((A2*A2)*Sxi2) + (2*A2*A3*Sxiyi2) + (2*A2*A4*Sxiyi) + (2*A2*A5*Sxi) - (2*A2*Sxivi) + ((A3*A3)*Syi4) + (2*A3*A4*Syi3) + (2*A3*A5*Syi2) - (2*A3*Syi2vi) + ((A4*A4)*Syi2) + (2*A4*A5*Syi) - (2*A4*Syivi) + (A5*A5) - (2*A5*Svi) + Svi2;
+//		A1 = 1;
+//		A2 = 5;
+//		A3 = -1;
+//		A4 = +4;
+//		A5 = 625;
+//				
+//		
+//		double d1 = 2*((A1*Sxi4) + (A2*Sxi3) + (A3*Sxi2yi2) + (A4*Sxi2yi) + (A5*Sxi2) - Sxi2vi);
+//		double d2 = 2*((A1*Sxi3) + (A2*Sxi2) + (A3*Sxiyi2) + (A4*Sxiyi) + (A5*Sxi) - Sxivi); 
+//		double d3 = 2*((A1*Sxi2yi2) + (A2*Sxiyi2) + (A3*Syi4) + (A4*Syi3) + (A5*Syi2) - Syi2vi);
+//		double d4 = 2*((A1*Sxi2yi) + (A2*Sxiyi) + (A3*Syi3) + (A4*Syi2) + (A5*Syi) - Syivi);
+//		double d5 = 2*((A1*Sxi2) + (A2*Sxi) + (A3*Syi2) + (A4*Syi) + S1 * A5 - Svi);
+//
+//		double delta = ((A1*A1)*Sxi4) + (2*A1*A2*Sxi3) + (2*A1*A3*Sxi2yi2) + (2*A1*A4*Sxi2yi) + (2*A1*A5*Sxi2) - (2*A1*Sxi2vi) + ((A2*A2)*Sxi2) + (2*A2*A3*Sxiyi2) + (2*A2*A4*Sxiyi) + (2*A2*A5*Sxi) - (2*A2*Sxivi) + ((A3*A3)*Syi4) + (2*A3*A4*Syi3) + (2*A3*A5*Syi2) - (2*A3*Syi2vi) + ((A4*A4)*Syi2) + (2*A4*A5*Syi) - (2*A4*Syivi) + (A5*A5) - (2*A5*Svi) + Svi2;
 
 		
 		return v;
@@ -202,7 +218,7 @@ public class EquationSolver {
 		
 		vi = findPolynome2d(xi, yi, vi);
 		
-		System.out.println("polynome is " + vi[0] +".x² + " + vi[1] + ".x + " + vi[2] + ".y² + " + vi[3] + ".y + " +vi[4]);
+		System.out.println("polynome is " + vi[0] +".x² + " + vi[1] + ".x + " + vi[2] + ".y² + " + vi[3] + ".y + " +vi[4]+".x.y" + vi[5]);
 		
 		for(int i = 0; i < values.length; ++i)
 		{
@@ -210,7 +226,7 @@ public class EquationSolver {
 			double y = values[i][1];
 			double vexpected = values[i][2];
 			
-			double interpo = vi[0] * x * x + vi[1] * x + vi[2] * y *y + vi[3] * y + vi[4];
+			double interpo = vi[0] * x * x + vi[1] * x + vi[2] * y *y + vi[3] * y + vi[4] * x * y +vi[5];
 			
 			System.out.println("x=" + x + ", y=" + y + ", v="+ vexpected + ", found=" + interpo + ", delta=" + Math.abs(interpo - vexpected));
 		}
