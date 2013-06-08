@@ -9,10 +9,14 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections.primitives.ArrayDoubleList;
+import org.apache.commons.collections.primitives.DoubleList;
+
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.utils.Extrapolator;
 
 public class DefectMapGraphPanel extends GraphPanel {
 	int viewSize = 384;
@@ -40,6 +44,10 @@ public class DefectMapGraphPanel extends GraphPanel {
 	protected void calcData() {
 		super.calcData();
 		
+		DoubleList starX = new ArrayDoubleList();
+		DoubleList starY = new ArrayDoubleList();
+		DoubleList starV = new ArrayDoubleList();
+		
 		BufferedImage result = null;
 		for(Image image : this.images)
 		{
@@ -64,52 +72,90 @@ public class DefectMapGraphPanel extends GraphPanel {
 				if (!so.isStarFound()) continue;
 				if (!this.starOccurences.contains(so)) continue;
 				
-				occList.add(so);
-				if (isFirst) {
-					minfwhm = so.getAspectRatio();
-					maxfwhm = so.getAspectRatio();
-					isFirst = false;
-				} else {
-					if (so.getAspectRatio() < minfwhm) minfwhm = so.getAspectRatio();
-					if (so.getAspectRatio() > maxfwhm) maxfwhm = so.getAspectRatio();
-				}
-			}
-			if (maxfwhm - minfwhm < 0.1) maxfwhm = minfwhm + 0.1;
-			
-			for(StarOccurence so : occList)
-			{
-				int x = (int)Math.round(ratio * 2.0 * so.getPicX());
-				int y = (int)Math.round(ratio * 2.0 * so.getPicY());
-				if (x < 0 || y < 0 || x >= result.getWidth() || y >= result.getHeight()) continue;
-				
-				double fwhm = (so.getAspectRatio() - minfwhm) * 255 / (maxfwhm - minfwhm);
-				int c = fwhm < 0 ? 0 : fwhm > 255 ? 255 : (int)fwhm;
-				result.setRGB(x, y, c);
+				double stx = so.getPicX() * 2 * ratio;
+				double sty = so.getPicY() * 2 * ratio;
+				starX.add(stx);
+				starY.add(sty);
+				// starV.add(1.0 / (so.getAspectRatio() * so.getAspectRatio()));
+				starV.add(so.getFwhm());
+				// starV.add(-stx * stx -  sty * sty + 65550);
+				// if (starV.size() > 5) break;
+				// [1.0033253925011787, 541.4625024129266, -1.994274110982495, 556.2271069981862, 12.200243146703366]
 			}
 			
+		
+			Extrapolator extrapolator = new Extrapolator(0, 0, sx - 1, sy - 1, 1, 1, starX.toArray(), starY.toArray(), starV.toArray());
+			double min = extrapolator.getMin();
+			double max = extrapolator.getMax();
+			double iv = 255.0 / (max - min);
 			for(int y = 0; y < result.getHeight(); ++y)
 			{
 				for(int x = 0; x < result.getWidth(); ++x)
 				{
-					double fwhmDiv = 0;
-					double fwhmSum = 0;
-					
-					for(StarOccurence so : occList)
-					{
-						double scx = ratio * 2.0 * so.getPicX() - x;
-						double scy = ratio * 2.0 * so.getPicY() - y;
-						double dst2 = 100 + scx * scx + scy * scy;
-						double ivdst = 1.0 / dst2;
-						fwhmSum += so.getAspectRatio() * ivdst;
-						fwhmDiv += ivdst;
-						
+					float f = extrapolator.getValue(x, y);
+					if (Float.isNaN(f)) continue;
+					double fwhm = (f - min) * iv;
+					if (fwhm < 0) {
+						fwhm = 0;
 					}
-							
-					double fwhm = fwhmSum / fwhmDiv;
-					fwhm = (fwhm - minfwhm) * 255 / (maxfwhm - minfwhm);
 					int c = fwhm < 0 ? 0 : fwhm > 255 ? 255 : (int)fwhm;
-					result.setRGB(x, y, c);
+					
+					double rad = fwhm / 255;
+//					int r = (int)((128 + 32 * Math.sin(rad * 8.5 * Math.PI)));
+//					int g = (int)((128 + 32 * Math.sin(rad * 8.5 * Math.PI)));
+//					int b = (int)fwhm ;
+					
+					int r = (int)Math.round(fwhm);
+					int g = (int)Math.round(255 - fwhm);
+					int b = (int)(Math.round(30 + 30 * Math.cos(rad * 16 * Math.PI)));
+					if (r > 255) r = 255;
+					if (r < 0) r = 0;
+					if (g > 255) g = 255;
+					if (g < 0) g = 0;
+					if (b > 255) b = 255;
+					if (b < 0) b = 0;
+					int rgb= b | (g << 8) | (r << 16);
+
+					result.setRGB(x, y, rgb);
 				}
+			}
+			
+			for(int i = 0 ; i < starX.size(); ++i)
+			{
+				double dx = starX.get(i);
+				double dy = starY.get(i);
+				double f = starV.get(i);
+				
+				int x = (int)Math.round(dx);
+				int y = (int)Math.round(dy);
+				if (x < 0) continue;
+				if (x >= result.getWidth()) continue;
+				
+				if (y < 0) continue;
+				if (y >= result.getHeight()) continue;
+				
+				double fwhm = (f - min) * iv;
+				
+				double rad = fwhm / 255;
+//				int r = (int)((128 + 32 * Math.sin(rad * 8.5 * Math.PI)));
+//				int g = (int)((128 + 32 * Math.sin(rad * 8.5 * Math.PI)));
+//				int b = (int)fwhm ;
+				
+				int r = (int)Math.round(fwhm);
+				int g = (int)Math.round(255 - fwhm);
+				int b = (int)(Math.round((r + g) / 2 + 10 * Math.cos(rad * 16 * Math.PI)));
+				if (r > 255) r = 255;
+				if (r < 0) r = 0;
+				if (g > 255) g = 255;
+				if (g < 0) g = 0;
+				if (b > 255) b = 255;
+				if (b < 0) b = 0;
+				int rgb= r | (g << 8) | (b << 16);
+				
+//				int c = fwhm < 0 ? 0 : fwhm > 255 ? 255 : (int)fwhm;
+//				c += 65535;
+				result.setRGB(x, y, rgb);
+				
 			}
 		}
 		this.buffer = result;
