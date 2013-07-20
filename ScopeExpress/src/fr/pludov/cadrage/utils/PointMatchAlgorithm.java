@@ -3,6 +3,7 @@ package fr.pludov.cadrage.utils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
 
 /**
@@ -45,17 +46,58 @@ public class PointMatchAlgorithm {
 		}
 		
 	}
-	
-	final double [] x1;
-	final double [] y1;
+
+	final int sourcePtCount;
+//	final double [] x1;
+//	final double [] y1;
 	final double [] x2;
 	final double [] y2;
 	final double maxdst;
 	
+	final DynamicGrid<? extends DynamicGridPoint> starGrid;
+	/// Si on n'a pas des instances incluant l'id, fourni un id
+	final IdentityHashMap<DynamicGridPoint, Integer> dgpMap;
+	
+	public PointMatchAlgorithm(List<? extends DynamicGridPoint> stars, DynamicGrid<? extends DynamicGridPoint> starGrid, double [] x2, double [] y2, double maxdst)
+	{
+		this.x2 = x2;
+		this.y2 = y2;
+		this.maxdst = maxdst;
+		this.starGrid = starGrid;
+		this.dgpMap = new IdentityHashMap<DynamicGridPoint, Integer>(stars.size());
+		int id = 0;
+		for(DynamicGridPoint dgp : stars)
+		{
+			dgpMap.put(dgp, id++);
+		}
+		this.sourcePtCount = stars.size();
+	}
+
+	public PointMatchAlgorithm(DynamicGrid<? extends DynamicGridPointWithIndex> starGrid, double [] x2, double [] y2, double maxdst)
+	{
+		this.x2 = x2;
+		this.y2 = y2;
+		this.maxdst = maxdst;
+		this.starGrid = starGrid;
+		this.dgpMap = null;
+		this.sourcePtCount = starGrid.getPointCount();
+	}
+
+	
 	public PointMatchAlgorithm(double [] x1, double [] y1, double [] x2, double [] y2, double maxdst) 
 	{
-		this.x1 = x1;
-		this.y1 = y1;
+//		this.x1 = x1;
+//		this.y1 = y1;
+		List<DynamicGridPointWithIndex> pointList = new ArrayList<PointMatchAlgorithm.DynamicGridPointWithIndex>(x1.length);
+		for(int i = 0; i < x1.length; ++i)
+		{
+			double x = x1[i];
+			double y = y1[i];
+			pointList.add(new DynamicGridPointWithIndex(x, y, i));
+		}
+		this.starGrid = new DynamicGrid<DynamicGridPointWithIndex>(pointList);
+		this.dgpMap = null;
+		this.sourcePtCount = x1.length;
 		this.x2 = x2;
 		this.y2 = y2;
 		this.maxdst = maxdst;
@@ -65,17 +107,23 @@ public class PointMatchAlgorithm {
 	{
 		double maxdst2 = maxdst * maxdst;
 		
-		List<Correlation> correlations = new ArrayList<Correlation>(x1.length);
-		for(int i = 0; i < x1.length; ++i)
+		List<Correlation> correlations = new ArrayList<Correlation>();
+		for(int j = 0; j < x2.length; ++j)
 		{
-			double x = x1[i];
-			double y = y1[i];
-			for(int j = 0; j < x2.length; ++j)
+			double xj = x2[j];
+			double yj = y2[j];
+	
+			for(DynamicGridPoint dgp : starGrid.getNearObject(xj, yj, maxdst))
 			{
-				double dx = (x - x2[j]);
+				//for(int i = 0; i < x1.length; ++i)
+			
+				double xi = dgp.getX();
+				double yi = dgp.getY();
+				
+				double dx = (xi - xj);
 				if (dx > maxdst) continue;
 				if (dx < -maxdst) continue;
-				double dy = (y - y2[j]);
+				double dy = (yi - yj);
 				if (dy > maxdst) continue;
 				if (dy < -maxdst) continue;
 				
@@ -84,7 +132,7 @@ public class PointMatchAlgorithm {
 					continue;
 				}
 				Correlation c = new Correlation();
-				c.p1 = i;
+				c.p1 = getIndexFromDgp(dgp);
 				c.p2 = j;
 				c.dst = d;
 				correlations.add(c);
@@ -99,7 +147,7 @@ public class PointMatchAlgorithm {
 			}
 		});
 		
-		boolean [] p1used = new boolean[x1.length];
+		boolean [] p1used = new boolean[this.sourcePtCount];
 		boolean [] p2used = new boolean[x2.length];
 		ArrayList<Correlation> result = new ArrayList<Correlation>(correlations.size());
 		for(Correlation c : correlations)
@@ -112,6 +160,39 @@ public class PointMatchAlgorithm {
 		}
 		
 		return result;
+	}
+
+	private int getIndexFromDgp(DynamicGridPoint dgp) {
+		if (dgpMap != null) {
+			Integer result = dgpMap.get(dgp);
+			if (result == null) throw new RuntimeException("unknown point");
+			return result;
+		}
+		
+		return ((DynamicGridPointWithIndex)dgp).id;
+	}
+	
+	public static class DynamicGridPointWithIndex implements DynamicGridPoint
+	{
+		final double x, y;
+		final int id;
+		
+		public DynamicGridPointWithIndex(double x, double y, int id) {
+			this.x = x;
+			this.y = y;
+			this.id = id;
+		}
+	
+		@Override
+		public double getX() {
+			return x;
+		}
+		
+		@Override
+		public double getY() {
+			return y;
+		}
+		
 	}
 
 }

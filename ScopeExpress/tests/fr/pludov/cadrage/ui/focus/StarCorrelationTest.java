@@ -72,7 +72,7 @@ public class StarCorrelationTest implements TestInstance {
 		raTarget = 210.92683333333332;
 		decTarget = 54.28594444444444;
 		radius = 5.0;
-		maxMag = 10.5;
+		maxMag = 11.0;
 		pixelArcSec = 2 * 2.46;
 
 		raTarget = expectedCenter[0] + raShift;

@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.util.Arrays;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -80,6 +81,12 @@ public final class Utils {
 	public static String doubleToString(double d, int pres)
 	{
 		return String.format("%." + Integer.toString(pres) +"f", d);
+	}
+
+	public static String repeat(char ch, int length) {
+		char[] chars = new char[length];
+	    Arrays.fill(chars, ch);
+	    return new String(chars);
 	}
 
 }

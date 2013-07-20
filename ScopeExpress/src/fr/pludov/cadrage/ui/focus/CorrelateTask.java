@@ -8,6 +8,7 @@ import java.util.List;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.correlation.Correlation;
@@ -57,6 +58,13 @@ public class CorrelateTask extends BackgroundTask {
 		ImageStar(StarOccurence so)
 		{
 			this.so = so;
+			double rslt = 0;
+			int [] aduSum = so.getAduSumByChannel();
+			for(int i : aduSum)
+			{
+				rslt += i;
+			}
+			this.adu = rslt;
 		}
 		
 		@Override
@@ -71,13 +79,7 @@ public class CorrelateTask extends BackgroundTask {
 		
 		@Override
 		public double getAduLevel() {
-			double rslt = 0;
-			int [] aduSum = so.getAduSumByChannel();
-			for(int i : aduSum)
-			{
-				rslt += i;
-			}
-			return rslt;
+			return adu;
 		}
 	}
 	
@@ -110,6 +112,8 @@ public class CorrelateTask extends BackgroundTask {
 		
 		Correlation correlation = new Correlation();
 
+		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
+		double projectionToImageRatio;
 		SwingThreadMonitor.acquire();
 		try {
 			// Vérifier que l'image n'est pas déjà correllée... Sinon, remonter une erreur
@@ -146,12 +150,34 @@ public class CorrelateTask extends BackgroundTask {
 			if (destStars.isEmpty()) {
 				throw new TaskException("Il n'y a pas d'étoiles disponibles pour la correlation");
 			}
+
+			if (this.mosaic.getSkyProjection() != null) {
+				// On veut connaitre la taille d'un pixel de la projection (en degrés)
+				double [] center = new double[] { 0.0, 0.0 };
+				this.mosaic.getSkyProjection().unproject(center);
+				double [] onePixRight = new double[] { 1.0, 0.0 };
+				this.mosaic.getSkyProjection().unproject(onePixRight);
+				double projectionPixSizeInDeg = SkyProjection.getDegreeDistance(center, onePixRight);
+	
+				// FIXME: constant * capteur size / focal
+				double imageSizeInDeg = 57.3 * 22.2 / 600.0;
+				double imagePixSizeInDeg = imageSizeInDeg / (this.image.getWidth());
+				
+				// Exemple: 
+				//  taille d'un pixel sur l'image : 2°
+				//  taille d'un pixel sur la projection: 0.1°
+				//  => il faut multiplier par 1/20 pour être à l'échelle de l'image
+				projectionToImageRatio = projectionPixSizeInDeg / imagePixSizeInDeg;
+			} else {
+				// On assume que les images ne changent pas d'échelle
+				projectionToImageRatio = 1.0;
+			}
 		} finally {
 			SwingThreadMonitor.release();
 		}
 		
 		try {
-			correlation.correlate(destStars, referenceStars);
+			correlation.correlate(destStars, referenceStars, projectionToImageRatio);
 			// correlation.identity();
 			if (!correlation.isFound()) {
 				throw new TaskException("Pas de correlation trouvée");

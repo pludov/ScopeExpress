@@ -277,13 +277,13 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				double pixelArcSec = 2 * 2.23;
+				double pixelArcSec = 10 * 2 * 2.23;
 
 				double raTarget = 0.0;
 				double decTarget = 90;
 
 				double radius = 6;
-				double maxMag = 10.5;
+				double maxMag = 10;
 //				La polaire
 //				raTarget = (360/24.0) * (02 + 31/60.0 + 49.09456/3600.0);
 //				decTarget = 89 + 15/60.0 + 50/3600.0;
