@@ -438,7 +438,7 @@ public class Correlation {
 		}
 		
 		logger.debug("Creating dynamic grid table");
-		DynamicGrid<Triangle> referenceTriangleGrid = new DynamicGrid<Triangle>(trianglesFromImage);
+		DynamicGrid<Triangle> imageTriangleGrid = new DynamicGrid<Triangle>(trianglesFromImage);
 		logger.debug("Dynamic grid table created");
 		
 		// Cette tolerance est absolue. Elle a été ajustée pour ne pas rejetter 
@@ -448,7 +448,7 @@ public class Correlation {
 		
 		List<RansacPoint> ransacPoints;
 		
-		while((ransacPoints = getRansacPoints(trianglesFromRef, referenceTriangleGrid, maxNbRansacPoints, tolerance, (refToImageRatio) * 0.95, (refToImageRatio) * 1.05)) == null)
+		while((ransacPoints = getRansacPoints(trianglesFromRef, imageTriangleGrid, maxNbRansacPoints, tolerance, (refToImageRatio) * 0.95, (refToImageRatio) * 1.05)) == null)
 		{
 			logger.warn("Too many possible translations. Filter wiht more aggressive values...");
 			tolerance *= 0.6;
@@ -543,6 +543,7 @@ public class Correlation {
 			}
 		}
 		
+		
 		logger.info("Biggest attractor = " + maxPleb);
 		if (best == null) {
 			found = false;
@@ -554,6 +555,140 @@ public class Correlation {
 			this.cs = best.cs;
 			this.sn = best.sn;
 
+//			List<CorrelationStatus> correlationsOrderedByMatching = new ArrayList<CorrelationStatus>(correlations.values());
+//			
+//			Collections.sort(correlationsOrderedByMatching, new Comparator<CorrelationStatus>() {
+//				@Override
+//				public int compare(CorrelationStatus o1, CorrelationStatus o2) {
+//					return o1.correlation.size() - o2.correlation.size();
+//				}
+//			});
+//			// Une fois qu'on la transfo, on pourra essayer de retrouver les triangles de la correlation pour comprendre où ils ont été supprimés
+//			
+//			int triangleFromRefNotDetectedInImage = 0;
+//			int triangleFromImageNotDetectedInRef = 0;
+//			int missingRansacPoint = 0;
+//			
+//			for(int i = 0; i < best.correlation.size(); ++i)
+//			{
+//				PointMatchAlgorithm.Correlation corrI = best.correlation.get(i);
+//				DynamicGridPointWithAdu imagePi = starsFromImage.get(corrI.getP2());
+//				DynamicGridPointWithAdu refPi = starsFromRef.get(corrI.getP1());
+//				
+//				for(int j = i + 1; j < best.correlation.size(); ++j)
+//				{
+//					PointMatchAlgorithm.Correlation corrJ = best.correlation.get(j);
+//					DynamicGridPointWithAdu imagePj = starsFromImage.get(corrJ.getP2());
+//					DynamicGridPointWithAdu refPj = starsFromRef.get(corrJ.getP1());
+//					
+//					for(int k = j + 1; k < best.correlation.size(); ++k)
+//					{
+//						PointMatchAlgorithm.Correlation corrK = best.correlation.get(k);
+//						DynamicGridPointWithAdu imagePk = starsFromImage.get(corrK.getP2());
+//						DynamicGridPointWithAdu refPk = starsFromRef.get(corrK.getP1());
+//						Triangle imageTriangle = findTriangle(trianglesFromImage, imagePi, imagePj, imagePk);
+//						
+//						Triangle refTriangle = findTriangle(trianglesFromRef, refPi, refPj, refPk);
+//			
+//						if (imageTriangle != null || refTriangle != null) {
+//							if (imageTriangle == null) {
+//								triangleFromRefNotDetectedInImage++;
+//								ArrayList<DynamicGridPointWithAdu> miniList;
+//								List<Triangle> verifiedTriangleList ;
+//								
+//								miniList = new ArrayList<DynamicGridPointWithAdu>();
+//								miniList.add(imagePi);
+//								miniList.add(imagePj);
+//								miniList.add(imagePk);
+//								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+//								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+//									logger.warn("Triangle is missing but was found");
+//									List<Triangle> reverifiedTriangleList;
+//									reverifiedTriangleList = getTriangleList(starsFromImage.subList(0, lengthToTest), starMinRay, starRay, maxTriangle, maxBrightnessRatio, minGeoRatio);
+//									imageTriangle = findTriangle(trianglesFromImage, imagePi, imagePj, imagePk);
+//									if (imageTriangle != null) {
+//										logger.warn("Triangle reapparition");
+//									}
+//								}
+//								
+////								miniList = new ArrayList<DynamicGridPointWithAdu>();
+////								miniList.add(imagePi);
+////								miniList.add(imagePk);
+////								miniList.add(imagePj);
+////								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+////								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+////									logger.warn("Triangle is missing but was found");
+////								}
+////
+////								miniList = new ArrayList<DynamicGridPointWithAdu>();
+////								miniList.add(imagePj);
+////								miniList.add(imagePi);
+////								miniList.add(imagePk);
+////								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+////								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+////									logger.warn("Triangle is missing but was found");
+////								}
+////
+////								miniList = new ArrayList<DynamicGridPointWithAdu>();
+////								miniList.add(imagePj);
+////								miniList.add(imagePk);
+////								miniList.add(imagePi);
+////								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+////								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+////									logger.warn("Triangle is missing but was found");
+////								}
+////
+////								miniList = new ArrayList<DynamicGridPointWithAdu>();
+////								miniList.add(imagePk);
+////								miniList.add(imagePi);
+////								miniList.add(imagePj);
+////								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+////								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+////									logger.warn("Triangle is missing but was found");
+////								}
+////
+////								miniList = new ArrayList<DynamicGridPointWithAdu>();
+////								miniList.add(imagePk);
+////								miniList.add(imagePj);
+////								miniList.add(imagePi);
+////								verifiedTriangleList = getTriangleList(miniList, starMinRay, starRay, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+////								if (verifiedTriangleList != null && !verifiedTriangleList.isEmpty()) {
+////									logger.warn("Triangle is missing but was found");
+////								}
+//
+//							}
+//							if (refTriangle == null) {
+//								triangleFromImageNotDetectedInRef++;
+//							}
+//						}
+//						
+//						if (imageTriangle != null && refTriangle != null) {
+//							List<Triangle> miniListFromRef = Collections.singletonList(refTriangle);
+//							DynamicGrid<Triangle> miniGridForImage = new DynamicGrid<Triangle>(Collections.singletonList(imageTriangle));
+//							
+//							List<RansacPoint> miniRansacPoints = getRansacPoints(
+//									miniListFromRef, 
+//									miniGridForImage, 
+//									maxNbRansacPoints, 
+//									tolerance, (refToImageRatio) * 0.95, (refToImageRatio) * 1.05);
+//							if (miniRansacPoints == null || miniRansacPoints.isEmpty()) {
+//								missingRansacPoint++;
+//								miniRansacPoints = getRansacPoints(
+//										miniListFromRef, 
+//										miniGridForImage, 
+//										maxNbRansacPoints, 
+//										tolerance, (refToImageRatio) * 0.95, (refToImageRatio) * 1.05);
+//							}
+//						}
+//						
+//					}
+//				}
+//			}
+//			
+//			logger.info("Post analysis result: " + missingRansacPoint + " missing ransac points");
+//			logger.info("Post analysis result: " + triangleFromRefNotDetectedInImage + " triangle From Ref NotDetected In Image (possible cause: near of size limit, high variation in relative brightness)");
+//			logger.info("Post analysis result: " + triangleFromImageNotDetectedInRef + " triangle From Image Not Detected In Ref (possible cause: near of size limit, high variation in relative brightness)");
+			
 		}
 		
 //		
@@ -600,6 +735,33 @@ public class Correlation {
 //		found = true;
 	}
 
+	private Triangle findTriangle(List<Triangle> tList, DynamicGridPoint p1, DynamicGridPoint p2, DynamicGridPoint p3)
+	{
+		for(Triangle t : tList)
+		{
+			if (t.s1 == p1) {
+				if (t.s2 == p2) {
+					if (t.s3 == p3) return t;
+				} else if (t.s2 == p3) {
+					if (t.s3 == p2) return t;
+				}
+			} else if (t.s1 == p2) {
+				if (t.s2 == p1) {
+					if (t.s3 == p3) return t;
+				} else if (t.s2 == p3) {
+					if (t.s3 == p1) return t;
+				}
+			} else if (t.s1 == p3) {
+				if (t.s2 == p1) {
+					if (t.s3 == p2) return t;
+				} else if (t.s2 == p2) {
+					if (t.s3 == p1) return t;
+				}
+			}
+		}
+		return null;
+	}
+	
 	private List<RansacPoint> getRansacPoints(
 			List<Triangle> imageTriangle,
 			DynamicGrid<Triangle> referenceTriangleGrid, 
@@ -792,10 +954,11 @@ public class Correlation {
 				if (maxAdu > minAdu * maxRatio) continue;
 				
 			PeerLoop:
-				for(int b = a + 1; b < referencePeerList.size(); ++b)
+				for(int b = 0; b < referencePeerList.size(); ++b)
 				{
 					DynamicGridPointWithAdu rst3 = referencePeerList.get(b);
 					if (rst3 == rst1) continue;
+					if (rst3 == rst2) continue;
 					if (compareTo(rst2, rst3) >= 0) continue;
 				
 					double newAdu = rst3.getAduLevel();
