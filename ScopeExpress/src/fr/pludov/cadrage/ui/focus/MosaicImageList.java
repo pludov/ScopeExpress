@@ -21,6 +21,7 @@ import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.ExclusionZone;
@@ -336,6 +337,31 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						mosaic.getSkyProjection().unproject(mosaicPos);
 						message += title + " = [" + mosaicPos[0] +";" + mosaicPos[1]+"]\n";
 					}
+					
+					double [] upperLeft = new double [] { -0.5, -0.5 };
+					double [] upperLeftRaDec = new double[2];
+					double [] lowerRight = new double [] { 0.5, 0.5 };
+					double [] lowerRightRaDec = new double[2];
+					
+					mip.imageToMosaic(0.5 * image.getWidth() * upperLeft[0], 0.5 * image.getHeight() * upperLeft[1], upperLeftRaDec);
+					mosaic.getSkyProjection().unproject(upperLeftRaDec);
+
+					mip.imageToMosaic(0.5 * image.getWidth() * lowerRight[0], 0.5 * image.getHeight() * lowerRight[1], lowerRightRaDec);
+					mosaic.getSkyProjection().unproject(lowerRightRaDec);
+
+					double diagDegreeDist = SkyProjection.getDegreeDistance(upperLeftRaDec, lowerRightRaDec);
+					
+					double diagPixDist = Math.sqrt(image.getWidth()*image.getWidth() + image.getHeight() * image.getHeight());
+					
+					double pixDegreeSize = diagDegreeDist / diagPixDist;
+
+					double pixSecSize = pixDegreeSize * 3600;
+					message += String.format("Echantillonage %.2f ''/pix\n", pixSecSize);
+					
+					int deg = (int)Math.floor(diagDegreeDist);
+					int min = (int)Math.floor((diagDegreeDist - deg) * 60);
+					int sec = (int)Math.floor((((diagDegreeDist - deg) * 60) - min) * 60);
+					message += String.format("Diagonale: %d°%d'%d''°", deg, min, sec);
 				}
 				
 				try {
