@@ -15,6 +15,7 @@ import javax.swing.event.ChangeListener;
 import fr.pludov.cadrage.ui.focus.ActionOpen;
 import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.ui.utils.Utils;
 
 public class MosaicStarter extends MosaicStarterDesign {
 
@@ -68,6 +69,18 @@ public class MosaicStarter extends MosaicStarterDesign {
 		getMagTextField().setText(lastOpenMag.get());
 		getRadiusTextField().setText(lastOpenRadius.get());
 		
+		Runnable listener = new Runnable()
+		{
+			@Override
+			public void run() {
+				validateInput();
+			}
+			
+		};
+		Utils.addTextFieldChangeListener(getRaTextField(), listener);
+		Utils.addTextFieldChangeListener(getDecTextField(), listener);
+		Utils.addTextFieldChangeListener(getMagTextField(), listener);
+		Utils.addTextFieldChangeListener(getRadiusTextField(), listener);
 		
 		validateInput();
 	}
@@ -210,6 +223,16 @@ public class MosaicStarter extends MosaicStarterDesign {
 				result = -result;
 			}
 			return result;
+		}
+		
+		try {
+			return Double.parseDouble(input);
+		} catch(NumberFormatException e) {
+		}
+		
+		try {
+			return Double.parseDouble(input);
+		} catch(NumberFormatException e) {
 		}
 		
 		return null;
