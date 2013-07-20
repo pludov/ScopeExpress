@@ -3,6 +3,7 @@ package fr.pludov.cadrage.utils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,9 +19,11 @@ public class DynamicGrid<OBJECT extends DynamicGridPoint> {
 	double divx, divy;
 	int sizex, sizey;
 	DynamicGridPoint [][] array;
+	final int pointCount;
 	
 	public DynamicGrid(Collection<OBJECT> objects)
 	{
+		this.pointCount = objects.size();
 		// Evaluer la taille min et max
 		int arrayFactor = 20;
 		
@@ -74,16 +77,18 @@ public class DynamicGrid<OBJECT extends DynamicGridPoint> {
 	
 	public List<OBJECT> getNearObject(double x, double y, double size)
 	{
-		List<OBJECT> result = new ArrayList<OBJECT>();
+		List<OBJECT> result = null;
 		
 		int gridMinX = (int)Math.floor((x - size - minx) / divx);
-		int gridMinY = (int)Math.floor((y - size - miny) / divy);
 
 		int gridMaxX = (int)Math.ceil((x + size - minx) / divx);
-		int gridMaxY = (int)Math.ceil((y + size - miny) / divy);
 
 		if (gridMinX < 0) gridMinX = 0;
 		if (gridMaxX >= sizex) gridMaxX = sizex - 1;
+		if (gridMinX > gridMaxX) return Collections.EMPTY_LIST;
+
+		int gridMinY = (int)Math.floor((y - size - miny) / divy);
+		int gridMaxY = (int)Math.ceil((y + size - miny) / divy);
 		if (gridMinY < 0) gridMinY = 0;
 		if (gridMaxY >= sizey) gridMaxY = sizey - 1;
 		
@@ -105,13 +110,22 @@ public class DynamicGrid<OBJECT extends DynamicGridPoint> {
 					double dst = (x - gpx) * (x - gpx) + (y - gpy) * (y - gpy);
 					
 					if (dst < size) {
+						if (result == null) {
+							result = new ArrayList<OBJECT>();
+						}
+						
 						result.add((OBJECT)gp);
 					}
 				}
 			}
 		}
 		
+		if (result == null) return Collections.EMPTY_LIST;
 		return result;
+	}
+
+	public int getPointCount() {
+		return pointCount;
 	}
 	
 }
