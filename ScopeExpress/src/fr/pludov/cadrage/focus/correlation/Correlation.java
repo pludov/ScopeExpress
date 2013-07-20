@@ -339,16 +339,16 @@ public class Correlation {
 		List<Triangle> trianglesFromRef;
 		
 		// Exclu les étoiles qui ont une voisine au moins x fois plus lumineuse
-		double brightestStarRatio = 2;
+		double brightestStarRatio = 1.25;
 
 		// FIXME: c'est en dûr ! Ce paramètre sert de born min à la distance (dans le cas où il y a trés peu d'image) 
 		double dmax = 600;
 		
 		int keepCount, allowRemoval;
 		if (starsFromImage.size() < 40) {
-			allowRemoval = 10;
+			allowRemoval = 5;
 		} else {
-			allowRemoval = starsFromImage.size() / 4;
+			allowRemoval = starsFromImage.size() / 8;
 		}
 		keepCount = starsFromImage.size() - allowRemoval;
 		if (keepCount > 200) {
@@ -357,6 +357,7 @@ public class Correlation {
 		
 		DynamicGrid<DynamicGridPointWithAdu> starGrid = new DynamicGrid<DynamicGridPointWithAdu>((List<DynamicGridPointWithAdu>)starsFromImage);
 		double rayWithNoBrighterStar = getOtpimalRay(starsFromImage, starGrid, dmax, keepCount, brightestStarRatio);
+		
 		
 		logger.info("Restricting to stars that has no brighter star within " + rayWithNoBrighterStar + " pixels in image");
 		int orginalStarFromImageCount = starsFromImage.size();
@@ -412,7 +413,7 @@ public class Correlation {
 				return;
 			}
 			logger.debug("Looking for references triangles, max size = " + starRay);
-			trianglesFromRef = getTriangleList(starsFromRef.subList(0, lengthForRef), starMinRay / refToImageRatio, starRay / refToImageRatio, 1000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+			trianglesFromRef = getTriangleList(starsFromRef.subList(0, lengthForRef), starMinRay / refToImageRatio, starRay / refToImageRatio, 2000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
 			if (trianglesFromRef == null) {
 				
 //				if (lengthForRef > 10) {
@@ -490,7 +491,7 @@ public class Correlation {
 
 			// FIXME : introduire un paramètre "distance maxi en pixel"
 			// FIXME : sur quelle base on évalue les pixels ici ? l'image
-			PointMatchAlgorithm pma = new PointMatchAlgorithm(refGrid, srcX, srcY, 10.0 / refToImageRatio);
+			PointMatchAlgorithm pma = new PointMatchAlgorithm(refGrid, srcX, srcY, 6.0 / refToImageRatio);
 			List<PointMatchAlgorithm.Correlation> correlation = pma.proceed();
 			
 			if (correlation.size() < 4) continue;
