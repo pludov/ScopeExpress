@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -406,7 +407,15 @@ public class Correlation {
 //				}
 				continue;
 			}
-
+			if (logger.isDebugEnabled()) {
+				IdentityHashMap<DynamicGridPoint, Boolean> map = new IdentityHashMap<DynamicGridPoint, Boolean>();
+				for(Triangle t : trianglesFromImage) {
+					map.put(t.s1, Boolean.TRUE);
+					map.put(t.s2, Boolean.TRUE);
+					map.put(t.s3, Boolean.TRUE);
+				}
+				logger.debug("Triangle selection covers " + map.size() + "/" + lengthToTest + " stars ");
+			}
 			if (trianglesFromImage.size() == 0) {
 				logger.warn("Not enough triangle in image");
 				found = false;
