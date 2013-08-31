@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project cadrage">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+	
+	<property name="project_root" value="C:/Documents and Settings/utilisateur/Mes documents/workspace/workspace-perso/cadrage"></property>
+	<property name="target_dir" value="C:/Astro/Programmes/FocusUI"/>
+    <target name="create_run_jar">
+        <jar destfile="${target_dir}/focusui.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="fr.pludov.cadrage.ui.focus.FocusUi"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${project_root}/bin">
+            	
+        		<exclude name="localisation/**"/>
+        	</fileset>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/jawin.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/metadata-extractor-2.5.0-RC2.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/xmpcore.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/commons-io-2.4.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/log4j-1.2.17.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/miglayout15-swing.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${project_root}/jar/commons-primitives-1.0.jar"/>
+        </jar>
+    	<copydir dest="${target_dir}/dll" src="${project_root}/dll"/>
+    	<copy todir="${target_dir}/dll/" file="${project_root}/../jrawlib/Debug/libjrawlib.dll"/>
+    	<copy todir="${target_dir}/dll/">
+    		<fileset dir="c:/MinGW/bin">
+    			<include name="libexpat*.dll"/>
+    			<include name="libgcc*.dll"/>
+    			<include name="libgmp*.dll"/>
+    			<include name="libgomp*.dll"/>
+    			<include name="zzlibiconv*.dll"/>
+    			<include name="libintl*.dll"/>
+    			<include name="libmpc*.dll"/>
+    			<include name="libmpfr*.dll"/>
+    			<include name="libquadmath*.dll"/>
+    			<include name="libssp*.dll"/>
+    			<include name="libstdc++*.dll"/>
+    			<include name="mingwm*.dll"/>
+    			<include name="pthread*.dll"/>
+    		</fileset>
+    	</copy>
+    </target>
+</project>
