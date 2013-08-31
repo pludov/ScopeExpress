@@ -62,6 +62,14 @@ public class FocusUiDesign {
 	protected JPanel fwhmRepartitionPanel;
 	protected JPanel fwhmEvolutionGraphPanel;
 	protected JPanel fwhmEvolutionHistoPanel;
+	protected JMenu mnTlscope;
+	protected JMenuItem mntmConnecter;
+	protected JMenuItem mntmDconnecter;
+	protected JMenuItem mntmLoadStarAroundScope;
+	protected JButton btnReset;
+	protected JMenu mnConfiguration;
+	protected JMenuItem mntmConfiguration;
+	protected JMenuItem mntmSauverConfig;
 
 	/**
 	 * Create the application.
@@ -106,11 +114,32 @@ public class FocusUiDesign {
 		this.mnChercheEtoilesAuto = new JCheckBoxMenuItem("Rechercher automatiquement");
 		this.mnEtoiles.add(this.mnChercheEtoilesAuto);
 		
-		this.mnPolaire = new JMenuItem("Polaire");
+		this.mnPolaire = new JMenuItem("Charger autours du pole Nord");
 		this.mnEtoiles.add(this.mnPolaire);
 		
-		this.mntmAutre = new JMenuItem("Autre");
+		this.mntmLoadStarAroundScope = new JMenuItem("Charger autours du t\u00E9l\u00E9scope");
+		this.mnEtoiles.add(this.mntmLoadStarAroundScope);
+		
+		this.mntmAutre = new JMenuItem("Charger ...");
 		this.mnEtoiles.add(this.mntmAutre);
+		
+		this.mnTlscope = new JMenu("T\u00E9l\u00E9scope");
+		this.menuBar.add(this.mnTlscope);
+		
+		this.mntmConnecter = new JMenuItem("Connecter");
+		this.mnTlscope.add(this.mntmConnecter);
+		
+		this.mntmDconnecter = new JMenuItem("D\u00E9connecter");
+		this.mnTlscope.add(this.mntmDconnecter);
+		
+		this.mnConfiguration = new JMenu("Configuration");
+		this.menuBar.add(this.mnConfiguration);
+		
+		this.mntmConfiguration = new JMenuItem("Configuration");
+		this.mnConfiguration.add(this.mntmConfiguration);
+		
+		this.mntmSauverConfig = new JMenuItem("Sauver");
+		this.mnConfiguration.add(this.mntmSauverConfig);
 		
 		this.mnTests = new JMenu("Tests");
 		this.menuBar.add(this.mnTests);
@@ -119,6 +148,7 @@ public class FocusUiDesign {
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);
 		
 		this.detectBton = new JButton("Trouver etoiles");
+		this.detectBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/cadrage/ui/resources/icons/star.png")));
 		this.detectBton.setToolTipText("Trouver automatiquement des \u00E9toiles dans l'image courante");
 		this.toolBar.add(this.detectBton);
 		
@@ -127,17 +157,22 @@ public class FocusUiDesign {
 		this.toolBar.add(this.fwhmGraphBton);
 		
 		this.followDirBton = new JButton("");
-		this.followDirBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/com/sun/java/swing/plaf/motif/icons/ScrollRightArrow.gif")));
+		this.followDirBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/cadrage/ui/resources/icons/media-playback-start-7.png")));
 		this.followDirBton.setToolTipText("Surveiller les nouvelles photos dans un r\u00E9pertoire");
 		this.toolBar.add(this.followDirBton);
 		
 		this.shootButton = new JButton("");
-		this.shootButton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/com/sun/java/swing/plaf/motif/icons/ScrollKnobH.gif")));
+		this.shootButton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/cadrage/ui/resources/icons/media-record-5.png")));
 		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
 		this.toolBar.add(this.shootButton);
 		
 		this.scriptAdvanceBton = new JButton("Avancer le script");
 		this.toolBar.add(this.scriptAdvanceBton);
+		
+		this.btnReset = new JButton("Reset");
+		this.btnReset.setToolTipText("Efface les donn\u00E9es et repart sur un \u00E9tat vierge");
+		this.btnReset.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/cadrage/ui/resources/icons/view-remove.png")));
+		this.toolBar.add(this.btnReset);
 		
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		this.frmFocus.getContentPane().add(this.tabbedPane, BorderLayout.CENTER);

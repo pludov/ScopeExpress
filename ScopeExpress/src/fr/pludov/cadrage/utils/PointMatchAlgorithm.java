@@ -58,6 +58,8 @@ public class PointMatchAlgorithm {
 	/// Si on n'a pas des instances incluant l'id, fourni un id
 	final IdentityHashMap<DynamicGridPoint, Integer> dgpMap;
 	
+	double dstSum;
+	
 	public PointMatchAlgorithm(List<? extends DynamicGridPoint> stars, DynamicGrid<? extends DynamicGridPoint> starGrid, double [] x2, double [] y2, double maxdst)
 	{
 		this.x2 = x2;
@@ -150,11 +152,13 @@ public class PointMatchAlgorithm {
 		boolean [] p1used = new boolean[this.sourcePtCount];
 		boolean [] p2used = new boolean[x2.length];
 		ArrayList<Correlation> result = new ArrayList<Correlation>(correlations.size());
+		this.dstSum = 0;
 		for(Correlation c : correlations)
 		{
 			if (p1used[c.p1]) continue;
 			if (p2used[c.p2]) continue;
 			result.add(c);
+			this.dstSum += c.dst;
 			p1used[c.p1] = true;
 			p2used[c.p2] = true;
 		}
@@ -193,6 +197,10 @@ public class PointMatchAlgorithm {
 			return y;
 		}
 		
+	}
+
+	public double getDstSum() {
+		return dstSum;
 	}
 
 }

@@ -260,7 +260,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			mip.imageToMosaic(src[0], src[1], src);
 		}
 			
-		skyproj.unprojectPreTransformed3d(src, result);
+		skyproj.image2dToImage3d(src, result);
 		skyproj.unproject(src);
 	}
 	
@@ -310,6 +310,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
     				at = at.translate(0, 0, high);
     				
     				at = at.combine(skyproj.getTransform());
+    				// at = at.combine(mip.getProjection().getTransform());
     				Circle circle = new Circle(at);
     				for(Circle c : circle.cut(planeLeft)) {
     					c.draw(g2d, skyproj, mip, imageToScreen);
@@ -323,6 +324,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
     				at = at.rotateY(0, 1);
     				at = at.rotateZ(Math.cos(ra * 2 * Math.PI / 24), Math.sin(ra * 2 * Math.PI / 24));
     				at = at.combine(skyproj.getTransform());
+    				// at = at.combine(mip.getProjection().getTransform());
     				Circle circle = new Circle(at);
     				
     				for(Circle c : circle.cut(planeLeft)) {
@@ -402,6 +404,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
     		}
     		
+    		double sumDst = 0;
+    		double divDst = 0;
     		
     		// Dessiner les étoiles de l'image
 	        for(Star star : mosaic.getStars())
@@ -421,6 +425,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	
 	        	
 	        	Point2D result = imageToScreen.transform(new Point2D.Double(x, y), null);
+	        	
+	        	
 	        	
 	        	int centerx = (int)Math.round(result.getX());
 	        	int centery = (int)Math.round(result.getY());
@@ -487,7 +493,46 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			        	int ocentery = (int)Math.round(oyscreen);
 			        	gPaint.drawLine(centerx, centery, ocenterx, ocentery);
 	    			}
+		        	
+		        	if (star.getPositionStatus() == StarCorrelationPosition.Reference)
+		        	{
+		        		double corrx = star.getCorrelatedX();
+		    			double corry = star.getCorrelatedY();
+		    			
+		    			
+		    			
+		    			if (mip != null) {
+		    				tmpPoint = mip.mosaicToImage(corrx, corry, tmpPoint);
+		    				
+		    			} else {
+		    				tmpPoint [0] = corrx;
+		    				tmpPoint [1] = corry;
+		    				
+		    			}
+		    			
+		    			// x, y est la position de l'étoile sur l'image.
+		        		// tmpPoint est également sur la mosaique
+	    				double dst = (tmpPoint[0] - sco.getCorrectedX()) * (tmpPoint[0] - sco.getCorrectedX())
+	    						+ (tmpPoint[1] - sco.getCorrectedY()) * (tmpPoint[1] - sco.getCorrectedY());
+	    				sumDst += dst;
+		        		divDst ++;
+		        		
+		    			Point2D corrPoint = imageToScreen.transform(new Point2D.Double(tmpPoint[0], tmpPoint[1]), null);
+
+			        	Point2D correctedSo = imageToScreen.transform(new Point2D.Double(sco.getCorrectedX(), sco.getCorrectedY()), null);
+		    			
+		    			double vx = 50*(corrPoint.getX() - correctedSo.getX());
+		    			double vy = 50*(corrPoint.getY() - correctedSo.getY());
+		    			gPaint.setColor(Color.orange);	
+			        	gPaint.drawLine(centerx, centery, (int)Math.round(centerx + vx), (int)Math.round(centery + vy));
+		        		
+		        	}
 	        	}
+	        }
+	        
+	        if (divDst > 0) {
+	        	double avgDst = Math.sqrt(sumDst / divDst);
+//	        	System.out.println("Redrawn with " + avgDst);
 	        }
 	        
 	        // Dessiner les points d'intéret
@@ -750,7 +795,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		if (this.image != null)
 		{
 			MosaicImageParameter mip = this.mosaic.getMosaicImageParameter(image);
-			this.mindCorrelatedStars = getOtherStarDisplayMode().wantsListeners && mip.isCorrelated();
+			this.mindCorrelatedStars = getOtherStarDisplayMode().wantsListeners && mip != null && mip.isCorrelated();
 			if (mip != null) mip.listeners.addListener(this.listenerOwner, getMosaicImageParameterListener(mip));
 			registerSocListeners();
 		} else {

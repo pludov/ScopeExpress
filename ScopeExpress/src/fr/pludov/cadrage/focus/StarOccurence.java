@@ -15,6 +15,7 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.FitsPlane;
 import fr.pludov.utils.ChannelMode;
+import fr.pludov.utils.EquationSolver;
 import fr.pludov.utils.Histogram;
 import fr.pludov.utils.StarFinder;
 import fr.pludov.utils.XmlSerializationContext;
@@ -381,6 +382,44 @@ public class StarOccurence {
 		return picY;
 	}
 	
+	public double getCorrectedX()
+	{
+		double dltX;
+		
+		ImageDistorsion id = this.mosaic.getDistorsion();
+		
+		if (id != null) {
+			dltX = id.getXDeltaFor(picX, picY, this.image.getWidth(), this.image.getHeight());
+		} else {
+			dltX = 0;
+		}
+//		double [] polyX = new double []{
+//				-8.26588208709499E-9, 2.158398307241975E-5, -0.01832580640559453, -1.5241420209099015E-10, 7.677820525931442E-6, -0.009236151106956005, 6.080819804135518E-11, -8.430954524781876E-9, 9.891631917162054E-6, 5.4857959345951315	
+//		};
+			
+//		double dltx = EquationSolver.applyDeg3(polyX, picX, picY);
+		return picX + dltX;
+	}
+
+	public double getCorrectedY() {
+		double dltY;
+		ImageDistorsion id = this.mosaic.getDistorsion();
+		
+		if (id != null) {
+			dltY = id.getYDeltaFor(picX, picY, this.image.getWidth(), this.image.getHeight());
+		} else {
+			dltY = 0;
+		}
+
+//		double [] polyY = new double[] {
+//				-2.2608578572253558E-11, 4.993370937060354E-6, -0.008414964418644715, -8.587307713168196E-9, 1.5577245773631505E-5, -0.01230565509234658, -8.372259519070754E-9, -4.423381657247516E-10, 1.512390983430831E-5, 3.08174488477239
+//		};
+//
+//		double dlty = EquationSolver.applyDeg3(polyY, picX, picY);
+
+		return picY + dltY;
+	}
+
 	public double getAspectRatio()
 	{
 		if (this.maxFwhm == 0) return 0;

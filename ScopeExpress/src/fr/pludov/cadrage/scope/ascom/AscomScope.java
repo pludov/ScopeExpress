@@ -1,5 +1,6 @@
 package fr.pludov.cadrage.scope.ascom;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -10,8 +11,8 @@ import org.jawin.COMException;
 import org.jawin.DispatchPtr;
 import org.jawin.win32.Ole32;
 
-import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.async.CancelationException;
+import fr.pludov.cadrage.platform.windows.Ole;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.utils.WorkThread;
@@ -19,16 +20,21 @@ import fr.pludov.cadrage.utils.WorkThread;
 public class AscomScope extends WorkThread implements Scope {
 	private static final Logger logger = Logger.getLogger(AscomScope.class);
 	
-	boolean isOleInitialized;
+	final private List<ConnectionStateChangedListener> connectionStateChangedListener;
+	final private List<CoordinateChangedListener> coordinateChangedListener;
+	
+	public AscomScope()
+	{
+		super();
+		this.connectionStateChangedListener = new ArrayList<Scope.ConnectionStateChangedListener>();
+		this.coordinateChangedListener = new ArrayList<Scope.CoordinateChangedListener>();
+	}
 	
 	double decBias, raBias;
 	
 	
 	String driver;
 	DispatchPtr scope;
-	
-	// Toutes les communications OLE ont lieu dans ce Thread...
-	Thread oleThread;
 	
 	double lastRa;
 	double lastDec;
@@ -47,6 +53,25 @@ public class AscomScope extends WorkThread implements Scope {
 	public double getDeclination()
 	{
 		return lastDec + decBias;
+	}
+	
+	/// Bloque l'appelant. ra en hms
+	@Override
+	public void sync(final double ra, final double dec) throws ScopeException {
+		logger.info("Sync to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
+		try {
+			exec(new AsyncOrder() {
+				
+				@Override
+				public Object run() throws Throwable {
+					scope.invoke("SyncToCoordinates", ra - raBias, dec - decBias);
+					return null;
+				}
+			});
+		} catch(Throwable t) {
+			throw new ScopeException("Erreur de sync du téléscope", t);
+		}
+
 	}
 	
 	// Bloque l'appelant
@@ -82,7 +107,19 @@ public class AscomScope extends WorkThread implements Scope {
 			}
 		} while(retry);
 	}
-		
+	
+	private void notifyFinalDisconnection()
+	{
+		synchronized(this) {
+			if (!this.lastConnected) return;
+			this.lastConnected = false;
+		}
+		for(ConnectionStateChangedListener listener : connectionStateChangedListener)
+		{
+			listener.onConnectionStateChanged(this);
+		}
+	}
+	
 	private void refreshParameters() throws Throwable
 	{
 		double ra, declination;
@@ -91,41 +128,45 @@ public class AscomScope extends WorkThread implements Scope {
 		declination = (Double)scope.get("Declination");
 		connectStatus = (Boolean)scope.get("Connected");
 		
+		boolean fireConnectionChanged = false;
+		boolean fireCoordinateChanged = false;
+		
 		synchronized(this)
 		{
-			this.lastRa = ra;
-			this.lastDec = declination;
-			this.lastConnected = connectStatus;
+			if (this.lastRa != ra || this.lastDec != declination) {
+				this.lastRa = ra;
+				this.lastDec = declination;
+				fireCoordinateChanged = true;
+			}
+			if (this.lastConnected != connectStatus) {
+				this.lastConnected = connectStatus;
+				fireConnectionChanged = true;
+				if (connectStatus) {
+					fireCoordinateChanged = true;
+				}
+			}
+		}
+		
+		if (fireConnectionChanged) {
+			for(ConnectionStateChangedListener listener : connectionStateChangedListener)
+			{
+				listener.onConnectionStateChanged(this);
+			}
+		}
+		
+		if (fireCoordinateChanged) {
+			for(CoordinateChangedListener listener : this.coordinateChangedListener)
+			{
+				listener.onCoordinateChanged(this);
+			}
 		}
 	}
-	
-	private void initOle() throws COMException
-	{
-		if (isOleInitialized) {
-			throw new RuntimeException("OLE déjà initialisé");
-		}
-		Ole32.CoInitialize();
-		isOleInitialized = true;
-	}
-	
-	private void releaseOle()
-	{
-		if (!isOleInitialized) {
-			return;
-		}
-		try {
-			Ole32.CoUninitialize();
-		} catch(COMException e) {
-			logger.error("Unable to uninitialize Ole32", e);
-		}
-	}
-	
 	
 	// Quand cette méthode retourne, 
 	protected void chooseScope() throws CancelationException
 	{
 		try {
-			initOle();
+			Ole.initOle();
 
 			DispatchPtr app = new DispatchPtr("ASCOM.Utilities.Chooser");
 		  
@@ -146,13 +187,6 @@ public class AscomScope extends WorkThread implements Scope {
 			
 			refreshParameters();
 			
-			SwingUtilities.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					Cadrage.setScopeInterface(AscomScope.this);
-				}
-			});
-			
 //		  app.invoke("SetupDialog");
 //		  app.put("Connected", true);
 //		  System.err.println("RightAscension=" + app.get("RightAscension"));
@@ -171,7 +205,7 @@ public class AscomScope extends WorkThread implements Scope {
 //		  range.put("Text", "Using Jawin to call COM objects");
 		} catch (Throwable e) {
 			scope = null;
-			releaseOle();
+//			releaseOle();
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
 			return;
@@ -184,6 +218,7 @@ public class AscomScope extends WorkThread implements Scope {
 			chooseScope();
 			
 		} catch(Throwable t) {
+			notifyFinalDisconnection();
 			if (t instanceof CancelationException) {
 				return;
 			}
@@ -194,16 +229,20 @@ public class AscomScope extends WorkThread implements Scope {
 		
 		// On reste à l'écoute du travail à faire...
 		try {
-			setPeriodicTask(new Task() {
-				@Override
-				public Object run() throws Throwable {
-					refreshParameters();
-					return null;
-				}
-			}, 1000);
-			super.run();
+			try {
+				setPeriodicTask(new Task() {
+					@Override
+					public Object run() throws Throwable {
+						refreshParameters();
+						return null;
+					}
+				}, 1000);
+				super.run();
+			} finally {
+				notifyFinalDisconnection();
+			}
 		} finally {
-			releaseOle();
+			// releaseOle();
 		}
 	}
 	
@@ -232,5 +271,13 @@ public class AscomScope extends WorkThread implements Scope {
 		this.raBias = raBias;
 	}
 	
+	@Override
+	public void addConnectionStateChangedListener(ConnectionStateChangedListener listener) {
+		this.connectionStateChangedListener.add(listener);
+	}
 	
+	@Override
+	public void addCoordinateChangedListener(CoordinateChangedListener listener) {
+		this.coordinateChangedListener.add(listener);
+	}
 }

@@ -14,6 +14,24 @@ public interface Scope {
 	
 	// Bloque l'appelant
 	void slew(double ra, double dec) throws ScopeException;
+	void sync(double ra, double dec) throws ScopeException;
+	
+	// Démarre (tente la connection et émet des evenements)
+	void start();
 	
 	void close();
+
+	void addCoordinateChangedListener(CoordinateChangedListener listener);
+	void addConnectionStateChangedListener(ConnectionStateChangedListener listener);
+	
+	
+	public interface CoordinateChangedListener
+	{
+		public void onCoordinateChanged(Scope scope);
+	}
+	
+	public interface ConnectionStateChangedListener
+	{
+		public void onConnectionStateChanged(Scope scope);
+	}
 }

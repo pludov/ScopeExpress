@@ -11,8 +11,8 @@ public class MosaicImageParameter {
 	final Image image;
 	final Mosaic mosaic;
 	
-	// Positionnement de l'image
-	double tx, ty, cs, sn;
+	// Positionnement de l'image (mosaic 3D vers image)
+	private SkyProjection projection;
 	
 	// Etat du positionnement de l'image
 	boolean isCorrelated;
@@ -20,76 +20,79 @@ public class MosaicImageParameter {
 	public MosaicImageParameter(Mosaic mosaic, Image image) {
 		this.mosaic = mosaic;
 		this.image = image;
-		this.tx = 0;
-		this.ty = 0;
-		this.cs = 1.0;
-		this.sn = 0.0;
+		this.setProjection(new SkyProjection(1.0));
 		this.isCorrelated = false;
 	}
 
 	public Element save(XmlSerializationContext xsc, XmlSerializationContext.NodeDictionary<Image> imageDict)
 	{
 		Element result = xsc.newNode(MosaicImageParameter.class.getSimpleName());
-		xsc.setNodeAttribute(result, "image", imageDict.getIdForObject(this.image));
+		xsc.setNodeAttribute(result, "image", imageDict.getIdForObject(this.getImage()));
 		xsc.setNodeAttribute(result, "correlated", this.isCorrelated);
-		xsc.setNodeAttribute(result, "tx", this.tx);
-		xsc.setNodeAttribute(result, "ty", this.ty);
-		xsc.setNodeAttribute(result, "cs", this.cs);
-		xsc.setNodeAttribute(result, "sn", this.sn);
+		// FIXME: a revoir avant de commiter !
 		
 		return result;
 	}
 	
-	public double getTx() {
-		return tx;
-	}
-
-	public double getTy() {
-		return ty;
-	}
-
-	public double getCs() {
-		return cs;
-	}
-
-	public double getSn() {
-		return sn;
-	}
-
 	public boolean isCorrelated() {
 		return isCorrelated;
 	}
 
 
-	public void setCorrelated(double cs, double sn, double tx, double ty)
+	public void setCorrelated(SkyProjection sp)
 	{
-		this.cs = cs;
-		this.sn = sn;
-		this.tx = tx;
-		this.ty = ty;
+		this.setProjection(sp);
 		this.isCorrelated = true;
 		
 		// Mettre à jour la position des etoiles correllées
-		this.mosaic.updateCorrelatedStars(this.image);
+		this.mosaic.updateCorrelatedStars(this.getImage());
 		
 		listeners.getTarget().correlationStatusUpdated();
 	}
 	
+	// FIXME: doit retourner null si point non projetable !
 	public double [] mosaicToImage(double x, double y, double [] result)
 	{
 		if (result == null) result = new double[2];
-		result[0] = tx + x * cs + y * sn;
-		result[1] = ty + y * cs - x * sn;
+		result[0] = x;;
+		result[1] = y;;
+		double [] tmp3d = new double[3];
+		mosaic.skyProjection.image2dToImage3d(result, tmp3d);
+		projection.sky3dToImage2d(tmp3d, result);
 		return result;
-		
 	}
+	
+
+	/// Un point 3D dans le repère de la mosaique vers l'image
+	public double [] mosaic3DToImage(double [] mosaic3D, double [] result)
+	{
+		if (result == null) result = new double[2];
+		double [] tmp3d = mosaic3D;
+		projection.sky3dToImage2d(tmp3d, result);
+		return result;
+	}
+	
 	
 	public double [] imageToMosaic(double rx, double ry, double [] result)
 	{
 		if (result == null) result = new double[2];
-		double norm = cs * cs + sn * sn;
-		result[0] =  (sn * (ty - ry) + cs * (rx - tx)) / norm;
-		result[1] = (sn * (rx - tx) + cs * (ry - ty)) / norm;
+		result[0] = rx;// - mosaic.skyProjection.getCenterx();
+		result[1] = ry;// - mosaic.skyProjection.getCentery();
+		double[] tmp3d = new double[3];
+		projection.image2dToSky3d(result, tmp3d);
+		mosaic.skyProjection.image3dToImage2d(tmp3d, result);
 		return result;
+	}
+
+	public SkyProjection getProjection() {
+		return projection;
+	}
+
+	public void setProjection(SkyProjection projection) {
+		this.projection = projection;
+	}
+
+	public Image getImage() {
+		return image;
 	}
 }

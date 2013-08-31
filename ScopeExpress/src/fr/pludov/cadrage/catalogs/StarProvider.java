@@ -98,14 +98,32 @@ public class StarProvider {
 						
 						starRaDec[0] = starFile.getRaCorrected(2013);
 						starRaDec[1] = starFile.getDecCorrected(2013);
-						
+//						// Mise à jour pour correspondre à la precession
+//						{	
+//						    double m,n,t;
+//						    double d1 = 0;
+//						    double d2 = 365 * 13.3;
+//						    
+//						    t = d1 / 36525;          //years since J2000
+//						    m = 0.01281233333333 + 0.00000775 * t;
+//						    n = 0.005567527777778 - 2.361111111111E-06 * t;
+//						    t = (d2 - d1) / 365.25;   //difference in julian _years_, not centuries!
+//	
+//						    double ra = starRaDec[0];
+//						    double dec = starRaDec[1];
+//						    double ret_ra  = ra + m + n * Math.sin(Math.PI * ra / 180) * Math.tan(Math.PI * dec / 180) * t;
+//						    double ret_dec = dec + n * Math.cos(Math.PI * ra / 180) * t;
+//
+//						    starRaDec[0] = ret_ra;
+//						    starRaDec[1] = ret_dec;
+//						}						
 						SkyProjection.convertRaDecTo3D(starRaDec, star3d);
 						
 						sky.getTransform().convert(star3d);
 						
 						if (star3d[2] < minZ) continue;
 						
-						sky.projectPreTransformed3d(star3d, star2d);
+						sky.image3dToImage2d(star3d, star2d);
 						
 						result.addStar(star2d[0], star2d[1], starFile.getMagnitude(), "TYC " + starFile.getTyc1() + "-" + starFile.getTyc2() + "-" + starFile.getTyc3());
 						starCount ++;
@@ -128,7 +146,7 @@ public class StarProvider {
 						
 						if (star3d[2] < minZ) continue;
 						
-						sky.projectPreTransformed3d(star3d, star2d);
+						sky.image3dToImage2d(star3d, star2d);
 						
 						result.addStar(star2d[0], star2d[1], supplFile.getMagnitude(), "TYC " + supplFile.getTyc1()+"-" + supplFile.getTyc2() + "-" + supplFile.getTyc3());
 						starCount ++;

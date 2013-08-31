@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
@@ -69,12 +70,12 @@ public class CorrelateTask extends BackgroundTask {
 		
 		@Override
 		public double getX() {
-			return so.getX();
+			return so.getCorrectedX();
 		}
 		
 		@Override
 		public double getY() {
-			return so.getY();
+			return so.getCorrectedY();
 		}
 		
 		@Override
@@ -113,12 +114,18 @@ public class CorrelateTask extends BackgroundTask {
 		Correlation correlation = new Correlation();
 
 		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
-		double projectionToImageRatio;
+		SkyProjection imageSkyProjection;
+		SkyProjection refSkyProjection;
+//		double projectionToImageRatio;
 		SwingThreadMonitor.acquire();
 		try {
 			// Vérifier que l'image n'est pas déjà correllée... Sinon, remonter une erreur
 			if (!this.mosaic.hasImage(image)) {
 				throw new TaskException("L'image a été retirée de la mosaique");
+			}
+			
+			if (mosaic.getSkyProjection() == null) {
+				mosaic.setSkyProjection(new SkyProjection(1.0));
 			}
 			
 			MosaicImageParameter parameter = this.mosaic.getMosaicImageParameter(image);
@@ -142,7 +149,7 @@ public class CorrelateTask extends BackgroundTask {
 			
 			if (referenceStars.isEmpty()) {
 				// Cas simple, c'est la première image de la mosaique
-				parameter.setCorrelated(1.0, 0.0, 0.0, 0.0);				
+				parameter.setCorrelated(new SkyProjection(1.0));
 				return;
 			}
 			
@@ -151,33 +158,48 @@ public class CorrelateTask extends BackgroundTask {
 				throw new TaskException("Il n'y a pas d'étoiles disponibles pour la correlation");
 			}
 
+			// FIXME: constant * capteur size / focal
+			double imageSizeInDeg = 57.3 * 22.2 / 610.0;
+			// Le 2 correspond à la division due à la matrice de bayer
+			double imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
+
 			if (this.mosaic.getSkyProjection() != null) {
 				// On veut connaitre la taille d'un pixel de la projection (en degrés)
-				double [] center = new double[] { 0.0, 0.0 };
-				this.mosaic.getSkyProjection().unproject(center);
-				double [] onePixRight = new double[] { 1.0, 0.0 };
-				this.mosaic.getSkyProjection().unproject(onePixRight);
-				double projectionPixSizeInDeg = SkyProjection.getDegreeDistance(center, onePixRight);
-	
-				// FIXME: constant * capteur size / focal
-				double imageSizeInDeg = 57.3 * 22.2 / 600.0;
-				double imagePixSizeInDeg = imageSizeInDeg / (this.image.getWidth());
+//				double [] center = new double[] { 0.0, 0.0 };
+//				this.mosaic.getSkyProjection().unproject(center);
+//				double [] onePixRight = new double[] { 1.0, 0.0 };
+//				this.mosaic.getSkyProjection().unproject(onePixRight);
+//				double projectionPixSizeInDeg = SkyProjection.getDegreeDistance(center, onePixRight);
+//	
 				
 				// Exemple: 
 				//  taille d'un pixel sur l'image : 2°
 				//  taille d'un pixel sur la projection: 0.1°
 				//  => il faut multiplier par 1/20 pour être à l'échelle de l'image
-				projectionToImageRatio = projectionPixSizeInDeg / imagePixSizeInDeg;
+//				projectionToImageRatio = projectionPixSizeInDeg / imagePixSizeInDeg;
+				
+				// FIXME: dupliquer ?
+				imageSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
+				refSkyProjection = this.mosaic.getSkyProjection();
+
 			} else {
 				// On assume que les images ne changent pas d'échelle
-				projectionToImageRatio = 1.0;
+//				projectionToImageRatio = 1.0;
+				
+				// Ici, on s'en fiche
+				imageSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
+				refSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
+				// FIXME: on perd le centre de refSkyProjection ???
 			}
+			imageSkyProjection.setCenterx(image.getWidth() / 4.0);
+			imageSkyProjection.setCentery(image.getHeight() / 4.0);
+			
 		} finally {
 			SwingThreadMonitor.release();
 		}
 		
 		try {
-			correlation.correlate(destStars, referenceStars, projectionToImageRatio);
+			correlation.correlate(destStars, imageSkyProjection, referenceStars, refSkyProjection);
 			// correlation.identity();
 			if (!correlation.isFound()) {
 				throw new TaskException("Pas de correlation trouvée");
@@ -193,46 +215,51 @@ public class CorrelateTask extends BackgroundTask {
 				
 				double x = referenceSo.getX();
 				double y = referenceSo.getY();
-
-				double nvx = correlation.getTx() + x * correlation.getCs() + y * correlation.getSn();
-				double nvy = correlation.getTy() + y * correlation.getCs() - x * correlation.getSn();
 				
-				referenceX[i] = nvx;
-				referenceY[i] = nvy;
+				referenceX[i] = x;
+				referenceY[i] = y;
 			}
 
 			double [] otherX = new double[destStars.size()];
 			double [] otherY = new double[destStars.size()];
-			
+			double [] tmp2d = new double[2];
+			double [] tmp3d = new double[3];
 			for(int i = 0; i < destStars.size(); ++i)
 			{
 				ImageStar otherSo = destStars.get(i);
-				otherX[i] = otherSo.getX();
-				otherY[i] = otherSo.getY();
+				tmp2d[0] = otherSo.getX();
+				tmp2d[1] = otherSo.getY();
+				
+				correlation.getSkyProjection().image2dToSky3d(tmp2d, tmp3d);
+				refSkyProjection.image3dToImage2d(tmp3d, tmp2d);
+				
+				otherX[i] = tmp2d[0];
+				otherY[i] = tmp2d[1];
 			}
 
-			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 20);
+			double refToImageRatio = refSkyProjection.getPixelRad() / correlation.getSkyProjection().getPixelRad();
+			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 6.0 / refToImageRatio);
 			
 			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
 
-			double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()};
-			
-			for(int i = 0; i < correlationParams.length; ++i)
-			{
-				if (Double.isNaN(correlationParams[i])) {
-					throw new TaskException("Correlation invalide trouvée (erreur interne!)");
-				}
-			}
+//			double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()};
+//			
+//			for(int i = 0; i < correlationParams.length; ++i)
+//			{
+//				if (Double.isNaN(correlationParams[i])) {
+//					throw new TaskException("Correlation invalide trouvée (erreur interne!)");
+//				}
+//			}
 			if (correlations.size() > 0) {
 				// Procéder à l'ajustement
-				adjustCorrelationParams(correlationParams, correlations, referenceStarList, destStars);
-				
-				for(int i = 0; i < correlationParams.length; ++i)
-				{
-					if (Double.isNaN(correlationParams[i])) {
-						throw new TaskException("Correlation invalide trouvée (erreur interne!)");
-					}
-				}
+//				adjustCorrelationParams(correlationParams, correlations, referenceStarList, destStars);
+//				
+//				for(int i = 0; i < correlationParams.length; ++i)
+//				{
+//					if (Double.isNaN(correlationParams[i])) {
+//						throw new TaskException("Correlation invalide trouvée (erreur interne!)");
+//					}
+//				}
 			}
 			
 			SwingThreadMonitor.acquire(); 
@@ -274,7 +301,11 @@ public class CorrelateTask extends BackgroundTask {
 					}
 					
 					// FIXME : rompre les associations éventuelles pour les StarOccurence source ou dest qui n'ont pas été trouvés
-					mosaic.getMosaicImageParameter(this.image).setCorrelated(correlationParams[0], correlationParams[1], correlationParams[2], correlationParams[3]);
+					// pour tester avec une transfo orthogonale: 
+//					SkyProjection skp = new SkyProjection(correlation.getSkyProjection(), new AffineTransform3D());
+//					skp.setTransform(skp.getTransform().rotateY(Math.cos(0.29), Math.sin(0.29)));
+//					skp.setTransform(skp.getTransform().rotateZ(Math.cos(0.32), Math.sin(0.32)));
+					mosaic.getMosaicImageParameter(this.image).setCorrelated(correlation.getSkyProjection());
 				}
 			} finally {
 				SwingThreadMonitor.release();

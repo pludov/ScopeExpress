@@ -26,13 +26,17 @@ public class SkyProjection {
 	public final static double epsilon = 1E-10;
 	
 	// Taille d'un pixel (unité) en radian
-	double pixelRad;
-
+	private double pixelRad;
+	private double centerx, centery;
+	
+	/// Convertion ciel vers image
 	AffineTransform3D transform;
 	AffineTransform3D invertedTransform;
 	
 	public SkyProjection(double pixelArcSec) {
-		pixelRad = 2 * Math.PI * pixelArcSec / (3600 * 360);
+		this.pixelRad = 2 * Math.PI * pixelArcSec / (3600 * 360);
+		this.centerx = 0;
+		this.centery = 0;
 		transform = new AffineTransform3D();
 		try {
 			invertedTransform = transform.invert();
@@ -41,10 +45,26 @@ public class SkyProjection {
 		}
 	}
 
+	/**
+	 * @param from
+	 * @param rotationMatrix passage de unprojected3d à projected3d
+	 */
+	public SkyProjection(SkyProjection from, AffineTransform3D rotationMatrix) {
+		this.pixelRad = from.pixelRad;
+		this.centerx = from.centerx;
+		this.centery = from.centery;
+		this.invertedTransform = rotationMatrix;
+		try {
+			transform = rotationMatrix.invert();
+		} catch(NoninvertibleTransformException e) {
+			throw new RuntimeException("identity not invertible", e);
+		}
+	}
+
 	public Element save(XmlSerializationContext xsc)
 	{
 		Element result = xsc.newNode(SkyProjection.class.getSimpleName());
-		xsc.setNodeAttribute(result, "pixelRad", this.pixelRad);
+		xsc.setNodeAttribute(result, "pixelRad", this.getPixelRad());
 		for(int i = 0; i < 12; ++i)
 		{
 			xsc.setNodeAttribute(result, "m"+i, transform.fact(i));
@@ -132,7 +152,7 @@ public class SkyProjection {
 	/**
 	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
 	 */
-	public boolean projectPreTransformed3d(double [] pos3d, double [] pos2d)
+	public boolean image3dToImage2d(double [] pos3d, double [] pos2d)
 	{
 		double x = pos3d[0];
 		double y = pos3d[1];
@@ -140,9 +160,11 @@ public class SkyProjection {
 		if (z < epsilon) {
 			return false;
 		}
-		double iz = 1.0/(pixelRad * z);
+		double iz = 1.0/(getPixelRad() * z);
 		x *= iz;
 		y *= iz;
+		x += centerx;
+		y += centery;
 		pos2d[0] = x;
 		pos2d[1] = y;
 		
@@ -169,9 +191,11 @@ public class SkyProjection {
 		if (z < epsilon) {
 			return false;
 		}
-		double iz = 1.0/(pixelRad * z);
+		double iz = 1.0/(getPixelRad() * z);
 		x *= iz;
 		y *= iz;
+		x += centerx;
+		y += centery;
 		radec[0] = x;
 		radec[1] = y;
 		
@@ -179,10 +203,10 @@ public class SkyProjection {
 	}
 
 
-	public void unprojectPreTransformed3d(double [] pos2d, double[] pos3d)
+	public void image2dToImage3d(double [] pos2d, double[] pos3d)
 	{
-		double x = pos2d[0] * pixelRad;
-		double y = pos2d[1] * pixelRad;
+		double x = (pos2d[0] - centerx) * getPixelRad();
+		double y = (pos2d[1] - centery) * getPixelRad();
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
@@ -192,15 +216,42 @@ public class SkyProjection {
 		pos3d[2] = z3d;
 	}
 	
+	// FIXME : doit retourner false !
+	public void sky3dToImage2d(double [] xyz, double [] xy)
+	{
+		transform.convert(xyz);
+		image3dToImage2d(xyz, xy);
+	}
+	
+	public void image2dToSky3d(double [] xy, double [] xyz)
+	{
+		// On veut retrouver les coordonnées 3D.
+		// x = x3d / z3d
+		// y = y3d / z3d
+		// x3d * x3d + y3d * y3d + z3d * z3d = 1
+		double x = (xy[0] - centerx) * getPixelRad();
+		double y = (xy[1] - centery) * getPixelRad();
+		
+		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
+		double x3d = x * z3d;
+		double y3d = y * z3d;
+		
+		xyz[0] = x3d;
+		xyz[1] = y3d;
+		xyz[2] = z3d;
+		invertedTransform.convert(xyz);
+		
+	}
 
+	/// image2d => radec
 	public void unproject(double [] xy)
 	{
 		// On veut retrouver les coordonnées 3D.
 		// x = x3d / z3d
 		// y = y3d / z3d
 		// x3d * x3d + y3d * y3d + z3d * z3d = 1
-		double x = xy[0]  * pixelRad;
-		double y = xy[1]  * pixelRad;
+		double x = (xy[0] - centerx) * getPixelRad();
+		double y = (xy[1] - centery) * getPixelRad();
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
@@ -235,8 +286,33 @@ public class SkyProjection {
 //		xy[1] = dec;
 	}
 
+	/// Permet de passer de la skyProjection à l'image
 	public AffineTransform3D getTransform() {
 		return transform;
 	}
-	
+
+	/// Taille d'un pixel (unité) en radian
+	public double getPixelRad() {
+		return pixelRad;
+	}
+
+	public void setPixelRad(double pixelRad) {
+		this.pixelRad = pixelRad;
+	}
+
+	public double getCenterx() {
+		return centerx;
+	}
+
+	public void setCenterx(double centerx) {
+		this.centerx = centerx;
+	}
+
+	public double getCentery() {
+		return centery;
+	}
+
+	public void setCentery(double centery) {
+		this.centery = centery;
+	}
 }

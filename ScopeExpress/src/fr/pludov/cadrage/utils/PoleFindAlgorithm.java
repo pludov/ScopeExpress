@@ -76,30 +76,33 @@ public class PoleFindAlgorithm {
 	
 	void findPoint(MosaicImageParameter a, MosaicImageParameter b)
 	{
-		double atx = a.getTx();
-		double aty = a.getTy();
-		double acs = a.getCs();
-		double asn = a.getSn();
-		
-		double btx = b.getTx();
-		double bty = b.getTy();
-		double bcs = b.getCs();
-		double bsn = b.getSn();
-		
-	
-		double denominateur = (bcs * bcs + acs * acs + bsn * bsn + asn * asn - (2*((bcs*acs) + (bsn*asn))) );
-		// FIXME: le denominateur est une mesure de l'angle en fait
-		if (denominateur < 0.5E-4) {
-			return;
-		}
-		double xnum = (((bty - aty)*(bsn - asn)) + ((btx - atx)*(acs - bcs)));
-		double ynum = (((atx - btx)*(bsn - asn)) + ((aty - bty)*(bcs - acs)));
-
-		xsum += xnum;
-		ysum += ynum;
-		divsum += denominateur;
-		points.add(xnum / denominateur);
-		points.add(ynum / denominateur);
+		// On veut trouver le centre de la rotation qui transforme a en b.
+		throw new RuntimeException("unimplemented");
+//		
+//		double atx = a.getTx();
+//		double aty = a.getTy();
+//		double acs = a.getCs();
+//		double asn = a.getSn();
+//		
+//		double btx = b.getTx();
+//		double bty = b.getTy();
+//		double bcs = b.getCs();
+//		double bsn = b.getSn();
+//		
+//	
+//		double denominateur = (bcs * bcs + acs * acs + bsn * bsn + asn * asn - (2*((bcs*acs) + (bsn*asn))) );
+//		// FIXME: le denominateur est une mesure de l'angle en fait
+//		if (denominateur < 0.5E-4) {
+//			return;
+//		}
+//		double xnum = (((bty - aty)*(bsn - asn)) + ((btx - atx)*(acs - bcs)));
+//		double ynum = (((atx - btx)*(bsn - asn)) + ((aty - bty)*(bcs - acs)));
+//
+//		xsum += xnum;
+//		ysum += ynum;
+//		divsum += denominateur;
+//		points.add(xnum / denominateur);
+//		points.add(ynum / denominateur);
 	}
 
 	public List<Double> getPoints() {

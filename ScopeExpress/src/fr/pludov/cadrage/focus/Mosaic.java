@@ -29,6 +29,9 @@ public class Mosaic {
 	final Map<Star, Map<Image, StarOccurence>> occurences;
 	final Map<String, PointOfInterest> pointOfInterest;
 	
+	// Correction de distorsion (éventuellement vide)
+	private ImageDistorsion distorsion;
+	
 	// Est-ce que la mosaique a des coordonnées célestes
 	SkyProjection skyProjection;
 	
@@ -40,6 +43,7 @@ public class Mosaic {
 		this.exclusionZones = new ArrayList<ExclusionZone>();
 		this.focus = focus;
 		this.pointOfInterest = new TreeMap<String, PointOfInterest>();
+		this.setDistorsion(null);
 	}
 	
 	
@@ -299,6 +303,53 @@ public class Mosaic {
 		listeners.getTarget().imageRemoved(image);
 	}
 	
+	public void reset()
+	{
+		List<Image> deletedImages = new ArrayList<Image>(this.images);
+		List<Star> deletedStars = new ArrayList<Star>(this.stars);
+		List<ExclusionZone> deletedExclusionZones = new ArrayList<ExclusionZone>(this.exclusionZones);
+		List<StarOccurence> deletedStarOccurence = new ArrayList<StarOccurence>();
+		for(Map<Image, StarOccurence> occForStar : this.occurences.values())
+		{
+			deletedStarOccurence.addAll(occForStar.values());
+		}
+		List<PointOfInterest> deletedPoi = new ArrayList<PointOfInterest>(this.pointOfInterest.values());
+		
+		images.clear();
+		stars.clear();
+		exclusionZones.clear();
+		imageMosaicParameter.clear();
+		occurences.clear();
+		pointOfInterest.clear();
+		
+		skyProjection = null;
+		
+		for(StarOccurence oc : deletedStarOccurence)
+		{
+			this.listeners.getTarget().starOccurenceRemoved(oc);
+		}
+		
+		for(Star s : deletedStars)
+		{
+			this.listeners.getTarget().starRemoved(s);
+		}
+		
+		for(Image i : deletedImages)
+		{
+			this.listeners.getTarget().imageRemoved(i);
+		}
+		
+		for(ExclusionZone ex : deletedExclusionZones)
+		{
+			this.listeners.getTarget().exclusionZoneRemoved(ex);
+		}
+		
+		for(PointOfInterest pi : deletedPoi)
+		{
+			this.listeners.getTarget().pointOfInterestRemoved(pi);
+		}
+	}
+	
 	public final Application getApplication()
 	{
 		return this.focus;
@@ -354,7 +405,7 @@ public class Mosaic {
 			}
 			if (!soc.isStarFound() || !soc.isAnalyseDone()) continue;
 			
-			result = parameters.imageToMosaic(soc.getX(), soc.getY(), result);
+			result = parameters.imageToMosaic(soc.getCorrectedX(), soc.getCorrectedY(), result);
 			
 			x += result[0];
 			y += result[1];
@@ -472,5 +523,15 @@ public class Mosaic {
 
 	public void setSkyProjection(SkyProjection skyProjection) {
 		this.skyProjection = skyProjection;
+	}
+
+
+	public ImageDistorsion getDistorsion() {
+		return distorsion;
+	}
+
+
+	public void setDistorsion(ImageDistorsion distorsion) {
+		this.distorsion = distorsion;
 	}
 }

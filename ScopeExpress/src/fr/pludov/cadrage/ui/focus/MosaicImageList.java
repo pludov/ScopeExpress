@@ -6,16 +6,22 @@ import java.awt.TrayIcon.MessageType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.cadrage.focus.ImageDistorsion;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicListener;
@@ -23,12 +29,17 @@ import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.ui.utils.GenericList;
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.AxeFindAlgorithm;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.PoleFindAlgorithm;
+import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
+import fr.pludov.utils.EquationSolver;
 
 public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
 	private static final Logger logger = Logger.getLogger(MosaicImageList.class);
@@ -257,6 +268,40 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					poi.setY(pfa.getY());
 					poi.setSecondaryPoints(pfa.getPoints());
 					mosaic.addPointOfInterest(poi);
+					
+					
+					PointOfInterest poleDuJour = new PointOfInterest("pole du jour", false);
+					
+					
+					
+//					double ra = (360 / 24.0) * (14 + 58 /60.0 + 18.9 / 3600.0);
+//					double dec = (89 + 59 / 60.0 + 56.6 / 3600.0);
+//
+//					// Pour 2013
+//					double h = 360.0 / 24.0;
+//					double m = h / 60.0;
+//					double s = m / 60.0;
+//					double deg = 1.0;
+//					double arcmin = deg / 60.0;
+//					double arcsec = arcmin / 60.0;
+//					
+//					ra = 23 * h + 45 * m + 45.852 * s;
+//					dec = 89 * deg + 55 * arcmin + 30.78 * arcsec;
+//					
+////					ra = 359.9167;
+////					dec = 89.9276;
+					
+					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromNow(180, 90, 0);;
+					poleJ2000[0] *= 360/24;
+					mosaic.getSkyProjection().project(poleJ2000);
+					poleDuJour.setX(poleJ2000[0]);
+					poleDuJour.setY(poleJ2000[1]);
+					poleDuJour.setSecondaryPoints(Collections.EMPTY_LIST);
+					mosaic.addPointOfInterest(poleDuJour);
+					
+					AxeAlignDialog dialog = Utils.openDialog(MosaicImageList.this, AxeAlignDialog.class);
+					dialog.openPoi(mosaic, poleDuJour, poi, entries.get(entries.size() - 1).getTarget());
+					dialog.setVisible(true);
 				}
 					
 			}
@@ -300,6 +345,10 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 	
 		contextMenu.add(poleMenu);
 		
+		
+		focusUi.scopeManager.addImageContextMenu(mosaic, contextMenu, entries);
+		
+		
 		JMenuItem imageCorrelationDetailsMenu = new JMenuItem();
 		imageCorrelationDetailsMenu.setText("Détails de la position");
 		imageCorrelationDetailsMenu.setEnabled(entries.size() == 1);
@@ -335,7 +384,30 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						
 						mip.imageToMosaic(0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1], mosaicPos);
 						mosaic.getSkyProjection().unproject(mosaicPos);
-						message += title + " = [" + mosaicPos[0] +";" + mosaicPos[1]+"]\n";
+						message += title + " = [" + Utils.formatHourMinSec(mosaicPos[0]) +";" + Utils.formatDegMinSec(mosaicPos[1])+"]\n";
+//						
+//						double rah = mosaicPos[0] * 24.0 / 360;
+//						
+//						{
+//							int h = (int)Math.floor(rah);
+//						
+//							double ms = (rah - h) * 60;
+//							int m = (int)Math.floor(ms);
+//							int s = (int)((ms - m) * 60);
+//							message += title + " = [" + h + "h" + m + "m" + s + "s  ";
+//						}
+//						rah = mosaicPos[1];
+//						{
+//							int h = (int)Math.floor(rah);
+//						
+//							double ms = (rah - h) * 60;
+//							int m = (int)Math.floor(ms);
+//							int s = (int)((ms - m) * 60);
+//						
+//							message += h + "h" + m + "m" + s + "s]\n";
+//						}
+//						
+						
 					}
 					
 					double [] upperLeft = new double [] { -0.5, -0.5 };
@@ -378,10 +450,36 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		
 		contextMenu.add(imageCorrelationDetailsMenu);
+
+		JMenuItem evaluateDistorsionMenu = new JMenuItem();
+		evaluateDistorsionMenu.setText("Evaluer la distorsion de champ");
+		evaluateDistorsionMenu.setEnabled(entries.size() == 1 && 
+				mosaic.getMosaicImageParameter(entries.get(0).getTarget()) != null &&
+						mosaic.getMosaicImageParameter(entries.get(0).getTarget()).isCorrelated());
+		
+		evaluateDistorsionMenu.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Image image = entries.get(0).getTarget();
+					ImageDistorsion id = ImageDistorsion.evaluateImageDistorsion(mosaic, image);
+					System.out.println(id);
+					
+					DistorsionViewDialog dialog = Utils.openDialog(MosaicImageList.this, DistorsionViewDialog.class);
+					dialog.setDistorsion(id);
+					dialog.setMosaic(mosaic);
+					dialog.setVisible(true);
+				} catch(EndUserException error) {
+					error.report(MosaicImageList.this);
+				}
+			}
+		});
+		
+		contextMenu.add(evaluateDistorsionMenu);
 		
 		return contextMenu;
 	}
-
+		
 	@Override
 	public void exclusionZoneAdded(ExclusionZone ze) {
 	}

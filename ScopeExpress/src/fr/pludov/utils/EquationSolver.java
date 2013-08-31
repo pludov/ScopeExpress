@@ -127,6 +127,293 @@ public class EquationSolver {
 		return v;
 	}
 	
+	public static double applyDeg3(double [] vi, double x, double y)
+	{
+		double interpo = vi[0] * x * x * x + vi[1] * x * x + vi[2] * x
+				+vi[3] * y * y * y + vi[4] * y * y + vi[5] * y
+				+vi[6] * x * x * y + vi[7] * x * y * y + vi[8] * x * y + vi[9];
+		return interpo;
+	}
+	
+	// retourn les coefficiants pour : a.x3+b.x2+c.x + d.y3 + e.y2 + f.y + g.x2y + h.xy2 + i.xy + j
+	public static double [] findPolynome2dDeg3(double [] xi, double [] yi, double [] vi)
+	{
+		int dataSize = xi.length;
+		double [] parameters = new double[10 * 10];
+		double [] values = new double[10];
+		
+	   double sx3y3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx3y3 += xi[i] * xi[i] * xi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sx4y2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx4y2 += xi[i] * xi[i] * xi[i] * xi[i] * yi[i] * yi[i];
+	   }
+	   double sx3y2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx3y2 += xi[i] * xi[i] * xi[i] * yi[i] * yi[i];
+	   }
+	   double sx5y = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx5y += xi[i] * xi[i] * xi[i] * xi[i] * xi[i] * yi[i];
+	   }
+	   double sx4y = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx4y += xi[i] * xi[i] * xi[i] * xi[i] * yi[i];
+	   }
+	   double sx3y = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx3y += xi[i] * xi[i] * xi[i] * yi[i];
+	   }
+	   double sx6 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx6 += xi[i] * xi[i] * xi[i] * xi[i] * xi[i] * xi[i];
+	   }
+	   double sx5 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx5 += xi[i] * xi[i] * xi[i] * xi[i] * xi[i];
+	   }
+	   double sx4 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx4 += xi[i] * xi[i] * xi[i] * xi[i];
+	   }
+	   double svx3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svx3 += vi[i] * xi[i] * xi[i] * xi[i];
+	   }
+	   double sx3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx3 += xi[i] * xi[i] * xi[i];
+	   }
+	   double sx2y3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx2y3 += xi[i] * xi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sx2y2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx2y2 += xi[i] * xi[i] * yi[i] * yi[i];
+	   }
+	   double sx2y = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx2y += xi[i] * xi[i] * yi[i];
+	   }
+	   double svx2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svx2 += vi[i] * xi[i] * xi[i];
+	   }
+	   double sx2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx2 += xi[i] * xi[i];
+	   }
+	   double sxy3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sxy3 += xi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sxy2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sxy2 += xi[i] * yi[i] * yi[i];
+	   }
+	   double sxy = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sxy += xi[i] * yi[i];
+	   }
+	   double svx = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svx += vi[i] * xi[i];
+	   }
+	   double sx = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx += xi[i];
+	   }
+	   double sy6 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy6 += yi[i] * yi[i] * yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sxy5 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sxy5 += xi[i] * yi[i] * yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sy5 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy5 += yi[i] * yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sx2y4 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sx2y4 += xi[i] * xi[i] * yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sxy4 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sxy4 += xi[i] * yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sy4 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy4 += yi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double svy3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svy3 += vi[i] * yi[i] * yi[i] * yi[i];
+	   }
+	   double sy3 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy3 += yi[i] * yi[i] * yi[i];
+	   }
+	   double svy2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svy2 += vi[i] * yi[i] * yi[i];
+	   }
+	   double sy2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy2 += yi[i] * yi[i];
+	   }
+	   double svy = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svy += vi[i] * yi[i];
+	   }
+	   double sy = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sy += yi[i];
+	   }
+	   double svx2y = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svx2y += vi[i] * xi[i] * xi[i] * yi[i];
+	   }
+	   double svxy2 = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svxy2 += vi[i] * xi[i] * yi[i] * yi[i];
+	   }
+	   double svxy = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       svxy += vi[i] * xi[i] * yi[i];
+	   }
+	   double sv = 0;
+	   for(int i = 0; i < dataSize; ++i) {
+	       sv += vi[i];
+	   }
+	    // 2*d*x_i^3*y_i^3+2*h*x_i^4*y_i^2+2*e*x_i^3*y_i^2+2*g*x_i^5*y_i+2*i*x_i^4*y_i+2*f*x_i^3*y_i+2*a*x_i^6+2*b*x_i^5+2*c*x_i^4-2*v_i*x_i^3+2*j*x_i^3
+	    parameters[3] = 2 * sx3y3;
+	    parameters[7] = 2 * sx4y2;
+	    parameters[4] = 2 * sx3y2;
+	    parameters[6] = 2 * sx5y;
+	    parameters[8] = 2 * sx4y;
+	    parameters[5] = 2 * sx3y;
+	    parameters[0] = 2 * sx6;
+	    parameters[1] = 2 * sx5;
+	    parameters[2] = 2 * sx4;
+	    values[0] = 2 * svx3;
+	    parameters[9] = 2 * sx3;
+	    // 2*d*x_i^2*y_i^3+2*h*x_i^3*y_i^2+2*e*x_i^2*y_i^2+2*g*x_i^4*y_i+2*i*x_i^3*y_i+2*f*x_i^2*y_i+2*a*x_i^5+2*b*x_i^4+2*c*x_i^3-2*v_i*x_i^2+2*j*x_i^2
+	    parameters[13] = 2 * sx2y3;
+	    parameters[17] = 2 * sx3y2;
+	    parameters[14] = 2 * sx2y2;
+	    parameters[16] = 2 * sx4y;
+	    parameters[18] = 2 * sx3y;
+	    parameters[15] = 2 * sx2y;
+	    parameters[10] = 2 * sx5;
+	    parameters[11] = 2 * sx4;
+	    parameters[12] = 2 * sx3;
+	    values[1] = 2 * svx2;
+	    parameters[19] = 2 * sx2;
+	    // 2*d*x_i*y_i^3+2*h*x_i^2*y_i^2+2*e*x_i*y_i^2+2*g*x_i^3*y_i+2*i*x_i^2*y_i+2*f*x_i*y_i+2*a*x_i^4+2*b*x_i^3+2*c*x_i^2-2*v_i*x_i+2*j*x_i
+	    parameters[23] = 2 * sxy3;
+	    parameters[27] = 2 * sx2y2;
+	    parameters[24] = 2 * sxy2;
+	    parameters[26] = 2 * sx3y;
+	    parameters[28] = 2 * sx2y;
+	    parameters[25] = 2 * sxy;
+	    parameters[20] = 2 * sx4;
+	    parameters[21] = 2 * sx3;
+	    parameters[22] = 2 * sx2;
+	    values[2] = 2 * svx;
+	    parameters[29] = 2 * sx;
+	    // 2*d*y_i^6+2*h*x_i*y_i^5+2*e*y_i^5+2*g*x_i^2*y_i^4+2*i*x_i*y_i^4+2*f*y_i^4+2*a*x_i^3*y_i^3+2*b*x_i^2*y_i^3+2*c*x_i*y_i^3-2*v_i*y_i^3+2*j*y_i^3
+	    parameters[33] = 2 * sy6;
+	    parameters[37] = 2 * sxy5;
+	    parameters[34] = 2 * sy5;
+	    parameters[36] = 2 * sx2y4;
+	    parameters[38] = 2 * sxy4;
+	    parameters[35] = 2 * sy4;
+	    parameters[30] = 2 * sx3y3;
+	    parameters[31] = 2 * sx2y3;
+	    parameters[32] = 2 * sxy3;
+	    values[3] = 2 * svy3;
+	    parameters[39] = 2 * sy3;
+	    // 2*d*y_i^5+2*h*x_i*y_i^4+2*e*y_i^4+2*g*x_i^2*y_i^3+2*i*x_i*y_i^3+2*f*y_i^3+2*a*x_i^3*y_i^2+2*b*x_i^2*y_i^2+2*c*x_i*y_i^2-2*v_i*y_i^2+2*j*y_i^2
+	    parameters[43] = 2 * sy5;
+	    parameters[47] = 2 * sxy4;
+	    parameters[44] = 2 * sy4;
+	    parameters[46] = 2 * sx2y3;
+	    parameters[48] = 2 * sxy3;
+	    parameters[45] = 2 * sy3;
+	    parameters[40] = 2 * sx3y2;
+	    parameters[41] = 2 * sx2y2;
+	    parameters[42] = 2 * sxy2;
+	    values[4] = 2 * svy2;
+	    parameters[49] = 2 * sy2;
+	    // 2*d*y_i^4+2*h*x_i*y_i^3+2*e*y_i^3+2*g*x_i^2*y_i^2+2*i*x_i*y_i^2+2*f*y_i^2+2*a*x_i^3*y_i+2*b*x_i^2*y_i+2*c*x_i*y_i-2*v_i*y_i+2*j*y_i
+	    parameters[53] = 2 * sy4;
+	    parameters[57] = 2 * sxy3;
+	    parameters[54] = 2 * sy3;
+	    parameters[56] = 2 * sx2y2;
+	    parameters[58] = 2 * sxy2;
+	    parameters[55] = 2 * sy2;
+	    parameters[50] = 2 * sx3y;
+	    parameters[51] = 2 * sx2y;
+	    parameters[52] = 2 * sxy;
+	    values[5] = 2 * svy;
+	    parameters[59] = 2 * sy;
+	    // 2*d*x_i^2*y_i^4+2*h*x_i^3*y_i^3+2*e*x_i^2*y_i^3+2*g*x_i^4*y_i^2+2*i*x_i^3*y_i^2+2*f*x_i^2*y_i^2+2*a*x_i^5*y_i+2*b*x_i^4*y_i+2*c*x_i^3*y_i-2*v_i*x_i^2*y_i+2*j*x_i^2*y_i
+	    parameters[63] = 2 * sx2y4;
+	    parameters[67] = 2 * sx3y3;
+	    parameters[64] = 2 * sx2y3;
+	    parameters[66] = 2 * sx4y2;
+	    parameters[68] = 2 * sx3y2;
+	    parameters[65] = 2 * sx2y2;
+	    parameters[60] = 2 * sx5y;
+	    parameters[61] = 2 * sx4y;
+	    parameters[62] = 2 * sx3y;
+	    values[6] = 2 * svx2y;
+	    parameters[69] = 2 * sx2y;
+	    // 2*d*x_i*y_i^5+2*h*x_i^2*y_i^4+2*e*x_i*y_i^4+2*g*x_i^3*y_i^3+2*i*x_i^2*y_i^3+2*f*x_i*y_i^3+2*a*x_i^4*y_i^2+2*b*x_i^3*y_i^2+2*c*x_i^2*y_i^2-2*v_i*x_i*y_i^2+2*j*x_i*y_i^2
+	    parameters[73] = 2 * sxy5;
+	    parameters[77] = 2 * sx2y4;
+	    parameters[74] = 2 * sxy4;
+	    parameters[76] = 2 * sx3y3;
+	    parameters[78] = 2 * sx2y3;
+	    parameters[75] = 2 * sxy3;
+	    parameters[70] = 2 * sx4y2;
+	    parameters[71] = 2 * sx3y2;
+	    parameters[72] = 2 * sx2y2;
+	    values[7] = 2 * svxy2;
+	    parameters[79] = 2 * sxy2;
+	    // 2*d*x_i*y_i^4+2*h*x_i^2*y_i^3+2*e*x_i*y_i^3+2*g*x_i^3*y_i^2+2*i*x_i^2*y_i^2+2*f*x_i*y_i^2+2*a*x_i^4*y_i+2*b*x_i^3*y_i+2*c*x_i^2*y_i-2*v_i*x_i*y_i+2*j*x_i*y_i
+	    parameters[83] = 2 * sxy4;
+	    parameters[87] = 2 * sx2y3;
+	    parameters[84] = 2 * sxy3;
+	    parameters[86] = 2 * sx3y2;
+	    parameters[88] = 2 * sx2y2;
+	    parameters[85] = 2 * sxy2;
+	    parameters[80] = 2 * sx4y;
+	    parameters[81] = 2 * sx3y;
+	    parameters[82] = 2 * sx2y;
+	    values[8] = 2 * svxy;
+	    parameters[89] = 2 * sxy;
+	    // 2*d*y_i^3+2*h*x_i*y_i^2+2*e*y_i^2+2*g*x_i^2*y_i+2*i*x_i*y_i+2*f*y_i+2*a*x_i^3+2*b*x_i^2+2*c*x_i-2*v_i+2*j
+	    parameters[93] = 2 * sy3;
+	    parameters[97] = 2 * sxy2;
+	    parameters[94] = 2 * sy2;
+	    parameters[96] = 2 * sx2y;
+	    parameters[98] = 2 * sxy;
+	    parameters[95] = 2 * sy;
+	    parameters[90] = 2 * sx3;
+	    parameters[91] = 2 * sx2;
+	    parameters[92] = 2 * sx;
+	    values[9] = 2 * sv;
+	    parameters[99] = 2 * dataSize;
+
+		return solve(parameters, values);
+		
+	}
 	
 	/**
 	 * Résoud le système suivant:
@@ -176,6 +463,58 @@ public class EquationSolver {
 	}
 	
 	public static void main(String[] args) {
+		test3d();
+		
+	}
+
+	public static void test3d() {
+		int dim = 7;
+		double [] [] values= new double[dim * dim][];
+		
+		for(int x0 = 0; x0 < dim; ++x0)
+			for(int y0 = 0; y0 < dim; ++y0)
+			{
+				double val = x0 * x0 * x0 + 5 * x0 - y0 * y0  + 4 * y0 + x0 * y0 * y0 + 625;
+				values[x0 + dim * y0] = new double[]{x0, y0, val};
+			}
+		
+		double [] xi, yi, vi;
+		xi = new double[values.length];
+		yi = new double[values.length];
+		vi = new double[values.length];
+		for(int i = 0; i < values.length; ++i)
+		{
+			xi[i] = values[i][0];
+			yi[i] = values[i][1];
+			vi[i] = values[i][2];
+		}
+		
+		vi = findPolynome2dDeg3(xi, yi, vi);
+		
+		
+		System.out.println("polynome is ");
+		String [] facts = { "x3" , "x2", "x", "y3", "y2", "y", "x2y", "xy2", "xy", "1"  };
+		for(int i = 0; i < facts.length; ++i)
+		{
+			System.out.println("    " + facts[i] + "*" + vi[i]);
+		}
+		for(int i = 0; i < values.length; ++i)
+		{
+			double x = values[i][0];
+			double y = values[i][1];
+			double vexpected = values[i][2];
+			
+			double interpo = vi[0] * x * x * x + vi[1] * x * x + vi[2] * x
+							+vi[3] * y * y * y + vi[4] * y * y + vi[5] * y
+							+vi[6] * x * x * y + vi[7] * x * y * y + vi[8] * x * y + vi[9];
+			
+			System.out.println("x=" + x + ", y=" + y + ", v="+ vexpected + ", found=" + interpo + ", delta=" + Math.abs(interpo - vexpected));
+		}
+		
+	}
+
+	
+	public static void test2d() {
 		double [] f = new double [] {
 				1, 	-1,	2,
 				3,	2,	1,

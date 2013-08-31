@@ -20,6 +20,7 @@ import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
+import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.scope.dummy.DummyScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
@@ -203,11 +204,33 @@ public class Cadrage {
 			String os = System.getProperty("os.name").toLowerCase();
 			isUnix = os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0;
 			
+			Scope temporaryScope;
 			if (isUnix) {
-				Cadrage.setScopeInterface(new DummyScope());
+				temporaryScope = new DummyScope();
 			} else {
-				AscomScope.connectScope();
+				temporaryScope = new AscomScope();
 			}
+			
+			temporaryScope.addConnectionStateChangedListener(new ConnectionStateChangedListener() {
+				
+				@Override
+				public void onConnectionStateChanged(final Scope scope) {
+
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							if (scope.isConnected()) {
+								Cadrage.setScopeInterface(scope);
+							} else {
+								// FIXME: vérifier qu'il est encore connecté !
+								Cadrage.setScopeInterface(null);
+							}
+						}
+					});
+				}
+			});
+
+			temporaryScope.start();
 			
 			// Tant qu'il y a de nouveaux fichiers dans le répertoire...
 //			

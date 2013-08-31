@@ -1,6 +1,9 @@
 package fr.pludov.cadrage.focus;
 
 import java.awt.geom.NoninvertibleTransformException;
+import java.util.Arrays;
+
+import fr.pludov.utils.EquationSolver;
 
 /**
  * Représente une transformation affine en 3D.
@@ -20,9 +23,20 @@ public class AffineTransform3D {
 	public final static int m32 = 9;
 	public final static int m33 = 10;
 	public final static int m34 = 11;
+
+	public final static int m11_99 = 0;
+	public final static int m12_99 = 1;
+	public final static int m13_99 = 2;
+	public final static int m21_99 = 3;
+	public final static int m22_99 = 4;
+	public final static int m23_99 = 5;
+	public final static int m31_99 = 6;
+	public final static int m32_99 = 7;
+	public final static int m33_99 = 8;
+
 	
 	// x1 = m11 * x0 + m12 * y0 + m13 * z0 + m14 
-	// y1 = m21 * x0 + m22 * y0 + m23 * z0 + m14
+	// y1 = m21 * x0 + m22 * y0 + m23 * z0 + m24
 	// z1 = m31 * x0 + m32 * y0 + m33 * z0 + m34
 	
 	final double [] matrice;
@@ -85,6 +99,23 @@ public class AffineTransform3D {
 		return result;
 	}
 
+	/// Retourne les trois vecteurs fraichement alloués : x, y, z
+	public double [][] getAxis()
+	{
+		double [] [] result = new double[][]{
+				new double[] {1, 0, 0},
+				new double[] {0, 1, 0},
+				new double[] {0, 0, 1}
+		};
+		
+		for(int i = 0; i < 3; ++i)
+		{
+			convert(result[i]);
+		}
+		
+		return result;
+	}
+	
 	public AffineTransform3D scale(double fact)
 	{
 		AffineTransform3D result = new AffineTransform3D(this);
@@ -301,6 +332,298 @@ public class AffineTransform3D {
 		return result;
 	}
 
+
+	public static AffineTransform3D getRotationAroundAxis(double [] axis, double c, double s)
+	{
+		AffineTransform3D result = new AffineTransform3D();
+		double ux = axis[0];
+		double uy = axis[1];
+		double uz = axis[2];
+		
+		result.matrice[m11] = ux * ux + (1 - ux * ux) * c;
+		result.matrice[m12] = ux * uz * (1 - c) - uz * s;
+		result.matrice[m13] = ux * uz * (1 - c) + uy * s;
+		
+		result.matrice[m21] = ux * uy * (1 - c) + uz * s;
+		result.matrice[m22] = uy * uy + (1 - uy * uy) * c;
+		result.matrice[m23] = uy * uz * (1 - c) - ux * s;
+		
+		result.matrice[m31] = ux * uz * (1 - c) - uy * s;
+		result.matrice[m32] = uy * uz * (1 - c) + ux * s;
+		result.matrice[m33] = uz * uz + (1 - uz * uz) * c;
+		
+		return result;
+	}
 	
+	public double [] getQuaternion()
+	{
+		double trace = m11 + m12 + m13 + 1;
+		if (trace > 0) {
+			double s = 0.5 / Math.sqrt(trace);
+			double qx = (m32 - m23) * s;
+			double qy = (m13 - m31) * s;
+			double qz = (m21 - m12) * s;
+			double qw = 0.25 / s;
+			double [] result = new double[]{qx, qy, qz, qw};
+			double fact = 1.0 / norm(result);
+			for(int i = 0; i < 4; ++i) {
+				result[i] *= fact;
+			}
+			return result;
+		} else {
+			throw new RuntimeException("trace is not positive");
+		}
+	}
+	
+	public double [] getRotationAxis()
+	{
+		double bestdet = 0.0;
+		boolean found = false;
+		double x = 0, y = 0, z = 0;
+		
+		double m11 = this.matrice[AffineTransform3D.m11];
+		double m12 = this.matrice[AffineTransform3D.m12];
+		double m13 = this.matrice[AffineTransform3D.m13];
+		double m21 = this.matrice[AffineTransform3D.m21];
+		double m22 = this.matrice[AffineTransform3D.m22];
+		double m23 = this.matrice[AffineTransform3D.m23];
+		double m31 = this.matrice[AffineTransform3D.m31];
+		double m32 = this.matrice[AffineTransform3D.m32];
+		double m33 = this.matrice[AffineTransform3D.m33];
+
+		// Axe 1, 2
+		{
+			
+			double det = (m12*m12+m11*m11-2*m11+1)*m23*m23+(-2*m12*m13*m22+(2-2*m11)*m13*m21+2*m12*m13)*m23+(m13*m13+m11*m11-2*m11+1)*m22*m22+((2-2*m11)*m12*m21-2*m13*m13-2*m11*m11+4*m11-2)*m22+(m13*m13+m12*m12)*m21*m21+(2*m11-2)*m12*m21+m13*m13+m11*m11-2*m11+1;
+			
+			if (bestdet < det) {
+				found = true;
+				bestdet = det;
+				det = Math.sqrt(det);
+				x = (m12*m23-m13*m22+m13) /det;
+				y = -(m11*m23-m23-m13*m21)/det;
+				z = (m11*m22-m22-m12*m21-m11+1)/det;
+			}
+		}
+		// Axe 1, 3
+		{
+			
+			double det = (m12*m12+m11*m11-2*m11+1)*m33*m33+(-2*m12*m13*m32+(2-2*m11)*m13*m31-2*m12*m12-2*m11*m11+4*m11-2)*m33+(m13*m13+m11*m11-2*m11+1)*m32*m32+((2-2*m11)*m12*m31+2*m12*m13)*m32+(m13*m13+m12*m12)*m31*m31+(2*m11-2)*m13*m31+m12*m12+m11*m11-2*m11+1;
+			if (bestdet < det) {
+				found = true;
+				bestdet = det;
+				det = Math.sqrt(det);
+				x = (m12*m33-m13*m32-m12)/det;
+				y = -((m11-1)*m33-m13*m31-m11+1)/det;
+				z = ((m11-1)*m32-m12*m31)/det;
+			}
+		}
+		// Axe 2, 3
+		
+		{
+			double det = (m22*m22-2*m22+m21*m21+1)*m33*m33+((2-2*m22)*m23*m32-2*m21*m23*m31-2*m22*m22+4*m22-2*m21*m21-2)*m33+(m23*m23+m21*m21)*m32*m32+((2*m21-2*m21*m22)*m31+(2*m22-2)*m23)*m32+(m23*m23+m22*m22-2*m22+1)*m31*m31+2*m21*m23*m31+m22*m22-2*m22+m21*m21+1;
+			if (bestdet < det) {
+				found = true;
+				bestdet = det;
+				det = Math.sqrt(det);
+				x = ((m22-1)*m33-m23*m32-m22+1)/det;
+				y = -(m21*m33-m23*m31-m21)/det;
+				z = (m21*m32+(1-m22)*m31)/det;
+			}
+		}
+		
+		double trace = m11 + m12 + m13 + 1;
+		if (trace > 0) {
+			double s = 0.5 / Math.sqrt(trace);
+			double qx = (m32 - m23) * s;
+			double qy = (m13 - m31) * s;
+			double qz = (m21 - m12) * s;
+			double qw = 0.25 / s;
+			
+		}
+		
+		if (found) {
+			return new double[]{x, y, z};
+		}
+		return null;
+	}
+	
+	public static double [] produitVectoriel(double [] u, double [] v)
+	{
+		double [] rslt = new double[3];
+		rslt[0] = u[1] * v[2] - u[2] * v[1];
+		rslt[1] = u[2] * v[0] - u[0] * v[2];
+		rslt[2] = u[0] * v[1] - u[1] * v[0];
+		return rslt;
+	}
+	
+	public static double norm(double [] vect)
+	{
+		double sum = 0;
+		for(int i = 0; i < vect.length; ++i)
+		{
+			sum += vect[i]*vect[i];
+		}
+		return Math.sqrt(sum);
+	}
+	
+	public static AffineTransform3D fromQuaternion(double X, double Y, double Z, double W)
+	{
+		double xx      = X * X;
+		double xy      = X * Y;
+		double xz      = X * Z;
+		double xw      = X * W;
+
+		double yy      = Y * Y;
+		double yz      = Y * Z;
+		double yw      = Y * W;
+
+		double zz      = Z * Z;
+		double zw      = Z * W;
+
+		AffineTransform3D result = new AffineTransform3D();
+		result.matrice[0]  = 1 - 2 * ( yy + zz );
+		result.matrice[1]  =     2 * ( xy - zw );
+		result.matrice[2]  =     2 * ( xz + yw );
+
+		result.matrice[4]  =     2 * ( xy + zw );
+		result.matrice[5]  = 1 - 2 * ( xx + zz );
+		result.matrice[6]  =     2 * ( yz - xw );
+
+		result.matrice[8]  =     2 * ( xz - yw );
+		result.matrice[9]  =     2 * ( yz + xw );
+		result.matrice[10] = 1 - 2 * ( xx + yy );
+		return result;
+	}
+	
+	public static AffineTransform3D getRotationMatrix(double [][] srcPts, double [][] dstPts)
+	{
+		// On calcule deux repère
+		
+		double [] srcAxisX = srcPts[0];
+		// Pour m12, m22, m22, on calcule le produit vectoriel
+		double [] srcAxisY = produitVectoriel(srcPts[0], srcPts[1]);
+		double ivnorm = 1.0/norm(srcAxisY);
+		srcAxisY[0] *= ivnorm;
+		srcAxisY[1] *= ivnorm;
+		srcAxisY[2] *= ivnorm;
+		
+		double [] srcAxisZ = produitVectoriel(srcPts[0], srcAxisY);
+		
+		double [] dstAxisX = dstPts[0];
+		// Pour m12, m22, m22, on calcule le produit vectoriel
+		double [] dstAxisY = produitVectoriel(dstPts[0], dstPts[1]);
+		ivnorm = 1.0/norm(dstAxisY);
+		dstAxisY[0] *= ivnorm;
+		dstAxisY[1] *= ivnorm;
+		dstAxisY[2] *= ivnorm;
+		
+		double [] dstAxisZ = produitVectoriel(dstPts[0], dstAxisY);
+		
+		double [] [] normedSrcPts = new double [][] { srcAxisX, srcAxisY, srcAxisZ };
+		double [] [] normedDstPts = new double [][] { dstAxisX, dstAxisY, dstAxisZ };
+		
+		
+		AffineTransform3D result = getTransformationMatrix(normedSrcPts, normedDstPts);
+		
+		// On  vérifie les transformation...
+		double [] verifX = Arrays.copyOf(srcAxisX, srcAxisX.length);
+		result.convert(verifX);
+		double [] verifY = Arrays.copyOf(srcAxisY, srcAxisY.length);
+		result.convert(verifY);
+		double [] verifZ = Arrays.copyOf(srcAxisZ, srcAxisZ.length);
+		result.convert(verifZ);
+		
+		return result;
+	}
+	
+	public static AffineTransform3D getTransformationMatrix(double [][] srcPts, double [][] dstPts)
+	{
+		
+		
+		// d[0] * x + d[1] * y + d[2] * z = v[0]
+		// d[3] * x + d[4] * y + d[5] * z = v[1]
+		// d[6] * x + d[7] * y + d[8] * z = v[2]
+				 
+		// srcPts[0][0] * m11 + srcPts[0][1] * m12 + srcPts[0][3] * m13 = dstPts[0][0]
+		// d[3] * x + d[4] * y + d[5] * z = v[1]
+		// d[6] * x + d[7] * y + d[8] * z = v[2]
+		
+		double [] d = new double[9];
+		double [] v = new double[3];
+		
+		AffineTransform3D transform = new AffineTransform3D();
+		for(int ligne = 0; ligne < 3 ; ++ligne)
+		{
+			for(int pt = 0; pt < 3; ++pt)
+			{
+				int eqid = (3 * pt) * 9;
+				d[3 * pt + m11_99] = srcPts[pt][0];
+				d[3 * pt + m12_99] = srcPts[pt][1];
+				d[3 * pt + m13_99] = srcPts[pt][2];
+				v[pt] = dstPts[pt][ligne];
+			}
+			double [] rslt = EquationSolver.solve(d, v);
+
+			transform.matrice[4 * ligne + 0] = rslt[0];
+			transform.matrice[4 * ligne + 1] = rslt[1];
+			transform.matrice[4 * ligne + 2] = rslt[2];
+		}
+
+		return transform;		
+	}
+	
+	public static void main(String[] args) {
+		AffineTransform3D identity = new AffineTransform3D();
+		identity = identity.rotateY(Math.cos(0.2), Math.sin(0.2));
+		identity = identity.rotateZ(Math.cos(0.24), Math.sin(0.24));
+		double [] rotateAxis = identity.getRotationAxis();
+		
+		double [] axis = new double[] { 2, 5, 4};
+		
+		
+		
+		double d = Math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+		axis[0] /= d;
+		axis[1] /= d;
+		axis[2] /= d;
+		
+		double angle = 1.0;
+		double c = Math.cos(angle);
+		double s = Math.sin(angle);
+		
+		AffineTransform3D trans = getRotationAroundAxis(axis, c, s);
+		
+		double [] tmpPoint = Arrays.copyOf(axis, axis.length);
+		trans.convert(tmpPoint);
+		
+		System.out.println("done");
+		
+		// On va créer des points bidon que l'on va transformer
+		
+		double [][] sourceTriangle = new double[3][];
+		for(int i = 0; i < 3; ++i) {
+			sourceTriangle[i] = new double[3];
+			for(int j = 0; j < 3; ++j)
+			{
+				sourceTriangle[i][j] = Math.random() * 2 - 1;
+			}
+		}
+		
+		double [][] targetTriangle = new double[3][];
+		for(int i = 0; i < 3; ++i) {
+			targetTriangle[i] = Arrays.copyOf(sourceTriangle[i], sourceTriangle[i].length);
+			trans.convert(targetTriangle[i]);
+		}
+		
+		AffineTransform3D verification = AffineTransform3D.getTransformationMatrix(sourceTriangle, targetTriangle);
+		
+		System.out.println("verification done");
+	}
+
+	public double[] getFactors() {
+		// TODO Auto-generated method stub
+		return this.matrice;
+	}
 	
 }

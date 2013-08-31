@@ -5,8 +5,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.swing.JLabel;
 import javax.swing.event.ChangeEvent;
@@ -19,15 +17,22 @@ import fr.pludov.cadrage.ui.utils.Utils;
 
 public class MosaicStarter extends MosaicStarterDesign {
 
-	public final StringConfigItem lastOpenRa = new StringConfigItem(MosaicStarter.class, "lastOpenRa", "0h0m0s");
-	public final StringConfigItem lastOpenDec = new StringConfigItem(MosaicStarter.class, "lastOpenDec", "+90°");
-	public final StringConfigItem lastOpenRadius = new StringConfigItem(MosaicStarter.class, "lastOpenRadius", "6°");
-	public final StringConfigItem lastOpenMag = new StringConfigItem(MosaicStarter.class, "lastOpenMag", "10.5");
-	public final BooleanConfigItem lastDoWithStar = new BooleanConfigItem(MosaicStarter.class, "lastDoWithStar", true);
+	public final StringConfigItem lastOpenRa;
+	public final StringConfigItem lastOpenDec;
+	public final StringConfigItem lastOpenRadius;
+	public final StringConfigItem lastOpenMag;
+	public final BooleanConfigItem lastDoWithStar;
 	boolean validated;
 	
-	public MosaicStarter(Window owner) {
+	public MosaicStarter(Window owner, String prefix) {
 		super(owner);
+		
+		lastOpenRa = new StringConfigItem(MosaicStarter.class, prefix + "_lastOpenRa", "0h0m0s");
+		lastOpenDec = new StringConfigItem(MosaicStarter.class, prefix + "_lastOpenDec", "+90°");
+		lastOpenRadius = new StringConfigItem(MosaicStarter.class, prefix + "_lastOpenRadius", "6°");
+		lastOpenMag = new StringConfigItem(MosaicStarter.class, prefix + "_lastOpenMag", "10.5");
+		lastDoWithStar = new BooleanConfigItem(MosaicStarter.class, prefix + "_lastDoWithStar", true);
+		
 		this.getOkButton().addActionListener(new ActionListener() {
 			
 			@Override
@@ -175,87 +180,40 @@ public class MosaicStarter extends MosaicStarterDesign {
 		radiusErrorLbl.setVisible(error != null);
 	}
 
-	private Double getDegFromInput(String input) throws NumberFormatException
-	{
-		// Pattern hms = Pattern.compile("\\s*(\\d+)\\s*h(?:|\\s*(\\d+)\\s*m(?:|\\s*(\\d+\\.\\d+|\\d+)\\s*s))\\s*");
-		Pattern hms = Pattern.compile("\\s*(?:(\\d+|\\d+\\.\\d*)\\s*h|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*m|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*s|)\\s*");
-		
-		Matcher hmsMatcher = hms.matcher(input);
-		if (hmsMatcher.matches() && (hmsMatcher.group(1) != null || hmsMatcher.group(2) != null || hmsMatcher.group(3) != null)) {
-			double result = 0;
-			if (hmsMatcher.group(1) != null) {
-				double h = Double.parseDouble(hmsMatcher.group(1));
-				result += 360 * h / 24;
-			}
-			if (hmsMatcher.group(2) != null) {
-				double m = Double.parseDouble(hmsMatcher.group(2));
-				result += 360 * m / (60 * 24);
-			}
-
-			if (hmsMatcher.group(3) != null) {
-				double s = Double.parseDouble(hmsMatcher.group(3));
-				result += 360 * s / (60 * 60 * 24);
-			}
-			
-			return result;
-		}
-
-		Pattern deg = Pattern.compile("\\s*(\\+|\\-|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*°|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*'|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*(?:''|\")|)\\s*");
-		Matcher degMatcher = deg.matcher(input);
-		if (degMatcher.matches() && (degMatcher.group(2) != null || degMatcher.group(3) != null || degMatcher.group(4) != null))
-		{
-			double result = 0;
-			if (degMatcher.group(2) != null) {
-				double d = Double.parseDouble(degMatcher.group(2));
-				result += d;
-			}
-			if (degMatcher.group(3) != null) {
-				double m = Double.parseDouble(degMatcher.group(3));
-				result += m / (60);
-			}
-
-			if (degMatcher.group(4) != null) {
-				double s = Double.parseDouble(degMatcher.group(4));
-				result += s / (60 * 60);
-			}
-			
-			if (degMatcher.group(1) != null && degMatcher.group(1).equals("-")) {
-				result = -result;
-			}
-			return result;
-		}
-		
-		try {
-			return Double.parseDouble(input);
-		} catch(NumberFormatException e) {
-		}
-		
-		try {
-			return Double.parseDouble(input);
-		} catch(NumberFormatException e) {
-		}
-		
-		return null;
-	}
-	
 	public boolean includeStar()
 	{
 		return this.getDoStarCheckBox().isSelected();
 	}
 	
+	public void setRa(double ra)
+	{
+		String raStr = Utils.formatHourMinSec(ra);
+		this.raTextField.setText(raStr);
+		validateInput();
+	}
+	
+	public void setDec(double dec)
+	{
+		String decStr = Utils.formatDegMinSec(dec);
+		this.decTextField.setText(decStr);
+		validateInput();
+	}
+	
+	
+	
 	public Double getRa() throws NumberFormatException
 	{
-		return getDegFromInput(getRaTextField().getText());
+		return Utils.getDegFromInput(getRaTextField().getText());
 	}
 	
 	public Double getDec() throws NumberFormatException
 	{
-		return getDegFromInput(getDecTextField().getText());
+		return Utils.getDegFromInput(getDecTextField().getText());
 	}
 	
 	public Double getRadius() throws NumberFormatException
 	{
-		return getDegFromInput(getRadiusTextField().getText());
+		return Utils.getDegFromInput(getRadiusTextField().getText());
 	}
 	
 	public Double getMag() throws NumberFormatException

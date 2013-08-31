@@ -1,17 +1,41 @@
 package fr.pludov.cadrage.scope.dummy;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
+import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
+import fr.pludov.cadrage.scope.Scope.CoordinateChangedListener;
 
 public class DummyScope implements Scope{
-
+	boolean connectionStatus;
+	
 	double raBias, decBias, rightAscension, declination;
+	
+	final private List<ConnectionStateChangedListener> connectionStateChangedListener;
+	final private List<CoordinateChangedListener> coordinateChangedListener;
+
+	public DummyScope() {
+		super();
+		this.connectionStatus = false;
+		this.connectionStateChangedListener = new ArrayList<Scope.ConnectionStateChangedListener>();
+		this.coordinateChangedListener = new ArrayList<Scope.CoordinateChangedListener>();
+	}
 	
 	@Override
 	public boolean isConnected() {
-		return true;
+		return connectionStatus;
 	}
 
+	@Override
+	public void sync(final double ra, final double dec) throws ScopeException {
+		final double wantRa = ra - raBias;
+		final double wantDec = dec - decBias;
+		this.rightAscension = wantRa;
+		this.declination = wantDec;
+	}
+	
 	@Override
 	public void slew(final double ra, final double dec) throws ScopeException {
 		final double wantRa = ra - raBias;
@@ -115,6 +139,15 @@ public class DummyScope implements Scope{
 	}
 
 	@Override
+	public void start() {
+		this.connectionStatus = true;
+		for(ConnectionStateChangedListener listener : this.connectionStateChangedListener)
+		{
+			listener.onConnectionStateChanged(this);
+		}
+	}
+	
+	@Override
 	public void close() {
 		
 	}
@@ -143,5 +176,15 @@ public class DummyScope implements Scope{
 		return declination + decBias;
 	}
 
+	
+	@Override
+	public void addConnectionStateChangedListener(ConnectionStateChangedListener listener) {
+		this.connectionStateChangedListener.add(listener);
+	}
+	
+	@Override
+	public void addCoordinateChangedListener(CoordinateChangedListener listener) {
+		this.coordinateChangedListener.add(listener);
+	}
 	
 }

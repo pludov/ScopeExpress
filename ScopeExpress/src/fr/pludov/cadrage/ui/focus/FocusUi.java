@@ -8,10 +8,14 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
+import java.util.Properties;
+
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
@@ -29,11 +33,16 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.ExclusionZone;
+import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
+import fr.pludov.cadrage.ui.resources.IconProvider;
+import fr.pludov.cadrage.ui.resources.IconProvider.IconSize;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
+import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.utils.XmlSerializationContext;
 
@@ -49,8 +58,12 @@ public class FocusUi extends FocusUiDesign {
 	ViewControler viewControl;
 	
 	LocateStarParameter currentStarDetectionParameter;
+
+	final FocusUiScopeManager scopeManager;
 	
 	public FocusUi(final Application application, final Mosaic mosaic) {
+		this.scopeManager = new FocusUiScopeManager(this);
+		
 		this.application = application;
 		this.mosaic = mosaic;
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
@@ -277,22 +290,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				double pixelArcSec = 10 * 2 * 2.23;
-
-				double raTarget = 0.0;
-				double decTarget = 90;
-
-				double radius = 6;
-				double maxMag = 10;
-//				La polaire
-//				raTarget = (360/24.0) * (02 + 31/60.0 + 49.09456/3600.0);
-//				decTarget = 89 + 15/60.0 + 50/3600.0;
-				
-// 				America:
-//				raTarget = (360/24.0) * (20 + 58/60.0 + 47.856/3600.0);
-//				decTarget = 44 + 28 / 60.0 + 19.08 / 3600.0;
-				
-				createStarProjection(mosaic, raTarget, decTarget, radius, maxMag, pixelArcSec);
+				loadStarsSomewhere("pole", 0.0, 90.0, 6.0, 10.5);
 			}
 		});
 		
@@ -300,39 +298,105 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				MosaicStarter dialog = new MosaicStarter(FocusUi.this.getFrmFocus().getOwner());
-				dialog.setModalityType(ModalityType.APPLICATION_MODAL);
-				dialog.setVisible(true);
-				
-				if (dialog.isValidated() && dialog.includeStar()) {
-					double pixelArcSec = 2 * 2.23;
-
-					Double raTarget = 0.0;
-					Double decTarget = 89.0;
-
-					Double radius;
-					Double maxMag;
-
-					
-					raTarget = dialog.getRa();
-					decTarget = dialog.getDec();
-					radius = dialog.getRadius();
-					maxMag = dialog.getMag();
-					
-					if (raTarget != null && decTarget != null && radius != null && maxMag != null) {
-						createStarProjection(mosaic, raTarget, decTarget, radius, maxMag, pixelArcSec);
-					}
-				}
-				
+				loadStarsSomewhere("other", null, null, null, null);
 			}
 		});
+		
+		this.mntmLoadStarAroundScope.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Scope scope = scopeManager.getConnectedScope();
+				if (scope == null) return;
+				
+				double ra, dec;
+				ra = scope.getRightAscension();
+				dec = scope.getDeclination();
+				logger.info("Got from scope : " + Utils.formatHourMinSec(ra * 15) + " " + Utils.formatDegMinSec(dec));
+				
+				// On veut les coordonnées J2000 du téléscope.
+				double [] tmp = SkyAlgorithms.J2000RaDecFromNow(ra, dec, 0);
+				ra = tmp[0];
+				dec = tmp[1];
+				logger.info("Got J2000 from scope : " + Utils.formatHourMinSec(ra * 15) + " " + Utils.formatDegMinSec(dec));
+				loadStarsSomewhere("scope", ra * 15, dec, null, null);
+			}
+		});
+		
+		this.mntmConfiguration.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), ConfigurationEdit.class);
+				edit.loadValuesFrom(Configuration.getCurrentConfiguration());
+				edit.setVisible(true);
+			}
+		});
+		
+		this.mntmSauverConfig.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ConfigurationEdit.save(Configuration.getCurrentConfiguration());	
+			}
+		});
+		
+		
+		this.btnReset.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				int option = JOptionPane.showConfirmDialog(FocusUi.this.getFrmFocus(), 
+						"Réinitialiser les données (images/projection) ?",
+						"Confirmer avant de réinitialiser...",
+						JOptionPane.OK_CANCEL_OPTION);
+				if (option != JOptionPane.OK_OPTION) return;
+				mosaic.reset();
+			}
+		});
+		
 		this.fd.setMosaic(mosaic);
 		
-
 		createTestMenus();
+		
+		scopeManager.addActionListener();
 		
 		// Donner le focus à chaque activation de la fenêtre
 		this.getFd().getPrincipal().requestFocusInWindow();
+	}
+
+	private void loadStarsSomewhere(String prefix, Double presetRa, Double presetDec, Double presetRadius, Double presetMaxMag)
+	{
+		MosaicStarter dialog = new MosaicStarter(FocusUi.this.getFrmFocus().getOwner(), prefix);
+		if (presetRa != null) {
+			dialog.setRa(presetRa);
+		}
+		if (presetDec != null) {
+			dialog.setDec(presetDec);
+		}
+		
+		dialog.setModalityType(ModalityType.APPLICATION_MODAL);
+		dialog.setVisible(true);
+		
+		if (dialog.isValidated() && dialog.includeStar()) {
+			double pixelArcSec = 2 * 2.23;
+
+			Double raTarget = 0.0;
+			Double decTarget = 89.0;
+
+			Double radius;
+			Double maxMag;
+
+			
+			raTarget = dialog.getRa();
+			decTarget = dialog.getDec();
+			radius = dialog.getRadius();
+			maxMag = dialog.getMag();
+			
+			if (raTarget != null && decTarget != null && radius != null && maxMag != null) {
+				createStarProjection(mosaic, raTarget, decTarget, radius, maxMag, pixelArcSec);
+			}
+		}
 	}
 	
 	BackgroundTask createDetectStarTask(final Image image)
@@ -410,6 +474,8 @@ public class FocusUi extends FocusUiDesign {
 			t.printStackTrace();
 		}
 		
+		Utils.addDllLibraryPath();
+		
 		final Application focus = new Application();
 		final Mosaic mosaic = new Mosaic(focus);
 		
@@ -439,8 +505,8 @@ public class FocusUi extends FocusUiDesign {
 
 	public MosaicImageListView getFd() {
 		return fd;
-	}
-
+	}	
+	
 	static void createStarProjection(final Mosaic mosaic, double raTarget,
 			double decTarget, double radius, double maxMag, double pixelArcSec) {
 		SkyProjection projection = new SkyProjection(pixelArcSec);
@@ -554,34 +620,92 @@ public class FocusUi extends FocusUiDesign {
 						"l_2013-05-.*_m101_...._iso800_240s.cr2"));	
 			}
 		});
+
+		{
+			JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire");
+			this.mnTests.add(prise_focus_polaire);
+			prise_focus_polaire.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String [] files = {
+							"l_2013-02-18_21-47-45_m31toto_0006_iso1600_1s.cr2",
+							"l_2013-02-18_21-48-31_m31toto_0007_iso1600_1s.cr2",
+							"l_2013-02-18_21-51-15_m31toto_0008_iso1600_1s.cr2",
+							"l_2013-02-18_21-52-19_m31toto_0009_iso1600_1s.cr2",
+							"l_2013-02-18_21-53-06_m31toto_0010_iso1600_1s.cr2",
+	
+							"l_2013-02-18_21-53-19_m31toto_0011_iso1600_1s.cr2",
+							"l_2013-02-18_21-59-22_m31toto_0017_iso1600_1s.cr2",
+							"l_2013-02-18_22-00-51_m31toto_0018_iso1600_1s.cr2",
+							"l_2013-02-18_22-01-00_m31toto_0019_iso1600_1s.cr2",
+	
+							"l_2013-02-18_22-01-11_m31toto_0020_iso1600_1s.cr2",
+							"l_2013-02-18_22-02-55_m31toto_0021_iso1600_1s.cr2",
+							"l_2013-02-18_22-04-03_m31toto_0022_iso1600_1s.cr2"
+					};
+					setScript(new LoadImagesScript(actionMonitor, 
+							"C:\\APT_Images\\Camera_1\\2013-02-18", 
+							files));	
+				}
+			});
+		}
 		
-		JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire");
-		this.mnTests.add(prise_focus_polaire);
-		prise_focus_polaire.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				String [] files = {
-						"l_2013-02-18_21-47-45_m31toto_0006_iso1600_1s.cr2",
-						"l_2013-02-18_21-48-31_m31toto_0007_iso1600_1s.cr2",
-						"l_2013-02-18_21-51-15_m31toto_0008_iso1600_1s.cr2",
-						"l_2013-02-18_21-52-19_m31toto_0009_iso1600_1s.cr2",
-						"l_2013-02-18_21-53-06_m31toto_0010_iso1600_1s.cr2",
-
-						"l_2013-02-18_21-53-19_m31toto_0011_iso1600_1s.cr2",
-						"l_2013-02-18_21-59-22_m31toto_0017_iso1600_1s.cr2",
-						"l_2013-02-18_22-00-51_m31toto_0018_iso1600_1s.cr2",
-						"l_2013-02-18_22-01-00_m31toto_0019_iso1600_1s.cr2",
-
-						"l_2013-02-18_22-01-11_m31toto_0020_iso1600_1s.cr2",
-						"l_2013-02-18_22-02-55_m31toto_0021_iso1600_1s.cr2",
-						"l_2013-02-18_22-04-03_m31toto_0022_iso1600_1s.cr2"
-				};
-				setScript(new LoadImagesScript(actionMonitor, 
-						"C:\\APT_Images\\Camera_1\\2013-02-18", 
-						files));	
-			}
-		});
+		{
+			JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire (2014-07)");
+			this.mnTests.add(prise_focus_polaire);
+			prise_focus_polaire.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String [] files = {
+//							"l_2013-07-11_23-59-53_m200040_iso800_1s.cr2",
+//							"l_2013-07-12_00-00-27_m200041_iso800_1s.cr2",
+//							"l_2013-07-12_00-00-50_m200042_iso800_1s.cr2",
+//							"l_2013-07-12_00-01-20_m200043_iso800_2s.cr2",
+//							"l_2013-07-12_00-01-42_m200044_iso800_2s.cr2",
+//							"l_2013-07-12_00-02-07_m200045_iso800_2s.cr2",
+//							"l_2013-07-12_00-02-29_m200046_iso800_2s.cr2",
+//							"l_2013-07-12_00-03-00_m200047_iso800_2s.cr2",
+//							"l_2013-07-12_00-03-23_m200048_iso800_2s.cr2",
+							"l_2013-07-12_00-03-51_m200049_iso800_2s.cr2",
+							"l_2013-07-12_00-04-41_m200050_iso800_2s.cr2",
+							"l_2013-07-12_00-05-04_m200051_iso800_2s.cr2",
+							"l_2013-07-12_00-06-10_m200052_iso800_2s.cr2",
+							"l_2013-07-12_00-07-03_m200053_iso800_2s.cr2",
+							"l_2013-07-12_00-07-29_m200054_iso800_2s.cr2",
+							"l_2013-07-12_00-07-47_m200055_iso800_2s.cr2",
+							"l_2013-07-12_00-08-24_m200056_iso800_2s.cr2",
+							"l_2013-07-12_00-08-48_m200057_iso800_2s.cr2",
+							"l_2013-07-12_00-09-40_m200058_iso800_2s.cr2",
+							"l_2013-07-12_00-10-02_m200059_iso800_2s.cr2",
+							"l_2013-07-12_00-10-16_m200060_iso800_2s.cr2",
+							"l_2013-07-12_00-10-32_m200061_iso800_2s.cr2",
+							"l_2013-07-12_00-11-19_m200062_iso800_2s.cr2",
+							"l_2013-07-12_00-12-27_m200063_iso800_2s.cr2",
+							"l_2013-07-12_00-12-54_m200064_iso800_2s.cr2",
+							"l_2013-07-12_00-13-25_m200065_iso800_2s.cr2",
+							"l_2013-07-12_00-13-44_m200066_iso800_2s.cr2",
+							"l_2013-07-12_00-14-06_m200067_iso800_2s.cr2",
+							"l_2013-07-12_00-14-28_m200068_iso800_2s.cr2",
+							"l_2013-07-12_00-18-44_m200069_iso800_2s.cr2",
+							"l_2013-07-12_00-20-34_m200070_iso800_2s.cr2",
+							"l_2013-07-12_00-21-53_m200071_iso800_2s.cr2",
+							"l_2013-07-12_00-22-26_m200072_iso800_4s.cr2",
+							"l_2013-07-12_00-23-55_m200073_iso800_4s.cr2",
+							"l_2013-07-12_00-24-41_m200074_iso800_4s.cr2",
+							"l_2013-07-12_00-25-15_m200075_iso800_4s.cr2",
+							"l_2013-07-12_00-26-24_m200076_iso800_4s.cr2",
+							"l_2013-07-12_00-26-48_m200077_iso800_4s.cr2",
+							"l_2013-07-12_00-27-25_m200078_iso800_4s.cr2",
+							"l_2013-07-12_00-28-10_m200079_iso800_4s.cr2"
+					};
+					setScript(new LoadImagesScript(actionMonitor, 
+							"C:\\APT_Images\\Camera_1\\2013-07-11", 
+							files));	
+				}
+			});
+		}
 		
 		
 		refreshTestButton();

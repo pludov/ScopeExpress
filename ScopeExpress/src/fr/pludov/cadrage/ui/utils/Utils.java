@@ -1,14 +1,23 @@
 package fr.pludov.cadrage.ui.utils;
 
+import java.awt.Component;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -78,6 +87,79 @@ public final class Utils {
 		});
 	}
 
+	public static <DIALOG extends JDialog> DIALOG openDialog(Component c, Class<? extends DIALOG> clazz)
+	{
+		Window window;
+		if (c == null) {
+			window = null;
+		} else if (c instanceof Window) {
+			window = (Window)c;
+		} else {
+			window = SwingUtilities.getWindowAncestor(c);
+		}
+		if (window != null) {
+			for(Window w : window.getOwnedWindows())
+			{
+				if (clazz.isInstance(w)) {
+					return (DIALOG)w;
+				}
+			}
+		}
+		try {
+			return clazz.getConstructor(Window.class).newInstance(window);
+		} catch(IllegalAccessException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		} catch (IllegalArgumentException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		} catch (SecurityException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		} catch (InstantiationException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		} catch (InvocationTargetException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("Il manque un constructeur avec Window", e);
+		}
+	}
+	
+	
+	public static String formatHourMinSec(double deg)
+	{
+		double raHourDouble = deg * 24.0 / 360;
+		boolean negate = raHourDouble < 0;
+		if (negate) raHourDouble = -raHourDouble;
+
+		int raHour, raMin;
+		double raSec;
+		raHour = (int)Math.floor(raHourDouble);
+		raMin = (int)Math.floor((raHourDouble - raHour) * 60);
+		raSec = (raHourDouble - raHour - raMin / 60.0) * 3600;
+		
+		if (negate) {
+			return String.format(Locale.US, "-%dh %02dm %02.2fs", raHour, raMin, raSec);
+		} else {
+			return String.format(Locale.US, "%dh %02dm %02.2fs", raHour, raMin, raSec);
+		}
+	}
+
+	public static String formatDegMinSec(double deg)
+	{
+		boolean negate = deg < 0;
+		if (negate) deg = -deg;
+
+		int raHour, raMin;
+		double raSec;
+		raHour = (int)Math.floor(deg);
+		raMin = (int)Math.floor((deg - raHour) * 60);
+		raSec = (deg - raHour - raMin / 60.0) * 3600;
+		
+		if (negate) {
+			return String.format(Locale.US, "-%d° %02d' %02.2f\"", raHour, raMin, raSec);
+		} else {
+			return String.format(Locale.US, "%d° %02d' %02.2f\"", raHour, raMin, raSec);
+		}
+	}
+
 	public static String doubleToString(double d, int pres)
 	{
 		return String.format("%." + Integer.toString(pres) +"f", d);
@@ -89,4 +171,112 @@ public final class Utils {
 	    return new String(chars);
 	}
 
+	public static File getBaseInstallationPath()
+	{
+		String command = System.getProperty("java.class.path");
+		if (command == null) return new File(".");
+		
+		File commandFile = new File(command);
+		if (!commandFile.exists()) return new File(".");
+		
+		return commandFile.getParentFile();
+	}
+	
+	
+	public static void addDllLibraryPath()
+	{
+		File dllDir = new File(getBaseInstallationPath(), "dll");
+		if (!dllDir.exists()) {
+			System.err.println("unable to locate dll dir (missing " + dllDir +")");
+			return;
+		}
+		
+		String currentPath = System.getProperty("java.library.path");
+		String separator = System.getProperty("path.separator");
+		if (separator == null) separator = ";";
+		
+		String newPath = currentPath == null || currentPath.equals("") ?
+				dllDir.toString() :
+					currentPath + separator + dllDir.toString();
+				
+		System.out.println("setting path to " + newPath);
+		System.setProperty("java.library.path", newPath);
+		
+	}
+
+	public static File locateDll(String string) {
+		File dllDir = new File(new File(getBaseInstallationPath(), "dll"), string);
+		if (!dllDir.exists()) {
+			throw new RuntimeException("dll not found : " + dllDir);
+		}
+
+		return dllDir;
+	}
+
+	public static Double getDegFromInput(String input) throws NumberFormatException
+	{
+		// Pattern hms = Pattern.compile("\\s*(\\d+)\\s*h(?:|\\s*(\\d+)\\s*m(?:|\\s*(\\d+\\.\\d+|\\d+)\\s*s))\\s*");
+		Pattern hms = Pattern.compile("\\s*(\\+|\\-|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*h|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*m|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*s|)\\s*");
+		
+		Matcher hmsMatcher = hms.matcher(input);
+		if (hmsMatcher.matches() && (hmsMatcher.group(2) != null || hmsMatcher.group(3) != null || hmsMatcher.group(4) != null)) {
+			double result = 0;
+			if (hmsMatcher.group(2) != null) {
+				double h = Double.parseDouble(hmsMatcher.group(2));
+				result += 360 * h / 24;
+			}
+			if (hmsMatcher.group(3) != null) {
+				double m = Double.parseDouble(hmsMatcher.group(3));
+				result += 360 * m / (60 * 24);
+			}
+	
+			if (hmsMatcher.group(4) != null) {
+				double s = Double.parseDouble(hmsMatcher.group(4));
+				result += 360 * s / (60 * 60 * 24);
+			}
+			
+			if (hmsMatcher.group(1) != null && hmsMatcher.group(1).equals("-")) {
+				result = -result;
+			}
+			
+			return result;
+		}
+	
+		Pattern deg = Pattern.compile("\\s*(\\+|\\-|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*°|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*'|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*(?:''|\")|)\\s*");
+		Matcher degMatcher = deg.matcher(input);
+		if (degMatcher.matches() && (degMatcher.group(2) != null || degMatcher.group(3) != null || degMatcher.group(4) != null))
+		{
+			double result = 0;
+			if (degMatcher.group(2) != null) {
+				double d = Double.parseDouble(degMatcher.group(2));
+				result += d;
+			}
+			if (degMatcher.group(3) != null) {
+				double m = Double.parseDouble(degMatcher.group(3));
+				result += m / (60);
+			}
+	
+			if (degMatcher.group(4) != null) {
+				double s = Double.parseDouble(degMatcher.group(4));
+				result += s / (60 * 60);
+			}
+			
+			if (degMatcher.group(1) != null && degMatcher.group(1).equals("-")) {
+				result = -result;
+			}
+			return result;
+		}
+		
+		try {
+			return Double.parseDouble(input);
+		} catch(NumberFormatException e) {
+		}
+		
+		try {
+			return Double.parseDouble(input);
+		} catch(NumberFormatException e) {
+		}
+		
+		return null;
+	}
 }

@@ -31,6 +31,7 @@ public class Image implements WorkStepResource {
 	// Valide uniquement si cameraFrame a été obtenu !
 	
 	boolean hasMetadata;
+	long epoch;
 	Metadata metadata;
 	Double pause;
 	Integer iso;
@@ -54,6 +55,7 @@ public class Image implements WorkStepResource {
 		loadMetadata();
 		result.expositionDuration = this.pause;
 		result.iso = this.iso;
+		result.epoch = this.epoch;
 		return result;
 	}
 	
@@ -62,7 +64,9 @@ public class Image implements WorkStepResource {
 		if (hasMetadata) return;
 		pause = 1.0;
 		iso = 1600;
+		epoch = path.lastModified();
 		hasMetadata = true;
+		
 //		try {
 //			Metadata metadata = ImageMetadataReader.readMetadata(this.path);
 //			Directory directory = metadata.getDirectory(ExifSubIFDDirectory.class);

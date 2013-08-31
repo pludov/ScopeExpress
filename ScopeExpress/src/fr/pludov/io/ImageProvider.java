@@ -31,6 +31,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
 
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.utils.ChannelMode;
 
 public class ImageProvider {
@@ -151,7 +152,7 @@ public class ImageProvider {
 	{
 		if (file.getName().toLowerCase().matches(".*\\.cr.")) {
 			try {
-				File library = new File("../jrawlib/Debug/libjrawlib.dll");
+				File library = Utils.locateDll("libjrawlib.dll");
 
 				System.load(library.getAbsolutePath());
 			} catch(Throwable t) {

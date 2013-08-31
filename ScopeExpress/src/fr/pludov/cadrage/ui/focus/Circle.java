@@ -186,7 +186,7 @@ public class Circle {
 			position.convert(tmp3d);
 			
 			double x, y;
-			if (!skyProjection.projectPreTransformed3d(tmp3d, tmp2d))
+			if (!skyProjection.image3dToImage2d(tmp3d, tmp2d))
 			{
 				x = Double.NaN;
 				y = Double.NaN;

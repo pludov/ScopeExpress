@@ -22,6 +22,8 @@ import javax.imageio.stream.ImageOutputStream;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.cadrage.focus.AffineTransform3D;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.utils.DynamicGrid;
 import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
@@ -43,8 +45,7 @@ import fr.pludov.cadrage.utils.Ransac;
 public class Correlation {
 	private static final Logger logger = Logger.getLogger(Correlation.class);
 	
-	double tx, ty;
-	double cs, sn;
+	SkyProjection skyProjection;
 	boolean found;
 	
 	public Correlation()
@@ -55,8 +56,15 @@ public class Correlation {
 	private static class CorrelationStatus
 	{
 		List<PointMatchAlgorithm.Correlation> correlation;
+		RansacPoint rp;
+		
 		int count;
-		double cs, sn, tx, ty;
+		double dstsum;
+		
+		// Quaternions
+		double qx, qy, qz, qw, qsum;
+		
+		SkyProjection skyProjection;
 	}
 
 	private static int incChannel(int ch, double value)
@@ -233,10 +241,7 @@ public class Correlation {
 	{
 		// logger.info("Found best translation with " + best.correlation.size() + " star correlations (found by " + best.count + " ransac points)");
 		found = true;
-		this.tx = 0.0;
-		this.ty = 0.0;
-		this.cs = 1.0;
-		this.sn = 1.0;	
+		this.skyProjection = null;
 	}
 
 	/**
@@ -327,20 +332,26 @@ public class Correlation {
 		return result;
 	}
 	
-	public void correlate(List<? extends DynamicGridPointWithAdu> starsFromImage, List<? extends DynamicGridPointWithAdu> starsFromRef, double refToImageRatio)
+	public void correlate(
+			List<? extends DynamicGridPointWithAdu> starsFromImage, SkyProjection imageAffineSkyProjection,
+			List<? extends DynamicGridPointWithAdu> starsFromRef, SkyProjection refSkyProjection)
 	{
 		int maxTriangle = 900; // FIXME : c'est ad hoc...
-		double starRay = 1200; 	// Prendre en compte des triangles de au plus cette taille
-		double starMinRay = 900;	// Elimine les petits triangles
+		double starRay = 700; 	// Prendre en compte des triangles de au plus cette taille
+		double starMinRay = 600;	// Elimine les petits triangles
 		double maxBrightnessRatio = 5.5;	// On considère des triplet d'étoiles avec ce rapport maxi d'éclat 
-		double minGeoRatio = 0.15;	// Facteur par rapport au triangle "8-9-10" (à 1 on ne retiendra que lui) 
+		double minGeoRatio = 0.25;	// Facteur par rapport au triangle "8-9-10" (à 1 on ne retiendra que lui) 
+		
+		// FIXME: pas sûr du sens
+		double refToImageRatio = refSkyProjection.getPixelRad() / imageAffineSkyProjection.getPixelRad();
+		
 		
 		List<Triangle> trianglesFromImage;
 		
 		List<Triangle> trianglesFromRef;
 		
 		// Exclu les étoiles qui ont une voisine au moins x fois plus lumineuse
-		double brightestStarRatio = 1.25;
+		double brightestStarRatio = 1.5;
 
 		// FIXME: c'est en dûr ! Ce paramètre sert de born min à la distance (dans le cas où il y a trés peu d'image) 
 		double dmax = 600;
@@ -394,7 +405,7 @@ public class Correlation {
 		do {
 			// FIXME : on voudrait que les triangles ne se recouvrent pas trop !
 			logger.debug("Looking for image triangles, max size = " + starRay + " brightness ratio = " + maxBrightnessRatio);
-			trianglesFromImage = getTriangleList(starsFromImage.subList(0, lengthToTest), starMinRay, starRay, maxTriangle, maxBrightnessRatio, minGeoRatio);
+			trianglesFromImage = getTriangleList(starsFromImage.subList(0, lengthToTest), imageAffineSkyProjection, starMinRay, starRay, maxTriangle, maxBrightnessRatio, minGeoRatio);
 			if (trianglesFromImage == null) {
 				
 //				if (lengthToTest > 10) {
@@ -403,7 +414,7 @@ public class Correlation {
 //				} else {
 					logger.warn("Too many triangles found, restrict morphology/brightness");
 //					maxBrightnessRatio = 1 + (maxBrightnessRatio - 1) * 0.95;
-					minGeoRatio = Math.pow(minGeoRatio, 0.8);
+					minGeoRatio = Math.pow(minGeoRatio, 0.7);
 //				}
 				continue;
 			}
@@ -422,7 +433,7 @@ public class Correlation {
 				return;
 			}
 			logger.debug("Looking for references triangles, max size = " + starRay);
-			trianglesFromRef = getTriangleList(starsFromRef.subList(0, lengthForRef), starMinRay / refToImageRatio, starRay / refToImageRatio, 2000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
+			trianglesFromRef = getTriangleList(starsFromRef.subList(0, lengthForRef), refSkyProjection, starMinRay / refToImageRatio, starRay / refToImageRatio, 4000 * maxTriangle, maxBrightnessRatio, minGeoRatio);
 			if (trianglesFromRef == null) {
 				
 //				if (lengthForRef > 10) {
@@ -431,7 +442,7 @@ public class Correlation {
 //				} else {
 					logger.warn("Too many triangles found, restrict morphology/brightness");
 //					maxBrightnessRatio = 1 + (maxBrightnessRatio - 1) * 0.95;
-					minGeoRatio = Math.pow(minGeoRatio, 0.8);
+					minGeoRatio = Math.pow(minGeoRatio, 0.7);
 //				}
 				continue;
 			}
@@ -448,17 +459,34 @@ public class Correlation {
 		}
 		
 		logger.debug("Creating dynamic grid table");
-		DynamicGrid<Triangle> imageTriangleGrid = new DynamicGrid<Triangle>(trianglesFromImage);
+		DynamicGrid<Triangle> refTriangleGrid = new DynamicGrid<Triangle>(trianglesFromRef);
 		logger.debug("Dynamic grid table created");
 		
 		// Cette tolerance est absolue. Elle a été ajustée pour ne pas rejetter 
 		// d'attracteurs sur une image prise près de la polaire
-		double tolerance = 0.006;
+		double tolerance = 0.002;
 		int maxNbRansacPoints = 200000;
 		
 		List<RansacPoint> ransacPoints;
 		
-		while((ransacPoints = getRansacPoints(trianglesFromRef, imageTriangleGrid, maxNbRansacPoints, tolerance, (refToImageRatio) * 0.95, (refToImageRatio) * 1.05)) == null)
+		double sizeRatio = 1.0;
+		if (logger.isDebugEnabled()) {
+			double imageMoy = 0;
+			double refMoy = 0;
+			for(Triangle t : trianglesFromImage) {
+				imageMoy += t.dst12 + t.dst13 + t.dst23;
+			}
+			
+			for(Triangle t : trianglesFromRef) {
+				refMoy +=  t.dst12 + t.dst13 + t.dst23;
+			}
+			logger.debug("Triangle mean size : img:" + (imageMoy / trianglesFromImage.size()) + " ref:" + (refMoy/trianglesFromRef.size()));
+		}
+
+		// Les triangles sont à la même echelle (en radian) => le ratio ideal est 1
+		while((ransacPoints = getRansacPoints(trianglesFromImage, imageAffineSkyProjection, 
+												refTriangleGrid, refSkyProjection,
+												maxNbRansacPoints, tolerance, (sizeRatio) * 0.95, (sizeRatio) * 1.05)) == null)
 		{
 			logger.warn("Too many possible translations. Filter wiht more aggressive values...");
 			tolerance *= 0.6;
@@ -484,6 +512,9 @@ public class Correlation {
 		
 		DynamicGrid<PointMatchAlgorithm.DynamicGridPointWithIndex> refGrid = new DynamicGrid<PointMatchAlgorithm.DynamicGridPointWithIndex>(refStarsWithIndex);
 		
+		double [] starPos2d = new double[2];
+		double [] starPos3d = new double[3];
+		
 		Map<List<PointMatchAlgorithm.Correlation>, CorrelationStatus> correlations = new HashMap<List<PointMatchAlgorithm.Correlation>, Correlation.CorrelationStatus>(ransacPoints.size());
 		for(RansacPoint rp : ransacPoints)
 		{
@@ -491,11 +522,12 @@ public class Correlation {
 			for(int i = 0; i < starsFromImage.size(); ++i)
 			{
 				DynamicGridPoint dgp = starsFromImage.get(i);
-				double x = dgp.getX();
-				double y = dgp.getY();
-				rp.unproject(x, y, tmp);
-				srcX[i] = tmp[0];
-				srcY[i] = tmp[1];
+				starPos2d[0] = dgp.getX();
+				starPos2d[1] = dgp.getY();
+				rp.projection.image2dToSky3d(starPos2d, starPos3d);
+				refSkyProjection.image3dToImage2d(starPos3d, starPos2d);
+				srcX[i] = starPos2d[0];
+				srcY[i] = starPos2d[1];
 			}
 
 			// FIXME : introduire un paramètre "distance maxi en pixel"
@@ -520,19 +552,42 @@ public class Correlation {
 			if (status != null) {
 				// Ajouter simplement à celui-ci
 				status.count++;
+				double [] quaternion = rp.projection.getTransform().getQuaternion();
+				status.qx += quaternion[0];
+				status.qy += quaternion[1];
+				status.qz += quaternion[2];
+				status.qw += quaternion[3];
+				status.qsum ++;
+				
+				if (status.dstsum > pma.getDstSum()) {
+					status.dstsum = pma.getDstSum();
+					status.skyProjection = rp.projection;
+					status.rp = rp;
+				}
 			} else {
 				status = new CorrelationStatus();
 				status.correlation = correlation;
-				status.cs = rp.cs;
-				status.sn = rp.sn;
-				status.tx = rp.tx;
-				status.ty = rp.ty;
+				status.rp = rp;
+				double [] quaternion = rp.projection.getTransform().getQuaternion();
+				status.qx += quaternion[0];
+				status.qy += quaternion[1];
+				status.qz += quaternion[2];
+				status.qw += quaternion[3];
+				status.qsum ++;
+				
+				status.skyProjection = rp.projection;
+				status.dstsum = pma.getDstSum();
+//				status.cs = rp.cs;
+//				status.sn = rp.sn;
+//				status.tx = rp.tx;
+//				status.ty = rp.ty;
 				status.count = 1;
 				correlations.put(correlation, status);
 			}
 		}
 
 		logger.info("Found " + correlations.values().size() + " different correlations");
+		
 		// Trouver la meilleure correlation
 		CorrelationStatus best = null;
 		CorrelationStatus plebBest = null;
@@ -560,11 +615,18 @@ public class Correlation {
 		} else {
 			found = true;
 			logger.info("Found best translation with " + best.correlation.size() + " star correlations (found by " + best.count + " ransac points)");
-			this.tx = best.tx;
-			this.ty = best.ty;
-			this.cs = best.cs;
-			this.sn = best.sn;
-
+			logger.info("Matching avg delta: " + ((Math.sqrt(best.dstsum / best.correlation.size()) * refToImageRatio)) + " px" );
+			double [] quaternion = new double[]{best.qx, best.qy, best.qz, best.qw};
+			for(int i = 0; i < 4; ++i) {
+				quaternion[i] /= best.qsum;
+			}
+			double norm = AffineTransform3D.norm(quaternion);
+			for(int i = 0; i < 4; ++i) {
+				quaternion[i] /= norm;
+			}
+			AffineTransform3D fromQuaternion = AffineTransform3D.fromQuaternion(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+			this.skyProjection = best.skyProjection;
+			
 //			List<CorrelationStatus> correlationsOrderedByMatching = new ArrayList<CorrelationStatus>(correlations.values());
 //			
 //			Collections.sort(correlationsOrderedByMatching, new Comparator<CorrelationStatus>() {
@@ -772,9 +834,21 @@ public class Correlation {
 		return null;
 	}
 	
+	private static double[][] newMatrix(int d1, int d2)
+	{
+		double[][] result = new double[d1][];
+		for(int i = 0; i < d1; ++i)
+		{
+			result[i] = new double[d2];
+		}
+		return result;
+	}
+	
 	private List<RansacPoint> getRansacPoints(
 			List<Triangle> imageTriangle,
-			DynamicGrid<Triangle> referenceTriangleGrid, 
+			SkyProjection imageSkyProjection,
+			DynamicGrid<Triangle> referenceTriangleGrid,
+			SkyProjection referenceSkyProjection,
 			int maxCount, double distanceMax,
 			double sizeRatioMin, double sizeRatioMax)
 	{
@@ -783,110 +857,168 @@ public class Correlation {
 		double [] cssn2 = new double[3];
 		double [] cssn3 = new double[3];
 		
+		double [] [] image2DPoints = newMatrix(3, 2);
+		double [] [] image3DPoints = newMatrix(3, 3);
+		double [] [] ref2DPoints = newMatrix(3, 2);
+		double [] [] ref3DPoints = newMatrix(3, 3);		
+		
+		int rpDbgId = 0;
+		
 		for(Triangle t : imageTriangle)
 		{
 			// FIXME : ce radius devrait être vajusté en fonction du nombre de triangle, pour sortir suffisement de candidat
 			// En même temps, le matching est absolu (on compare la précision des triangles)
 			List<Triangle> correspondant = referenceTriangleGrid.getNearObject(t.x, t.y, distanceMax);
 			
+			image2DPoints[0][0] = t.getPointX(1);
+			image2DPoints[0][1] = t.getPointY(1);
+			image2DPoints[1][0] = t.getPointX(2);
+			image2DPoints[1][1] = t.getPointY(2);
+			image2DPoints[2][0] = t.getPointX(3);
+			image2DPoints[2][1] = t.getPointY(3);
+			
+			double tlength = t.dst12 + t.dst13 + t.dst23;
 			
 			int id = 1;
 			for(Triangle c : correspondant)
 			{
-				c.calcRotation(t, 1, 2, cssn1);
-				c.calcRotation(t, 1, 3, cssn2);
-				c.calcRotation(t, 2, 3, cssn3);
+				ref2DPoints[0][0] = c.getPointX(1);
+				ref2DPoints[0][1] = c.getPointY(1);
+				ref2DPoints[1][0] = c.getPointX(2);
+				ref2DPoints[1][1] = c.getPointY(2);
+				ref2DPoints[2][0] = c.getPointX(3);
+				ref2DPoints[2][1] = c.getPointY(3);
 				
-				// Faire la moyenne des cos/sin, les rendre normé
-				// Faire la moyenne des ratios.
-				double cs = cssn1[0] + cssn2[0] + cssn3[0];
-				double sn = cssn1[1] + cssn2[1] + cssn3[1];
+
+				// Calculer le rapport de taille entre t et c
+				// Recalculer les coordonnées de t après mutliplication par le rapport de taille (FIXME: ce n'est pas parfait parfait.)
+				// Calculer la transformation affine
+
+				double clength = c.dst12 + c.dst13 + c.dst23;
 				
-				double angle = 180 * Math.atan2(sn, cs) / Math.PI;
+				double ratio = tlength / clength;
 				
-				double div = Math.sqrt(cs * cs + sn * sn);
-				// Ici, on s'attend à avoir une norme trés proche de 3 (atteignable uniquement si les 3 rotations sont identiques)
-				if (div < 2.9 || div > 3.1) continue;
-				div = 1.0 / div;
-				cs *= div;
-				sn *= div;
-				
-				
-				
-				double ratio = (cssn1[2] + cssn2[2] + cssn3[2]) / 3;
-				cs *= ratio;
-				sn *= ratio;
-				
-				double dlt = (cssn1[2] - ratio) * (cssn1[2] - ratio)  + (cssn2[2] - ratio) * (cssn2[2] - ratio) + + (cssn3[2] - ratio) * (cssn3[2] - ratio);
-				
-				if (dlt > 0.001) {
-					// si les cos/sin ne sont pas orthogonaux, la translation déforme....
-					continue;
-				}
-				
-				// On  met un filtre sur le grossissement également
 				if (ratio < sizeRatioMin || ratio > sizeRatioMax) continue;
 				
-				double tx = 0, ty = 0;
+				double oldPixelRad = imageSkyProjection.getPixelRad();
+				// FIXME: ça ne suffit pas vraiment à avoir un accord parfait! Le ratio dépend aussi de la distance au centre de l'image
+				double newPixelRad = oldPixelRad / ratio; 
 				
-				// Calcul de la translation
-				for(int i = 1; i <= 3; ++i)
-				{
-					double xRef = t.getPointX(i);
-					double yRef = t.getPointY(i);
+				imageSkyProjection.setPixelRad(newPixelRad);
+				try {
+					// Calculer l'emplacement des étoiles en 3D
+					for(int imagePt = 0; imagePt < 3; ++imagePt) {
+						imageSkyProjection.image2dToImage3d(image2DPoints[imagePt], image3DPoints[imagePt]);
+					}
+
+					// Calculer la nouvelle taille en pixel
+					double tlengthAdjusted = 
+							Math.sqrt(d2(image3DPoints[0], image3DPoints[1])) + 
+							Math.sqrt(d2(image3DPoints[1], image3DPoints[2])) + 
+							Math.sqrt(d2(image3DPoints[2], image3DPoints[0]));
 					
-					double xRotateScale = xRef * cs + yRef * sn; 
-					double yRotateScale = yRef * cs - xRef * sn; 
+					for(int imagePt = 0; imagePt < 3; ++imagePt) {
+						referenceSkyProjection.image2dToImage3d(ref2DPoints[imagePt], ref3DPoints[imagePt]);
+					}
+						
+					RansacPoint rp = new RansacPoint();
+					rp.dbgId = rpDbgId++;
+					rp.image = t;
+					rp.original = c;
+					rp.projection = new SkyProjection(imageSkyProjection, AffineTransform3D.getRotationMatrix(image3DPoints, ref3DPoints));
 					
-					double dltx = c.getPointX(i) - xRotateScale;
-					double dlty = c.getPointY(i) - yRotateScale;
+					for(int imagePt = 0; imagePt < 3; ++imagePt) {
+						rp.projection.getTransform().convert(image3DPoints[imagePt]);
+					}
 					
-					tx += dltx;
-					ty += dlty;
+					ransacPoints.add(rp);
+
+					if (ransacPoints.size() > maxCount) {
+						logger.warn("Too many translation founds. Retry with stricter filter");
+						return null;
+					}
+					
+					id++;
+
+				} finally {
+					imageSkyProjection.setPixelRad(oldPixelRad);
 				}
 				
-				tx /= 3;
-				ty /= 3;
-				
-//				// Rotation
-//				// On peut connaitre facilement le delta en divisant les distances
-//				double ratio = (c.dst12 / t.dst12 + c.dst13 / t.dst13 + c.dst23 / t.dst23) / 3;
+//				c.calcRotation(t, 1, 2, cssn1);
+//				c.calcRotation(t, 1, 3, cssn2);
+//				c.calcRotation(t, 2, 3, cssn3);
 //				
-//				// On va calculer l'angle de rotation sur le plus grand vecteur (dst23)
-//				double Xa = c.s3.x - c.s2.x;
-//				double Ya = c.s3.y - c.s2.y;
-//				double Xb = t.s3.x - t.s2.x;
-//				double Yb = t.s3.y - t.s2.y;
+//				// Faire la moyenne des cos/sin, les rendre normé
+//				// Faire la moyenne des ratios.
+//				double cs = cssn1[0] + cssn2[0] + cssn3[0];
+//				double sn = cssn1[1] + cssn2[1] + cssn3[1];
 //				
-//				double cos = (Xa*Xb+Ya*Yb)/(c.dst23*t.dst23);
-//				double sin = (Xa*Yb-Ya*Xb)/(c.dst23*t.dst23);
+//				double angle = 180 * Math.atan2(sn, cs) / Math.PI;
+//				
+//				double div = Math.sqrt(cs * cs + sn * sn);
+//				// Ici, on s'attend à avoir une norme trés proche de 3 (atteignable uniquement si les 3 rotations sont identiques)
+//				if (div < 2.9 || div > 3.1) continue;
+//				div = 1.0 / div;
+//				cs *= div;
+//				sn *= div;
 //				
 //				
 //				
-//				double tx = (c.s1.x + c.s2.x + c.s3.x - t.s1.x- t.s2.x- t.s3.x) / 3;
-//				double ty = (c.s1.y - t.s1.y + c.s2.y - t.s2.y + c.s3.y - t.s3.y) / 3;
-//			
-				double delta = Math.sqrt((t.x - c.x)*(t.x - c.x) + (t.y - c.y) * (t.y - c.y));
-				
-				
-				RansacPoint rp = new RansacPoint();
-				rp.image = t;
-				rp.original = c;
-				rp.tx = tx;
-				rp.ty = ty;
-				rp.cs = cs;
-				rp.sn = sn;
-				
-				ransacPoints.add(rp);
-				
-				// logger.debug("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
-				
-				if (ransacPoints.size() > maxCount) {
-					logger.warn("Too many translation founds. Retry with stricter filter");
-					return null;
-				}
-				
-				id++;
+//				double ratio = (cssn1[2] + cssn2[2] + cssn3[2]) / 3;
+//				cs *= ratio;
+//				sn *= ratio;
+//				
+//				double dlt = (cssn1[2] - ratio) * (cssn1[2] - ratio)  + (cssn2[2] - ratio) * (cssn2[2] - ratio) + + (cssn3[2] - ratio) * (cssn3[2] - ratio);
+//				
+//				if (dlt > 0.001) {
+//					// si les cos/sin ne sont pas orthogonaux, la translation déforme....
+//					continue;
+//				}
+//				
+//				// On  met un filtre sur le grossissement également
+//				if (ratio < sizeRatioMin || ratio > sizeRatioMax) continue;
+//				
+//				double tx = 0, ty = 0;
+//				
+//				// Calcul de la translation
+//				for(int i = 1; i <= 3; ++i)
+//				{
+//					double xRef = t.getPointX(i);
+//					double yRef = t.getPointY(i);
+//					
+//					double xRotateScale = xRef * cs + yRef * sn; 
+//					double yRotateScale = yRef * cs - xRef * sn; 
+//					
+//					double dltx = c.getPointX(i) - xRotateScale;
+//					double dlty = c.getPointY(i) - yRotateScale;
+//					
+//					tx += dltx;
+//					ty += dlty;
+//				}
+//				
+//				tx /= 3;
+//				ty /= 3;
+//				double delta = Math.sqrt((t.x - c.x)*(t.x - c.x) + (t.y - c.y) * (t.y - c.y));
+//				
+//				
+//				RansacPoint rp = new RansacPoint();
+//				rp.image = t;
+//				rp.original = c;
+//				rp.tx = tx;
+//				rp.ty = ty;
+//				rp.cs = cs;
+//				rp.sn = sn;
+//				
+//				ransacPoints.add(rp);
+//				
+//				// logger.debug("Found possible translation (" + id+" ) " + tx +" - " + ty + " scale=" + ratio + ", angle="+angle+" with delta=" + delta);
+//				
+//				if (ransacPoints.size() > maxCount) {
+//					logger.warn("Too many translation founds. Retry with stricter filter");
+//					return null;
+//				}
+//				
+//				id++;
 			}
 		}
 		return ransacPoints;
@@ -926,7 +1058,9 @@ public class Correlation {
 	 * @param geoRatio : filtre (de 0 à 1) sur la forme des triangle. 1 = uniquement des equilateral, 0 = n'importe
 	 * @return
 	 */
-	private List<Triangle> getTriangleList(List<? extends DynamicGridPointWithAdu> referenceStars, double minTriangleSize, double triangleSearchRadius, int maxTriangle, double maxRatio, double geoRatio)
+	private List<Triangle> getTriangleList(List<? extends DynamicGridPointWithAdu> referenceStars, 
+			SkyProjection skyProjection,
+			double minTriangleSize, double triangleSearchRadius, int maxTriangle, double maxRatio, double geoRatio)
 	{
 		// Trouver les points à moins de 50 pixels
 		DynamicGrid<DynamicGridPointWithAdu> reference = new DynamicGrid<DynamicGridPointWithAdu>((List<DynamicGridPointWithAdu>)referenceStars);
@@ -935,13 +1069,36 @@ public class Correlation {
 		double [] i_d = new double[3];
 		double [] r_d = new double[3];
 
+		double minTriangleSizeInRad2 = Math.pow(minTriangleSize * skyProjection.getPixelRad(), 2);
+		
 		minTriangleSize = minTriangleSize * minTriangleSize;
+		
+		double maxTriangleSizeInRad2 = Math.pow(triangleSearchRadius * skyProjection.getPixelRad(), 2); 
+				
 		double maxTriangleSize2 = triangleSearchRadius * triangleSearchRadius;
+		
+		
+
+		double [] rst1pos2d = new double[2];
+		double [] rst2pos2d = new double[2];
+		double [] rst3pos2d = new double[2];
+		
+		double [] rst1pos3d = new double[3];
+		double [] rst2pos3d = new double[3];
+		double [] rst3pos3d = new double[3];
 		
 		logger.info("Searching for triangles in " + referenceStars.size() + " stars - minsize=" + Math.sqrt(minTriangleSize) + ", maxsize=" + triangleSearchRadius + ", brightness ratio=" + maxRatio + ", geo ratio=" + geoRatio);
 		for(DynamicGridPointWithAdu rst1 : referenceStars)
 		{
-			List<DynamicGridPointWithAdu> referencePeerList = reference.getNearObject(rst1.getX(), rst1.getY(), triangleSearchRadius);
+			// Fixme: ajuster le search radius en fonction de la distance de rst1 (l'echelle est connue)
+			List<DynamicGridPointWithAdu> referencePeerList = reference.getNearObject(rst1.getX(), rst1.getY(), 1.5 * triangleSearchRadius);
+			
+			if (referencePeerList.isEmpty()) continue;
+			
+			rst1pos2d[0] = rst1.getX();
+			rst1pos2d[1] = rst1.getY();
+			
+			skyProjection.image2dToImage3d(rst1pos2d, rst1pos3d);
 			
 			for(int a = 0; a < referencePeerList.size(); ++a)
 			{
@@ -949,9 +1106,6 @@ public class Correlation {
 				if (rst2 == rst1) continue;
 				if (compareTo(rst1, rst2) >= 0) continue;
 			
-				double r_d1 = d2(rst1, rst2);
-				// if (r_d1 < minTriangleSize) continue;
-				if (r_d1 > maxTriangleSize2) continue;
 				
 				double minAdu = rst1.getAduLevel();
 				double maxAdu = rst2.getAduLevel();
@@ -962,6 +1116,20 @@ public class Correlation {
 					maxAdu = tmp;
 				}
 				if (maxAdu > minAdu * maxRatio) continue;
+
+				rst2pos2d[0] = rst2.getX();
+				rst2pos2d[1] = rst2.getY();
+				skyProjection.image2dToImage3d(rst2pos2d, rst2pos3d);
+
+				// On a une distance en radian (en quelque sorte)
+				// Pour la remettre en pixel, il faut la mettre en degres
+				// puis la mettre en pixel
+				double r_d1_3d = d2(rst1pos3d, rst2pos3d);
+				
+				
+//				double r_d1 = d2(rst1, rst2);
+				// if (r_d1 < minTriangleSize) continue;
+				if (r_d1_3d > maxTriangleSizeInRad2) continue;
 				
 			PeerLoop:
 				for(int b = 0; b < referencePeerList.size(); ++b)
@@ -981,16 +1149,22 @@ public class Correlation {
 						continue;
 					}
 					
-					r_d[0] = r_d1;
-					r_d[1] = d2(rst1, rst3);
-					r_d[2] = d2(rst2, rst3);
-
-					// if (r_d[0] < minTriangleSize || r_d[1] < minTriangleSize || r_d[2] < minTriangleSize) continue;
-					if (r_d[0] > maxTriangleSize2 || r_d[1] > maxTriangleSize2 || r_d[2] > maxTriangleSize2) continue;
-					double maxSize = Math.max(Math.max(r_d[0], r_d[1]), r_d[2]);
-					if (maxSize < minTriangleSize) continue;
+					rst3pos2d[0] = rst3.getX();
+					rst3pos2d[1] = rst3.getY();
+					skyProjection.image2dToImage3d(rst3pos2d, rst3pos3d);
 					
-					Triangle t = new Triangle(rst1, rst2, rst3, r_d[0], r_d[1], r_d[2]);
+					r_d[0] = r_d1_3d;
+					r_d[1] = d2(rst1pos3d, rst3pos3d);
+					r_d[2] = d2(rst2pos3d, rst3pos3d);
+
+					
+					double maxSize = Math.max(Math.max(r_d[0], r_d[1]), r_d[2]);
+					if (maxSize < minTriangleSizeInRad2) continue;
+					
+					Triangle t = new Triangle(rst1, rst2, rst3, 
+							r_d[0],
+							r_d[1],
+							r_d[2]);
 					// Exclure les triangles trop symétriques
 					if (((filtered + retained) & 0xfff) == 0)
 					{
@@ -1238,46 +1412,49 @@ public class Correlation {
 		}
 	}
 
-	private static class RansacPoint implements Ransac.RansacPoint{
+	private static class RansacPoint {
 		Triangle original;
 		Triangle image;
 		
-		double tx, ty, cs, sn;
+		SkyProjection projection;
+		
+		int dbgId;
 		
 		@Override
 		public String toString() {
-			double angle = Math.atan2(cs, sn) * 180 / Math.PI;
-			double scale = Math.sqrt(cs * cs + sn * sn);
-			return String.format("translation=(%.2f,%.2f) rotation=%.2f scale=%.3f", tx, ty, angle, scale); 
+			return projection.toString();
+//			double angle = Math.atan2(cs, sn) * 180 / Math.PI;
+//			double scale = Math.sqrt(cs * cs + sn * sn);
+//			return String.format("translation=(%.2f,%.2f) rotation=%.2f scale=%.3f", tx, ty, angle, scale); 
 		}
 		
-		public void project(double x, double y, double [] result)
-		{
-			result[0] = this.tx + x * this.cs + y * this.sn;
-			result[1] = this.ty + y * this.cs - x * this.sn;
-		}
+//		public void project(double x, double y, double [] result)
+//		{
+//			result[0] = this.tx + x * this.cs + y * this.sn;
+//			result[1] = this.ty + y * this.cs - x * this.sn;
+//		}
+//		
+//		public void unproject(double nvx, double nvy, double [] result)
+//		{
+//			result[0] = ((-1.0)*((cs*(tx - nvx)) + (sn*(nvy - ty)))/((sn*sn) + (cs*cs)));
+//			result[1] = (((sn*(nvx - tx)) + (cs*(nvy - ty)))/((sn*sn) + (cs*cs)));
+//		}
 		
-		public void unproject(double nvx, double nvy, double [] result)
-		{
-			result[0] = ((-1.0)*((cs*(tx - nvx)) + (sn*(nvy - ty)))/((sn*sn) + (cs*cs)));
-			result[1] = (((sn*(nvx - tx)) + (cs*(nvy - ty)))/((sn*sn) + (cs*cs)));
-		}
-		
-		@Override
-		public double getRansacParameter(int order) {
-			switch(order) {
-			case 0:
-				return tx;
-			case 1:
-				return ty;
-			case 2:
-				return cs;
-			case 3:
-				return sn;
-			default:
-				return 0;
-			}
-		}
+//		@Override
+//		public double getRansacParameter(int order) {
+//			switch(order) {
+//			case 0:
+//				return tx;
+//			case 1:
+//				return ty;
+//			case 2:
+//				return cs;
+//			case 3:
+//				return sn;
+//			default:
+//				return 0;
+//			}
+//		}
 		
 	}
 
@@ -1286,22 +1463,22 @@ public class Correlation {
 		return (d1.getX() - d2.getX()) * (d1.getX() - d2.getX()) + (d1.getY() - d2.getY()) * (d1.getY() - d2.getY());
 	}
 
-	public double getTx() {
-		return tx;
+	private static double d2(double [] i3d, double [] j3d)
+	{
+		double d0 = i3d[0] - j3d[0];
+		d0 = d0 * d0;
+		double d1 = i3d[1] - j3d[1];
+		d1 = d1 * d1;
+		double d2 = i3d[2] - j3d[2];
+		d2 = d2 * d2;
+		return d0 + d1 + d2;
 	}
-
-	public double getTy() {
-		return ty;
+	
+	public SkyProjection getSkyProjection()
+	{
+		return skyProjection;
 	}
-
-	public double getCs() {
-		return cs;
-	}
-
-	public double getSn() {
-		return sn;
-	}
-
+	
 	public boolean isFound() {
 		return found;
 	}

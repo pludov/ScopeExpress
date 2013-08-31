@@ -29,6 +29,7 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 	{
 		public Double expositionDuration;
 		public Integer iso;
+		public Long epoch;
 		
 		public ImageDisplayMetaDataInfo clone()
 		{

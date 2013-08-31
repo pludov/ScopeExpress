@@ -11,8 +11,10 @@ import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import javax.swing.JScrollPane;
 import javax.swing.event.ListSelectionEvent;
@@ -28,6 +30,8 @@ import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
 import fr.pludov.cadrage.ui.utils.PanelFocusBorderHandler;
+import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class MosaicImageListView extends MosaicImageListViewDesign {
@@ -283,23 +287,6 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 	}
 	
-	private static String formatDegMinSec(double raHourDouble)
-	{
-		boolean negate = raHourDouble < 0;
-		if (negate) raHourDouble = -raHourDouble;
-
-		int raHour, raMin;
-		double raSec;
-		raHour = (int)Math.floor(raHourDouble);
-		raMin = (int)Math.floor((raHourDouble - raHour) * 60);
-		raSec = (int)Math.floor((raHourDouble - raHour - raMin / 60.0) * 3600);
-		
-		if (negate) {
-			return String.format(Locale.US, "-%d %02d %02.2f", raHour, raMin, raSec);
-		} else {
-			return String.format(Locale.US, "%d %02d %02.2f", raHour, raMin, raSec);
-		}
-	}
 	
 	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
 	{
@@ -335,8 +322,37 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			double ra = tmp1[0];
 			double dec = tmp1[1];
 			
+			{
+			  Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+	
+		      int year = now.get(Calendar.YEAR);
+		      int month = now.get(Calendar.MONTH) + 1;
+		      int day = now.get(Calendar.DAY_OF_MONTH);
+		      int hours = now.get(Calendar.HOUR_OF_DAY);
+		      int minutes = now.get(Calendar.MINUTE);
+		      int seconds = now.get(Calendar.SECOND);
+		      int milliseconds = now.get(Calendar.MILLISECOND);
+	
+		      /* Calculate floating point ut in hours */
+	
+		      double ut = ( (double) milliseconds )/3600000. +
+		        ( (double) seconds )/3600. +
+		        ( (double) minutes )/60. +
+		        ( (double) hours );
+	
+		      
+			double [] raDecNow = SkyAlgorithms.raDecNowFromJ2000(ra * 24 / 360, dec, 32);
 			// return formatDegMinSec(ra * 24 / 360) + " " + formatDegMinSec(dec);
-			return result + String.format(Locale.US, "RA/DEC: %.2f %+.2f", ra, dec);
+			result =  result + "\nRA/DEC: " + Utils.formatHourMinSec(ra) + " " + Utils.formatDegMinSec(dec);
+			double [] azalt = SkyAlgorithms.CelestialToHorizontal(raDecNow[0], raDecNow[1], 
+					Configuration.getCurrentConfiguration().getLatitude(),
+					Configuration.getCurrentConfiguration().getLongitude(),
+					new double[] { year, month, day, ut },
+					32, false);
+			
+			result = result + "\nAlt/Az: " + Utils.formatDegMinSec(azalt[0])+" " + Utils.formatDegMinSec(azalt[1]);
+			}
+			return result;
 		} catch(Exception e) {
 			logger.warn("unable to find coord for screen: " , e);
 			return e.getMessage();
