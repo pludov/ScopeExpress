@@ -30,6 +30,7 @@ import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 import fr.pludov.cadrage.ui.speech.Speaker;
 import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
@@ -194,6 +195,14 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 				speechEnabled = tglbtnSpeak.isSelected();
 				speechEnabledCfg.set(speechEnabled);
 				updateSpeechBtons();
+				if (speechEnabled) {
+					try {
+						safeGetSpeaker();
+					} catch(EndUserException ex) {
+						ex.report(AxeAlignDialog.this);
+					}
+				}
+				speachLastImage();
 			}
 		});
 		
@@ -203,6 +212,9 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 				speechDir = tglbtnAlt.isSelected() ? SpeechDirection.Altitude : SpeechDirection.Azimuth;
 				speechDirCfg.set(speechDir);
 				updateSpeechBtons();
+				if (tglbtnAlt.isSelected()) {
+					speachLastImage();
+				}
 			}
 		});
 		
@@ -212,10 +224,21 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 				speechDir = tglbtnAz.isSelected() ? SpeechDirection.Azimuth : SpeechDirection.Altitude;
 				speechDirCfg.set(speechDir);
 				updateSpeechBtons();
+				if (tglbtnAz.isSelected()) {
+					speachLastImage();
+				}
 			}
 		});
 		
 		updateSpeechBtons();
+		
+		if (speechEnabled) {
+			try {
+				safeGetSpeaker();
+			} catch(EndUserException ex) {
+				ex.report(AxeAlignDialog.this);
+			}
+		}
 	}
 
 	private void updateSpeechBtons() {
@@ -393,52 +416,81 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 		}
 	}
 	
+	/**
+	 * Retourne un objet speaker si il a pu être initialisé, et sinon, lève une exception.
+	 * Au passage, les boutons sont grisés.
+	 */
+	private Speaker safeGetSpeaker() throws EndUserException
+	{
+		Speaker speaker;
+		try {
+			speaker = SpeakerProvider.getSpeaker();
+			return speaker;
+		} catch (EndUserException e) {
+			this.speechEnabled = false;
+			updateSpeechBtons();
+			throw e;
+		}
+	}
+	
 	private void speachLastImage()
 	{
 		// Verifier que la dernière image est positionnée
 		if (lastSetId != this.imagesCoords.length - 1) return;
 		
 		if (speechEnabled) {
-			Speaker speaker = SpeakerProvider.getSpeaker();
-			
-			// Index de la précédente image
-			int previousId;
-			for(previousId = lastSetId - 1; previousId >= 0; --previousId)
-			{
-				if (this.imagesCoords[previousId] != null) break;
-			}
-			
-			String [] direction;
-			
-			
-			int coord = speechDir == SpeechDirection.Altitude ? 0 : 1;
-			
-			if (coord == 0) {
-				direction = new String[] { "vers le bas", "vers le haut"};
-			} else {
-				direction = new String[] { "vers l'est", "vers l'ouest"};
-			}
-			
-			if (previousId != -1) {
-				String text;
-				double deltaAvant = this.imagesCoords[previousId][coord] - this.poleAltAz[coord];
-				double deltaMaintenat = this.imagesCoords[lastSetId][coord] - this.poleAltAz[coord];
+			try {
+				Speaker speaker = safeGetSpeaker();
 				
-				String maintenantDir = direction[deltaMaintenat > 0 ? 0 : 1];
-				
-				if (deltaAvant < 0 == deltaMaintenat <= 0)
+				// Index de la précédente image
+				int previousId;
+				for(previousId = lastSetId - 1; previousId >= 0; --previousId)
 				{
-					if (Math.abs(deltaAvant) > Math.abs(deltaMaintenat)) {
-						text = "Encore " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
-					} else {
-						text = "A l'envers ! Inverser de " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
-					}
-					
-				} else {
-					text = "Trop corrigé ! Inverser de " + enumerateAngle(deltaMaintenat) + " " + maintenantDir; 
+					if (this.imagesCoords[previousId] != null) break;
 				}
 				
-				speaker.enqueue(text);
+				String [] direction;
+				
+				
+				int coord = speechDir == SpeechDirection.Altitude ? 0 : 1;
+				
+				if (coord == 0) {
+					direction = new String[] { "vers le bas", "vers le haut"};
+				} else {
+					direction = new String[] { "vers l'est", "vers l'ouest"};
+				}
+				
+				if (previousId != -1) {
+					String text;
+					double deltaAvant = this.imagesCoords[previousId][coord] - this.poleAltAz[coord];
+					double deltaMaintenat = this.imagesCoords[lastSetId][coord] - this.poleAltAz[coord];
+					
+					String maintenantDir = direction[deltaMaintenat > 0 ? 0 : 1];
+					
+					if (deltaAvant < 0 == deltaMaintenat <= 0)
+					{
+						if (Math.abs(deltaAvant) > Math.abs(deltaMaintenat)) {
+							text = "Encore " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+						} else {
+							text = "A l'envers ! Inverser de " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+						}
+						
+					} else {
+						text = "Trop corrigé ! Inverser de " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir; 
+					}
+					
+					speaker.enqueue(text);
+				} else {
+					double deltaMaintenat = this.imagesCoords[lastSetId][coord] - this.poleAltAz[coord];
+					
+					String maintenantDir = direction[deltaMaintenat > 0 ? 0 : 1];
+					
+					String text = "Faire " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+					
+					speaker.enqueue(text);
+				}
+			} catch(EndUserException e) {
+				e.report(this);
 			}
 		}
 		

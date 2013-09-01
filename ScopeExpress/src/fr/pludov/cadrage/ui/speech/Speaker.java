@@ -10,7 +10,4 @@ public interface Speaker {
 
 	public void enqueue(String text);
 	public void clearQueue();
-	public boolean isEnabled();
-	
-	public WeakListenerCollection<SpeakerListener> getListeners();
 }
