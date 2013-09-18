@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_exe" name="Create Runnable Jar for Project cadrage with Jar-in-Jar Loader">
+	<property name="build" location="build/"/>
+	<property name="dist" location="dist/"/>
+	<property name="mingw" location="C:/Dev-Cpp/mingw32"/>
+	<property name="launch4j.dir" location="tools/launch4j"/>
+
+	<taskdef name="launch4j"
+	    classname="net.sf.launch4j.ant.Launch4jTask"
+	    classpath="${launch4j.dir}/launch4j.jar
+	        :${launch4j.dir}/lib/xstream.jar" />
+	
+	<target name="dist-all" depends="init,create_exe,dist-dll">
+		<copy todir="${dist}" file="${build}/focusui.exe"/>
+	</target>
+	
+	<target name="create_exe" depends="init,create_jar">
+		<launch4j configFile="./launch4j.xml"/>	
+	</target>
+	
+	<target name="dist-dll" depends="init">
+		<copydir dest="${dist}/dll" src="dll"/>
+		<copy todir="${dist}/dll/" file="../jrawlib/Debug/libjrawlib.dll"/>
+		<copy todir="${dist}/dll/">
+			<fileset dir="${mingw}/bin">
+				<include name="libexpat*.dll"/>
+				<include name="libgcc*.dll"/>
+				<include name="libgmp*.dll"/>
+				<include name="libgomp*.dll"/>
+				<include name="zzlibiconv*.dll"/>
+				<include name="libintl*.dll"/>
+				<include name="libmpc*.dll"/>
+				<include name="libmpfr*.dll"/>
+				<include name="libquadmath*.dll"/>
+				<include name="libssp*.dll"/>
+				<include name="libstdc++*.dll"/>
+				<include name="mingwm*.dll"/>
+				<include name="pthread*.dll"/>
+			</fileset>
+		</copy>
+	</target>
+
+    <target name="create_jar" depends="init">
+        <jar destfile="${build}/focusui.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="fr.pludov.cadrage.ui.focus.FocusUi"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ jawin.jar metadata-extractor-2.5.0-RC2.jar xmpcore.jar commons-io-2.4.jar log4j-1.2.17.jar miglayout15-swing.jar commons-primitives-1.0.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="C:/Users/Ludovic/Documents/workspace-perso/cadrage/bin"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="jawin.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="metadata-extractor-2.5.0-RC2.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="xmpcore.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="commons-io-2.4.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="log4j-1.2.17.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage" includes="miglayout15-swing.jar"/>
+            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="commons-primitives-1.0.jar"/>
+        </jar>
+    </target>
+	
+	<target name="init">
+		<mkdir dir="${build}"/> 
+	</target>
+</project>
