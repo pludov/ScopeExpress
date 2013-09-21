@@ -5,6 +5,8 @@ import java.awt.EventQueue;
 import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
@@ -17,6 +19,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
+
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 
@@ -354,6 +358,40 @@ public class FocusUi extends FocusUiDesign {
 				mosaic.reset();
 			}
 		});
+
+		this.getFrmFocus().setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		this.getFrmFocus().addWindowListener(new WindowListener() {
+			
+			@Override
+			public void windowOpened(WindowEvent e) {}
+			
+			@Override
+			public void windowIconified(WindowEvent e) {}
+			
+			@Override
+			public void windowDeiconified(WindowEvent e) {}
+			
+			@Override
+			public void windowDeactivated(WindowEvent e) {}
+			
+			@Override
+			public void windowActivated(WindowEvent e) {}
+			
+			@Override
+			public void windowClosing(WindowEvent e) {
+				onQuit();
+			}
+			
+			@Override
+			public void windowClosed(WindowEvent e) {}
+		});
+
+		this.mnQuitter.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				onQuit();
+			}
+		});
 		
 		this.fd.setMosaic(mosaic);
 		
@@ -365,6 +403,14 @@ public class FocusUi extends FocusUiDesign {
 		this.getFd().getPrincipal().requestFocusInWindow();
 	}
 
+	private void onQuit()
+	{
+		int rslt = JOptionPane.showConfirmDialog(getFrmFocus(), "Quitter Focusui ?", "Confirmation de la fermeture", JOptionPane.YES_NO_OPTION);
+		if (rslt == JOptionPane.YES_OPTION) {
+			System.exit(0);
+		}
+	}
+	
 	private void loadStarsSomewhere(String prefix, Double presetRa, Double presetDec, Double presetRadius, Double presetMaxMag)
 	{
 		MosaicStarter dialog = new MosaicStarter(FocusUi.this.getFrmFocus().getOwner(), prefix);

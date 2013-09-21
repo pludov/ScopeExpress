@@ -30,7 +30,7 @@ public class FocusUiDesign {
 	private JFrame frmFocus;
 	protected JMenuBar menuBar;
 	protected JMenu mnfichier;
-	protected JMenu mnQuitter;
+	protected JMenuItem mnQuitter;
 	protected JTabbedPane tabbedPane;
 	protected JPanel imageViewPanel;
 	protected JPanel detailsPanel;
@@ -102,7 +102,7 @@ public class FocusUiDesign {
 		this.mnProjectSave = new JMenuItem("Sauver le projet");
 		this.mnfichier.add(this.mnProjectSave);
 		
-		this.mnQuitter = new JMenu("Quitter");
+		this.mnQuitter = new JMenuItem("Quitter");
 		this.mnfichier.add(this.mnQuitter);
 		
 		this.mnEtoiles = new JMenu("Etoiles");
