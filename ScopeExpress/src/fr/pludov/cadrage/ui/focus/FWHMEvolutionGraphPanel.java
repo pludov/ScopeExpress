@@ -11,15 +11,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.WeakHashMap;
 
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
+import fr.pludov.cadrage.focus.MosaicListener;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.ui.speech.Speaker;
+import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
@@ -27,9 +34,102 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 	public final WeakListenerCollection<GraphPanelListener> listeners = new WeakListenerCollection<GraphPanelListener>(GraphPanelListener.class);
 	private final WeakListenerCollection<HistogramWidgetListeners> histograms = new WeakListenerCollection<FWHMEvolutionGraphPanel.HistogramWidgetListeners>(HistogramWidgetListeners.class);
 
+	/// Les images qui ont été dites
+	private WeakHashMap<Image, Boolean> imageSaid = new WeakHashMap<Image, Boolean>();
+	
 	public FWHMEvolutionGraphPanel(Mosaic focus, GraphPanelParameters filter)
 	{
 		super(focus, filter, false);
+		
+		focus.listeners.addListener(listenerOwner, new MosaicListener() {
+
+			@Override
+			public void imageAdded(Image image, ImageAddedCause cause) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void imageRemoved(Image image) {
+				imageSaid.remove(image);
+			}
+
+			@Override
+			public void starAdded(Star star) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void starRemoved(Star star) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void starOccurenceAdded(final StarOccurence sco) {
+				if (imageSaid.put(sco.getImage(), Boolean.TRUE) != null) return;
+				
+				// TODO Auto-generated method stub
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							Speaker speaker = SpeakerProvider.getSpeaker();
+							ensureDataReady();
+							if (moyenne != null) {
+								Double d = moyenne.getValue(sco.getImage());
+								if (d != null) {
+									double dv = d;
+//									int value = (int)Math.floor(dv);
+//									dv -= value;
+//									dv *= 100;
+									String text = String.format("%.2f", dv);// value + " point " + (int)dv;
+									
+									speaker.enqueue(text + " de focus");
+								}
+							}
+							
+							
+						} catch(EndUserException e) {
+							e.report(FWHMEvolutionGraphPanel.this);
+						}
+					}
+				});
+			}
+
+			@Override
+			public void starOccurenceRemoved(StarOccurence sco) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestAdded(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestRemoved(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			
+		});
 		
 		addComponentListener(new ComponentListener() {
 			
@@ -151,6 +251,8 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 	}
 	
 	List<CurveProvider> curves = null;
+	CurveProvider moyenne = null;
+	
 	// Echelle (determinée lors de l'update)
 	double min, max;
 	double echelle;
@@ -192,7 +294,7 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 		if (add != null) {
 			curvesWithNoMoy.add(add);
 		}
-		CurveProvider moyenne = new CurveProvider(Color.GREEN, 3.0f)
+		moyenne = new CurveProvider(Color.GREEN, 3.0f)
 		{
 			@Override
 			Double getValue(Image image) {
