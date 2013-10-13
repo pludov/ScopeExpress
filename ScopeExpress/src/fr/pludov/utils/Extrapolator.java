@@ -88,7 +88,8 @@ public class Extrapolator {
 					double dlt = dltx * dlty;
 					
 					dltSum += dlt;
-					vSum += dlt * (g.factors[0] * x2 + g.factors[1] * x + g.factors[2] * y2 + g.factors[3] * y + g.factors[4] * xy + g.factors[5]);
+					vSum += dlt * EquationSolver.applyDeg3(g.factors, x, y);
+					//vSum += dlt * (g.factors[0] * x2 + g.factors[1] * x + g.factors[2] * y2 + g.factors[3] * y + g.factors[4] * xy + g.factors[5]);
 				}
 				
 				float v = (float)(vSum / dltSum);
@@ -153,7 +154,8 @@ public class Extrapolator {
 					Grid grid = new Grid();
 					grid.centerx = (gminx + gmaxx) / 2;
 					grid.centery = (gminy + gmaxy) / 2;
-					grid.factors = EquationSolver.findPolynome2d(ptsx.toArray(), ptsy.toArray(), ptsv.toArray());
+					
+					grid.factors = EquationSolver.findPolynome2dDeg3(ptsx.toArray(), ptsy.toArray(), ptsv.toArray());
 					setGrid(gx, gy, grid);
 				}
 			}
