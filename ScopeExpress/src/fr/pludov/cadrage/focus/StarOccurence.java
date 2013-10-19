@@ -42,8 +42,8 @@ public class StarOccurence {
 	int dataX0, dataY0;
 	
 	double fwhm, stddev;
-	double minFwhm, minStddev;
-	double maxFwhm, maxStddev;
+	double minFwhm, minFwhmAngle, minStddev;
+	double maxFwhm, maxFwhmAngle, maxStddev;
 	boolean saturationDetected;
 	double peak;
 	
@@ -77,8 +77,10 @@ public class StarOccurence {
 		this.fwhm = copy.fwhm;
 		this.stddev = copy.stddev;
 		this.maxFwhm = copy.maxFwhm;
+		this.maxFwhmAngle = copy.maxFwhmAngle;
 		this.maxStddev = copy.maxStddev;
 		this.minFwhm = copy.minFwhm;
+		this.minFwhmAngle = copy.minFwhmAngle;
 		this.minStddev = copy.minStddev;
 		this.peak = copy.peak;
 		this.saturationDetected = copy.saturationDetected;
@@ -117,8 +119,10 @@ public class StarOccurence {
 		xsc.setNodeAttribute(result, "peak", this.peak);
 		xsc.setNodeAttribute(result, "stddev", this.stddev);
 		xsc.setNodeAttribute(result, "maxFwhm", this.maxFwhm);
+		xsc.setNodeAttribute(result, "maxFwhmAngle", this.maxFwhmAngle);
 		xsc.setNodeAttribute(result, "maxStddev", this.maxStddev);
 		xsc.setNodeAttribute(result, "minFwhm", this.minFwhm);
+		xsc.setNodeAttribute(result, "minFwhmAngle", this.minFwhmAngle);
 		xsc.setNodeAttribute(result, "minStddev", this.minStddev);
 		xsc.setNodeAttribute(result, "saturationDetected", this.saturationDetected);
 		xsc.setNodeAttribute(result, "picX", this.picX);
@@ -139,8 +143,10 @@ public class StarOccurence {
 		this.fwhm = finder.getFwhm();
 		this.stddev = finder.getStddev();
 		this.minFwhm = finder.getMinFwhm();
+		this.minFwhmAngle = finder.getMinFwhmAngle();
 		this.minStddev = finder.getMinStddev();
 		this.maxFwhm = finder.getMaxFwhm();
+		this.maxFwhmAngle = finder.getMaxFwhmAngle();
 		this.maxStddev = finder.getMaxStddev();
 		this.saturationDetected = finder.isSaturationDetected();
 		this.picX = finder.getPicX();
@@ -504,5 +510,21 @@ public class StarOccurence {
 
 	public boolean isSaturationDetected() {
 		return saturationDetected;
+	}
+
+	public double getMinFwhmAngle() {
+		return minFwhmAngle;
+	}
+
+	public void setMinFwhmAngle(double minFwhmAngle) {
+		this.minFwhmAngle = minFwhmAngle;
+	}
+
+	public double getMaxFwhmAngle() {
+		return maxFwhmAngle;
+	}
+
+	public void setMaxFwhmAngle(double maxFwhmAngle) {
+		this.maxFwhmAngle = maxFwhmAngle;
 	}
 }

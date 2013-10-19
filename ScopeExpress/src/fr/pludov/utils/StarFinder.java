@@ -32,8 +32,9 @@ public class StarFinder {
 	// Etalement
 	double stddev, fwhm;
 	// Sous l'angle le plus gentil...
-	double minStddev, minFwhm;
-	double maxStddev, maxFwhm;
+	double minStddev, minFwhm, minFwhmAngle;
+	double maxStddev, maxFwhm, maxFwhmAngle;
+	
 	// Masque de l'étoile (les pixels considérés comme appartenant)
 	BitMask starMask;
 	
@@ -241,7 +242,7 @@ public class StarFinder {
 		double maxAngle = 0, minAngle = 0;
 		double maxFwhm = 0, minFwhm = 0;
 		double fwhmSum = 0;
-		int stepCount = 16;
+		int stepCount = 128;
 		for(int step = 0; step < stepCount; ++step)
 		{
 			double angle = step * Math.PI / stepCount;
@@ -311,9 +312,10 @@ public class StarFinder {
 		
 		this.maxFwhm = maxFwhm;
 		this.maxStddev = maxFwhm / 2.35;
+		this.maxFwhmAngle = maxAngle;
 		this.minFwhm = minFwhm;
 		this.minStddev = minFwhm / 2.35;
-		
+		this.minFwhmAngle = minAngle;
 		logger.info("found fwhm in " + minFwhm +" ... " + maxFwhm + " min=" + (minAngle * 180/Math.PI) + " max=" + + (maxAngle * 180/Math.PI));
 	}
 	
@@ -417,5 +419,21 @@ public class StarFinder {
 
 	public boolean isSaturationDetected() {
 		return saturationDetected;
+	}
+
+	public double getMinFwhmAngle() {
+		return minFwhmAngle;
+	}
+
+	public void setMinFwhmAngle(double minFwhmAngle) {
+		this.minFwhmAngle = minFwhmAngle;
+	}
+
+	public double getMaxFwhmAngle() {
+		return maxFwhmAngle;
+	}
+
+	public void setMaxFwhmAngle(double maxFwhmAngle) {
+		this.maxFwhmAngle = maxFwhmAngle;
 	}
 }

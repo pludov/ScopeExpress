@@ -107,6 +107,9 @@ public class FocusUi extends FocusUiDesign {
 		final DefectMapGraphPanel defects = new DefectMapGraphPanel(mosaic, starFocusFilter);
 		this.fwhmRepartitionPanel.add(defects);
 		
+		final ShapeGraphPanel shapePanel = new ShapeGraphPanel(mosaic, starFocusFilter);
+		this.shapeRepartitionPanel.add(shapePanel);
+		
 		final StarDetail starDetail = new StarDetail(mosaic);
 		this.starDetailPanel.add(starDetail);
 		
@@ -114,6 +117,14 @@ public class FocusUi extends FocusUiDesign {
 		this.graphParamPanel.add(starFocusFilter);
 		
 		graph.listeners.addListener(this.listenerOwner, new GraphPanelListener() {
+			
+			@Override
+			public void starClicked(Image image, Star star) {
+				sot.select(star, image);
+			}
+		});
+		
+		shapePanel.listeners.addListener(this.listenerOwner, new GraphPanelListener() {
 			
 			@Override
 			public void starClicked(Image image, Star star) {
@@ -137,8 +148,9 @@ public class FocusUi extends FocusUiDesign {
 				Image image = sot.getCurrentImage();
 				graph.setCurrentImage(image);
 				defects.setCurrentImage(image);
+				shapePanel.setCurrentImage(image);
 				setStarDetail();
-				starOccurenceControlPane.setSelectedComponent(starDetailPanel);
+				// starOccurenceControlPane.setSelectedComponent(starDetailPanel);
 			}
 			
 			@Override
@@ -146,8 +158,9 @@ public class FocusUi extends FocusUiDesign {
 				Star star = sot.getCurrentStar();
 				graph.setCurrentStar(star);
 				defects.setCurrentStar(star);
+				shapePanel.setCurrentStar(star);
 				setStarDetail();
-				starOccurenceControlPane.setSelectedComponent(starDetailPanel);
+				// starOccurenceControlPane.setSelectedComponent(starDetailPanel);
 			}
 		});
 		

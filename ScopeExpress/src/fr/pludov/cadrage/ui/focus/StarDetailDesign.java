@@ -44,7 +44,7 @@ public class StarDetailDesign extends JPanel {
 	 * Create the panel.
 	 */
 	public StarDetailDesign() {
-		setLayout(new MigLayout("", "[right][grow][grow][grow][grow]", "[280px:n:280px,fill][][][][][][][][]"));
+		setLayout(new MigLayout("", "[right][grow][grow][grow][grow]", "[120px:280px,grow,fill][][][][][][][][]"));
 		
 		this.graphPanel = new JPanel();
 		add(this.graphPanel, "cell 0 0 5 1,grow");

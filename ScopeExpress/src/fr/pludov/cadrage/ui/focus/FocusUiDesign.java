@@ -52,7 +52,6 @@ public class FocusUiDesign {
 	protected JMenuItem mnPolaire;
 	protected JMenuItem mntmAutre;
 	protected JTabbedPane starOccurenceControlPane;
-	protected JPanel starDetailPanel;
 	protected JPanel graphParamPanel;
 	protected JMenu mnTests;
 	protected JButton scriptAdvanceBton;
@@ -70,6 +69,8 @@ public class FocusUiDesign {
 	protected JMenu mnConfiguration;
 	protected JMenuItem mntmConfiguration;
 	protected JMenuItem mntmSauverConfig;
+	protected JPanel starDetailPanel;
+	protected JPanel shapeRepartitionPanel;
 
 	/**
 	 * Create the application.
@@ -84,7 +85,7 @@ public class FocusUiDesign {
 	private void initialize() {
 		this.frmFocus = new JFrame();
 		this.frmFocus.setTitle("Focus");
-		this.frmFocus.setBounds(100, 100, 606, 471);
+		this.frmFocus.setBounds(100, 100, 606, 756);
 		this.frmFocus.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		this.menuBar = new JMenuBar();
@@ -185,11 +186,11 @@ public class FocusUiDesign {
 		this.detailsPanel = new JPanel();
 		this.detailsPanel.setFocusable(false);
 		this.tabbedPane.addTab("D\u00E9tails", null, this.detailsPanel, null);
-		this.detailsPanel.setLayout(new MigLayout("", "[593px,grow][235px:n:235px,grow]", "[369px,grow]"));
+		this.detailsPanel.setLayout(new MigLayout("", "[593px,grow][235px:n:335px,grow]", "[300px:n,grow,fill][180px:n,grow]"));
 		
 		this.detailsSplitPane = new JSplitPane();
 		this.detailsSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
-		this.detailsPanel.add(this.detailsSplitPane, "cell 0 0,grow");
+		this.detailsPanel.add(this.detailsSplitPane, "cell 0 0 1 2,grow");
 		
 		this.graphsPane = new JTabbedPane(JTabbedPane.TOP);
 		this.detailsSplitPane.setRightComponent(this.graphsPane);
@@ -215,9 +216,14 @@ public class FocusUiDesign {
 		
 		this.starDetailPanel = new JPanel();
 		this.starOccurenceControlPane.addTab("Etoile", null, this.starDetailPanel, null);
+		this.starDetailPanel.setLayout(new BoxLayout(this.starDetailPanel, BoxLayout.X_AXIS));
 		
 		this.graphParamPanel = new JPanel();
 		this.starOccurenceControlPane.addTab("Graphique", null, this.graphParamPanel, null);
+		
+		this.shapeRepartitionPanel = new JPanel();
+		this.detailsPanel.add(this.shapeRepartitionPanel, "cell 1 1,grow");
+		this.shapeRepartitionPanel.setLayout(new BoxLayout(this.shapeRepartitionPanel, BoxLayout.X_AXIS));
 		
 		this.statusPanel = new JPanel();
 		this.frmFocus.getContentPane().add(this.statusPanel, BorderLayout.SOUTH);
