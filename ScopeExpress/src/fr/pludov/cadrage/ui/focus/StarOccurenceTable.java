@@ -3,41 +3,30 @@ package fr.pludov.cadrage.ui.focus;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
-import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
-import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.event.TableColumnModelListener;
+import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
-import javax.swing.table.TableModel;
-
 import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
-import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
@@ -47,12 +36,9 @@ import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.StarOccurenceListener;
 import fr.pludov.cadrage.focus.ExclusionZone;
-import fr.pludov.cadrage.ui.FrameDisplay;
-import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
-import fr.pludov.io.CameraFrame;
 
 public class StarOccurenceTable extends JTable {
 	private static final Logger logger = Logger.getLogger(StarOccurenceTable.class);
@@ -165,7 +151,9 @@ public class StarOccurenceTable extends JTable {
 			
 			@Override
 			public void filterUpdated() {
-				tableModel.fireTableDataChanged();
+				if (tableModel.getRowCount() > 0) {
+					tableModel.fireTableChanged(new TableModelEvent(tableModel, 0, tableModel.getRowCount() - 1));
+				}
 			}
 		});
 		
