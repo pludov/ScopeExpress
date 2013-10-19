@@ -77,7 +77,7 @@ public class DefectMapGraphPanel extends GraphPanel {
 				starX.add(stx);
 				starY.add(sty);
 				// starV.add(1.0 / (so.getAspectRatio() * so.getAspectRatio()));
-				starV.add(so.getFwhm());
+				starV.add(so.getFwhm() * so.getFwhm());
 				// starV.add(-stx * stx -  sty * sty + 65550);
 				// if (starV.size() > 5) break;
 				// [1.0033253925011787, 541.4625024129266, -1.994274110982495, 556.2271069981862, 12.200243146703366]
@@ -85,8 +85,8 @@ public class DefectMapGraphPanel extends GraphPanel {
 			
 		
 			Extrapolator extrapolator = new Extrapolator(0, 0, sx - 1, sy - 1, 1, 1, starX.toArray(), starY.toArray(), starV.toArray());
-			double min = extrapolator.getMin();
-			double max = extrapolator.getMax();
+			double min = 1;
+			double max = 10;
 			double iv = 255.0 / (max - min);
 			for(int y = 0; y < result.getHeight(); ++y)
 			{
@@ -94,6 +94,7 @@ public class DefectMapGraphPanel extends GraphPanel {
 				{
 					float f = extrapolator.getValue(x, y);
 					if (Float.isNaN(f)) continue;
+					f = (float)Math.sqrt(f);
 					double fwhm = (f - min) * iv;
 					if (fwhm < 0) {
 						fwhm = 0;
