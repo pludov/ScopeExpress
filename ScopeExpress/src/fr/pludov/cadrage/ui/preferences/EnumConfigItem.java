@@ -5,7 +5,7 @@ public class EnumConfigItem<ENUM extends Enum<ENUM>> extends ConfigItem {
 	protected final ENUM defaultValue;
 	
 	
-	public EnumConfigItem(Class packageLocation, String storageName, Class<ENUM> enumClass, ENUM defaultValue) {
+	public EnumConfigItem(Class<?> packageLocation, String storageName, Class<ENUM> enumClass, ENUM defaultValue) {
 
 		super(packageLocation, storageName);
 		this.enumClass = enumClass;

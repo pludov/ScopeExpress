@@ -3,11 +3,11 @@ package fr.pludov.cadrage.ui.preferences;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-public class ConfigItem<ENUM extends Enum> {
+public class ConfigItem {
 	Preferences prefs = loadPreferences();
 	protected final String key;
 	
-	public ConfigItem(Class packageLocation, String storageName) {
+	public ConfigItem(Class<?> packageLocation, String storageName) {
 		key = packageLocation.getCanonicalName() + ":" + storageName;
 	}
 	
