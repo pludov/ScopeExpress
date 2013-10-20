@@ -1,9 +1,12 @@
 package fr.pludov.cadrage.ui.focus;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.geom.AffineTransform;
@@ -11,15 +14,68 @@ import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.ButtonGroup;
+import javax.swing.JMenu;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
+import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
+import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
+import fr.pludov.cadrage.ui.utils.EnumMenu;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class ShapeGraphPanel extends GraphPanel {
 	public final WeakListenerCollection<GraphPanelListener> listeners = new WeakListenerCollection<GraphPanelListener>(GraphPanelListener.class);
+
+	public static enum FWHMScale {
+		Scale1x(1),
+		Scale2x(2),
+		Scale3x(3),
+		Scale4x(4),
+		Scale6x(6),
+		Scale8x(8),
+		Scale12x(12);
+		
+		final int factor;
+		
+		FWHMScale(int scale)
+		{
+			this.factor = scale;
+		}
+	};
+	
+	public static enum RatioScale {
+		Scale1x(1.0),
+		ScalePow2(2.0),
+		ScalePow3(3.0),
+		ScalePow4(4.0),
+		ScalePow8(8.0);
+		
+		
+		final double powerFactor;
+
+		RatioScale(double powerFactor)
+		{
+			this.powerFactor = powerFactor;
+		}
+	}
+	
+	public static final EnumConfigItem<FWHMScale> defaultFWHMScale = new EnumConfigItem(ShapeGraphPanel.class, "currentFWHMScale", FWHMScale.class, FWHMScale.Scale2x);
+	public static final EnumConfigItem<RatioScale> defaultRatioScale = new EnumConfigItem(ShapeGraphPanel.class, "currentRatioScale", RatioScale.class, RatioScale.Scale1x);
+	
+	private FWHMScale currentFWHMScale;
+	private RatioScale currentRatioScale;
 	
 	public ShapeGraphPanel(Mosaic focus, GraphPanelParameters filter) {
 		super(focus, filter, true);
+		this.currentFWHMScale = defaultFWHMScale.get();
+		this.currentRatioScale = defaultRatioScale.get();
+		
 		this.addComponentListener(new ComponentListener() {
 
 			@Override
@@ -90,6 +146,48 @@ public class ShapeGraphPanel extends GraphPanel {
 	}
 	
 	@Override
+	public JPopupMenu createPopupMenu(int x, int y) {
+		JPopupMenu result = super.createPopupMenu(x, y);
+		
+		EnumMenu<FWHMScale> fwhmScaleMenu = new EnumMenu<FWHMScale>("Echelle FWHM", FWHMScale.class, currentFWHMScale) {
+			@Override
+			public void enumValueSelected(FWHMScale e) {
+				currentFWHMScale = e;
+				invalidateData();
+				defaultFWHMScale.set(e);
+			}
+			
+			@Override
+			public String getValueTitle(FWHMScale e) {
+				return e.toString();
+			}
+		};
+		
+		
+		result.add(fwhmScaleMenu);
+		
+		EnumMenu<RatioScale> ratioScaleMenu = new EnumMenu<RatioScale>("Echelle aspect", RatioScale.class, currentRatioScale) {
+			@Override
+			public void enumValueSelected(RatioScale e) {
+				currentRatioScale = e;
+				invalidateData();
+				defaultRatioScale.set(e);
+			}
+			
+			@Override
+			public String getValueTitle(RatioScale e) {
+				return e.toString();
+			}
+		};
+		
+		
+		result.add(ratioScaleMenu);
+		
+		
+		return result;
+	}
+	
+	@Override
 	protected void calcData() {
 		starViews = new ArrayList<StarOccurenceView>();
 		super.calcData();
@@ -143,8 +241,6 @@ public class ShapeGraphPanel extends GraphPanel {
 	
 	@Override
 	public void paint(Graphics g) {
-		// TODO Auto-generated method stub
-		// super.paint(g);
 		
 		ensureDataReady();
 
@@ -156,6 +252,10 @@ public class ShapeGraphPanel extends GraphPanel {
 		g2d.fillRect(shiftX, shiftY, imageViewSx, imageViewSy);
 		g2d.setColor(Color.white);
 		g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g2d.setStroke(new BasicStroke((float) 1.0));
+		System.out.println("redraw");
+		AffineTransform currentTransform = g2d.getTransform();
+		
 		for(StarOccurenceView sov : this.starViews)
 		{
 			double x, y;
@@ -171,11 +271,16 @@ public class ShapeGraphPanel extends GraphPanel {
 			
 			double r2 = sov.vx * sov.vx + sov.vy * sov.vy;
 			double r = Math.sqrt(r2);
-			double rmin = r * sov.ratio * sov.ratio;
 			
-			g2d.setTransform(AffineTransform.getRotateInstance(sov.vx, sov.vy, x, y));
+			r *= currentFWHMScale.factor / 2.0;
+			
+			double rmin = r * Math.pow(sov.ratio, currentRatioScale.powerFactor);
+		
+			g2d.setTransform(currentTransform);
+			g2d.transform(AffineTransform.getRotateInstance(sov.vx, sov.vy, x, y));
+			// g2d.setTransform(AffineTransform.getRotateInstance(sov.vx, sov.vy, x, y));
 			g2d.draw(new Ellipse2D.Double(x - r, y - rmin, 2 * r, 2 * rmin));
-			
+			System.out.println("drawing at " + x + ", " + y + " with vector : " + sov.vx + "," + sov.vy);
 		}
 	}
 

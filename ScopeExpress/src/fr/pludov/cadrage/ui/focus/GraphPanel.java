@@ -1,14 +1,15 @@
 package fr.pludov.cadrage.ui.focus;
 
 import java.awt.Color;
+import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
 
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 
 import fr.pludov.cadrage.focus.Image;
@@ -76,7 +77,23 @@ public abstract class GraphPanel extends JPanel {
 			public void mouseClicked(MouseEvent e) {
 				int x = e.getX();
 				int y = e.getY();
-				selectStarUnder(x, y);
+				if (e.getButton() == MouseEvent.BUTTON1) {
+					selectStarUnder(x, y);
+					return;
+				}
+				
+				if (e.getButton() == MouseEvent.BUTTON3) {
+					JPopupMenu contextMenu = createPopupMenu(x, y);
+					if (contextMenu == null || contextMenu.getComponentCount() == 0) return;
+					contextMenu.setLightWeightPopupEnabled(false);
+					
+					
+					Point p = new Point(e.getX(), e.getY());
+					
+					// ... and show it
+					contextMenu.show(GraphPanel.this, p.x, p.y);
+					return;
+				}
 			}
 		});
 		
@@ -160,6 +177,11 @@ public abstract class GraphPanel extends JPanel {
 	}
 	
 	abstract boolean selectStarUnder(int x, int y);
+	
+	public JPopupMenu createPopupMenu(int x, int y)
+	{
+		return new JPopupMenu();
+	}
 	
 
 	public Image getCurrentImage() {
