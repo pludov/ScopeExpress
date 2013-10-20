@@ -440,14 +440,13 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 	}
 	
 	
-	public void paint(Graphics gPaint)
+	public void paint(Graphics gPaintArg)
 	{
-		super.paint(gPaint);
+		super.paint(gPaintArg);
 		
 		ensureDataReady();
 		
-		Graphics2D g2d = (Graphics2D)gPaint;
-
+		Graphics2D g2d = (Graphics2D)gPaintArg.create();
 		int height = getHeight();
 		int width = getWidth();
 		
@@ -464,14 +463,14 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 				
 				if (image == currentImage)
 				{
-					gPaint.setColor(Color.BLUE);
+					g2d.setColor(Color.BLUE);
 					g2d.setStroke(new BasicStroke(2.0f));
 
 					
 					g2d.drawLine(xint, 0, xint, height - 1);
 				}
 
-				gPaint.setColor(cp.color);
+				g2d.setColor(cp.color);
 				g2d.setStroke(new BasicStroke(cp.width));
 				
 
@@ -484,10 +483,10 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 					double curY = height - (curVal - min) * echelle;
 
 					if (hasPrevious) {
-						gPaint.drawLine((int)Math.round(curX), (int)Math.round(curY), (int)Math.round(prevx), (int)Math.round(prevy));
+						g2d.drawLine((int)Math.round(curX), (int)Math.round(curY), (int)Math.round(prevx), (int)Math.round(prevy));
 					}
 					
-					gPaint.drawOval((int)Math.round(curX) - 2, (int)Math.round(curY) - 2, 4, 4);
+					g2d.drawOval((int)Math.round(curX) - 2, (int)Math.round(curY) - 2, 4, 4);
 					
 					prevx = curX;
 					prevy = curY;
