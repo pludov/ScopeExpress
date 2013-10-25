@@ -415,10 +415,10 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					double [] lowerRight = new double [] { 0.5, 0.5 };
 					double [] lowerRightRaDec = new double[2];
 					
-					mip.imageToMosaic(0.5 * image.getWidth() * upperLeft[0], 0.5 * image.getHeight() * upperLeft[1], upperLeftRaDec);
+					mip.imageToMosaic(image.getWidth() * upperLeft[0], image.getHeight() * upperLeft[1], upperLeftRaDec);
 					mosaic.getSkyProjection().unproject(upperLeftRaDec);
 
-					mip.imageToMosaic(0.5 * image.getWidth() * lowerRight[0], 0.5 * image.getHeight() * lowerRight[1], lowerRightRaDec);
+					mip.imageToMosaic(image.getWidth() * lowerRight[0], image.getHeight() * lowerRight[1], lowerRightRaDec);
 					mosaic.getSkyProjection().unproject(lowerRightRaDec);
 
 					double diagDegreeDist = SkyProjection.getDegreeDistance(upperLeftRaDec, lowerRightRaDec);
