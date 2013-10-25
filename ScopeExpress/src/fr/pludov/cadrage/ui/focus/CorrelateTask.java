@@ -144,12 +144,17 @@ public class CorrelateTask extends BackgroundTask {
 //				}
 //			}
 //			
+			// FIXME: constant * capteur size / focal
+			double imageSizeInDeg = 57.3 * 22.2 / 610.0;
+			imageSizeInDeg = 57.3 * 22.2 / 1280.0;
+			// Le 2 correspond à la division due à la matrice de bayer
+			double imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
 			
 			referenceStars = this.mosaic.calcCorrelatedImages();
 			
 			if (referenceStars.isEmpty()) {
 				// Cas simple, c'est la première image de la mosaique
-				parameter.setCorrelated(new SkyProjection(1.0));
+				parameter.setCorrelated(new SkyProjection(imagePixSizeInDeg * 3600));
 				return;
 			}
 			
@@ -158,10 +163,6 @@ public class CorrelateTask extends BackgroundTask {
 				throw new TaskException("Il n'y a pas d'étoiles disponibles pour la correlation");
 			}
 
-			// FIXME: constant * capteur size / focal
-			double imageSizeInDeg = 57.3 * 22.2 / 610.0;
-			// Le 2 correspond à la division due à la matrice de bayer
-			double imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
 
 			if (this.mosaic.getSkyProjection() != null) {
 				// On veut connaitre la taille d'un pixel de la projection (en degrés)
