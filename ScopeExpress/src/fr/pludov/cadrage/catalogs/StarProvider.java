@@ -60,6 +60,8 @@ public class StarProvider {
 		double [] star2d = new double[2];
 		double [] starRaDec = new double[2];
 		
+		double year = System.currentTimeMillis() / (365.25 * 86400000) + 1970;		
+		
 		// Ouverture en radian
 		double radius = Math.PI * angle / 180.0;
 		
@@ -96,8 +98,10 @@ public class StarProvider {
 							continue;
 						}
 						
-						starRaDec[0] = starFile.getRaCorrected(2013);
-						starRaDec[1] = starFile.getDecCorrected(2013);
+						// FIXME: la date de quoi ?
+
+						starRaDec[0] = starFile.getRaCorrected(year);
+						starRaDec[1] = starFile.getDecCorrected(year);
 //						// Mise à jour pour correspondre à la precession
 //						{	
 //						    double m,n,t;

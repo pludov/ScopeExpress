@@ -41,7 +41,7 @@ public class StarFile extends TableFile {
 		return getDouble(166, 177);
 	}
 	
-	double getRaCorrected(int year)
+	double getRaCorrected(double year)
 	{
 		double ra = getRa();
 		double raMotion = getDouble(42, 48);
@@ -57,7 +57,7 @@ public class StarFile extends TableFile {
 		
 	}
 	
-	double getDecCorrected(int year)
+	double getDecCorrected(double year)
 	{
 		double dec = getDec();
 		double decMotion = getDouble(50, 56);
