@@ -263,6 +263,14 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 				update();
 				speachLastImage();
 			}
+			
+			@Override
+			public void onFocalChanged() {
+			}
+			
+			@Override
+			public void onPixelSizeChanged() {
+			}
 		});
 		
 		update();

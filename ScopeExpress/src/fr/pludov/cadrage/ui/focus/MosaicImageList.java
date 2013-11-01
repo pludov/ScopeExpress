@@ -55,6 +55,51 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				return ile.getTarget().getPath().getName();
 			}
 		},
+		
+		new ColumnDefinition("Focale", Double.class, 30) {
+			@Override
+			public Object getValue(MosaicImageListEntry ile) {
+				MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+				if (mip == null) return null;
+				return mip.getFocal();
+			}
+			@Override
+			public void setValue(MosaicImageListEntry ile, Object rv) {
+				Double v = (Double)rv;
+				try {
+					if (v == null) throw new EndUserException("Valeur obligatoire");
+					
+					MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+					mip.setFocal(v);
+				} catch(EndUserException e) {
+					e.report(MosaicImageList.this);
+				}
+			}
+
+		},
+		
+		new ColumnDefinition("Ech", Double.class, 30) {
+			@Override
+			public Object getValue(MosaicImageListEntry ile) {
+				MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+				if (mip == null) return null;
+				return mip.getPixelSize();
+			}
+			
+			@Override
+			public void setValue(MosaicImageListEntry ile, Object rv) {
+				Double v = (Double)rv;
+				try {
+					if (v == null) throw new EndUserException("Valeur obligatoire");
+					
+					MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+					mip.setPixelSize(v);
+				} catch(EndUserException e) {
+					e.report(MosaicImageList.this);
+				}
+			}
+		}.setEditable(true),
+		
 		new ColumnDefinition("Date", Date.class, 80) {
 			@Override
 			public Object getValue(MosaicImageListEntry ile) {

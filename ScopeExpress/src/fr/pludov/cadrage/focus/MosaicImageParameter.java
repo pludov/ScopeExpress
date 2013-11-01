@@ -10,6 +10,12 @@ public class MosaicImageParameter {
 
 	final Image image;
 	final Mosaic mosaic;
+
+	/// Taille des pixels en um
+	double pixelSize;
+	
+	/// Focale en mm
+	double focal;
 	
 	// Positionnement de l'image (mosaic 3D vers image)
 	private SkyProjection projection;
@@ -17,9 +23,11 @@ public class MosaicImageParameter {
 	// Etat du positionnement de l'image
 	boolean isCorrelated;
 	
-	public MosaicImageParameter(Mosaic mosaic, Image image) {
+	public MosaicImageParameter(Mosaic mosaic, Image image, double pixelSize, double focal) {
 		this.mosaic = mosaic;
 		this.image = image;
+		this.pixelSize = pixelSize;
+		this.focal = focal;
 		this.setProjection(new SkyProjection(1.0));
 		this.isCorrelated = false;
 	}
@@ -94,5 +102,21 @@ public class MosaicImageParameter {
 
 	public Image getImage() {
 		return image;
+	}
+
+	public double getPixelSize() {
+		return pixelSize;
+	}
+
+	public void setPixelSize(double pixelSize) {
+		this.pixelSize = pixelSize;
+	}
+
+	public double getFocal() {
+		return focal;
+	}
+
+	public void setFocal(double focal) {
+		this.focal = focal;
 	}
 }

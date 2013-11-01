@@ -28,15 +28,14 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		abstract void set(ConfigurationEdit ce, DATA d);
 	}
 	
-	static abstract class ConfigItemDeg extends ConfigItem<Double> {
-		
+	static abstract class ConfigItemDouble extends ConfigItem<Double> {
 		final StringConfigItem stringConfigItem;
 		final double defaultValue;
 		
-		ConfigItemDeg(String name, double defaultValue)
+		ConfigItemDouble(String name, double defaultValue)
 		{
 			this.defaultValue = defaultValue;
-			this.stringConfigItem = new StringConfigItem(Configuration.class, name, Utils.formatDegMinSec(defaultValue));
+			this.stringConfigItem = new StringConfigItem(Configuration.class, name, formatValue(defaultValue));
 		}
 		
 		@Override
@@ -44,7 +43,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		{
 			Double result;
 			try {
-				result = Utils.getDegFromInput(stringConfigItem.get());
+				result = parseValue(stringConfigItem.get());
 			} catch(NumberFormatException e) {
 				result = null;
 			}
@@ -57,9 +56,17 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		@Override
 		void setSaved(Double o)
 		{
-			stringConfigItem.set(Utils.formatDegMinSec(o));
+			stringConfigItem.set(formatValue(o));
+		}
+
+		String formatValue(double d) {
+			return Double.toString(d);
 		}
 		
+		Double parseValue(String str)
+		{
+			return Double.parseDouble(str);
+		}
 		
 		abstract Double get(Configuration config);
 		abstract void set(Configuration config, Double o);
@@ -73,7 +80,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			try {
 				JTextField textField = getInputField(ce);
 				String currentValue = textField.getText();
-				Double d = Utils.getDegFromInput(currentValue);
+				Double d = parseValue(currentValue);
 			
 				if (d == null) {
 					throw new EndUserException("Valeur invalide");
@@ -98,7 +105,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		final void set(ConfigurationEdit ce, Double value)
 		{
 			JTextField textField = getInputField(ce);
-			textField.setText(Utils.formatDegMinSec(value));
+			textField.setText(formatValue(value));
 			JLabel error = getErrorField(ce);
 			error.setVisible(false);
 			error.setToolTipText("");
@@ -116,9 +123,30 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 				}
 			});
 		}
+
 	}
 	
-	static ConfigItem [] configItems = {
+	static abstract class ConfigItemDeg extends ConfigItemDouble {
+		
+		
+		ConfigItemDeg(String name, double defaultValue)
+		{
+			super(name, defaultValue);
+		}
+		
+		@Override
+		Double parseValue(String str) {
+			return Utils.getDegFromInput(str);
+		}
+		
+		@Override
+		String formatValue(double d) {
+			return Utils.formatDegMinSec(d);
+		}
+		
+	}
+	
+	static ConfigItem<?> [] configItems = {
 		new ConfigItemDeg("latitude", Utils.getDegFromInput("+48° 0' 0\"")) {
 
 			@Override
@@ -162,9 +190,51 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			JLabel getErrorField(ConfigurationEdit e) {
 				return e.fieldLongitudeErr;
 			}
-		}
-		
-			
+		},
+		new ConfigItemDouble("echantillonage", 5.0) {
+
+			@Override
+			Double get(Configuration config) {
+				return config.getPixelSize();
+			}
+
+			@Override
+			void set(Configuration config, Double o) {
+				config.setPixelSize(o);
+			}
+
+			@Override
+			JTextField getInputField(ConfigurationEdit e) {
+				return e.fieldPixSize;
+			}
+
+			@Override
+			JLabel getErrorField(ConfigurationEdit e) {
+				return e.fieldPixSizeErr;
+			}
+		},
+		new ConfigItemDouble("focal", 600) {
+
+			@Override
+			Double get(Configuration config) {
+				return config.getFocal();
+			}
+
+			@Override
+			void set(Configuration config, Double o) {
+				config.setFocal(o);
+			}
+
+			@Override
+			JTextField getInputField(ConfigurationEdit e) {
+				return e.fieldFocal;
+			}
+
+			@Override
+			JLabel getErrorField(ConfigurationEdit e) {
+				return e.fieldFocalErr;
+			}
+		},
 	};
 	
 	public ConfigurationEdit(Window parent) {

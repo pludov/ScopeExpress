@@ -29,6 +29,13 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JLabel fieldLongitudeErr;
 	private JButton okButton;
 	private JButton cancelButton;
+	protected JPanel cameraPanel;
+	protected JLabel lblPixSize;
+	protected JTextField fieldPixSize;
+	protected JLabel fieldPixSizeErr;
+	protected JLabel lblFocal;
+	protected JTextField fieldFocal;
+	protected JLabel fieldFocalErr;
 
 	/**
 	 * Launch the application.
@@ -59,6 +66,39 @@ public class ConfigurationEditDesign extends JDialog {
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		contentPanel.add(this.tabbedPane);
 		
+		this.cameraPanel = new JPanel();
+		this.cameraPanel.setToolTipText("Param\u00E8tres de l'imageur");
+		this.tabbedPane.addTab("Imageur", null, this.cameraPanel, null);
+		this.cameraPanel.setLayout(new MigLayout("", "[grow][grow][]", "[][][grow]"));
+		
+		this.lblPixSize = new JLabel("Taille des pixels");
+		this.lblPixSize.setToolTipText("Taille en um des pixels");
+		this.cameraPanel.add(this.lblPixSize, "cell 0 0,alignx right");
+		
+		this.fieldPixSize = new JTextField();
+		this.fieldPixSize.setToolTipText("Taille des pixels en um");
+		this.cameraPanel.add(this.fieldPixSize, "cell 1 0,growx");
+		this.fieldPixSize.setColumns(10);
+		
+		this.fieldPixSizeErr = new JLabel("(!)");
+		this.fieldPixSizeErr.setForeground(Color.RED);
+		this.fieldPixSizeErr.setFont(new Font("Tahoma", Font.BOLD, 10));
+		this.cameraPanel.add(this.fieldPixSizeErr, "cell 2 0");
+		
+		this.lblFocal = new JLabel("Focale");
+		this.lblFocal.setToolTipText("Focale de l'objectif en mm");
+		this.cameraPanel.add(this.lblFocal, "cell 0 1,alignx trailing");
+		
+		this.fieldFocal = new JTextField();
+		this.fieldFocal.setToolTipText("Focale de l'objectif en mm");
+		this.cameraPanel.add(this.fieldFocal, "cell 1 1,growx");
+		this.fieldFocal.setColumns(10);
+		
+		this.fieldFocalErr = new JLabel("(!)");
+		this.fieldFocalErr.setForeground(Color.RED);
+		this.fieldFocalErr.setFont(new Font("Tahoma", Font.BOLD, 10));
+		this.cameraPanel.add(this.fieldFocalErr, "cell 2 1");
+				
 		this.geoPanel = new JPanel();
 		this.tabbedPane.addTab("G\u00E9ographie", null, this.geoPanel, null);
 		this.geoPanel.setLayout(new MigLayout("", "[][grow][]", "[][]"));

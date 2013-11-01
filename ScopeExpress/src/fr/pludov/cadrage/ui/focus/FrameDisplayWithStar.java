@@ -188,6 +188,14 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				
 				scheduleRepaint(true);
 			}
+			
+			@Override
+			public void onFocalChanged() {
+			}
+			
+			@Override
+			public void onPixelSizeChanged() {
+			}
 		};
 		
 	}

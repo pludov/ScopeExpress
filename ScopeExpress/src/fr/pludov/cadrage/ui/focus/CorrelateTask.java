@@ -147,6 +147,8 @@ public class CorrelateTask extends BackgroundTask {
 			// FIXME: constant * capteur size / focal
 			double imageSizeInDeg = 57.3 * 22.2 / 610.0;
 			imageSizeInDeg = 57.3 * 22.2 / 1280.0;
+			imageSizeInDeg = 57.3 * this.image.getWidth() * parameter.getPixelSize() / (1000 * parameter.getFocal());
+			
 			// Le 2 correspond à la division due à la matrice de bayer
 			double imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
 			

@@ -8,6 +8,9 @@ public class Configuration {
 	private double latitude;
 	private double longitude;
 	
+	private double focal;
+	private double pixelSize;
+	
 	public Configuration() {
 	}
 
@@ -42,5 +45,22 @@ public class Configuration {
 		}
 		
 	}
+
+	public double getFocal() {
+		return focal;
+	}
+
+	public void setFocal(double focal) {
+		this.focal = focal;
+	}
+
+	public double getPixelSize() {
+		return pixelSize;
+	}
+
+	public void setPixelSize(double pixelSize) {
+		this.pixelSize = pixelSize;
+	}
+
 	
 }

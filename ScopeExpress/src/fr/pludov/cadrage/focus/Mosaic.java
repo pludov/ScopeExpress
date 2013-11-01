@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 
+import fr.pludov.cadrage.ui.focus.Configuration;
 import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.utils.XmlSerializationContext;
@@ -25,6 +26,7 @@ public class Mosaic {
 	final List<Image> images;
 	final List<Star> stars;
 	final List<ExclusionZone> exclusionZones;
+	/// Chaque image a ses paramètre ici
 	final IdentityHashMap<Image, MosaicImageParameter> imageMosaicParameter;
 	final Map<Star, Map<Image, StarOccurence>> occurences;
 	final Map<String, PointOfInterest> pointOfInterest;
@@ -275,7 +277,12 @@ public class Mosaic {
 			throw new RuntimeException("image already present");
 		}
 		images.add(image);
-		this.imageMosaicParameter.put(image,  new MosaicImageParameter(this, image));
+		
+		/// FIXME: déduire la taille en pixel des caractéristiques de l'image 
+		double pixSize = Configuration.getCurrentConfiguration().getPixelSize();
+		double focal = Configuration.getCurrentConfiguration().getFocal();
+		
+		this.imageMosaicParameter.put(image,  new MosaicImageParameter(this, image, pixSize, focal));
 		listeners.getTarget().imageAdded(image, cause);
 		
 //		for(Star star : stars)
