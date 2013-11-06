@@ -12,6 +12,8 @@ import org.apache.commons.collections.primitives.DoubleList;
 import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.focus.SkyProjection;
+import fr.pludov.cadrage.ui.focus.Configuration;
+import fr.pludov.cadrage.utils.EndUserException;
 
 /**
  * Dec is -90/90 (s/n)
@@ -68,15 +70,17 @@ public class StarProvider {
 		double minZ = Math.cos(radius);
 		
 		try {
-
-			File origin = new File("C:\\Astro\\Catalogue");
+			Configuration currentConf = Configuration.getCurrentConfiguration();
+			File tyc2MainFic = currentConf.getTycho2Dat();
+			if (tyc2MainFic == null) throw new EndUserException("Catalogue tycho-2 non configuré.");
+			
 			IndexFile tf = new IndexFile();
-			tf.open(new File(origin, "index.dat"));
+			tf.open(currentConf.getTycho2Index());
 			StarFile starFile = new StarFile();
-			starFile.open(new File(origin, "tyc2.dat"));
+			starFile.open(currentConf.getTycho2Dat());
 			
 			SupplFile supplFile = new SupplFile();
-			supplFile.open(new File(origin, "suppl_1.dat"));
+			supplFile.open(currentConf.getTycho2Suppl1());
 			
 			boolean wantProceed = false;
 			long proceedFromCatalog = 1;

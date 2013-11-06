@@ -1,7 +1,6 @@
 package fr.pludov.cadrage.ui.focus;
 
-import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
-import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import java.io.File;
 
 public class Configuration {
 
@@ -10,6 +9,8 @@ public class Configuration {
 	
 	private double focal;
 	private double pixelSize;
+
+	private String starCatalogPathTyc2;
 	
 	public Configuration() {
 	}
@@ -62,5 +63,49 @@ public class Configuration {
 		this.pixelSize = pixelSize;
 	}
 
+	public String getStarCatalogPathTyc2() {
+		return starCatalogPathTyc2;
+	}
+
+	public void setStarCatalogPathTyc2(String starCatalogPathTyc2) {
+		this.starCatalogPathTyc2 = starCatalogPathTyc2;
+	}
+
+	public File getTycho2Index()
+	{
+		if (starCatalogPathTyc2 == null || "".equals(starCatalogPathTyc2)) return null;
+		return new File(new File(starCatalogPathTyc2).getParentFile(), "index.dat");
+	}
+
+	public File getTycho2Suppl1()
+	{
+		if (starCatalogPathTyc2 == null || "".equals(starCatalogPathTyc2)) return null;
+		return new File(new File(starCatalogPathTyc2).getParentFile(), "suppl_1.dat");
+	}
+
+	public File getTycho2Suppl2()
+	{
+		if (starCatalogPathTyc2 == null || "".equals(starCatalogPathTyc2)) return null;
+		return new File(new File(starCatalogPathTyc2).getParentFile(), "suppl_2.dat");
+	}
+
+	public File getTycho2Dat()
+	{
+		if (starCatalogPathTyc2 == null || "".equals(starCatalogPathTyc2)) return null;
+		return new File(starCatalogPathTyc2);
+	}
 	
+	private static File applicationDir;
+	public synchronized static File getApplicationDataFolder()
+	{
+		if (applicationDir != null) return applicationDir;
+		
+		String target = System.getProperty("user.home");
+		File dir = new File(target, ".focusui");
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		applicationDir = dir;
+		return applicationDir;
+	}
 }

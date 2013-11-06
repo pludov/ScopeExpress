@@ -3,13 +3,17 @@ package fr.pludov.cadrage.ui.focus;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
+import javax.swing.filechooser.FileFilter;
 
-import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
-import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
+import fr.pludov.cadrage.catalogs.Tycho2Fetch;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.ui.utils.SyncTask;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.EndUserException;
 
@@ -26,6 +30,89 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		abstract void setupEditor(ConfigurationEdit ce);
 		abstract DATA get(ConfigurationEdit ce) throws EndUserException;
 		abstract void set(ConfigurationEdit ce, DATA d);
+	}
+	
+	static abstract class ConfigItemString extends ConfigItem<String> {
+		final StringConfigItem stringConfigItem;
+		final String defaultValue;
+		
+		ConfigItemString(String name, String defaultValue)
+		{
+			this.defaultValue = defaultValue;
+			this.stringConfigItem = new StringConfigItem(Configuration.class, name, defaultValue);
+		}
+		
+		@Override
+		String getSaved() {
+			String result = stringConfigItem.get();
+			if (result == null) {
+				return defaultValue;
+			}
+			return result;
+		}
+		
+		@Override
+		void setSaved(String o) {
+			stringConfigItem.set(o);
+		}
+	
+		abstract JTextField getInputField(ConfigurationEdit e);
+		abstract JLabel getErrorField(ConfigurationEdit e);
+
+		@Override
+		final String get(ConfigurationEdit ce) throws EndUserException
+		{
+			EndUserException errorMessage = null;
+			try {
+				JTextField textField = getInputField(ce);
+				String currentValue = textField.getText();
+				String d = currentValue;
+			
+				if (d == null) {
+					throw new EndUserException("Valeur invalide");
+				}
+				return d;
+			} catch(EndUserException e) {
+				errorMessage = e;
+				throw e;
+			} finally {
+				JLabel error = getErrorField(ce);
+				if (error != null) {
+					if (errorMessage != null) {
+						error.setVisible(true);
+						error.setToolTipText(errorMessage.getMessage());
+					} else {
+						error.setVisible(false);
+						error.setToolTipText("");
+					}
+				}
+			}
+		}
+		
+		@Override
+		final void set(ConfigurationEdit ce, String value)
+		{
+			JTextField textField = getInputField(ce);
+			textField.setText(value);
+			JLabel error = getErrorField(ce);
+			if (error != null) {
+				error.setVisible(false);
+				error.setToolTipText("");
+			}
+		}
+
+		@Override
+		void setupEditor(final ConfigurationEdit ce) {
+			JTextField field = getInputField(ce);
+			Utils.addTextFieldChangeListener(field, new Runnable() {
+				@Override
+				public void run() {
+					try {
+						get(ce);
+					} catch(EndUserException e) {}
+				}
+			});
+		}
 	}
 	
 	static abstract class ConfigItemDouble extends ConfigItem<Double> {
@@ -145,6 +232,30 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		}
 		
 	}
+
+	static ConfigItem<?> tycho2 = new ConfigItemString("tycho2Path", "") {
+
+		@Override
+		String get(Configuration config) {
+			return config.getStarCatalogPathTyc2();
+		}
+
+		@Override
+		void set(Configuration config, String o) {
+			config.setStarCatalogPathTyc2(o);
+		}
+
+		@Override
+		JTextField getInputField(ConfigurationEdit e) {
+			return e.starCatalogPathTyc2Field;
+		}
+
+		@Override
+		JLabel getErrorField(ConfigurationEdit e) {
+			return null;
+		}
+	};
+
 	
 	static ConfigItem<?> [] configItems = {
 		new ConfigItemDeg("latitude", Utils.getDegFromInput("+48° 0' 0\"")) {
@@ -235,6 +346,8 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 				return e.fieldFocalErr;
 			}
 		},
+		
+		tycho2
 	};
 	
 	public ConfigurationEdit(Window parent) {
@@ -243,6 +356,24 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		{
 			i.setupEditor(this);
 		}
+		
+		setupBrowseButton(starCatalogPathTyc2Field, starCatalogPathTyc2Browse,
+				"Trouver l'emplacement du fichier tyc2.dat",
+				"Fichier de données Tycho-2 (tyc2.dat)",
+				"tyc2\\.dat");
+		
+		createTaskButton(this.starCatalogPathTyc2Download, "Téléchargement de tyc2.dat", new SyncTaskFactory() {
+			@Override
+			public SyncTask createWorker() {
+				return new Tycho2Fetch() {
+					@Override
+					protected void done() {
+						ConfigurationEdit.this.starCatalogPathTyc2Field.setText(getResult().toString());
+					}
+				};
+			}
+			
+		});
 		
 		getOkButton().addActionListener(new ActionListener() {
 			
@@ -262,6 +393,90 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				ConfigurationEdit.this.setVisible(false);
+			}
+		});
+	}
+	
+	private void setupBrowseButton(final JTextField starCatalogPathTyc2Field, JButton starCatalogPathTyc2Browse, 
+									final String title,
+									final String fileDescription,
+									final String regex) {
+		starCatalogPathTyc2Browse.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser chooser = new JFileChooser();
+				chooser.setMultiSelectionEnabled(false);
+				chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				chooser.setDialogTitle(title);
+		
+				String lastOpenLocationValue = starCatalogPathTyc2Field.getText();
+				File currentDir = "".equals(lastOpenLocationValue) ? null : new File(lastOpenLocationValue);
+				chooser.setSelectedFile(currentDir);
+				chooser.setFileFilter(new FileFilter() {
+					
+					@Override
+					public String getDescription() {
+						return fileDescription;
+					}
+					
+					@Override
+					public boolean accept(File f) {
+						if (f.isDirectory()) return true;
+						
+						return f.getName().toLowerCase().matches(regex);
+					}
+				});
+				if (chooser.showOpenDialog(starCatalogPathTyc2Field.getParent()) != JFileChooser.APPROVE_OPTION) return;
+				
+				currentDir = chooser.getSelectedFile();
+				starCatalogPathTyc2Field.setText(currentDir.toString());
+			}
+		});
+		
+	}
+
+	interface SyncTaskFactory
+	{
+		public SyncTask createWorker();
+	}
+
+	private void createTaskButton(final JButton button, final String title, final SyncTaskFactory factory)
+	{
+		button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+//				final ProgressMonitor progressMonitor = new ProgressMonitor(ConfigurationEdit.this,
+//                        title,
+//                        "", 0, 1000);
+				final SyncTask fetcher = factory.createWorker();
+//				ConfigurationEdit.this.setEnabled(false);
+//				fetcher.addPropertyChangeListener(new PropertyChangeListener() {
+//					@Override
+//					public void propertyChange(PropertyChangeEvent evt) {
+//						if ("progress".equals(evt.getPropertyName()) ) {
+//				            int progress = (Integer) evt.getNewValue();
+//				            progressMonitor.setProgress(progress);
+//				            String message = String.format("Completed %d%%.\n", progress);
+//				            progressMonitor.setNote(message);
+//				            
+//				        }
+//			            if (progressMonitor.isCanceled() || fetcher.isDone()) {
+//
+//			                if (progressMonitor.isCanceled()) {
+//			                	fetcher.cancel(true);
+//			                	button.setEnabled(true);
+//			                }
+//			                progressMonitor.close();
+//			                ConfigurationEdit.this.setEnabled(false);
+//			            }
+//				 
+//					}
+//				});
+//				
+//				
+//				fetcher.execute();
+				fetcher.execute(ConfigurationEdit.this);
 			}
 		});
 	}

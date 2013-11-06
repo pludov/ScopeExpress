@@ -36,6 +36,11 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JLabel lblFocal;
 	protected JTextField fieldFocal;
 	protected JLabel fieldFocalErr;
+	protected JPanel panel;
+	protected JLabel lblRpertoireTycho;
+	protected JTextField starCatalogPathTyc2Field;
+	protected JButton starCatalogPathTyc2Browse;
+	protected JButton starCatalogPathTyc2Download;
 
 	/**
 	 * Launch the application.
@@ -126,6 +131,24 @@ public class ConfigurationEditDesign extends JDialog {
 		this.fieldLongitudeErr.setForeground(Color.RED);
 		this.fieldLongitudeErr.setFont(new Font("Tahoma", Font.BOLD, 10));
 		this.geoPanel.add(this.fieldLongitudeErr, "cell 2 1");
+		
+		this.panel = new JPanel();
+		this.tabbedPane.addTab("Fichiers", null, this.panel, null);
+		this.panel.setLayout(new MigLayout("", "[][grow][][]", "[]"));
+		
+		this.lblRpertoireTycho = new JLabel("R\u00E9pertoire Tycho-2");
+		this.panel.add(this.lblRpertoireTycho, "cell 0 0,alignx trailing");
+		
+		this.starCatalogPathTyc2Field = new JTextField();
+		this.panel.add(this.starCatalogPathTyc2Field, "cell 1 0,growx");
+		this.starCatalogPathTyc2Field.setColumns(10);
+		
+		this.starCatalogPathTyc2Browse = new JButton("...");
+		this.starCatalogPathTyc2Browse.setToolTipText("Permet de rechercher l'emplacement des fichiers pour tycho2");
+		this.panel.add(this.starCatalogPathTyc2Browse, "cell 2 0,aligny bottom");
+		
+		this.starCatalogPathTyc2Download = new JButton("T\u00E9l\u00E9charger");
+		this.panel.add(this.starCatalogPathTyc2Download, "cell 3 0");
 		{
 			JPanel buttonPane = new JPanel();
 			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
