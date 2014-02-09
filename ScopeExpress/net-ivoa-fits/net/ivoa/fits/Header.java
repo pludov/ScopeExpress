@@ -735,7 +735,8 @@ public class Header implements FitsElement {
 
             String key = fcard.getKey();
             if (key != null && fcard.isKeyValuePair() && cards.containsKey(key)) {
-            	throw new FitsExceptionMultipleKey(key);
+            	continue;
+            	// throw new FitsExceptionMultipleKey(key);
             }
             if (cbuf.substring(0, 8).trim().equals(END)) {
                 break; // Out of reading the header.
