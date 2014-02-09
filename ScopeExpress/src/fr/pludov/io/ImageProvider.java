@@ -20,12 +20,18 @@ import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 import javax.imageio.ImageIO;
+
+import net.ivoa.fits.Fits;
+import net.ivoa.fits.data.Data;
+import net.ivoa.fits.hdu.BasicHDU;
+import net.ivoa.fits.hdu.ImageHDU;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
@@ -150,7 +156,61 @@ public class ImageProvider {
 	
 	private static CameraFrame doReadImage(final File file) throws IOException
 	{
-		if (file.getName().toLowerCase().matches(".*\\.cr.")) {
+		if (file.getName().toLowerCase().matches(".*\\.fit(|s)")) {
+			try {
+				Fits fits = new Fits(file);
+				BasicHDU basicHDU = fits.getHDU(0);
+				if (basicHDU instanceof ImageHDU) {
+					ImageHDU imageHDU = (ImageHDU) basicHDU;
+					
+					int [] axes = imageHDU.getAxes();
+					int width = axes[1];
+					int height = axes[0];
+					
+					Data data = imageHDU.getData();
+					Object uncasteddatas = data.getData();
+					char [] datas = null;
+					if (uncasteddatas instanceof char[][]) {
+						char [][] sdatas = (char[][]) uncasteddatas;
+						datas = new char[width * height];
+						int i = 0;
+						for(int y = 0; y < height; ++y) {
+							char [] sline = sdatas[y];
+							for(int x = 0; x < width; ++x) {
+								datas[i++] = sline[x]; 
+							}
+						}
+					} else if (uncasteddatas instanceof short[][]) {
+						short [][] sdatas = (short[][]) uncasteddatas;
+						datas = new char[width * height];
+						int i = 0;
+						for(int y = 0; y < height; ++y) {
+							short [] sline = sdatas[y];
+							for(int x = 0; x < width; ++x) {
+								datas[i++] = (char)((((int)sline[x]) - Short.MIN_VALUE) / 2); 
+							}
+						}
+					}
+					
+					if (datas != null) {
+						CameraFrame result = new CameraFrame();
+						result.buffer = (char[])datas;
+						result.width = width;
+						result.height = height;
+						// FIXME : en dur, aller chercher dans les méta du fits !
+						result.isCfa = true;
+						result.scanPixelsForHistogram();
+						
+						return result;
+					
+					}
+
+				}
+				throw new Exception("c'est pas fini !");
+			} catch(Exception e) {
+				throw new IOException("Echec de lecture FITS", e);
+			}
+		} else if (file.getName().toLowerCase().matches(".*\\.cr.")) {
 			try {
 				File library = Utils.locateDll("libjrawlib.dll");
 

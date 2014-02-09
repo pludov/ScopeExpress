@@ -328,12 +328,13 @@ public class ActionMonitor implements ActionListener {
 
 			for(final File newItem : m.newItems)
 			{
-				if (!newItem.getName().toLowerCase().matches(".*\\.cr.")) {
+				if (!newItem.getName().toLowerCase().matches(".*\\.(cr.|fit|fits)")) {
 					continue;
 				}
 
 				logger.info("Detected new file : " + newItem);						
-
+				Thread.sleep(250);
+				
 				// Essaye de locker le fichier
 				
 				boolean locked = false;

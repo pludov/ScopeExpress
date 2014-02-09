@@ -157,7 +157,9 @@ public class CameraFrame {
 		switch(displayParameter.getChannelMode())
 		{
 		case Color:
-			return asRgbImage(displayParameter, metadataInfo);
+			if (isCfa()) {
+				return asRgbImage(displayParameter, metadataInfo);
+			}
 		case GreyScale:
 		case NarrowBlue:
 		case NarrowGreen:
@@ -186,11 +188,11 @@ public class CameraFrame {
 			for(int x = 0; x < width / 2; ++x)
 			{
 				int offset = (x * 2) + (y * 2) * width;
-//				int val = ((int)charBuffer[offset] + 
-//							(int)charBuffer[offset + 1] + 
-//							(int)charBuffer[offset + width] + 
-//							(int)charBuffer[offset + width + 1] ) / (4 * 8);
-				int val = greyMapper.getLevelForAdu(((int)buffer[offset]));
+				int moy = ((int)buffer[offset] + 
+							(int)buffer[offset + 1] + 
+							(int)buffer[offset + width] + 
+							(int)buffer[offset + width + 1] ) / 4;
+				int val = greyMapper.getLevelForAdu(moy/*((int)buffer[offset])*/);
 				inData[0] = (byte) (val);
 				raster.setDataElements(x , y, inData);
 			}
@@ -204,8 +206,56 @@ public class CameraFrame {
 	private static final int bayer_g2 = 2;
 	private static final int bayer_b = 3;
 	
+	public BufferedImage asFullSizeGrey(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	{
+		int imgW = width;
+		int imgH = height;
+		if (imgW < 1) imgW = 1;
+		if (imgH < 1) imgH = 1;
+		
+		BufferedImage result = new BufferedImage(imgW, imgH, BufferedImage.TYPE_3BYTE_BGR);
+
+		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 0);
+		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 1);
+		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 2);
+
+		WritableRaster raster = result.getRaster();
+		byte [] inData = new byte[3];
+		for(int y = 0; y < height; ++y)
+		{
+			for(int x = 0; x < width; ++x)
+			{
+				int offset = (x) + (y) * width;
+				int adur = buffer[offset];
+				int adug = buffer[offset];
+				int adub = buffer[offset];
+				
+				int r = rMapper.getLevelForAdu(adur);
+				int g = gMapper.getLevelForAdu(adug);
+				int b = bMapper.getLevelForAdu(adub);
+//				r = b;
+//				g = b;
+//				int g1 = (int)buffer[offset + 1];
+//				int g2 = (int)buffer[offset + width]; 
+//				int b = displayParameter.getLevelForAdu(metadataInfo, 2, (int)buffer[offset + width + 1]);
+//				
+//				int g = displayParameter.getLevelForAdu(metadataInfo, 1, (g1 + g2) / 2);
+				
+				inData[0] = (byte) (r);
+				inData[1] = (byte) (g);
+				inData[2] = (byte) (b);
+				raster.setDataElements(x , y, inData);
+
+			}
+		}
+
+		return result;
+	}
+	
 	public BufferedImage asRgbImageDebayer(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
+		if (isCfa()) return asFullSizeGrey(displayParameter, metadataInfo);
+		
 		int imgW = width;
 		int imgH = height;
 		if (imgW < 1) imgW = 1;
@@ -517,5 +567,40 @@ public class CameraFrame {
 			pixCount += channelHist[i];
 		}
 		return maximum;
+	}
+
+	public void scanPixelsForHistogram() {
+		int min, max;
+		min = Integer.MAX_VALUE;
+		max = Integer.MIN_VALUE;
+		for(int i = 0; i < this.buffer.length; ++i)
+		{
+			int d = this.buffer[i];
+			if (d < min) min = d;
+			if (d > max) max = d;
+		}
+		this.maximum = max;
+		this.black = min;
+		
+		int [] histogram = new int[max - min + 1];
+		for(int i = 0; i < this.buffer.length; ++i)
+		{
+			int d = this.buffer[i];
+			histogram[d - min]++;
+		}
+		
+		// FIXME: n&b
+		this.histogram = new int[3][];
+		this.histogram[0] = histogram;
+		this.histogram[1] = histogram;
+		this.histogram[2] = histogram;
+		
+		
+		this.histogramNbPix = new int[3];
+		this.histogramNbPix[0] = width * height;
+		this.histogramNbPix[1] = width * height;
+		this.histogramNbPix[2] = width * height;
+
+		
 	}
 }
