@@ -334,11 +334,16 @@ public class Correlation {
 	
 	public void correlate(
 			List<? extends DynamicGridPointWithAdu> starsFromImage, SkyProjection imageAffineSkyProjection,
-			List<? extends DynamicGridPointWithAdu> starsFromRef, SkyProjection refSkyProjection)
+			List<? extends DynamicGridPointWithAdu> starsFromRef, SkyProjection refSkyProjection,
+			boolean refIsExhaustive)
 	{
 		int maxTriangle = 900; // FIXME : c'est ad hoc...
-		double starRay = 700; 	// Prendre en compte des triangles de au plus cette taille
-		double starMinRay = 600;	// Elimine les petits triangles
+		
+		// Controle les paramètres liés à la taille (valable pour une image 8MP) 
+		double imageScaleRatio = 1.0;
+		
+		double starRay = refIsExhaustive ? 700 * imageScaleRatio : 3000 * imageScaleRatio; 	// Prendre en compte des triangles de au plus cette taille
+		double starMinRay = (refIsExhaustive ? 600 * imageScaleRatio : 300 * imageScaleRatio);	// Elimine les petits triangles
 		double maxBrightnessRatio = 5.5;	// On considère des triplet d'étoiles avec ce rapport maxi d'éclat 
 		double minGeoRatio = 0.25;	// Facteur par rapport au triangle "8-9-10" (à 1 on ne retiendra que lui) 
 		
@@ -350,34 +355,37 @@ public class Correlation {
 		
 		List<Triangle> trianglesFromRef;
 		
-		// Exclu les étoiles qui ont une voisine au moins x fois plus lumineuse
-		double brightestStarRatio = 1.5;
-
-		// FIXME: c'est en dûr ! Ce paramètre sert de born min à la distance (dans le cas où il y a trés peu d'image) 
-		double dmax = 600;
-		
-		int keepCount, allowRemoval;
-		if (starsFromImage.size() < 40) {
-			allowRemoval = 5;
-		} else {
-			allowRemoval = starsFromImage.size() / 8;
+		if (refIsExhaustive || starsFromRef.size() > 200) {
+			
+			// Exclu les étoiles qui ont une voisine au moins x fois plus lumineuse
+			double brightestStarRatio = 1.5;
+	
+			// FIXME: c'est en dûr ! Ce paramètre sert de born min à la distance (dans le cas où il y a trés peu d'image) 
+			double dmax = 600 * imageScaleRatio;
+			
+			int keepCount, allowRemoval;
+			if (starsFromImage.size() < 40) {
+				allowRemoval = 5;
+			} else {
+				allowRemoval = starsFromImage.size() / 8;
+			}
+			keepCount = starsFromImage.size() - allowRemoval;
+			if (keepCount > 200) {
+				keepCount = 200;
+			}
+			
+			DynamicGrid<DynamicGridPointWithAdu> starGrid = new DynamicGrid<DynamicGridPointWithAdu>((List<DynamicGridPointWithAdu>)starsFromImage);
+			double rayWithNoBrighterStar = getOtpimalRay(starsFromImage, starGrid, dmax, keepCount, brightestStarRatio);
+			
+			
+			logger.info("Restricting to stars that has no brighter star within " + rayWithNoBrighterStar + " pixels in image");
+			int orginalStarFromImageCount = starsFromImage.size();
+			starsFromImage = filterStarWithBrightNeighboors(starsFromImage, starGrid, rayWithNoBrighterStar, brightestStarRatio);
+			logger.info("Star from image filtered from " + orginalStarFromImageCount + " down to " + starsFromImage.size() + " stars");
+			int orginalStarFromRefCount = starsFromRef.size();
+			starsFromRef = filterStarWithBrightNeighboors(starsFromRef, null, rayWithNoBrighterStar / refToImageRatio, brightestStarRatio);
+			logger.info("Star from reference filtered from " + orginalStarFromRefCount + " down to " + starsFromRef.size() + " stars");
 		}
-		keepCount = starsFromImage.size() - allowRemoval;
-		if (keepCount > 200) {
-			keepCount = 200;
-		}
-		
-		DynamicGrid<DynamicGridPointWithAdu> starGrid = new DynamicGrid<DynamicGridPointWithAdu>((List<DynamicGridPointWithAdu>)starsFromImage);
-		double rayWithNoBrighterStar = getOtpimalRay(starsFromImage, starGrid, dmax, keepCount, brightestStarRatio);
-		
-		
-		logger.info("Restricting to stars that has no brighter star within " + rayWithNoBrighterStar + " pixels in image");
-		int orginalStarFromImageCount = starsFromImage.size();
-		starsFromImage = filterStarWithBrightNeighboors(starsFromImage, starGrid, rayWithNoBrighterStar, brightestStarRatio);
-		logger.info("Star from image filtered from " + orginalStarFromImageCount + " down to " + starsFromImage.size() + " stars");
-		int orginalStarFromRefCount = starsFromRef.size();
-		starsFromRef = filterStarWithBrightNeighboors(starsFromRef, null, rayWithNoBrighterStar / refToImageRatio, brightestStarRatio);
-		logger.info("Star from reference filtered from " + orginalStarFromRefCount + " down to " + starsFromRef.size() + " stars");
 		
 		Collections.sort(starsFromImage, new Comparator<DynamicGridPointWithAdu>() {
 			@Override

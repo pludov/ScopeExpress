@@ -5,13 +5,17 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
+import fr.pludov.cadrage.focus.Mosaic.CorrelatedGridPoint;
 import fr.pludov.cadrage.focus.correlation.Correlation;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
@@ -20,6 +24,8 @@ import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 
 public class CorrelateTask extends BackgroundTask {
+	private static final Logger logger = Logger.getLogger(CorrelateTask.class);
+	
 	final Mosaic mosaic;
 	final Image image;
 	
@@ -116,6 +122,8 @@ public class CorrelateTask extends BackgroundTask {
 		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
 		SkyProjection imageSkyProjection;
 		SkyProjection refSkyProjection;
+		// Est ce que la référence est un catalogue (auquel cas, on suppose qu'il contient beaucoup plus d'étoiles, et le filtrage y est plus aggressif)
+		boolean refIsCatalog;
 //		double projectionToImageRatio;
 		SwingThreadMonitor.acquire();
 		try {
@@ -157,8 +165,29 @@ public class CorrelateTask extends BackgroundTask {
 			if (referenceStars.isEmpty()) {
 				// Cas simple, c'est la première image de la mosaique
 				parameter.setCorrelated(new SkyProjection(imagePixSizeInDeg * 3600));
+				
+				for(ImageStar is : getImageStars(this.image))
+				{
+					is.so.getStar().setPositionStatus(StarCorrelationPosition.Deducted);
+
+					// 2.512^(-mag) = adu
+					// log(2.512) * (-mag) = log(adu)
+					// mag = -log(adu)/log(2.512)
+					double mag = - Math.log(is.getAduLevel()) / Math.log(2.512);
+					is.so.getStar().setMagnitude(mag);
+				}
 				return;
 			}
+			refIsCatalog = false;
+			for(CorrelatedGridPoint cgp : referenceStars)
+			{
+				if (cgp.getStar() != null && cgp.getStar().getPositionStatus() == StarCorrelationPosition.Reference) {
+					refIsCatalog = true;
+					break;
+				}
+			}
+
+			logger.info("Doing correlation with info from catalog: " + refIsCatalog);
 			
 			destStars = getImageStars(this.image);
 			if (destStars.isEmpty()) {
@@ -202,7 +231,7 @@ public class CorrelateTask extends BackgroundTask {
 		}
 		
 		try {
-			correlation.correlate(destStars, imageSkyProjection, referenceStars, refSkyProjection);
+			correlation.correlate(destStars, imageSkyProjection, referenceStars, refSkyProjection, refIsCatalog);
 			// correlation.identity();
 			if (!correlation.isFound()) {
 				throw new TaskException("Pas de correlation trouvée");
