@@ -100,10 +100,10 @@ public class SkyProjection {
 	
 	// Projette une étoile sur la sphere 3D.
 	// Dans cette projectino le pole nord pointe vers z (0,0,1).
-	public static void convertRaDecTo3D(double [] radec, double [] rslt3d)
+	public static void convertRaDecTo3D(double [] i_radec, double [] o_rslt3d)
 	{
-		double ra = radec[0];
-		double dec = radec[1];
+		double ra = i_radec[0];
+		double dec = i_radec[1];
 		
 		double x = Math.cos(raToRad * ra);
 		double y = Math.sin(raToRad * ra);
@@ -112,16 +112,16 @@ public class SkyProjection {
 		double z = Math.cos((90 - dec) * decToRad);
 		x *= zmul;
 		y *= zmul;
-		rslt3d[0] = x;
-		rslt3d[1] = y;
-		rslt3d[2] = z;
+		o_rslt3d[0] = x;
+		o_rslt3d[1] = y;
+		o_rslt3d[2] = z;
 	}
 	
-	public static void convert3DToRaDec(double [] pt3d, double [] radec)
+	public static void convert3DToRaDec(double [] i_pt3d, double [] o_radec)
 	{
-		double x = pt3d[0];
-		double y = pt3d[1];
-		double z = pt3d[2];
+		double x = i_pt3d[0];
+		double y = i_pt3d[1];
+		double z = i_pt3d[2];
 		
 		// z = cos((90 - dec) * decToRad)
 		// (90 - dec) * decToRad = cos-1(z)
@@ -137,8 +137,8 @@ public class SkyProjection {
 			ra = 0;
 		}
 		
-		radec[0] = ra;
-		radec[1] = dec;
+		o_radec[0] = ra;
+		o_radec[1] = dec;
 	}
 	
 	/**
@@ -184,11 +184,11 @@ public class SkyProjection {
 	/**
 	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
 	 */
-	public boolean image3dToImage2d(double [] pos3d, double [] pos2d)
+	public boolean image3dToImage2d(double [] i_pos3d, double [] o_pos2d)
 	{
-		double x = pos3d[0];
-		double y = pos3d[1];
-		double z = pos3d[2];
+		double x = i_pos3d[0];
+		double y = i_pos3d[1];
+		double z = i_pos3d[2];
 		if (z < epsilon) {
 			return false;
 		}
@@ -197,8 +197,8 @@ public class SkyProjection {
 		y *= iz;
 		x += centerx;
 		y += centery;
-		pos2d[0] = x;
-		pos2d[1] = y;
+		o_pos2d[0] = x;
+		o_pos2d[1] = y;
 		
 		return true;
 		
@@ -209,12 +209,12 @@ public class SkyProjection {
 	 * 
 	 * x = cos(raToRad * ra) * tan((90 - dec) *decToRad) / pixelRad
 	 * y = sin(raToRad * ra) * tan((90 - dec) *decToRad) / pixelRad
-	 * @param radec
+	 * @param i_o_radec
 	 */
-	public boolean project(double [] radec)
+	public boolean project(double [] i_o_radec)
 	{
 		double [] pos3d = new double[3];
-		convertRaDecTo3D(radec, pos3d);
+		convertRaDecTo3D(i_o_radec, pos3d);
 		transform.convert(pos3d);
 
 		double x = pos3d[0];
@@ -228,66 +228,65 @@ public class SkyProjection {
 		y *= iz;
 		x += centerx;
 		y += centery;
-		radec[0] = x;
-		radec[1] = y;
+		i_o_radec[0] = x;
+		i_o_radec[1] = y;
 		
 		return true;
 	}
 
 
-	public void image2dToImage3d(double [] pos2d, double[] pos3d)
+	public void image2dToImage3d(double [] i_pos2d, double[] o_pos3d)
 	{
-		double x = (pos2d[0] - centerx) * getPixelRad();
-		double y = (pos2d[1] - centery) * getPixelRad();
+		double x = (i_pos2d[0] - centerx) * getPixelRad();
+		double y = (i_pos2d[1] - centery) * getPixelRad();
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
 		double y3d = y * z3d;
-		pos3d[0] = x3d;
-		pos3d[1] = y3d;
-		pos3d[2] = z3d;
+		o_pos3d[0] = x3d;
+		o_pos3d[1] = y3d;
+		o_pos3d[2] = z3d;
 	}
 
-	// FIXME: signature à revoir (retourner un double []
-	public boolean sky3dToImage2d(double [] xyz, double [] xy)
+	public boolean sky3dToImage2d(double [] i_xyz, double [] o_xy)
 	{
-		double [] copy = Arrays.copyOf(xyz, 3);
+		double [] copy = Arrays.copyOf(i_xyz, 3);
 		transform.convert(copy);
-		return image3dToImage2d(copy, xy);
+		return image3dToImage2d(copy, o_xy);
 	}
 	
-	public void image2dToSky3d(double [] xy, double [] xyz)
+	public void image2dToSky3d(double [] i_xy, double [] o_xyz)
 	{
 		// On veut retrouver les coordonnées 3D.
 		// x = x3d / z3d
 		// y = y3d / z3d
 		// x3d * x3d + y3d * y3d + z3d * z3d = 1
-		double x = (xy[0] - centerx) * getPixelRad();
-		double y = (xy[1] - centery) * getPixelRad();
+		double x = (i_xy[0] - centerx) * getPixelRad();
+		double y = (i_xy[1] - centery) * getPixelRad();
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
 		double y3d = y * z3d;
 		
-		xyz[0] = x3d;
-		xyz[1] = y3d;
-		xyz[2] = z3d;
-		invertedTransform.convert(xyz);
+		o_xyz[0] = x3d;
+		o_xyz[1] = y3d;
+		o_xyz[2] = z3d;
+		invertedTransform.convert(o_xyz);
 		
 	}
 
-	public static void normalize(double [] vect) throws ArithmeticException
+	public static void normalize(double [] i_o_vect) throws ArithmeticException
 	{
 		double norm = 0;
-		for(int i = 0; i < vect.length; ++i) {
-			norm += vect[i] * vect[i];
+		for(int i = 0; i < i_o_vect.length; ++i) {
+			norm += i_o_vect[i] * i_o_vect[i];
 		}
 		norm = 1.0/ Math.sqrt(norm);
-		for(int i = 0; i < vect.length; ++i) {
-			vect[i] *= norm;
+		for(int i = 0; i < i_o_vect.length; ++i) {
+			i_o_vect[i] *= norm;
 		}
-		for(int i = 0; i < vect.length; ++i) {
-			double v = vect[i];
+		for(int i = 0; i < i_o_vect.length; ++i) {
+			double v = i_o_vect[i];
 		
 			if (Double.isInfinite(v) || Double.isNaN(v)) {
 				throw new ArithmeticException("Unable to normalize vector");
@@ -296,14 +295,14 @@ public class SkyProjection {
 	}
 	
 	/// image2d => radec
-	public void unproject(double [] xy)
+	public void unproject(double [] i_o_xy)
 	{
 		// On veut retrouver les coordonnées 3D.
 		// x = x3d / z3d
 		// y = y3d / z3d
 		// x3d * x3d + y3d * y3d + z3d * z3d = 1
-		double x = (xy[0] - centerx) * getPixelRad();
-		double y = (xy[1] - centery) * getPixelRad();
+		double x = (i_o_xy[0] - centerx) * getPixelRad();
+		double y = (i_o_xy[1] - centery) * getPixelRad();
 		
 		double z3d = 1.0 / Math.sqrt(y*y + x*x + 1.0);
 		double x3d = x * z3d;
@@ -311,7 +310,7 @@ public class SkyProjection {
 		
 		double [] pt3d = new double[] {x3d, y3d, z3d};
 		invertedTransform.convert(pt3d);
-		convert3DToRaDec(pt3d, xy);
+		convert3DToRaDec(pt3d, i_o_xy);
 //		
 //		double y3d = (Math.sqrt(((y*y)/((y*y) + (x*x) + 1.0)), (1.0/2.0))*sign1);
 //		
