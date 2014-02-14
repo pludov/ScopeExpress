@@ -3,18 +3,20 @@ package fr.pludov.astrometry;
 import java.awt.geom.NoninvertibleTransformException;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
-import fr.pludov.astrometry.TestWCS.Tan;
+import org.apache.log4j.Logger;
+
 import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.SkyProjection;
-import fr.pludov.utils.EquationSolver;
+import fr.pludov.cadrage.utils.EndUserException;
 import net.ivoa.fits.Fits;
 import net.ivoa.fits.FitsException;
 import net.ivoa.fits.Header;
@@ -24,7 +26,8 @@ import net.ivoa.fits.hdu.BinaryTableHDU;
 import net.ivoa.fits.hdu.ImageHDU;
 
 public class AstrometryProcess {
-
+	public static final Logger logger = Logger.getLogger(AstrometryProcess.class);
+	
 	final static String astrometryPath = "C:\\MinGW\\msys\\1.0\\home\\utilisateur\\astrometry.net-0.46\\blind\\astrometry-engine.exe";
 	
 	final int imageW, imageH;
@@ -34,10 +37,20 @@ public class AstrometryProcess {
 	// Taille du champ (diagonale en degrés)
 	double fieldMin = -1, fieldMax = -1;
 	
+	int numberOfBinInUniformize = 10;
+	
 	// Si le process a réussi...
 	SkyProjection result;
 	
-	
+	/**
+	 * 
+	 * 
+	 * @param imageW
+	 * @param imageH
+	 * @param raEst
+	 * @param decEst
+	 * @param searchRadius si -1, ne pas limiter la recherche
+	 */
 	public AstrometryProcess(int imageW, int imageH, double raEst, double decEst, double searchRadius)
 	{
 		this.imageW = imageW;
@@ -46,6 +59,7 @@ public class AstrometryProcess {
 		this.decCenterEstimate = decEst;
 		this.searchRadius = searchRadius;
 	}
+	
 	
 	private void writeStarFits(File outputFile, File matchTarget, File corrTarget, File wcsTarget, double [][] datas) throws FitsException, IOException
 	{
@@ -270,9 +284,121 @@ public class AstrometryProcess {
 		Tan tan = new Tan(header);
 		return tan.buildSkyProjection();
 	}
+
+	/**
+	 * Trie les adu (du plus grand au plus petit)
+	 */
+	private Comparator<double[]> aduComparator = new Comparator<double[]>(){
+		@Override
+		public int compare(double[] o1, double[] o2) {
+			return (int)Math.signum(o2[2] - o1[2]);
+		}
+	};
 	
-	public SkyProjection doAstrometry(double [][] datas) throws FitsException
+	/**
+	 * Trie les étoiles de manière à avoir des étoiles représentatives uniformément sur le champ
+	 * @param datas
+	 * @return un nouveau tableau
+	 */
+	private double [][] uniformize(double [][] datas)
 	{
+		// On commence par trier par ADU max
+		datas = Arrays.copyOf(datas, datas.length);
+		Arrays.sort(datas, aduComparator);
+		logger.debug("Doing uniformize for " + datas.length + " stars");
+		// Trouver les min/max
+		double minx = datas[0][0];
+		double miny = datas[0][1];
+		double maxx = datas[0][0];
+		double maxy = datas[0][1];
+		
+		for(int i = 1; i < datas.length; ++i) {
+			double x = datas[i][0];
+			double y = datas[i][1];
+			if (x < minx) minx = x;
+			if (x > maxx) maxx = x;
+			if (y < miny) miny = y;
+			if (y > maxy) maxy = y;
+		}
+		
+		double w = maxx - minx;
+		double h = maxy - miny;
+		
+		int nx = (int)Math.floor(Math.max(1, Math.round(w / Math.sqrt(w*h / this.numberOfBinInUniformize))));
+		int ny = (int)Math.floor(Math.max(1, Math.round(this.numberOfBinInUniformize / nx)));
+		int nbbin = nx * ny;
+		logger.debug("Uniformizing into " + nx + " x " + ny + " bins");
+		
+		// Pour chaque étoile de position x (respy)
+		// ix = Math.floor((x - minx) * w / nx) 
+		List<List<double[]>> starByBin = new ArrayList<List<double[]>>(nbbin);
+		for(int i = 0; i < nbbin; ++i) {
+			starByBin.add(new ArrayList<double[]>());
+		}
+		
+		// Ensuite, on met l'id de chaque bin dans le tableau
+		for(int starId = 0; starId < datas.length; ++starId) {
+			double x = datas[starId][0];
+			double y = datas[starId][1];
+			int bx = (int)Math.floor((x - minx) * w / nx);
+			int by = (int)Math.floor((y - miny) * h / ny);
+			if (bx >= nx) bx = nx - 1;
+			if (by >= ny) by = ny - 1;
+			assert(bx >= 0);
+			assert(by >= 0);
+			
+			int binId = bx + nx * by;
+			
+			starByBin.get(binId).add(datas[starId]);
+		}
+		
+		// On met starByBin à l'envers (du plus faible au plus grand)
+		for(List<double[]> starOfBin : starByBin) {
+			Collections.reverse(starOfBin);
+		}
+		
+		// Ensuite on parcours chaque bin une fois à la recherche d'une étoile, puis on trie
+		List<double[]> starsOfRound = new ArrayList<double[]>(nbbin);
+		int resultCount = 0;
+		while(!starByBin.isEmpty()) {
+			starsOfRound.clear();
+			
+			// On prend l'étoile suivante dans chaque bin.
+			for(int binId = 0; binId < starByBin.size();) 
+			{
+				List<double[]> starsOfBin = starByBin.get(binId);
+				if (starsOfBin.isEmpty()) {
+					starByBin.remove(binId);
+					continue;
+				} else {
+					double [] brightestStarOfBin = starsOfBin.remove(starsOfBin.size() - 1);
+					starsOfRound.add(brightestStarOfBin);
+					binId++;
+				}
+			}
+			
+			Collections.sort(starsOfRound, aduComparator);
+			for(double [] star : starsOfRound) {
+				datas[resultCount++] = star;
+			}
+		}
+		// Normalement, on a traité toutes les étoiles
+		assert(resultCount == datas.length);
+		return datas;
+		
+	}
+	
+	/**
+	 * Les données sont attendues au format x, y, totaladu, background
+	 * @param datas
+	 * @return
+	 * @throws FitsException
+	 * @throws EndUserException
+	 */
+	public SkyProjection doAstrometry(double [][] datas) throws FitsException, EndUserException
+	{
+		if (datas.length < 4) throw new EndUserException("Pas assez d'étoiles");
+		datas = uniformize(datas);
 		File fileAxy = null;
 		File matchTarget = null;
 		File corrTarget = null;
@@ -334,6 +460,8 @@ public class AstrometryProcess {
 			System.out.println("ra=" + center[0] + "  dec=" + center[1]);
 		} catch (FitsException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch(EndUserException e) {
 			e.printStackTrace();
 		}
 		/*
