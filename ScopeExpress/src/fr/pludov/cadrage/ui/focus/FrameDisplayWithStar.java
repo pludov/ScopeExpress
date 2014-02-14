@@ -279,6 +279,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		AffineTransform imageToScreen = getImageToScreen();
     	Graphics2D g2d = (Graphics2D)gPaint;
     	   
+    	int width = getWidth();
+    	int height = getHeight();
     	if (mosaic != null) {
     		double [] tmpPoint = new double[2];
     		gPaint.setColor(Color.green);
@@ -403,12 +405,16 @@ public class FrameDisplayWithStar extends FrameDisplay {
     			}
     			Point2D result = imageToScreen.transform(new Point2D.Double(tmpPoint[0], tmpPoint[1]), null);
 	        	
+    			int mag = (int)Math.round(6 - star.getMagnitude());
+    			if (mag < 0) mag = 0;
+    			mag++;
+    			
+    			if (result.getX() + 2 * mag < 0 || result.getX() - 2 * mag > width) continue;
+	        	if (result.getY() + 2 * mag < 0 || result.getY() - 2 * mag > height) continue;
+	        	
 	        	int centerx = (int)Math.round(result.getX());
 	        	int centery = (int)Math.round(result.getY());
 	        	
-	        	int mag = (int)Math.round(6 - star.getMagnitude());
-	        	if (mag < 0) mag = 0;
-	        	mag++;
 	        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
     		}
     		
@@ -544,7 +550,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        }
 	        
 	        // Dessiner les points d'intéret
-	        g2d.setColor(Color.GREEN);
+	        g2d.setColor(Color.ORANGE);
 	        for(PointOfInterest poi : mosaic.getAllPointsOfInterest())
 	        {
 	        	MosaicImageParameter mip2 = null;
