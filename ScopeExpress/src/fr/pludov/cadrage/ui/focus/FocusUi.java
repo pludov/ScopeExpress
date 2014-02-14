@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.awt.geom.NoninvertibleTransformException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
@@ -582,14 +583,16 @@ public class FocusUi extends FocusUiDesign {
 //				} catch(NoninvertibleTransformException e2) {
 //					throw new RuntimeException("invertible ?", e2);
 //				}
-		projection.setTransform(xform);
 		
-		mosaic.setSkyProjection(projection);
+		try {
+			mosaic.setSkyToMosaic(xform);
+		} catch (NoninvertibleTransformException e) {
+			throw new RuntimeException("rotation matrice is not invertible ???");
+		}
 		
 		StarCollection stars = StarProvider.getStarAroundNorth(projection, radius, maxMag);
 
 		double [] starSky3dPos = new double[3];
-		double [] tmp = new double[2];
 		
 		for(int i = 0; i < stars.getStarLength(); i ++)
 		{
@@ -606,16 +609,17 @@ public class FocusUi extends FocusUiDesign {
 		}
 		
 		PointOfInterest poi = new PointOfInterest("projection", false);
-		poi.setX(0);
-		poi.setY(0);
+		double [] projectionCenter = new double[]{0,0,1};
+		mosaic.getMosaicToSky().convert(projectionCenter);
+		poi.setSky3dPos(projectionCenter);
+		
 		// poi.setSecondaryPoints(pfa.getPoints());
 		mosaic.addPointOfInterest(poi);
 		
-		double [] radec0 = new double[] {0.0, 89.0};
-		projection.project(radec0);
+		double [] radec03d = new double[3];
+		SkyProjection.convertRaDecTo3D(new double[] {0.0, 89.0}, radec03d);
 		PointOfInterest poi2 = new PointOfInterest("ra=0", false);
-		poi2.setX(radec0[0]);
-		poi2.setY(radec0[1]);
+		poi2.setSky3dPos(radec03d);
 		mosaic.addPointOfInterest(poi2);
 	}
 

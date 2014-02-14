@@ -126,14 +126,17 @@ public class StarCorrelationTest implements TestInstance {
 			double [] raDecExpected = expected[i + 1];
 		
 
-			double [] mosaicPos = new double[2];
+			double [] mosaic3dPos = new double[3];
+			double [] raDecPos = new double[2];
 			
-			mip.imageToMosaic(0.5 * imgWidth * imgPos[0], 0.5 * imgHeight * imgPos[1], mosaicPos);
-			mosaic.getSkyProjection().unproject(mosaicPos);
 			
-			double distance = SkyProjection.getDegreeDistance(raDecExpected, mosaicPos);
+			mip.getProjection().image2dToSky3d(new double[]{0.5 * imgWidth * imgPos[0], 0.5 * imgHeight * imgPos[1]}, mosaic3dPos);
+			mosaic.getMosaicToSky().convert(mosaic3dPos);
+			SkyProjection.convert3DToRaDec(mosaic3dPos, raDecPos);
 			
-			logger.info("RaDec : expected = [" + raDecExpected[0] + ";" + raDecExpected[1] + "]; found = [" + mosaicPos[0] + ";" + mosaicPos[1] + "] - distance is " + distance + "°");
+			double distance = SkyProjection.getDegreeDistance(raDecExpected, raDecPos);
+			
+			logger.info("RaDec : expected = [" + raDecExpected[0] + ";" + raDecExpected[1] + "]; found = [" + raDecPos[0] + ";" + raDecPos[1] + "] - distance is " + distance + "°");
 			if (distance > 15 * 1.0 / 3600) {
 				if (result != TestResult.Failed) {
 					logger.error("Distance is > 15");

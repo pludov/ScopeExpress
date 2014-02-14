@@ -40,6 +40,7 @@ import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.utils.EquationSolver;
+import fr.pludov.utils.VecUtils;
 
 public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
 	private static final Logger logger = Logger.getLogger(MosaicImageList.class);
@@ -314,9 +315,12 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				if (pfa.isFound()) {
 					PointOfInterest poi = new PointOfInterest("axe", true);
-					poi.setX(pfa.getX());
-					poi.setY(pfa.getY());
-					poi.setSecondaryPoints(pfa.getPoints());
+					poi.setImgRelPos(new double[]{pfa.getX(), pfa.getY()});
+					for(int i = 0; i < pfa.getPoints().size(); i += 2)
+					{
+						poi.addImgRelPosSecondaryPoint(new double[]{ pfa.getPoints().get(i), pfa.getPoints().get(i + 1)});
+						
+					}
 					mosaic.addPointOfInterest(poi);
 					
 					
@@ -343,10 +347,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					
 					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromNow(180, 90, 0);;
 					poleJ2000[0] *= 360/24;
-					mosaic.getSkyProjection().project(poleJ2000);
-					poleDuJour.setX(poleJ2000[0]);
-					poleDuJour.setY(poleJ2000[1]);
-					poleDuJour.setSecondaryPoints(Collections.EMPTY_LIST);
+					SkyProjection.convertRaDecTo3D(poleJ2000, poleDuJour.getSky3dPos());
 					mosaic.addPointOfInterest(poleDuJour);
 					
 					AxeAlignDialog dialog = Utils.openDialog(MosaicImageList.this, AxeAlignDialog.class);
@@ -381,14 +382,15 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					pfa.addMosaicImageParameter(mip);
 				}
 				pfa.perform();
-				
-				if (pfa.isFound()) {
-					PointOfInterest poi = new PointOfInterest("pole", false);
-					poi.setX(pfa.getX());
-					poi.setY(pfa.getY());
-					poi.setSecondaryPoints(pfa.getPoints());
-					mosaic.addPointOfInterest(poi);
-				}
+				throw new RuntimeException("ça peut pas marcher comme ça: le pole doit avoir 3 coordonnées");
+//				C'est à refaire.
+//				if (pfa.isFound()) {
+//					PointOfInterest poi = new PointOfInterest("pole", false);
+//					poi.setX(pfa.getX());
+//					poi.setY(pfa.getY());
+//					poi.setSecondaryPoints(pfa.getPoints());
+//					mosaic.addPointOfInterest(poi);
+//				}
 					
 			}
 		});
@@ -414,14 +416,12 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				if (!mip.isCorrelated()) {
 					message = "pas de correlation";
-				} else if (mosaic.getSkyProjection() == null) {
-					message = "pas de position du ciel";
 				} else {
 					
 					Object [] position  = {
 							"center",	new double[] { 0.5, 0.5},
 							"top", new double[] { 0.5, 0},
-							"right", new double[] { 0, 0.5 }
+							"left", new double[] { 0, 0.5 }
 					};
 					
 					message = "";
@@ -430,11 +430,14 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						String title = (String)position[i];
 						double [] imgPos = (double[])position[i + 1];
 						
-						double [] mosaicPos = new double[2];
+						double [] sky3dPos = new double[3];
+						double [] raDec = new double[2];
 						
-						mip.imageToMosaic(0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1], mosaicPos);
-						mosaic.getSkyProjection().unproject(mosaicPos);
-						message += title + " = [" + Utils.formatHourMinSec(mosaicPos[0]) +";" + Utils.formatDegMinSec(mosaicPos[1])+"]\n";
+						mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1]},
+															sky3dPos);
+						mosaic.getMosaicToSky().convert(sky3dPos);
+						SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+						message += title + " = [" + Utils.formatHourMinSec(raDec[0]) +";" + Utils.formatDegMinSec(raDec[1])+"]\n";
 //						
 //						double rah = mosaicPos[0] * 24.0 / 360;
 //						
@@ -460,23 +463,20 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						
 					}
 					
-					double [] upperLeft = new double [] { -0.5, -0.5 };
-					double [] upperLeftRaDec = new double[2];
-					double [] lowerRight = new double [] { 0.5, 0.5 };
-					double [] lowerRightRaDec = new double[2];
+					double [] upperLeft = new double [] { 0, 0 };
+					double [] upperLeftSky3d = new double[3];
+					double [] lowerRight = new double [] { 1, 1 };
+					double [] lowerRightSky3d = new double[3];
 					
-					mip.imageToMosaic(image.getWidth() * upperLeft[0], image.getHeight() * upperLeft[1], upperLeftRaDec);
-					mosaic.getSkyProjection().unproject(upperLeftRaDec);
-
-					mip.imageToMosaic(image.getWidth() * lowerRight[0], image.getHeight() * lowerRight[1], lowerRightRaDec);
-					mosaic.getSkyProjection().unproject(lowerRightRaDec);
-
-					double diagDegreeDist = SkyProjection.getDegreeDistance(upperLeftRaDec, lowerRightRaDec);
+					mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * upperLeft[0], 0.5 * image.getHeight() * upperLeft[1]}, upperLeftSky3d);
+					mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * lowerRight[0], 0.5 * image.getHeight() * lowerRight[1]}, lowerRightSky3d);
 					
-					double diagPixDist = Math.sqrt(image.getWidth()*image.getWidth() + image.getHeight() * image.getHeight());
+					double diagRadDist = SkyProjection.sky3dDst2Rad(VecUtils.norm(VecUtils.sub(upperLeftSky3d, lowerRightSky3d)));
+					double diagDegreeDist = diagRadDist * 180 / Math.PI;
 					
-					double pixDegreeSize = diagDegreeDist / diagPixDist;
-
+//					
+//					double pixDegreeSize = diagDegreeDist / diagPixDist;
+					double pixDegreeSize = mip.getProjection().getPixelRad() / 2 * 180 / Math.PI;
 					double pixSecSize = pixDegreeSize * 3600;
 					message += String.format("Echantillonage %.2f ''/pix\n", pixSecSize);
 					

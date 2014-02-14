@@ -75,7 +75,7 @@ public class ImageDistorsion {
 			throw new EndUserException("Taille de l'image incorrecte");
 		}
 		
-		double [] starMosaicPos = new double[2];
+		double [] imagePosOfStar = new double[2];
 		for(Star star : mosaic.getStars())
 		{
 			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
@@ -86,13 +86,10 @@ public class ImageDistorsion {
 			so2d[1] = so.getY();
 			
 			
-			if (!mosaic.skyProjection.sky3dToImage2d(star.getSky3dPosition(), starMosaicPos))
-			{
-				continue;
-			}
-			double [] imagePosOfStar = mip.mosaicToImage(starMosaicPos[0], starMosaicPos[1], ref2d);
-			if (imagePosOfStar == null) continue;
-			
+			double [] starPos3dInMosaic = Arrays.copyOf(star.getSky3dPosition(), 3);
+			mosaic.skyToMosaic.convert(starPos3dInMosaic);
+			if (!mip.getProjection().sky3dToImage2d(starPos3dInMosaic, imagePosOfStar)) continue;
+
 			imgx[starCount] = so2d[0];
 			imgy[starCount] = so2d[1];
 			deltax[starCount] = imagePosOfStar[0] - so2d[0];

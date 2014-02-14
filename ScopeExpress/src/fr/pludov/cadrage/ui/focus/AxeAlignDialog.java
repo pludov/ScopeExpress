@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -57,11 +58,32 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 	boolean speechEnabled;
 	SpeechDirection speechDir;
 	
-	private double [] convertMosaicToAltAz(double [] mosaicCoord, long photoTime)
+	private double [] convertMosaic3dToAltAz(double [] mosaicCoord3d, long photoTime)
 	{
 		// Maintenant, on veut ses coordonnées dans le ciel (J2000)
-		double [] skyCoord3d = new double[3];
-		mosaic.getSkyProjection().image2dToSky3d(mosaicCoord, skyCoord3d);
+		double [] skyCoord3d = Arrays.copyOf(mosaicCoord3d, 3);
+		mosaic.getMosaicToSky().convert(skyCoord3d);
+		double [] coordJ2000 = new double[2];
+		SkyProjection.convert3DToRaDec(skyCoord3d, coordJ2000);
+
+		// Ensuite, on veut ses coordonnées RA/Dec vraie (FIXME: pour l'heure de la photo, mais il n'y aura pas une grosse diff)
+		double [] coordNow = SkyAlgorithms.raDecNowFromJ2000(coordJ2000[0] / 15, coordJ2000[1], 32);
+		
+		// Enfin, on veut son azimuth (à l'heure de la photo)
+		double [] altAz = SkyAlgorithms.CelestialToHorizontal(coordNow[0], coordNow[1], 
+				Configuration.getCurrentConfiguration().getLatitude(),
+				Configuration.getCurrentConfiguration().getLongitude(),
+				SkyAlgorithms.getCalForEpoch(photoTime),
+				SkyAlgorithms.getLeapSecForEpoch(photoTime),
+				false
+				);
+		
+		return altAz;
+	}
+	
+
+	private double [] convertSky3dToAltAz(double [] skyCoord3d, long photoTime)
+	{
 		double [] coordJ2000 = new double[2];
 		SkyProjection.convert3DToRaDec(skyCoord3d, coordJ2000);
 
@@ -104,14 +126,14 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			
 			if (poleAltAz == null) {
 				// On calcule le pole à la date de la première photo (l'heure n'est pas trés important, elle fait seulement varier la position du pole selon l'epoch)
-				poleAltAz = convertMosaicToAltAz(new double[] { pole.getX(), pole.getY() }, photoTime);
+				poleAltAz = convertSky3dToAltAz(pole.getSky3dPos(), photoTime);
 				if (poleAltAz[1] > 180) poleAltAz[1] -= 360;
 			}
 			
 			// Le point est une coordonnées "image". On veut d'abord ses coordonnées sur la mosaique
-			double [] mosaicCoord = mip.imageToMosaic(axe.getX(), axe.getY(), null);
-			
-			double [] altAz = convertMosaicToAltAz(mosaicCoord, photoTime);
+			double [] axeCoord3d = new double[3];
+			mip.getProjection().image2dToSky3d(axe.getImgRelPos(), axeCoord3d);
+			double [] altAz = convertMosaic3dToAltAz(axeCoord3d, photoTime);
 			if (altAz[1] > 180) altAz[1] -= 360;
 			imagesCoords[id] = altAz;
 			lastSetId = id;

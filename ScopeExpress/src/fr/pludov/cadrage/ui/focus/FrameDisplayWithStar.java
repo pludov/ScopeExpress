@@ -10,6 +10,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
@@ -256,7 +257,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	/**
 	 * Converti une position sur l'écran en position 3D dans le repère de skyproj
 	 */
-	private void screenTo3DMosaic(int x, int y, MosaicImageParameter mip, AffineTransform imageToScreen, SkyProjection skyproj, double [] result)
+	private void screenTo3DMosaic(int x, int y, MosaicImageParameter mip, AffineTransform imageToScreen, double [] result)
 	{
 		double [] src = new double[] { x, y};
 		try {
@@ -264,12 +265,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		} catch(NoninvertibleTransformException e) {
 			throw new RuntimeException("should not happen", e);
 		}
-		if (mip != null) {
-			mip.imageToMosaic(src[0], src[1], src);
-		}
-			
-		skyproj.image2dToImage3d(src, result);
-		skyproj.unproject(src);
+		
+		mip.getProjection().image2dToSky3d(src, result);
 	}
 	
 	@Override
@@ -288,60 +285,60 @@ public class FrameDisplayWithStar extends FrameDisplay {
     		MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
 
     		// Dessiner les graduations polaires
-    		SkyProjection skyproj = mosaic.getSkyProjection();
-    		if (skyproj != null) {
-    			Stroke original = g2d.getStroke();
+    		AffineTransform3D skyToMosaic = mosaic.getSkyToMosaic();
+
+			Stroke original = g2d.getStroke();
 //    			Stroke drawingStroke = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0);
 //    			drawingStroke= new BasicStroke(1, BasicStroke.CAP_BUTT, 
 //    				     BasicStroke.JOIN_MITER, 1.0f, new float[]{4, 0, 4}, 2f );
-    			g2d.setColor(Color.GRAY);
+			g2d.setColor(Color.GRAY);
 //    			g2d.setStroke(drawingStroke);
-    			
-    			
-    			double [] pt00 = new double[3];
-    			double [] pt01 = new double[3];
-    			screenTo3DMosaic(10, 0, mip, imageToScreen, skyproj, pt00);
-    			screenTo3DMosaic(10, getHeight(), mip, imageToScreen, skyproj, pt01);
-    			
-    			double [] planeLeft = new double[4];
-    			planeLeft[0] = -(pt00[1] * pt01[2] - pt00[2] * pt01[1]);
-    			planeLeft[1] = -(pt00[2] * pt01[0] - pt00[0] * pt01[2]);
-    			planeLeft[2] = -(pt00[0] * pt01[1] - pt00[1] * pt01[0]);
-    			planeLeft[3] = 0;
-    			
-    			for(int dec = -89; dec <= 89; ++dec)
-    			{
-    				
-    				
-    				AffineTransform3D at = AffineTransform3D.identity;
-    				double scale = Math.cos(dec * Math.PI / 180);
-    				double high = Math.sin(dec * Math.PI / 180);
-    				at = at.scale(scale);
-    				at = at.translate(0, 0, high);
-    				
-    				at = at.combine(skyproj.getTransform());
-    				// at = at.combine(mip.getProjection().getTransform());
-    				Circle circle = new Circle(at);
-    				for(Circle c : circle.cut(planeLeft)) {
-    					c.draw(g2d, skyproj, mip, imageToScreen);
-    				}
-    			}
-    			
-    			for(int ra = 0; ra < 12; ++ra)
-    			{
-    				AffineTransform3D at = AffineTransform3D.identity;
-    				// Mettre le pole à l'angle 0
-    				at = at.rotateY(0, 1);
-    				at = at.rotateZ(Math.cos(ra * 2 * Math.PI / 24), Math.sin(ra * 2 * Math.PI / 24));
-    				at = at.combine(skyproj.getTransform());
-    				// at = at.combine(mip.getProjection().getTransform());
-    				Circle circle = new Circle(at);
-    				
-    				for(Circle c : circle.cut(planeLeft)) {
-    					c.draw(g2d, skyproj, mip, imageToScreen);
-    				}
-    			}
-    			
+			
+    		if (mip != null && mip.isCorrelated()) {
+				double [] pt00 = new double[3];
+				double [] pt01 = new double[3];
+				screenTo3DMosaic(10, 0, mip, imageToScreen, pt00);
+				screenTo3DMosaic(10, getHeight(), mip, imageToScreen, pt01);
+				
+				double [] planeLeft = new double[4];
+				planeLeft[0] = -(pt00[1] * pt01[2] - pt00[2] * pt01[1]);
+				planeLeft[1] = -(pt00[2] * pt01[0] - pt00[0] * pt01[2]);
+				planeLeft[2] = -(pt00[0] * pt01[1] - pt00[1] * pt01[0]);
+				planeLeft[3] = 0;
+				
+				for(int dec = -89; dec <= 89; ++dec)
+				{
+					
+					
+					AffineTransform3D at = AffineTransform3D.identity;
+					double scale = Math.cos(dec * Math.PI / 180);
+					double high = Math.sin(dec * Math.PI / 180);
+					at = at.scale(scale);
+					at = at.translate(0, 0, high);
+					
+					at = at.combine(skyToMosaic);
+					// at = at.combine(mip.getProjection().getTransform());
+					Circle circle = new Circle(at);
+					for(Circle c : circle.cut(planeLeft)) {
+						c.draw(g2d, mip, imageToScreen);
+					}
+				}
+				
+				for(int ra = 0; ra < 12; ++ra)
+				{
+					AffineTransform3D at = AffineTransform3D.identity;
+					// Mettre le pole à l'angle 0
+					at = at.rotateY(0, 1);
+					at = at.rotateZ(Math.cos(ra * 2 * Math.PI / 24), Math.sin(ra * 2 * Math.PI / 24));
+					at = at.combine(skyToMosaic);
+					// at = at.combine(mip.getProjection().getTransform());
+					Circle circle = new Circle(at);
+					
+					for(Circle c : circle.cut(planeLeft)) {
+						c.draw(g2d, mip, imageToScreen);
+					}
+				}
+			}
 //    			double [] tmp = new double[2];
 //    			double [] tmp2 = new double[2];
 //    			
@@ -386,36 +383,33 @@ public class FrameDisplayWithStar extends FrameDisplay {
 //	    		if (lastRa != null && firstRa != null) {
 //	    			drawLines(g2d, lastRa, firstRa);
 //	    		}
-	    		g2d.setStroke(original);
-    		}
+    		g2d.setStroke(original);
+		
     		g2d.setColor(Color.GREEN);
-    		for(Star star : mosaic.getStars())
-    		{
-    			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
-    			
-    			if (!mosaic.getSkyProjection().sky3dToImage2d(star.getSky3dPosition(), tmpPoint)) continue;
-    			
-    			double [] imagePos2d;
-    			if (mip != null) {
-    				imagePos2d = mip.mosaicToImage(tmpPoint[0], tmpPoint[1], tmpPoint);
-    			} else {
-    				imagePos2d = tmpPoint;
-    				
-    			}
-    			if (imagePos2d == null) continue;
-    			Point2D result = imageToScreen.transform(new Point2D.Double(imagePos2d[0], imagePos2d[1]), null);
-	        	
-    			int mag = (int)Math.round(6 - star.getMagnitude());
-    			if (mag < 0) mag = 0;
-    			mag++;
-    			
-    			if (result.getX() + 2 * mag < 0 || result.getX() - 2 * mag > width) continue;
-	        	if (result.getY() + 2 * mag < 0 || result.getY() - 2 * mag > height) continue;
-	        	
-	        	int centerx = (int)Math.round(result.getX());
-	        	int centery = (int)Math.round(result.getY());
-	        	
-	        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
+    		if (mip != null && mip.isCorrelated()) {
+	    		for(Star star : mosaic.getStars())
+	    		{
+	    			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
+	    			
+	    			double [] starPos = Arrays.copyOf(star.getSky3dPosition(), 3);
+	    			skyToMosaic.convert(starPos);
+	    			double [] imagePos2d = new double[2];
+	    			if (!mip.getProjection().sky3dToImage2d(starPos, imagePos2d)) continue;
+	    			
+	    			Point2D result = imageToScreen.transform(new Point2D.Double(imagePos2d[0], imagePos2d[1]), null);
+		        	
+	    			int mag = (int)Math.round(6 - star.getMagnitude());
+	    			if (mag < 0) mag = 0;
+	    			mag++;
+	    			
+	    			if (result.getX() + 2 * mag < 0 || result.getX() - 2 * mag > width) continue;
+		        	if (result.getY() + 2 * mag < 0 || result.getY() - 2 * mag > height) continue;
+		        	
+		        	int centerx = (int)Math.round(result.getX());
+		        	int centery = (int)Math.round(result.getY());
+		        	
+		        	gPaint.drawOval(centerx - mag, centery - mag, 2 * mag, 2 * mag);
+	    		}
     		}
     		
     		double sumDst = 0;
@@ -479,14 +473,14 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        			if (mip == null || !mip.isCorrelated()) continue;
 		        			if (otherMip == null || !otherMip.isCorrelated()) continue;
 		        			
-		        			double [] imagePos;
-		        			// On la transforme selon la correlation de l'image...
-		        			imagePos = otherMip.imageToMosaic(ox, oy, tmpPoint);
-		        			if (imagePos == null) continue;
+		        			double [] imageMosaicPos = new double[3];
+		        			// On veut faire passer ox de l'image otherMip ver mip
 		        			
-		        			// Et on la retransforme dans cette image		        			
-		        			imagePos = mip.mosaicToImage(imagePos[0], imagePos[1], tmpPoint);
-		        			if (imagePos == null) continue;
+		        			otherMip.getProjection().image2dToSky3d(new double[]{ox, oy}, imageMosaicPos);
+		        			
+		        			double [] imagePos = new double[2];
+		        			if (!mip.getProjection().sky3dToImage2d(imageMosaicPos, imagePos)) continue;
+		        			
 		        			ox = imagePos[0];
 		        			oy = imagePos[1];
 		        		}
@@ -511,40 +505,30 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			        	gPaint.drawLine(centerx, centery, ocenterx, ocentery);
 	    			}
 		        	
-		        	if (star.getPositionStatus() == StarCorrelationPosition.Reference)
+		        	if (mip != null && star.getPositionStatus() == StarCorrelationPosition.Reference)
 		        	{
-		        		if (mosaic.getSkyProjection().sky3dToImage2d(star.getSky3dPosition(), tmpPoint)) {
-			        		double corrx = tmpPoint[0];
-			    			double corry = tmpPoint[1];
-			    			
-			    			double [] imagePos;
-			    			
-			    			if (mip != null) {
-			    				imagePos = mip.mosaicToImage(corrx, corry, tmpPoint);
-			    			} else {
-			    				tmpPoint [0] = corrx;
-			    				tmpPoint [1] = corry;
-			    				imagePos = tmpPoint;
-			    			}
-			    			if (imagePos != null) {
-				    			// x, y est la position de l'étoile sur l'image.
-				        		// tmpPoint est également sur la mosaique
-			    				double dst = (imagePos[0] - sco.getCorrectedX()) * (imagePos[0] - sco.getCorrectedX())
-			    						+ (imagePos[1] - sco.getCorrectedY()) * (imagePos[1] - sco.getCorrectedY());
-			    				sumDst += dst;
-				        		divDst ++;
-				        		
-				    			Point2D corrPoint = imageToScreen.transform(new Point2D.Double(imagePos[0], imagePos[1]), null);
-		
-					        	Point2D correctedSo = imageToScreen.transform(new Point2D.Double(sco.getCorrectedX(), sco.getCorrectedY()), null);
-				    			
-				    			double vx = 50*(corrPoint.getX() - correctedSo.getX());
-				    			double vy = 50*(corrPoint.getY() - correctedSo.getY());
-				    			gPaint.setColor(Color.orange);	
-					        	gPaint.drawLine(centerx, centery, (int)Math.round(centerx + vx), (int)Math.round(centery + vy));
-			    			}
-		        		}
+
+		    			double [] starPos = Arrays.copyOf(star.getSky3dPosition(), 3);
+		    			skyToMosaic.convert(starPos);
+		    			double [] imagePos = new double[2];
+		    			if (!mip.getProjection().sky3dToImage2d(starPos, imagePos)) continue;
+		    			
+		    			// x, y est la position de l'étoile sur l'image.
+		        		// tmpPoint est également sur la mosaique
+	    				double dst = (imagePos[0] - sco.getCorrectedX()) * (imagePos[0] - sco.getCorrectedX())
+	    						+ (imagePos[1] - sco.getCorrectedY()) * (imagePos[1] - sco.getCorrectedY());
+	    				sumDst += dst;
+		        		divDst ++;
 		        		
+		    			Point2D corrPoint = imageToScreen.transform(new Point2D.Double(imagePos[0], imagePos[1]), null);
+
+			        	Point2D correctedSo = imageToScreen.transform(new Point2D.Double(sco.getCorrectedX(), sco.getCorrectedY()), null);
+		    			
+		    			double vx = 50*(corrPoint.getX() - correctedSo.getX());
+		    			double vy = 50*(corrPoint.getY() - correctedSo.getY());
+		    			gPaint.setColor(Color.orange);	
+			        	gPaint.drawLine(centerx, centery, (int)Math.round(centerx + vx), (int)Math.round(centery + vy));
+	    		
 		        	}
 	        	}
 	        }
@@ -558,123 +542,100 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        g2d.setColor(Color.ORANGE);
 	        for(PointOfInterest poi : mosaic.getAllPointsOfInterest())
 	        {
-	        	MosaicImageParameter mip2 = null;
-	        	if (!poi.isImageRelative()) {
-	        		mip2 = mosaic.getMosaicImageParameter(image);
-	        		// if (mip2 == null) continue;
-	        		// if (!mip2.isCorrelated()) continue;
-	        	}
-	        	double x, y;
-	        	
-	        	x = poi.getX();
-	        	y = poi.getY();
-	        	
-	        	if (mip2 != null) {
-	        		double [] imagePos = mip2.mosaicToImage(x, y, tmpPoint);
-	        		if (imagePos == null) continue; 
-	        		x = imagePos[0];
-	        		y = imagePos[1];
-	        	}
-
-	        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
-	        	
-	        	FontMetrics metrics = gPaint.getFontMetrics(gPaint.getFont());
-	        	int hgt = metrics.getHeight();
-	        	int descent = metrics.getDescent();
-	        	
-	        	
-	        	if (screenPos.getX() < -0.5 || screenPos.getY() < -0.5 || screenPos.getX() >= getWidth() || screenPos.getY() >= getHeight()) {
-	        		
-	        		int margin = 15;
-	        		int size = 40;
-	        		int arcSize = 15;
-	        		double angle = 0.5;
-	        		
-	        		// En dehors de la fenetre...
-	        		double vecX = screenPos.getX();
-	        		double vecY = screenPos.getY();
-	        		if (vecX < margin) vecX = margin;
-	        		if (vecY < margin) vecY = margin;
-	        		if (vecX > getWidth() - margin - 1) vecX = getWidth() - margin - 1;
-	        		if (vecY > getHeight() - margin - 1) vecY = getHeight() - margin - 1;
-	        		
-	        		double dltX = vecX - screenPos.getX();
-	        		double dltY = vecY - screenPos.getY();
-	        		double dltSize = Math.sqrt(dltX * dltX + dltY * dltY);
-	        		int orgx = (int)Math.round(vecX);
-	        		int orgy = (int)Math.round(vecY);
-	        		
-	        		
-	        		int dstx = (int) Math.round(vecX + size * dltX / dltSize);
-	        		int dsty = (int) Math.round(vecY + size * dltY / dltSize);
-	        		
-	        		double leftDst = (dstx - screenPos.getX()) * (dstx - screenPos.getX()) + (dsty - screenPos.getY()) * (dsty - screenPos.getY());
-	        		leftDst = Math.sqrt(leftDst);
-	        		
-	        		
-
-		        	gPaint.drawLine(orgx, orgy, dstx, dsty);
+	        	double [] poiPos = new double[2];
+	        	if (poi.project(poi.isImageRelative() ? poi.getImgRelPos() : poi.getSky3dPos(), poiPos, mosaic, mosaic.getMosaicImageParameter(image))) {
 		        	
-		        	for(int i = -1; i <= 1; i +=2)
-		        	{
+		        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(poiPos[0], poiPos[1]), null);
+		        	
+		        	FontMetrics metrics = gPaint.getFontMetrics(gPaint.getFont());
+		        	int hgt = metrics.getHeight();
+		        	int descent = metrics.getDescent();
+		        	
+		        	
+		        	if (screenPos.getX() < -0.5 || screenPos.getY() < -0.5 || screenPos.getX() >= getWidth() || screenPos.getY() >= getHeight()) {
 		        		
-		        		double cs = Math.cos(i * angle);
-		        		double sn = Math.sin(i * angle);
+		        		int margin = 15;
+		        		int size = 40;
+		        		int arcSize = 15;
+		        		double angle = 0.5;
 		        		
-		        		int coordx = (int)Math.round(orgx + (dltX * cs + dltY * sn) * arcSize / dltSize);
-		        		int coordy = (int)Math.round(orgy + (dltY * cs - dltX * sn) * arcSize / dltSize);
+		        		// En dehors de la fenetre...
+		        		double vecX = screenPos.getX();
+		        		double vecY = screenPos.getY();
+		        		if (vecX < margin) vecX = margin;
+		        		if (vecY < margin) vecY = margin;
+		        		if (vecX > getWidth() - margin - 1) vecX = getWidth() - margin - 1;
+		        		if (vecY > getHeight() - margin - 1) vecY = getHeight() - margin - 1;
 		        		
-		        		gPaint.drawLine(orgx, orgy, coordx, coordy);
+		        		double dltX = vecX - screenPos.getX();
+		        		double dltY = vecY - screenPos.getY();
+		        		double dltSize = Math.sqrt(dltX * dltX + dltY * dltY);
+		        		int orgx = (int)Math.round(vecX);
+		        		int orgy = (int)Math.round(vecY);
+		        		
+		        		
+		        		int dstx = (int) Math.round(vecX + size * dltX / dltSize);
+		        		int dsty = (int) Math.round(vecY + size * dltY / dltSize);
+		        		
+		        		double leftDst = (dstx - screenPos.getX()) * (dstx - screenPos.getX()) + (dsty - screenPos.getY()) * (dsty - screenPos.getY());
+		        		leftDst = Math.sqrt(leftDst);
+		        		
+		        		
+	
+			        	gPaint.drawLine(orgx, orgy, dstx, dsty);
+			        	
+			        	for(int i = -1; i <= 1; i +=2)
+			        	{
+			        		
+			        		double cs = Math.cos(i * angle);
+			        		double sn = Math.sin(i * angle);
+			        		
+			        		int coordx = (int)Math.round(orgx + (dltX * cs + dltY * sn) * arcSize / dltSize);
+			        		int coordy = (int)Math.round(orgy + (dltY * cs - dltX * sn) * arcSize / dltSize);
+			        		
+			        		gPaint.drawLine(orgx, orgy, coordx, coordy);
+			        	}
+			        	
+			        	int textX, textY;
+	
+			        	String title = poi.getName() + " - " + ((int)Math.round(leftDst)) + "px";
+			        	
+			        	int adv = metrics.stringWidth(title);
+	
+			        	textX = dstx - (adv + 1) / 2;
+			        	textY = dsty + (hgt + 1) / 2 - descent;
+		        		
+			        	if (dltX > 0) textX = dstx;
+			        	if (dltX < 0) textX = dstx - (adv + 1);
+			        	if (dltY < 0) textY = dsty - descent;
+			        	if (dltY > 0) textY = dsty + (hgt + 1) - descent;
+			        	
+			        	
+			        	
+			        	gPaint.drawString(title, textX, textY );
+		        	} else {
+		        		int centerx = (int)Math.round(screenPos.getX());
+			        	int centery = (int)Math.round(screenPos.getY());
+			        	
+			        	gPaint.drawLine(centerx - 20, centery - 20, centerx - 3, centery - 3);
+			        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
+			        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
+			        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
+	
+			        	int adv = metrics.stringWidth(poi.getName());
+			        	
+		        		gPaint.drawString(poi.getName(), centerx - (adv + 1)/ 2, centery + 20 + hgt - descent);
 		        	}
 		        	
-		        	int textX, textY;
-
-		        	String title = poi.getName() + " - " + ((int)Math.round(leftDst)) + "px";
-		        	
-		        	int adv = metrics.stringWidth(title);
-
-		        	textX = dstx - (adv + 1) / 2;
-		        	textY = dsty + (hgt + 1) / 2 - descent;
-	        		
-		        	if (dltX > 0) textX = dstx;
-		        	if (dltX < 0) textX = dstx - (adv + 1);
-		        	if (dltY < 0) textY = dsty - descent;
-		        	if (dltY > 0) textY = dsty + (hgt + 1) - descent;
-		        	
-		        	
-		        	
-		        	gPaint.drawString(title, textX, textY );
-	        	} else {
-	        		int centerx = (int)Math.round(screenPos.getX());
-		        	int centery = (int)Math.round(screenPos.getY());
-		        	
-		        	gPaint.drawLine(centerx - 20, centery - 20, centerx - 3, centery - 3);
-		        	gPaint.drawLine(centerx + 20, centery - 20, centerx + 3, centery - 3);
-		        	gPaint.drawLine(centerx - 20, centery + 20, centerx - 3, centery + 3);
-		        	gPaint.drawLine(centerx + 20, centery + 20, centerx + 3, centery + 3);
-
-		        	int adv = metrics.stringWidth(poi.getName());
-		        	
-	        		gPaint.drawString(poi.getName(), centerx - (adv + 1)/ 2, centery + 20 + hgt - descent);
 	        	}
 	        	
-
 	        	
-	        	double [] points = poi.getSecondaryPoints();
-	        	if (points == null) points = new double[0];
-	        	for(int i = 0; i < points.length; i += 2)
+	        	for(double [] point : poi.isImageRelative() ? poi.getImgRelPosSecondaryPoints() : poi.getSky3dPosSecondaryPoints())
 	        	{
-		        	x = points[i];
-		        	y = points[i + 1];
-		        	
-		        	if (mip != null) {
-		        		double [] imagePos = mip.mosaicToImage(x, y, tmpPoint);
-		        		if (imagePos == null) continue;
-		        		x = imagePos[0];
-		        		y = imagePos[1];
-		        	}
-
-		        	screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
+	        		if (!poi.project(point, poiPos, mosaic, mosaic.getMosaicImageParameter(image))) continue;
+			        
+	        		
+		        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(poiPos[0], poiPos[1]), null);
 		        	
 
 		        	int secx = (int)Math.round(screenPos.getX());

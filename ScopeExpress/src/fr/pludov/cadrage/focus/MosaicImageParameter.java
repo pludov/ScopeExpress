@@ -59,31 +59,13 @@ public class MosaicImageParameter {
 	}
 	
 	/**
-	 * Retourne la projection de x,y sur l'image.
-	 * retourne null si point non projetable !
-	 * @param x
-	 * @param y
-	 * @param tmpStorage2d optionnel. Réutiliser ce tableau pour le stockage
-	 * @return
-	 */
-	public double [] mosaicToImage(double x, double y, double [] tmpStorage2d)
-	{
-		if (tmpStorage2d == null) tmpStorage2d = new double[2];
-		tmpStorage2d[0] = x;;
-		tmpStorage2d[1] = y;;
-		double [] tmp3d = new double[3];
-		mosaic.skyProjection.image2dToImage3d(tmpStorage2d, tmp3d);
-		if (!projection.sky3dToImage2d(tmp3d, tmpStorage2d)) return null;
-		return tmpStorage2d;
-	}
-	
-
-	/**
 	 * Un point 3D dans le repère de la mosaique vers l'image
 	 * @return null si le point n'est pas visible sur l'image
 	 */
 	public double [] mosaic3DToImage(double [] mosaic3D, double [] result)
 	{
+		if (!isCorrelated) return null;
+		
 		if (result == null) result = new double[2];
 		double [] tmp3d = mosaic3D;
 		if (!projection.sky3dToImage2d(tmp3d, result)) {
@@ -91,20 +73,9 @@ public class MosaicImageParameter {
 		}
 		return result;
 	}
-	
-	
-	public double [] imageToMosaic(double rx, double ry, double [] result)
-	{
-		if (result == null) result = new double[2];
-		result[0] = rx;// - mosaic.skyProjection.getCenterx();
-		result[1] = ry;// - mosaic.skyProjection.getCentery();
-		double[] tmp3d = new double[3];
-		projection.image2dToSky3d(result, tmp3d);
-		mosaic.skyProjection.image3dToImage2d(tmp3d, result);
-		return result;
-	}
 
 	public SkyProjection getProjection() {
+		assert(isCorrelated);
 		return projection;
 	}
 

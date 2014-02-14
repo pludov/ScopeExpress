@@ -12,6 +12,7 @@ import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
@@ -117,15 +118,15 @@ public class FocusUiScopeManager {
 			if (mip == null || !mip.isCorrelated()) {
 				target = null;
 			} else {
-				double [] mosaicPos = new double[2];
+				double [] mosaic3dPos = new double[3];
 				
 				double imgPos0 = 0.5;
 				double imgPos1 = 0.5;
 				
-				mip.imageToMosaic(0.5 * img.getWidth() * imgPos0, 0.5 * img.getHeight() * imgPos1, mosaicPos);
-				mosaic.getSkyProjection().unproject(mosaicPos);
-				
-				target = mosaicPos;
+				mip.getProjection().image2dToSky3d(new double[]{0.5 * img.getWidth() * imgPos0, 0.5 * img.getHeight() * imgPos1}, mosaic3dPos);
+				mosaic.getMosaicToSky().convert(mosaic3dPos);
+				target = new double[2];
+				SkyProjection.convert3DToRaDec(mosaic3dPos, target);
 				
 				// On veut des coordonnées Vraies, en H pour l'AD
 				target[0] *= 24.0 / 360;

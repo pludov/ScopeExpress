@@ -182,6 +182,26 @@ public class SkyProjection {
 	}
 	
 	/**
+	 * Transforme une distance dans la sphere en radian
+	 * @param radDst
+	 * @return
+	 */
+	public static double sky3dDst2Rad(double dst)
+	{
+		// c'est deux fois l'angle formé par un des deux triangle rectangle dans le triangle equilateral 
+		double rslt = 2 * Math.asin(dst / 2);
+		
+		double expDst = radDst2Sky3dDst(rslt);
+		if (dst > 1e-8) {
+			if (expDst / dst > 1.01 || expDst / dst < 0.99) {
+				throw new RuntimeException("Y a un probleme");
+			}
+		}
+		
+		return rslt;
+	}
+	
+	/**
 	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
 	 */
 	public boolean image3dToImage2d(double [] i_pos3d, double [] o_pos2d)

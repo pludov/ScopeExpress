@@ -3,7 +3,10 @@ package fr.pludov.cadrage.focus;
 import java.awt.geom.NoninvertibleTransformException;
 import java.util.Arrays;
 
+import org.w3c.dom.Element;
+
 import fr.pludov.utils.EquationSolver;
+import fr.pludov.utils.XmlSerializationContext;
 
 /**
  * Représente une transformation affine en 3D.
@@ -627,6 +630,38 @@ public class AffineTransform3D {
 		AffineTransform3D verification = AffineTransform3D.getTransformationMatrix(sourceTriangle, targetTriangle);
 		
 		System.out.println("verification done");
+	}
+
+	public Element save(XmlSerializationContext xsc) {
+		Element result = xsc.newNode(AffineTransform3D.class.getSimpleName());
+		for(int i = 0; i < 12; ++i)
+		{
+			xsc.setNodeAttribute(result, "m"+i, this.fact(i));
+		}
+		
+		return result;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(matrice);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		AffineTransform3D other = (AffineTransform3D) obj;
+		if (!Arrays.equals(matrice, other.matrice))
+			return false;
+		return true;
 	}
 	
 }

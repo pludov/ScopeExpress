@@ -27,6 +27,7 @@ import fr.pludov.cadrage.ImageDisplayParameterListener;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
 import fr.pludov.cadrage.ui.utils.PanelFocusBorderHandler;
@@ -310,17 +311,18 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 			String result = String.format(Locale.US, "X/Y: %.1f %.1f", imgX, imgY);
 			
-			if (mosaic.getSkyProjection() == null) return result;
-			
 			result += "    ";
 			
 			MosaicImageParameter mip = mosaic.getMosaicImageParameter(display.getImage());
 			if (mip == null || !mip.isCorrelated()) return result + "pas de correlation";
 			
-			tmp1 = mip.imageToMosaic(imgX, imgY, tmp1);
-			mosaic.getSkyProjection().unproject(tmp1);
-			double ra = tmp1[0];
-			double dec = tmp1[1];
+			double[] sky3dPos = new double[3];
+			mip.getProjection().image2dToSky3d(new double[]{imgX, imgY}, sky3dPos);
+			mosaic.getMosaicToSky().convert(sky3dPos);
+			double[] raDec = new double[2];
+			SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+			double ra = raDec[0];
+			double dec = raDec[1];
 			
 			{
 			  Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
