@@ -50,6 +50,14 @@ public class AffineTransform3D {
 		matrice[m33] = 1;
 	}
 
+	public AffineTransform3D(double [] values) {
+		
+		matrice = new double[12];
+		for(int i = 0; i < 12; ++i) {
+			matrice[i] = values[i];
+		}
+	}
+
 	private AffineTransform3D(AffineTransform3D from) {
 		matrice = new double[12];
 		for(int i = 0; i < this.matrice.length; ++i)

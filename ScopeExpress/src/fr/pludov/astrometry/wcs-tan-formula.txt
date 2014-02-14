@@ -1,0 +1,121 @@
+En WCS SIP-TAN, pour calculer la transfo pixel => xyz:
+// px = 920.78524533	
+// py = 771.580406294
+		U = px - refPixX
+		V = py - refPixY
+// U = -5
+// V = 0
+		iwcx = - RAD_PER_DEG * (cd00 * U + cd01 * V)
+		iwcy = RAD_PER_DEG * (cd10 * U + cd11 * V)
+// iwcx * -RAD_PER_DEG= -1.94224477391E-4
+// iwcy * RAD_PER_DEG = -0.0017490946143699998
+// iwcx = 3.389856618438236E-6
+// iwcy = -3.052745994965702E-5
+
+// ix = 0.875318588001242
+// jx = 0.4828947419927414
+// rx = -0.025100550895859386
+// iy = 0.4835466570037599
+// jy = -0.8741384881728668
+// ry = 0.04543714334487914
+// jz = 0.051909263630095175
+// rz = 0.9986518053602974
+		x = ix*iwcx + jx*iwcy + rx
+		y = iy*iwcx + jy*iwcy + ry
+		z =        jz*iwcy + rz
+// xyz = [-0.02511232524124669, 0.04546546772640286, 0.9986502207023309]
+	x = r00 U + r01 V + r02
+	y = r10 U + r11 V + r12
+	z = r20 U + r21 V + r22
+
+// r00 = 2.3548690774610706E-6
+// x = r00 * 5 + r02
+	
+	x = - RAD_PER_DEG * (cd00 * U + cd01 * V) * ix + RAD_PER_DEG * (cd10 * U + cd11 * V) * jx + rx
+	x =   U * (- RAD_PER_DEG * (cd00) * ix + RAD_PER_DEG * (cd10) * jx)
+		+ V * (- RAD_PER_DEG * (cd01) * ix + RAD_PER_DEG * (cd11) * jx)
+		+ rx
+	y = - RAD_PER_DEG * (cd00 * U + cd01 * V) * iy + RAD_PER_DEG * (cd10 * U + cd11 * V) * jy + ry
+	y =   U * (- RAD_PER_DEG * (cd00) * iy + RAD_PER_DEG * (cd10) * jy)
+		+ V * (- RAD_PER_DEG * (cd01) * iy + RAD_PER_DEG * (cd11) * jy)
+		+ ry
+	z = jz * RAD_PER_DEG * (cd10 * U + cd11 * V) + rz
+	z =   U * (jz * RAD_PER_DEG * cd10)
+		+ V * (jz * RAD_PER_DEG * cd11)
+		+ rz
+		 
+	r00 = (- RAD_PER_DEG * (cd00) * ix + RAD_PER_DEG * (cd10) * jx)
+	r01 = (- RAD_PER_DEG * (cd01) * ix + RAD_PER_DEG * (cd11) * jx)
+	r02 = rx
+	r10 = (- RAD_PER_DEG * (cd00) * iy + RAD_PER_DEG * (cd10) * jy)
+	r11 = (- RAD_PER_DEG * (cd01) * iy + RAD_PER_DEG * (cd11) * jy)
+	r12 = ry
+	r20 = (jz * RAD_PER_DEG * cd10)
+	r21 = (jz * RAD_PER_DEG * cd11)
+	r22 = rz
+
+
+	normaliser(x,y,z)
+		
+Et dans skyProjection:
+		
+		U = (px - refPixX) * pixelRad
+		V = (py - refPixY) * pixelRad
+		
+		xi = U / sqrt(U * U + V * V + 1)
+		yi = V / sqrt(U * U + V * V + 1)
+		zi = 1.0 / sqrt(U * U + V * V + 1)
+		
+	x = m11 * xi + m12 * yi + m13 * zi + m14 
+	y = m21 * xi + m22 * yi + m23 * zi + m24
+	z = m31 * xi + m32 * yi + m33 * zi + m34
+
+si on admet que m14, m24 et m34 sont nulls (juste des rotations)
+alors, c'est equivalent à :
+
+		U = (px - refPixX) * pixelRad
+		V = (py - refPixY) * pixelRad
+		
+		xi = U
+		yi = V
+		zi = 1.0
+		
+		x = m11 * xi + m12 * yi + m13 * zi
+		y = m21 * xi + m22 * yi + m23 * zi
+		z = m31 * xi + m32 * yi + m33 * zi
+	
+		normaliser(x,y,z)
+
+
+Ou encore 
+		U = (px - refPixX) 
+		V = (py - refPixY)
+		
+		x = m11 * U * pixelRad + m12 * V * pixelRad + m13
+		y = m21 * U * pixelRad + m22 * V * pixelRad + m23
+		z = m31 * U * pixelRad + m32 * V * pixelRad + m33
+	
+		normaliser(x,y,z)
+A comparer avec
+		x = r00 U + r01 V + r02
+		y = r10 U + r11 V + r12
+		z = r20 U + r21 V + r22
+
+On a alors les identités suivantes:
+		m11 * pixelRad = r00
+		m12 * pixelRad = r01
+		m13 = r02
+		m21 * pixelRad = r10
+		m22 * pixelRad = r11
+		m23 = r12
+		m31 * pixelRad = r20
+		m32 * pixelRad = r21
+		m33 = r22
+
+On veut au passage que la matrice soit unitaire (m11² + m21² + m31²) == 1, ...
+On va donc avoir pixelRad = 1/SQRT(r00² + r10² + r20²) et pixelRad = 1/SQRT(r01² + r11² + r21²)
+=> je pense que ça ne marche que si l'image a des pixels bien carré. Sinon, il faut un pixelRadX et pixelRadY
+
+		
+		
+		

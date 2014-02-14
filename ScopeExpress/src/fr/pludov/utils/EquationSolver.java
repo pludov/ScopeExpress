@@ -22,6 +22,54 @@ public class EquationSolver {
 	}
 	
 	/**
+	 * Trouve les meilleurs coeff a, b, c pour maximiser:
+	 * 		a.xi + b.yi + c = vi
+	 * 
+	 * On veut minimiser:
+	 *   SOMME((a * xi + b * yi + c - vi)²)
+	 *   SOMME(b^2*y^2+2*a*b*x*y-2*b*v*y+2*b*c*y +a^2*x^2-2*a*v*x+2*a*c*x +v^2-2*c*v+c^2)
+	 *         b^2*Sy2+2*a*b*Sxy-2*b*Svy+2*b*c*Sy+a^2*Sx2-2*a*Svx+2*a*c*Sx+Sv2-2*c*Sv+c^2*S
+	 *  a,b,c minimisent la dérivée. Donc on tire 3 equation annulant resp la dérivée en a, en b et en c. 
+	 *  Pour a: 2*a*Sx2+2*b*Sxy+2*c*Sx = 2*Svx 
+	 *  Pour b: 2*a*Sxy+2*b*Sy2+2*c*Sy = 2*Svy
+	 *  Pour c: 2*a*Sx+2*b*Sy+2*c*S = 2*Sv
+	 *
+	 *  Pour a: a*Sx2 + b*Sxy + c*Sx = Svx 
+	 *  Pour b: a*Sxy + b*Sy2 + c*Sy = Svy
+	 *  Pour c: a*Sx  + b*Sy  + c*S  = Sv
+	 * 
+	 */
+	public static double [] linearFit(double [] xi, double [] yi, double [] vi)
+	{
+		double Sx2 = 0, Sxy = 0, Sx = 0, Svx = 0, Sy2 = 0, Sy = 0, Svy = 0, S = 0, Sv = 0;
+		for(int i = 0; i < xi.length; ++i)
+		{
+			double x = xi[i];
+			double y = yi[i];
+			double v = vi[i];
+			Sx2 += x*x;
+			Sxy += x*y;
+			Sx += x;
+			Svx += v * x;
+			Sy2 += y*y;
+			Sy += y;
+			Svy += v * y;
+			S += 1;
+			Sv += v;
+		}
+		
+		return solve(new double[]{
+				Sx2, Sxy, Sx,
+				Sxy, Sy2, Sy,
+				Sx, Sy, S
+		}, new double[] {
+				Svx,
+				Svy,
+				Sv
+		});
+	}
+	
+	/**
 	 * Trouve le polynome a.x^2 + b*x + c * y^2 + d * x + e * x*y + f
 	 * approchant les points passés en paramètre
 	 */
@@ -463,10 +511,32 @@ public class EquationSolver {
 	}
 	
 	public static void main(String[] args) {
-		test3d();
+		testLin();
 		
 	}
 
+	public static void testLin()
+	{
+		double hiddenA = 2342;
+		double hiddenB = 34534;
+		double hiddenC = 1322;
+		double [] x = new double[25];
+		double [] y = new double[25];
+		double [] v = new double[25];
+		for(int i = 0; i < x.length; ++i)
+		{
+			x[i] = Math.random() * 10000;
+			y[i] = Math.random() * 10000;
+			v[i] = hiddenA * x[i] + hiddenB * y[i] + hiddenC + Math.random() - 0.5;
+		}
+		
+		double [] result = linearFit(x, y, v);
+		double delta = p2(result[0] - hiddenA) + p2(result[1] - hiddenB) + p2(result[2] - hiddenC);
+		System.out.println(" expect : " + hiddenA + "  " + hiddenB + "  " + hiddenC);
+		System.out.println(" expect : " + result[0] + "  " + result[1] + "  " + result[2]);
+		System.out.println("delta = " + delta);
+	}
+	
 	public static void test3d() {
 		int dim = 7;
 		double [] [] values= new double[dim * dim][];

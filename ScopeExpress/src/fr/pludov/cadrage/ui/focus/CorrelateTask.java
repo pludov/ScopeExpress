@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.astrometry.AstrometryProcess;
 import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
@@ -114,16 +115,13 @@ public class CorrelateTask extends BackgroundTask {
 	
 	@Override
 	protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-		List<Mosaic.CorrelatedGridPoint> referenceStars;
 		List<ImageStar> destStars;
 		
-		Correlation correlation = new Correlation();
-
+		
+		double imagePixSizeInDeg;
 		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
 		SkyProjection imageSkyProjection;
-		SkyProjection refSkyProjection;
 		// Est ce que la référence est un catalogue (auquel cas, on suppose qu'il contient beaucoup plus d'étoiles, et le filtrage y est plus aggressif)
-		boolean refIsCatalog;
 //		double projectionToImageRatio;
 		SwingThreadMonitor.acquire();
 		try {
@@ -132,97 +130,23 @@ public class CorrelateTask extends BackgroundTask {
 				throw new TaskException("L'image a été retirée de la mosaique");
 			}
 			
-			if (mosaic.getSkyProjection() == null) {
-				mosaic.setSkyProjection(new SkyProjection(1.0));
-			}
-			
 			MosaicImageParameter parameter = this.mosaic.getMosaicImageParameter(image);
 			if (parameter.isCorrelated()) {
 				throw new TaskException("L'image est déjà corellée");
 			}
 			
-			// Vérifier qu'il y a une image correllée
-//			boolean hasCorrelatedImage = false;
-//			for(Image candidates : this.mosaic.getImages())
-//			{
-//				MosaicImageParameter candidateParameter = this.mosaic.getMosaicImageParameter(candidates);
-//				if (candidateParameter.isCorrelated()) {
-//					hasCorrelatedImage = true;
-//					break;
-//				}
-//			}
-//			
-			// FIXME: constant * capteur size / focal
-			double imageSizeInDeg = 57.3 * 22.2 / 610.0;
-			imageSizeInDeg = 57.3 * 22.2 / 1280.0;
-			imageSizeInDeg = 57.3 * this.image.getWidth() * parameter.getPixelSize() / (1000 * parameter.getFocal());
+			double imageSizeInDeg = 57.3 * this.image.getWidth() * parameter.getPixelSize() / (1000 * parameter.getFocal());
 			
 			// Le 2 correspond à la division due à la matrice de bayer
-			double imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
-			
-			referenceStars = this.mosaic.calcCorrelatedImages();
-			
-			if (referenceStars.isEmpty()) {
-				// Cas simple, c'est la première image de la mosaique
-				parameter.setCorrelated(new SkyProjection(imagePixSizeInDeg * 3600));
-				
-				for(ImageStar is : getImageStars(this.image))
-				{
-					is.so.getStar().setPositionStatus(StarCorrelationPosition.Deducted);
+			imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
 
-					// 2.512^(-mag) = adu
-					// log(2.512) * (-mag) = log(adu)
-					// mag = -log(adu)/log(2.512)
-					double mag = - Math.log(is.getAduLevel()) / Math.log(2.512);
-					is.so.getStar().setMagnitude(mag);
-				}
-				return;
-			}
-			refIsCatalog = false;
-			for(CorrelatedGridPoint cgp : referenceStars)
-			{
-				if (cgp.getStar() != null && cgp.getStar().getPositionStatus() == StarCorrelationPosition.Reference) {
-					refIsCatalog = true;
-					break;
-				}
-			}
 
-			logger.info("Doing correlation with info from catalog: " + refIsCatalog);
-			
 			destStars = getImageStars(this.image);
 			if (destStars.isEmpty()) {
 				throw new TaskException("Il n'y a pas d'étoiles disponibles pour la correlation");
 			}
 
-
-			if (this.mosaic.getSkyProjection() != null) {
-				// On veut connaitre la taille d'un pixel de la projection (en degrés)
-//				double [] center = new double[] { 0.0, 0.0 };
-//				this.mosaic.getSkyProjection().unproject(center);
-//				double [] onePixRight = new double[] { 1.0, 0.0 };
-//				this.mosaic.getSkyProjection().unproject(onePixRight);
-//				double projectionPixSizeInDeg = SkyProjection.getDegreeDistance(center, onePixRight);
-//	
-				
-				// Exemple: 
-				//  taille d'un pixel sur l'image : 2°
-				//  taille d'un pixel sur la projection: 0.1°
-				//  => il faut multiplier par 1/20 pour être à l'échelle de l'image
-//				projectionToImageRatio = projectionPixSizeInDeg / imagePixSizeInDeg;
-				
-				// FIXME: dupliquer ?
-				imageSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
-				refSkyProjection = this.mosaic.getSkyProjection();
-
-			} else {
-				// On assume que les images ne changent pas d'échelle
-//				projectionToImageRatio = 1.0;
-				
-				// Ici, on s'en fiche
-				imageSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
-				refSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
-				// FIXME: on perd le centre de refSkyProjection ???
-			}
+			imageSkyProjection = new SkyProjection(imagePixSizeInDeg * 3600);
 			imageSkyProjection.setCenterx(image.getWidth() / 4.0);
 			imageSkyProjection.setCentery(image.getHeight() / 4.0);
 			
@@ -231,68 +155,54 @@ public class CorrelateTask extends BackgroundTask {
 		}
 		
 		try {
-			correlation.correlate(destStars, imageSkyProjection, referenceStars, refSkyProjection, refIsCatalog);
+			double [] [] images = new double[destStars.size()][];
+			
+			for(int i = 0; i < destStars.size(); ++i)
+			{
+				ImageStar is = destStars.get(i);
+				images[i] = new double[]{2.0 * is.getX(), 2.0 * is.getY(), is.getAduLevel(), 0.0};
+			}
+			
+			AstrometryProcess ap = new AstrometryProcess(image.getWidth(), image.getHeight(), 0, 90, 15);
+			ap.setFieldMin(0.3 * imagePixSizeInDeg * Math.sqrt(image.getWidth() * image.getWidth() + image.getHeight() * image.getHeight()));
+			ap.setFieldMax(9 * ap.getFieldMin());
+			
+			SkyProjection imageSkyProjectionResult = ap.doAstrometry(images);
+			// Et ensuite, on veut trouver 
+			
 			// correlation.identity();
-			if (!correlation.isFound()) {
+			if (imageSkyProjectionResult == null) {
 				throw new TaskException("Pas de correlation trouvée");
 			}
 			
-			List<Mosaic.CorrelatedGridPoint> referenceStarList = referenceStars;
+			// à cause de problème de x2 lié au bayer
+			imageSkyProjectionResult.setCenterx(imageSkyProjectionResult.getCenterx() / 2);
+			imageSkyProjectionResult.setCentery(imageSkyProjectionResult.getCentery() / 2);
+			imageSkyProjectionResult.setPixelRad(2 * imageSkyProjectionResult.getPixelRad());
 
-			double [] referenceX = new double[referenceStarList.size()];
-			double [] referenceY = new double[referenceStarList.size()];
-			for(int i = 0; i < referenceStarList.size(); ++i)
-			{
-				Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(i);
-				
-				double x = referenceSo.getX();
-				double y = referenceSo.getY();
-				
-				referenceX[i] = x;
-				referenceY[i] = y;
-			}
-
-			double [] otherX = new double[destStars.size()];
-			double [] otherY = new double[destStars.size()];
-			double [] tmp2d = new double[2];
-			double [] tmp3d = new double[3];
-			for(int i = 0; i < destStars.size(); ++i)
-			{
-				ImageStar otherSo = destStars.get(i);
-				tmp2d[0] = otherSo.getX();
-				tmp2d[1] = otherSo.getY();
-				
-				correlation.getSkyProjection().image2dToSky3d(tmp2d, tmp3d);
-				refSkyProjection.image3dToImage2d(tmp3d, tmp2d);
-				
-				otherX[i] = tmp2d[0];
-				otherY[i] = tmp2d[1];
-			}
-
-			double refToImageRatio = refSkyProjection.getPixelRad() / correlation.getSkyProjection().getPixelRad();
-			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 6.0 / refToImageRatio);
-			
-			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
-
-//			double [] correlationParams = new double[] {correlation.getCs(), correlation.getSn(), correlation.getTx(), correlation.getTy()};
-//			
-//			for(int i = 0; i < correlationParams.length; ++i)
+//			double [] otherX = new double[destStars.size()];
+//			double [] otherY = new double[destStars.size()];
+//			double [] tmp2d = new double[2];
+//			double [] tmp3d = new double[3];
+//			for(int i = 0; i < destStars.size(); ++i)
 //			{
-//				if (Double.isNaN(correlationParams[i])) {
-//					throw new TaskException("Correlation invalide trouvée (erreur interne!)");
-//				}
-//			}
-			if (correlations.size() > 0) {
-				// Procéder à l'ajustement
-//				adjustCorrelationParams(correlationParams, correlations, referenceStarList, destStars);
+//				ImageStar otherSo = destStars.get(i);
+//				tmp2d[0] = otherSo.getX();
+//				tmp2d[1] = otherSo.getY();
 //				
-//				for(int i = 0; i < correlationParams.length; ++i)
-//				{
-//					if (Double.isNaN(correlationParams[i])) {
-//						throw new TaskException("Correlation invalide trouvée (erreur interne!)");
-//					}
-//				}
-			}
+//				imageSkyProjectionResult.getSkyProjection().image2dToSky3d(tmp2d, tmp3d);
+//				refSkyProjection.image3dToImage2d(tmp3d, tmp2d);
+//				
+//				otherX[i] = tmp2d[0];
+//				otherY[i] = tmp2d[1];
+//			}
+//
+//			double refToImageRatio = refSkyProjection.getPixelRad() / imageSkyProjectionResult.getPixelRad();
+//			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 6.0 / refToImageRatio);
+//			
+//			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
+
+
 			
 			SwingThreadMonitor.acquire(); 
 			try {
@@ -301,44 +211,46 @@ public class CorrelateTask extends BackgroundTask {
 				if (mosaic.getMosaicImageParameter(this.image) == null) {
 					throw new TaskException("L'image a été retirée de la mosaique");
 				}
-				if (correlations.size() > 0) {
-					for(PointMatchAlgorithm.Correlation c : correlations)
-					{
-						int refStarId = c.getP1();
-						int otherStarId = c.getP2();
-						
-						Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(refStarId);
-						ImageStar iStar = destStars.get(otherStarId);
-						StarOccurence otherSo = iStar.so;
-						
-						if (!mosaic.exists(otherSo)) {
-							continue;
-						}
-						
-						if (!mosaic.exists(referenceSo.getStar())) {
-							continue;
-						}
-						
-						// On déplacer la starOccurence de other vers ref.
-						StarOccurence currenOtherSo = mosaic.getStarOccurence(referenceSo.getStar(), this.image);
-						if (currenOtherSo != null) {
-							// Déjà ok...
-							if (otherSo == currenOtherSo) {
-								continue;
-							}
-						}
-						
-						mosaic.mergeStarOccurence(referenceSo.getStar(), otherSo);
-						
-					}
-					
+//				if (correlations.size() > 0) {
+//					for(PointMatchAlgorithm.Correlation c : correlations)
+//					{
+//						int refStarId = c.getP1();
+//						int otherStarId = c.getP2();
+//						
+//						Mosaic.CorrelatedGridPoint referenceSo = referenceStarList.get(refStarId);
+//						ImageStar iStar = destStars.get(otherStarId);
+//						StarOccurence otherSo = iStar.so;
+//						
+//						if (!mosaic.exists(otherSo)) {
+//							continue;
+//						}
+//						
+//						if (!mosaic.exists(referenceSo.getStar())) {
+//							continue;
+//						}
+//						
+//						// On déplacer la starOccurence de other vers ref.
+//						StarOccurence currenOtherSo = mosaic.getStarOccurence(referenceSo.getStar(), this.image);
+//						if (currenOtherSo != null) {
+//							// Déjà ok...
+//							if (otherSo == currenOtherSo) {
+//								continue;
+//							}
+//						}
+//						
+//						mosaic.mergeStarOccurence(referenceSo.getStar(), otherSo);
+//						
+//					}
+//					
 					// FIXME : rompre les associations éventuelles pour les StarOccurence source ou dest qui n'ont pas été trouvés
 					// pour tester avec une transfo orthogonale: 
 //					SkyProjection skp = new SkyProjection(correlation.getSkyProjection(), new AffineTransform3D());
 //					skp.setTransform(skp.getTransform().rotateY(Math.cos(0.29), Math.sin(0.29)));
 //					skp.setTransform(skp.getTransform().rotateZ(Math.cos(0.32), Math.sin(0.32)));
-					mosaic.getMosaicImageParameter(this.image).setCorrelated(correlation.getSkyProjection());
-				}
+					// skyProjection doit être relatif à l'objet "mosaic..." 
+					imageSkyProjectionResult.setTransform(mosaic.getSkyProjection().getTransform().invert().combine(imageSkyProjectionResult.getTransform()));
+					mosaic.getMosaicImageParameter(this.image).setCorrelated(imageSkyProjectionResult);
+//				}
 			} finally {
 				SwingThreadMonitor.release();
 			}
