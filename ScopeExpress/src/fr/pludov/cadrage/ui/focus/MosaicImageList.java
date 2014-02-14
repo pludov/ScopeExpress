@@ -305,7 +305,12 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					
 					pfa.addMosaicImageParameter(mip);
 				}
-				pfa.perform();
+				try {
+					pfa.perform();
+				} catch (EndUserException e1) {
+					e1.report(MosaicImageList.this);
+					return;
+				}
 				
 				if (pfa.isFound()) {
 					PointOfInterest poi = new PointOfInterest("axe", true);

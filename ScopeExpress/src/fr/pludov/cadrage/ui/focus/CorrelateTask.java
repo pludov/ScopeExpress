@@ -192,26 +192,22 @@ public class CorrelateTask extends BackgroundTask {
 			imageSkyProjectionResult.setCentery(imageSkyProjectionResult.getCentery() / 2);
 			imageSkyProjectionResult.setPixelRad(2 * imageSkyProjectionResult.getPixelRad());
 			// Et parce qu'on empile imageSkyProjectionResult avec mosaicProjection
-			imageSkyProjectionResult.setTransform(mosaicProjection.getTransform().invert().combine(imageSkyProjectionResult.getTransform()));
+			SkyProjection imageMosaicProjectionResult = new SkyProjection(imageSkyProjectionResult);
+			imageMosaicProjectionResult.setTransform(mosaicProjection.getTransform().invert().combine(imageMosaicProjectionResult.getTransform()));
 
-			// Calculer la projection de toutes les étoiles de l'image sur la mosaic
+			// Calculer la projection de toutes les étoiles de l'image sur l'image
 			double [] otherX = new double[destStars.size()];
 			double [] otherY = new double[destStars.size()];
 			double [] tmp2d = new double[2];
-			double [] tmp3d = new double[3];
+			double fwhmSum = 0;
 			for(int i = 0; i < destStars.size(); ++i)
 			{
 				ImageStar otherSo = destStars.get(i);
-				tmp2d[0] = otherSo.getX();
-				tmp2d[1] = otherSo.getY();
-				
-				imageSkyProjectionResult.image2dToSky3d(tmp2d, tmp3d);
-				mosaicProjection.image3dToImage2d(tmp3d, tmp2d);
-				
-				otherX[i] = tmp2d[0];
-				otherY[i] = tmp2d[1];
+				otherX[i] = otherSo.getX();
+				otherY[i] = otherSo.getY();
+				fwhmSum += otherSo.so.getFwhm();
 			}
-			
+			fwhmSum = fwhmSum / (double)destStars.size();
 
 			double [] referenceX = new double[referenceStars.size()];
 			double [] referenceY = new double[referenceStars.size()];
@@ -219,21 +215,21 @@ public class CorrelateTask extends BackgroundTask {
 			{
 				Mosaic.CorrelatedGridPoint referenceSo = referenceStars.get(i);
 				
-				double x = referenceSo.getX();
-				double y = referenceSo.getY();
-				
-				referenceX[i] = x;
-				referenceY[i] = y;
+				if (imageSkyProjectionResult.sky3dToImage2d(referenceSo.getStar().getSky3dPosition(), tmp2d)) {
+					
+					referenceX[i] = tmp2d[0];
+					referenceY[i] = tmp2d[1];
+				} else {
+					referenceX[i] = Double.NaN;
+					referenceY[i] = Double.NaN;
+				}
 			}
 
-
-			double refToImageRatio = mosaicProjection.getPixelRad() / imageSkyProjectionResult.getPixelRad();
-			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 18.0 / refToImageRatio);
+			// FIXME : le nombre de pixel correspondant à la taille des étoile
+			PointMatchAlgorithm algo = new PointMatchAlgorithm(referenceX, referenceY, otherX, otherY, 5 * fwhmSum);
 			
 			List<PointMatchAlgorithm.Correlation> correlations = algo.proceed();
 
-			
-			
 			SwingThreadMonitor.acquire(); 
 			try {
 				Mosaic mosaic = this.mosaic;
@@ -285,7 +281,7 @@ public class CorrelateTask extends BackgroundTask {
 //					skp.setTransform(skp.getTransform().rotateY(Math.cos(0.29), Math.sin(0.29)));
 //					skp.setTransform(skp.getTransform().rotateZ(Math.cos(0.32), Math.sin(0.32)));
 					// skyProjection doit être relatif à l'objet "mosaic..." 
-					mosaic.getMosaicImageParameter(this.image).setCorrelated(imageSkyProjectionResult);
+					mosaic.getMosaicImageParameter(this.image).setCorrelated(imageMosaicProjectionResult);
 				}
 			} finally {
 				SwingThreadMonitor.release();
@@ -317,114 +313,114 @@ public class CorrelateTask extends BackgroundTask {
 		calc[2] = thisDst / otherDst;
 
 	}
-	
-	private static void adjustCorrelationParams(double [] correlationCsSnTxTy, 
-								List<PointMatchAlgorithm.Correlation> correlations,
-								List<Mosaic.CorrelatedGridPoint> referenceStarList,
-								List<? extends DynamicGridPoint> otherStarList)
-	{
-		// Pour chaque segment disponible, on va calculer la rotation
-		// On fait la moyenne des angles et on retient cet angle
-		// On fait la moyenne des ratios et on retient ce ratio
-
-		double [] tmpVec = new double[3];
-		double [] sumVec = new double[3];
-		
-		int ptCount = 0;
-		double weight = 0.0;
-		
-		// Ensuite, on calcule la moyenne des translations
-		for(int p1 = 0; p1 < correlations.size(); ++p1)
-		{
-			double thisP1X, thisP1Y, otherP1X, otherP1Y;
-			
-			int thisPt1Index = correlations.get(p1).getP1();
-			thisP1X = referenceStarList.get(thisPt1Index).getX();
-			thisP1Y = referenceStarList.get(thisPt1Index).getY();
-
-			int otherPt1Index = correlations.get(p1).getP2();
-			otherP1X = otherStarList.get(otherPt1Index).getX();
-			otherP1Y = otherStarList.get(otherPt1Index).getY();
-			
-			for(int p2 = p1 + 1; p2 < correlations.size(); ++p2)
-			{
-				double thisP2X, thisP2Y, otherP2X, otherP2Y;
-				
-				int thisPt2Index = correlations.get(p2).getP1();
-				thisP2X = referenceStarList.get(thisPt2Index).getX();
-				thisP2Y = referenceStarList.get(thisPt2Index).getY();
-
-				int otherPt2Index = correlations.get(p2).getP2();
-				otherP2X = otherStarList.get(otherPt2Index).getX();
-				otherP2Y = otherStarList.get(otherPt2Index).getY();
-				
-
-				double thisDst = Math.sqrt((thisP2X - thisP1X) * (thisP2X - thisP1X) + (thisP2Y - thisP1Y) * (thisP2Y - thisP1Y));
-				double otherDst = Math.sqrt((otherP2X - otherP1X) * (otherP2X - otherP1X) + (otherP2Y - otherP1Y) * (otherP2Y - otherP1Y));
-				
-				if (thisDst <= 0.0001) continue;
-				
-				calcAngleRatio(otherP1X, otherP1Y, otherP2X, otherP2Y, otherDst, thisP1X, thisP1Y, thisP2X, thisP2Y, thisDst, tmpVec);
-				double thisWeight = (thisDst + otherDst);
-				
-				sumVec[0] += tmpVec[0] * thisWeight;
-				sumVec[1] += tmpVec[1] * thisWeight;
-				sumVec[2] += tmpVec[2] * thisWeight;
-				
-				ptCount ++;
-				weight += thisWeight;
-			}
-		}
-		
-		if (weight == 0) return;
-		
-		sumVec[0] /= weight;
-		sumVec[1] /= weight;
-		sumVec[2] /= weight;
-		
-		// Renormer cs et sn
-		double csSnNorm = Math.sqrt(sumVec[0] * sumVec[0] + sumVec[1] * sumVec[1]);
-		sumVec[0] /= csSnNorm;
-		sumVec[1] /= csSnNorm;
-		
-		// Multiplier par le ration moyen
-		sumVec[0] *= sumVec[2];
-		sumVec[1] *= sumVec[2];
-		correlationCsSnTxTy[0] = sumVec[0];
-		correlationCsSnTxTy[1] = sumVec[1];
-		
-		double tx = 0, ty = 0;
-		double cs = correlationCsSnTxTy[0];
-		double sn = correlationCsSnTxTy[1];
-		for(int p1 = 0; p1 < correlations.size(); ++p1)
-		{
-			double thisP1X, thisP1Y, otherP1X, otherP1Y;
-			
-			int thisPt1Index = correlations.get(p1).getP1();
-			thisP1X = referenceStarList.get(thisPt1Index).getX();
-			thisP1Y = referenceStarList.get(thisPt1Index).getY();
-
-			int otherPt1Index = correlations.get(p1).getP2();
-			otherP1X = otherStarList.get(otherPt1Index).getX();
-			otherP1Y = otherStarList.get(otherPt1Index).getY();
-			
-
-			double xRotateScale = thisP1X * cs + thisP1Y * sn; 
-			double yRotateScale = thisP1Y * cs - thisP1X * sn; 
-			
-			double dltx = otherP1X - xRotateScale;
-			double dlty = otherP1Y - yRotateScale;
-			
-			tx += dltx;
-			ty += dlty;
-		}
-		tx /= correlations.size();
-		ty /= correlations.size();
-		
-		correlationCsSnTxTy[2] = tx;
-		correlationCsSnTxTy[3] = ty;
-	}
-	
+//	
+//	private static void adjustCorrelationParams(double [] correlationCsSnTxTy, 
+//								List<PointMatchAlgorithm.Correlation> correlations,
+//								List<Mosaic.CorrelatedGridPoint> referenceStarList,
+//								List<? extends DynamicGridPoint> otherStarList)
+//	{
+//		// Pour chaque segment disponible, on va calculer la rotation
+//		// On fait la moyenne des angles et on retient cet angle
+//		// On fait la moyenne des ratios et on retient ce ratio
+//
+//		double [] tmpVec = new double[3];
+//		double [] sumVec = new double[3];
+//		
+//		int ptCount = 0;
+//		double weight = 0.0;
+//		
+//		// Ensuite, on calcule la moyenne des translations
+//		for(int p1 = 0; p1 < correlations.size(); ++p1)
+//		{
+//			double thisP1X, thisP1Y, otherP1X, otherP1Y;
+//			
+//			int thisPt1Index = correlations.get(p1).getP1();
+//			thisP1X = referenceStarList.get(thisPt1Index).getX();
+//			thisP1Y = referenceStarList.get(thisPt1Index).getY();
+//
+//			int otherPt1Index = correlations.get(p1).getP2();
+//			otherP1X = otherStarList.get(otherPt1Index).getX();
+//			otherP1Y = otherStarList.get(otherPt1Index).getY();
+//			
+//			for(int p2 = p1 + 1; p2 < correlations.size(); ++p2)
+//			{
+//				double thisP2X, thisP2Y, otherP2X, otherP2Y;
+//				
+//				int thisPt2Index = correlations.get(p2).getP1();
+//				thisP2X = referenceStarList.get(thisPt2Index).getX();
+//				thisP2Y = referenceStarList.get(thisPt2Index).getY();
+//
+//				int otherPt2Index = correlations.get(p2).getP2();
+//				otherP2X = otherStarList.get(otherPt2Index).getX();
+//				otherP2Y = otherStarList.get(otherPt2Index).getY();
+//				
+//
+//				double thisDst = Math.sqrt((thisP2X - thisP1X) * (thisP2X - thisP1X) + (thisP2Y - thisP1Y) * (thisP2Y - thisP1Y));
+//				double otherDst = Math.sqrt((otherP2X - otherP1X) * (otherP2X - otherP1X) + (otherP2Y - otherP1Y) * (otherP2Y - otherP1Y));
+//				
+//				if (thisDst <= 0.0001) continue;
+//				
+//				calcAngleRatio(otherP1X, otherP1Y, otherP2X, otherP2Y, otherDst, thisP1X, thisP1Y, thisP2X, thisP2Y, thisDst, tmpVec);
+//				double thisWeight = (thisDst + otherDst);
+//				
+//				sumVec[0] += tmpVec[0] * thisWeight;
+//				sumVec[1] += tmpVec[1] * thisWeight;
+//				sumVec[2] += tmpVec[2] * thisWeight;
+//				
+//				ptCount ++;
+//				weight += thisWeight;
+//			}
+//		}
+//		
+//		if (weight == 0) return;
+//		
+//		sumVec[0] /= weight;
+//		sumVec[1] /= weight;
+//		sumVec[2] /= weight;
+//		
+//		// Renormer cs et sn
+//		double csSnNorm = Math.sqrt(sumVec[0] * sumVec[0] + sumVec[1] * sumVec[1]);
+//		sumVec[0] /= csSnNorm;
+//		sumVec[1] /= csSnNorm;
+//		
+//		// Multiplier par le ration moyen
+//		sumVec[0] *= sumVec[2];
+//		sumVec[1] *= sumVec[2];
+//		correlationCsSnTxTy[0] = sumVec[0];
+//		correlationCsSnTxTy[1] = sumVec[1];
+//		
+//		double tx = 0, ty = 0;
+//		double cs = correlationCsSnTxTy[0];
+//		double sn = correlationCsSnTxTy[1];
+//		for(int p1 = 0; p1 < correlations.size(); ++p1)
+//		{
+//			double thisP1X, thisP1Y, otherP1X, otherP1Y;
+//			
+//			int thisPt1Index = correlations.get(p1).getP1();
+//			thisP1X = referenceStarList.get(thisPt1Index).getX();
+//			thisP1Y = referenceStarList.get(thisPt1Index).getY();
+//
+//			int otherPt1Index = correlations.get(p1).getP2();
+//			otherP1X = otherStarList.get(otherPt1Index).getX();
+//			otherP1Y = otherStarList.get(otherPt1Index).getY();
+//			
+//
+//			double xRotateScale = thisP1X * cs + thisP1Y * sn; 
+//			double yRotateScale = thisP1Y * cs - thisP1X * sn; 
+//			
+//			double dltx = otherP1X - xRotateScale;
+//			double dlty = otherP1Y - yRotateScale;
+//			
+//			tx += dltx;
+//			ty += dlty;
+//		}
+//		tx /= correlations.size();
+//		ty /= correlations.size();
+//		
+//		correlationCsSnTxTy[2] = tx;
+//		correlationCsSnTxTy[3] = ty;
+//	}
+//	
 	public Image getImage() {
 		return image;
 	}

@@ -8,7 +8,7 @@ import fr.pludov.utils.EquationSolver;
 /**
  * Représente une transformation affine en 3D.
  * 
- * 
+ * Objet invariant
  */
 public class AffineTransform3D {
 	public final static int m11 = 0;
@@ -627,11 +627,6 @@ public class AffineTransform3D {
 		AffineTransform3D verification = AffineTransform3D.getTransformationMatrix(sourceTriangle, targetTriangle);
 		
 		System.out.println("verification done");
-	}
-
-	public double[] getFactors() {
-		// TODO Auto-generated method stub
-		return this.matrice;
 	}
 	
 }

@@ -46,7 +46,7 @@ public class AxeFindAlgorithm {
 		this.mipList.add(mip);
 	}
 	
-	public void perform()
+	public void perform() throws EndUserException
 	{
 		xsum = 0;
 		ysum = 0;
@@ -78,7 +78,7 @@ public class AxeFindAlgorithm {
 		return y;
 	}
 	
-	void findPoint(MosaicImageParameter a, MosaicImageParameter b)
+	void findPoint(MosaicImageParameter a, MosaicImageParameter b) throws EndUserException
 	{
 		// Premiere transfo mosaique vers image
 		AffineTransform3D t1 = a.getProjection().getTransform();
@@ -119,7 +119,9 @@ public class AxeFindAlgorithm {
 		
 		// Normalement, on doit avoir le même résultat avec les deux transformation !
 		double [] imagePos = b.mosaic3DToImage(Arrays.copyOf(vector, vector.length), null);
+		if (imagePos == null) throw new EndUserException("Point invisible sur l'image");
 		double [] imagePosA = a.mosaic3DToImage(Arrays.copyOf(vector, vector.length), null);
+		if (imagePosA == null) throw new EndUserException("Point invisible sur l'image");
 		double dst = Math.sqrt((imagePos[0] - imagePosA[0]) * (imagePos[0] - imagePosA[0]) +
 				(imagePos[1] - imagePosA[1]) * (imagePos[1] - imagePosA[1]));
 		

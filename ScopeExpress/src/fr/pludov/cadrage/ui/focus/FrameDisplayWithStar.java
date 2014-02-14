@@ -393,17 +393,17 @@ public class FrameDisplayWithStar extends FrameDisplay {
     		{
     			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
     			
-    			double x = star.getCorrelatedX();
-    			double y = star.getCorrelatedY();
+    			if (!mosaic.getSkyProjection().sky3dToImage2d(star.getSky3dPosition(), tmpPoint)) continue;
     			
+    			double [] imagePos2d;
     			if (mip != null) {
-    				tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
+    				imagePos2d = mip.mosaicToImage(tmpPoint[0], tmpPoint[1], tmpPoint);
     			} else {
-    				tmpPoint [0] = x;
-    				tmpPoint [1] = y;
+    				imagePos2d = tmpPoint;
     				
     			}
-    			Point2D result = imageToScreen.transform(new Point2D.Double(tmpPoint[0], tmpPoint[1]), null);
+    			if (imagePos2d == null) continue;
+    			Point2D result = imageToScreen.transform(new Point2D.Double(imagePos2d[0], imagePos2d[1]), null);
 	        	
     			int mag = (int)Math.round(6 - star.getMagnitude());
     			if (mag < 0) mag = 0;
@@ -478,14 +478,17 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				        	
 		        			if (mip == null || !mip.isCorrelated()) continue;
 		        			if (otherMip == null || !otherMip.isCorrelated()) continue;
+		        			
+		        			double [] imagePos;
 		        			// On la transforme selon la correlation de l'image...
-		        			tmpPoint = otherMip.imageToMosaic(ox, oy, tmpPoint);
+		        			imagePos = otherMip.imageToMosaic(ox, oy, tmpPoint);
+		        			if (imagePos == null) continue;
 		        			
 		        			// Et on la retransforme dans cette image		        			
-		        			tmpPoint = mip.mosaicToImage(tmpPoint[0], tmpPoint[1], tmpPoint);
-		        			
-		        			ox = tmpPoint[0];
-		        			oy = tmpPoint[1];
+		        			imagePos = mip.mosaicToImage(imagePos[0], imagePos[1], tmpPoint);
+		        			if (imagePos == null) continue;
+		        			ox = imagePos[0];
+		        			oy = imagePos[1];
 		        		}
 		        		
 			        	Point2D otherResult = imageToScreen.transform(new Point2D.Double(ox, oy), null);
@@ -510,35 +513,37 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	
 		        	if (star.getPositionStatus() == StarCorrelationPosition.Reference)
 		        	{
-		        		double corrx = star.getCorrelatedX();
-		    			double corry = star.getCorrelatedY();
-		    			
-		    			
-		    			
-		    			if (mip != null) {
-		    				tmpPoint = mip.mosaicToImage(corrx, corry, tmpPoint);
-		    				
-		    			} else {
-		    				tmpPoint [0] = corrx;
-		    				tmpPoint [1] = corry;
-		    				
-		    			}
-		    			
-		    			// x, y est la position de l'étoile sur l'image.
-		        		// tmpPoint est également sur la mosaique
-	    				double dst = (tmpPoint[0] - sco.getCorrectedX()) * (tmpPoint[0] - sco.getCorrectedX())
-	    						+ (tmpPoint[1] - sco.getCorrectedY()) * (tmpPoint[1] - sco.getCorrectedY());
-	    				sumDst += dst;
-		        		divDst ++;
-		        		
-		    			Point2D corrPoint = imageToScreen.transform(new Point2D.Double(tmpPoint[0], tmpPoint[1]), null);
-
-			        	Point2D correctedSo = imageToScreen.transform(new Point2D.Double(sco.getCorrectedX(), sco.getCorrectedY()), null);
-		    			
-		    			double vx = 50*(corrPoint.getX() - correctedSo.getX());
-		    			double vy = 50*(corrPoint.getY() - correctedSo.getY());
-		    			gPaint.setColor(Color.orange);	
-			        	gPaint.drawLine(centerx, centery, (int)Math.round(centerx + vx), (int)Math.round(centery + vy));
+		        		if (mosaic.getSkyProjection().sky3dToImage2d(star.getSky3dPosition(), tmpPoint)) {
+			        		double corrx = tmpPoint[0];
+			    			double corry = tmpPoint[1];
+			    			
+			    			double [] imagePos;
+			    			
+			    			if (mip != null) {
+			    				imagePos = mip.mosaicToImage(corrx, corry, tmpPoint);
+			    			} else {
+			    				tmpPoint [0] = corrx;
+			    				tmpPoint [1] = corry;
+			    				imagePos = tmpPoint;
+			    			}
+			    			if (imagePos != null) {
+				    			// x, y est la position de l'étoile sur l'image.
+				        		// tmpPoint est également sur la mosaique
+			    				double dst = (imagePos[0] - sco.getCorrectedX()) * (imagePos[0] - sco.getCorrectedX())
+			    						+ (imagePos[1] - sco.getCorrectedY()) * (imagePos[1] - sco.getCorrectedY());
+			    				sumDst += dst;
+				        		divDst ++;
+				        		
+				    			Point2D corrPoint = imageToScreen.transform(new Point2D.Double(imagePos[0], imagePos[1]), null);
+		
+					        	Point2D correctedSo = imageToScreen.transform(new Point2D.Double(sco.getCorrectedX(), sco.getCorrectedY()), null);
+				    			
+				    			double vx = 50*(corrPoint.getX() - correctedSo.getX());
+				    			double vy = 50*(corrPoint.getY() - correctedSo.getY());
+				    			gPaint.setColor(Color.orange);	
+					        	gPaint.drawLine(centerx, centery, (int)Math.round(centerx + vx), (int)Math.round(centery + vy));
+			    			}
+		        		}
 		        		
 		        	}
 	        	}
@@ -565,9 +570,10 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	y = poi.getY();
 	        	
 	        	if (mip2 != null) {
-	        		tmpPoint = mip2.mosaicToImage(x, y, tmpPoint);
-	        		x = tmpPoint[0];
-	        		y = tmpPoint[1];
+	        		double [] imagePos = mip2.mosaicToImage(x, y, tmpPoint);
+	        		if (imagePos == null) continue; 
+	        		x = imagePos[0];
+	        		y = imagePos[1];
 	        	}
 
 	        	Point2D screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);
@@ -662,9 +668,10 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	y = points[i + 1];
 		        	
 		        	if (mip != null) {
-		        		tmpPoint = mip.mosaicToImage(x, y, tmpPoint);
-		        		x = tmpPoint[0];
-		        		y = tmpPoint[1];
+		        		double [] imagePos = mip.mosaicToImage(x, y, tmpPoint);
+		        		if (imagePos == null) continue;
+		        		x = imagePos[0];
+		        		y = imagePos[1];
 		        	}
 
 		        	screenPos = imageToScreen.transform(new Point2D.Double(x, y), null);

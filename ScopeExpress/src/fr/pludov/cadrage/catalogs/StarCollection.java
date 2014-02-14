@@ -8,11 +8,11 @@ import org.apache.commons.collections.primitives.DoubleList;
 
 public class StarCollection {
 
-	final DoubleList xyMag;
+	final DoubleList xyzMag;
 	final List<String> references;
 	
 	public StarCollection() {
-		this.xyMag = new ArrayDoubleList(10000);
+		this.xyzMag = new ArrayDoubleList(10000);
 		this.references = new ArrayList<String>(3000);
 	}
 
@@ -21,19 +21,17 @@ public class StarCollection {
 		return this.references.size();
 	}
 	
-	public double getX(int star)
+	public void loadStarSky3dPos(int star, double [] sky3dPos)
 	{
-		return this.xyMag.get(3 * star);
-	}
-	
-	public double getY(int star)
-	{
-		return this.xyMag.get(1 + 3 * star);
+		int id = 4 * star;
+		for(int i = 0; i < 3; ++i) {
+			sky3dPos[i] = xyzMag.get(id + i);
+		}
 	}
 
 	public double getMag(int star)
 	{
-		return this.xyMag.get(2 + 3 * star);
+		return this.xyzMag.get(3 + 4 * star);
 	}
 
 	public String getReference(int star)
@@ -41,11 +39,12 @@ public class StarCollection {
 		return this.references.get(star);
 	}
 	
-	public void addStar(double x, double y, double mag, String reference)
+	public void addStar(double [] sky3d, double mag, String reference)
 	{
-		this.xyMag.add(x);
-		this.xyMag.add(y);
-		this.xyMag.add(mag);
+		this.xyzMag.add(sky3d[0]);
+		this.xyzMag.add(sky3d[1]);
+		this.xyzMag.add(sky3d[2]);
+		this.xyzMag.add(mag);
 		this.references.add(reference);
 	}
 

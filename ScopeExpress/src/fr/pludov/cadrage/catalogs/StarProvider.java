@@ -48,6 +48,7 @@ public class StarProvider {
 	
 	/**
 	 * retourne une liste de position 2D, magnitude
+	 * Les étoiles retournée sont en coordonnées xyz polaires
 	 */
 	public static StarCollection getStarAroundNorth(SkyProjection sky, double angle, double maxMag)
 	{
@@ -59,7 +60,7 @@ public class StarProvider {
 		double minra, maxra;
 		
 		double [] star3d = new double[3];
-		double [] star2d = new double[2];
+		double [] star3dTransformed = new double[3];
 		double [] starRaDec = new double[2];
 		
 		double year = System.currentTimeMillis() / (365.25 * 86400000) + 1970;		
@@ -126,14 +127,14 @@ public class StarProvider {
 //						    starRaDec[1] = ret_dec;
 //						}						
 						SkyProjection.convertRaDecTo3D(starRaDec, star3d);
+						for(int i = 0; i < 3; ++i) {
+							star3dTransformed[i] = star3d[i];
+						}
+						sky.getTransform().convert(star3dTransformed);
 						
-						sky.getTransform().convert(star3d);
+						if (star3dTransformed[2] < minZ) continue;
 						
-						if (star3d[2] < minZ) continue;
-						
-						sky.image3dToImage2d(star3d, star2d);
-						
-						result.addStar(star2d[0], star2d[1], starFile.getMagnitude(), "TYC " + starFile.getTyc1() + "-" + starFile.getTyc2() + "-" + starFile.getTyc3());
+						result.addStar(star3d, starFile.getMagnitude(), "TYC " + starFile.getTyc1() + "-" + starFile.getTyc2() + "-" + starFile.getTyc3());
 						starCount ++;
 					}
 
@@ -150,13 +151,14 @@ public class StarProvider {
 						
 						SkyProjection.convertRaDecTo3D(starRaDec, star3d);
 						
-						sky.getTransform().convert(star3d);
+						for(int i = 0; i < 3; ++i) {
+							star3dTransformed[i] = star3d[i];
+						}
+						sky.getTransform().convert(star3dTransformed);
 						
-						if (star3d[2] < minZ) continue;
+						if (star3dTransformed[2] < minZ) continue;
 						
-						sky.image3dToImage2d(star3d, star2d);
-						
-						result.addStar(star2d[0], star2d[1], supplFile.getMagnitude(), "TYC " + supplFile.getTyc1()+"-" + supplFile.getTyc2() + "-" + supplFile.getTyc3());
+						result.addStar(star3d, supplFile.getMagnitude(), "TYC " + supplFile.getTyc1()+"-" + supplFile.getTyc2() + "-" + supplFile.getTyc3());
 						starCount ++;
 					}
 				}

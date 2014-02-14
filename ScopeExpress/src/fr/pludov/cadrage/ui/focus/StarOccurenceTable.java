@@ -28,6 +28,7 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.focus.Mosaic;
+import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
@@ -386,11 +387,16 @@ public class StarOccurenceTable extends JTable {
 					{
 						// Ajouter une zone d'exclusion
 						ExclusionZone ez = new ExclusionZone();
-						ez.setCenterx(so.getStar().getCorrelatedX());
-						ez.setCentery(so.getStar().getCorrelatedY());
+						ez.setSky3dPosition(so.getStar().getSky3dPosition());
 						
+						// On prend la fwhm et on multiplie par 10. ça nous fait des pixels sur l'image
 						// FIXME : c'est en dûr !
-						ez.setRayon(10);
+						double rayon = 10 * so.getFwhm();
+						MosaicImageParameter parameter = so.getMosaic().getMosaicImageParameter(so.getImage());
+						// Maintenant, on a le rayon en radian
+						rayon *= parameter.getProjection().getPixelRad();
+						
+						ez.setRayon(rayon);
 						
 						focus.addExclusionZone(ez);
 					}

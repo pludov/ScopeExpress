@@ -1,6 +1,7 @@
 package fr.pludov.cadrage.focus;
 
 import java.awt.geom.NoninvertibleTransformException;
+import java.util.Arrays;
 
 import org.w3c.dom.Element;
 
@@ -59,6 +60,18 @@ public class SkyProjection {
 		} catch(NoninvertibleTransformException e) {
 			throw new RuntimeException("identity not invertible", e);
 		}
+	}
+
+	/**
+	 * @param from
+	 * @param rotationMatrix passage de unprojected3d à projected3d
+	 */
+	public SkyProjection(SkyProjection from) {
+		this.pixelRad = from.pixelRad;
+		this.centerx = from.centerx;
+		this.centery = from.centery;
+		this.invertedTransform = from.invertedTransform;
+		this.transform = from.transform;
 	}
 
 	public Element save(XmlSerializationContext xsc)
@@ -149,6 +162,25 @@ public class SkyProjection {
 		
 		return angle;
 	}
+	
+	/**
+	 * Transforme une distance en radian, en distance sur la sphere celeste.
+	 */
+	public static double radDst2Sky3dDst(double radDst)
+	{
+		double x = Math.cos(radDst);
+		double y = Math.sin(radDst);
+		double refX = 1;
+		double refY = 0;
+		
+		x -= refX;
+		y -= refY;
+		
+		
+		return Math.sqrt(x * x + y * y);
+	
+	}
+	
 	/**
 	 * Projete en 2D un point 3D sur lequel transform a déjà été appliqué.
 	 */
@@ -215,12 +247,13 @@ public class SkyProjection {
 		pos3d[1] = y3d;
 		pos3d[2] = z3d;
 	}
-	
-	// FIXME : doit retourner false !
-	public void sky3dToImage2d(double [] xyz, double [] xy)
+
+	// FIXME: signature à revoir (retourner un double []
+	public boolean sky3dToImage2d(double [] xyz, double [] xy)
 	{
-		transform.convert(xyz);
-		image3dToImage2d(xyz, xy);
+		double [] copy = Arrays.copyOf(xyz, 3);
+		transform.convert(copy);
+		return image3dToImage2d(copy, xy);
 	}
 	
 	public void image2dToSky3d(double [] xy, double [] xyz)
@@ -243,6 +276,25 @@ public class SkyProjection {
 		
 	}
 
+	public static void normalize(double [] vect) throws ArithmeticException
+	{
+		double norm = 0;
+		for(int i = 0; i < vect.length; ++i) {
+			norm += vect[i] * vect[i];
+		}
+		norm = 1.0/ Math.sqrt(norm);
+		for(int i = 0; i < vect.length; ++i) {
+			vect[i] *= norm;
+		}
+		for(int i = 0; i < vect.length; ++i) {
+			double v = vect[i];
+		
+			if (Double.isInfinite(v) || Double.isNaN(v)) {
+				throw new ArithmeticException("Unable to normalize vector");
+			}
+		}
+	}
+	
 	/// image2d => radec
 	public void unproject(double [] xy)
 	{

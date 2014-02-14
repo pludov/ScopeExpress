@@ -168,7 +168,7 @@ public class Circle {
 	public void draw(Graphics2D g2d, SkyProjection skyProjection, MosaicImageParameter mip, AffineTransform imageToScreen)
 	{
 		double lastPtx = 0, lastPty = 0;
-		
+		boolean hasLast = false;
 		int stepCount = (int)Math.ceil(180 * (maxAngle - minAngle) / Math.PI);
 		stepCount += 2;
 		
@@ -188,21 +188,29 @@ public class Circle {
 			double x, y;
 			if (!skyProjection.image3dToImage2d(tmp3d, tmp2d))
 			{
-				x = Double.NaN;
-				y = Double.NaN;
+				hasLast = false;
+				continue;
 			} else {
+				double [] imagePos;
 				if (mip != null) {
-					mip.mosaicToImage(tmp2d[0], tmp2d[1], tmp2d);
+					imagePos = mip.mosaicToImage(tmp2d[0], tmp2d[1], tmp2d);
+				} else {
+					imagePos = tmp2d;
+				}
+				if (imagePos == null) {
+					hasLast = false;
+					continue;
 				}
 				imageToScreen.transform(tmp2d, 0, tmp2d2, 0, 1);
 				x = tmp2d2[0];
 				y = tmp2d2[1];
 			}
 			
-			if (step != 0) {
+			if (hasLast) {
 				drawLine(g2d, lastPtx, lastPty, x, y);
 			}
 			
+			hasLast = true;
 			lastPtx = x;
 			lastPty = y;
 		}

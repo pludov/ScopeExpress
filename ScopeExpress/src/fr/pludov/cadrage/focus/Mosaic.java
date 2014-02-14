@@ -397,8 +397,9 @@ public class Mosaic {
 			throw new RuntimeException("Cannot update reference star");
 		}
 		Map<Image, StarOccurence> starOccurences = occurences.get(star);
-		double x = 0, y = 0;
-		double [] result = new double[2];
+		double [] socPos = new double[2];
+		double [] socSky3dPos = new double[3];
+		double [] result = new double[3];
 		int count = 0;
 		for(Map.Entry<Image, StarOccurence> entry : starOccurences.entrySet())
 		{
@@ -412,15 +413,25 @@ public class Mosaic {
 			}
 			if (!soc.isStarFound() || !soc.isAnalyseDone()) continue;
 			
-			result = parameters.imageToMosaic(soc.getCorrectedX(), soc.getCorrectedY(), result);
+			socPos[0] = soc.getCorrectedX();
+			socPos[1] = soc.getCorrectedY();
+			parameters.getProjection().image2dToSky3d(socPos, socSky3dPos);
+			result[0] += socSky3dPos[0];
+			result[1] += socSky3dPos[1];
+			result[2] += socSky3dPos[2];
 			
-			x += result[0];
-			y += result[1];
 			count ++;
 		}
 		
 		if (count > 0) {
-			star.setCorrelatedPos(x / count, y / count);
+			try {
+				SkyProjection.normalize(result);
+				star.setCorrelatedPos(result);	
+			} catch(ArithmeticException e) {
+				logger.warn("Ignoring", e);
+				star.unsetCorrelatedPos();
+			}
+			
 		} else {
 			star.unsetCorrelatedPos();
 		}
@@ -447,35 +458,22 @@ public class Mosaic {
 	}
 	
 
-	public static class CorrelatedGridPoint implements DynamicGridPointWithAdu
+	public static class CorrelatedGridPoint
 	{
 		final Star star;
-		final double x, y;
 		final double adu;
 		
-		CorrelatedGridPoint(Star star, double x, double y)
+		CorrelatedGridPoint(Star star)
 		{
 			this.star = star;
-			this.x = x;
-			this.y = y;
 			this.adu = Math.pow(2.512, -star.getMagnitude());
 		}
 
-		@Override
-		public double getX() {
-			return this.x;
-		}
-
-		@Override
-		public double getY() {
-			return this.y;
-		}
 
 		public Star getStar() {
 			return star;
 		}
 		
-		@Override
 		public double getAduLevel() {
 			return adu;
 		}
@@ -487,7 +485,7 @@ public class Mosaic {
 		for(Star star : stars)
 		{
 			if (star.getPositionStatus().hasPosition()) {
-				result.add(new CorrelatedGridPoint(star, star.getCorrelatedX(), star.getCorrelatedY()));
+				result.add(new CorrelatedGridPoint(star));
 			}
 		}
 		return result;

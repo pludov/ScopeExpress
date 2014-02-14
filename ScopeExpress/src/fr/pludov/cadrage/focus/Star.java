@@ -12,7 +12,8 @@ public class Star {
 	boolean excludeFromStat;
 	
 	StarCorrelationPosition positionStatus;
-	double correlatedX, correlatedY;
+	// Pour l'instant, relatif à la mosaic. Plus tard, sera relatif au pole où à la première image
+	double [] sky3dPosition;
 
 	double magnitude;
 	
@@ -28,8 +29,7 @@ public class Star {
 		this.clickImage = clickImage;
 		this.excludeFromStat = false;
 		this.positionStatus = StarCorrelationPosition.None;
-		this.correlatedX = 0;
-		this.correlatedY = 0;
+		this.sky3dPosition = new double[3];
 		this.magnitude = Double.NaN;
 		this.mosaic = null;
 		this.reference = null;
@@ -43,8 +43,9 @@ public class Star {
 		xsc.setNodeAttribute(result, "clickImage", clickImage != null ? images.getIdForObject(this.clickImage) : null);
 		xsc.setNodeAttribute(result, "excludeFromStat", this.excludeFromStat);
 		xsc.setNodeAttribute(result, "positionStatus", this.positionStatus.name());
-		xsc.setNodeAttribute(result, "correlatedX", this.correlatedX);
-		xsc.setNodeAttribute(result, "correlatedY", this.correlatedY);
+		xsc.setNodeAttribute(result, "skyX", this.sky3dPosition[0]);
+		xsc.setNodeAttribute(result, "skyY", this.sky3dPosition[1]);
+		xsc.setNodeAttribute(result, "skyZ", this.sky3dPosition[2]);
 		xsc.setNodeAttribute(result, "magnitude", this.magnitude);
 		xsc.setNodeAttribute(result, "reference", this.reference);
 		return result;
@@ -82,11 +83,12 @@ public class Star {
 		this.excludeFromStat = excludeFromStat;
 	}
 
-	public void setCorrelatedPos(double x, double y)
+	public void setCorrelatedPos(double [] sky3d)
 	{
 		this.positionStatus = StarCorrelationPosition.Deducted;
-		this.correlatedX = x;
-		this.correlatedY = y;
+		for(int i = 0 ; i < 3; ++i) {
+			this.sky3dPosition[i] = sky3d[i];
+		}
 	}
 
 	public void unsetCorrelatedPos()
@@ -94,14 +96,11 @@ public class Star {
 		this.positionStatus = StarCorrelationPosition.None;
 	}
 
-	public double getCorrelatedX() {
-		return correlatedX;
+	public double [] getSky3dPosition()
+	{
+		return this.sky3dPosition;
 	}
-
-	public double getCorrelatedY() {
-		return correlatedY;
-	}
-
+	
 	public StarCorrelationPosition getPositionStatus() {
 		return positionStatus;
 	}

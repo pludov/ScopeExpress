@@ -588,17 +588,17 @@ public class FocusUi extends FocusUiDesign {
 		
 		StarCollection stars = StarProvider.getStarAroundNorth(projection, radius, maxMag);
 
+		double [] starSky3dPos = new double[3];
 		double [] tmp = new double[2];
 		
 		for(int i = 0; i < stars.getStarLength(); i ++)
 		{
-			double x = stars.getX(i);
-			double y = stars.getY(i);
+			stars.loadStarSky3dPos(i, starSky3dPos);
 			double mag = stars.getMag(i);
 			String reference = stars.getReference(i);
 			
 			Star star = new Star(0, 0, null);
-			star.setCorrelatedPos(x, y);
+			star.setCorrelatedPos(starSky3dPos);
 			star.setPositionStatus(StarCorrelationPosition.Reference);
 			star.setReference(reference);
 			star.setMagnitude(mag);
