@@ -1,26 +1,18 @@
 package fr.pludov.cadrage.scope.dummy;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
-import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
-import fr.pludov.cadrage.scope.Scope.CoordinateChangedListener;
+import fr.pludov.cadrage.utils.WeakListenerCollection;
 
 public class DummyScope implements Scope{
 	boolean connectionStatus;
 	
 	double raBias, decBias, rightAscension, declination;
+	final private WeakListenerCollection<Scope.Listener> listeners = new WeakListenerCollection<Scope.Listener>(Listener.class);
 	
-	final private List<ConnectionStateChangedListener> connectionStateChangedListener;
-	final private List<CoordinateChangedListener> coordinateChangedListener;
-
 	public DummyScope() {
 		super();
 		this.connectionStatus = false;
-		this.connectionStateChangedListener = new ArrayList<Scope.ConnectionStateChangedListener>();
-		this.coordinateChangedListener = new ArrayList<Scope.CoordinateChangedListener>();
 	}
 	
 	@Override
@@ -141,10 +133,7 @@ public class DummyScope implements Scope{
 	@Override
 	public void start() {
 		this.connectionStatus = true;
-		for(ConnectionStateChangedListener listener : this.connectionStateChangedListener)
-		{
-			listener.onConnectionStateChanged(this);
-		}
+		this.listeners.getTarget().onConnectionStateChanged();
 	}
 	
 	@Override
@@ -176,15 +165,8 @@ public class DummyScope implements Scope{
 		return declination + decBias;
 	}
 
-	
 	@Override
-	public void addConnectionStateChangedListener(ConnectionStateChangedListener listener) {
-		this.connectionStateChangedListener.add(listener);
+	public WeakListenerCollection<Listener> getListeners() {
+		return this.listeners;
 	}
-	
-	@Override
-	public void addCoordinateChangedListener(CoordinateChangedListener listener) {
-		this.coordinateChangedListener.add(listener);
-	}
-	
 }

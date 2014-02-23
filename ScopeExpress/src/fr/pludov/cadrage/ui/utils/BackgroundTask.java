@@ -104,6 +104,16 @@ public abstract class BackgroundTask {
 			}
 		}
 	}
+	
+	protected void waitForEndOfRunningStatus() throws InterruptedException
+	{
+		synchronized(queue)
+		{
+			while (status == Status.Running) {
+				queue.wait();
+			}
+		}
+	}
 
 	public String getTitle() {
 		return title;

@@ -7,11 +7,13 @@ import java.awt.event.FocusListener;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JTextField;
 
 import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
 import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.ui.utils.Utils;
 
 public class InputOutputHandler<TARGET> {
     TARGET target;
@@ -32,11 +34,18 @@ public class InputOutputHandler<TARGET> {
 	public static abstract class TextConverter<TARGET, CONTENT> implements Converter<TARGET>
 	{
 		final JTextField component;
+		final JLabel errorLabel;
 		final StringConfigItem configItem;
 
 		TextConverter(JTextField component, StringConfigItem configItem)
 		{
+			this(component, null, configItem);
+		}
+		
+		TextConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem)
+		{
 			this.component = component;
+			this.errorLabel = errorLabel;
 			this.configItem = configItem;
 		}
 
@@ -71,8 +80,11 @@ public class InputOutputHandler<TARGET> {
 		@Override
 		public final void setParameter(InputOutputHandler<TARGET> ioHandler)
 		{
+			if (!component.isEnabled()) return;
+			
 			String currentText = component.getText();
 
+			Exception error = null;
 			CONTENT value;
 			try {
 				
@@ -86,7 +98,12 @@ public class InputOutputHandler<TARGET> {
 				
 				saveConfigValue(ioHandler);
 			} catch(Exception e) {
-				
+				error = e;
+			}
+			
+			if (this.errorLabel != null) {
+				this.errorLabel.setToolTipText(error != null ? error.getMessage() : null);
+				this.errorLabel.setVisible(error != null);
 			}
 		}
 
@@ -102,6 +119,10 @@ public class InputOutputHandler<TARGET> {
 				text = toString(value);
 			}
 			component.setText(text);
+			if (this.errorLabel != null) {
+				this.errorLabel.setToolTipText(null);
+				this.errorLabel.setVisible(false);
+			}
 		}
 		
 		@Override
@@ -188,6 +209,53 @@ public class InputOutputHandler<TARGET> {
 		}
 	}
 
+	// Gestion d'une valeur en degrés représentée au format HHMMSS (RA)
+	public static abstract class HourMinSecConverter<TARGET> extends TextConverter<TARGET, Double>
+	{
+		HourMinSecConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+			super(component, errorLabel, configItem);
+		}
+		
+		String toString(Double d)
+		{
+			if (d == null) return "";
+			return Utils.formatHourMinSec(d);
+		}
+		
+		Double fromString(String s) throws Exception
+		{
+			Double d = Utils.getDegFromHourMinSec(s);
+			if (d == null) {
+				throw new Exception("Attendu au format: hh mm ss.s");
+			}
+			return d;
+		}
+	}
+	
+	// Gestion d'une valeur en degrés
+	public static abstract class DegConverter<TARGET> extends TextConverter<TARGET, Double>
+	{
+		DegConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+			super(component, errorLabel, configItem);
+		}
+		
+		@Override
+		String toString(Double t) {
+			if (t == null) return "";
+			return Utils.formatDegMinSec(t);
+		}
+		
+		@Override
+		Double fromString(String s) throws Exception {
+			Double d = Utils.getDegFromDegMinSec(s);
+			if (d == null) {
+				throw new Exception("Attendu au format: dd° mm' ss.s''");
+			}
+			return d;
+		}
+		
+	}
+	
 	public static abstract class EnumConverter<TARGET, CONTENT extends Enum<CONTENT>> implements Converter<TARGET>
 	{
 		final CONTENT [] values;

@@ -280,6 +280,36 @@ public static double JDNow()
       return (jd) ;
     }
 
+public static double JDEpoch(long epoch)
+{
+  int year, month, day;
+  int hours, minutes, seconds, milliseconds;
+
+  double ut, jd;
+  
+  Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+  now.setTimeInMillis(epoch);
+
+  year = now.get(Calendar.YEAR);
+  month = now.get(Calendar.MONTH) + 1;
+  day = now.get(Calendar.DAY_OF_MONTH);
+  hours = now.get(Calendar.HOUR_OF_DAY);
+  minutes = now.get(Calendar.MINUTE);
+  seconds = now.get(Calendar.SECOND);
+  milliseconds = now.get(Calendar.MILLISECOND);
+
+  /* Calculate floating point ut in hours */
+
+  ut = ( (double) milliseconds )/3600000. +
+    ( (double) seconds )/3600. +
+    ( (double) minutes )/60. +
+    ( (double) hours );
+
+  jd = CalcJD(year, month, day, ut);
+
+  return (jd) ;
+}
+
 /**
  * Compute Local Mean Sidereal Time (lmst) for the specified UT date, time, and longitude.
  *
@@ -882,6 +912,25 @@ public static double[] raDecNowFromJ2000(double ra, double dec, double leapSecs)
     return radec;
     }
 
+public static double[] raDecEpochFromJ2000(double ra, double dec, long epoch)
+{
+
+	double[] radec = {ra, dec};
+	double jd = JDEpoch(epoch);
+	double leapSecs = getLeapSecForEpoch(epoch);
+	
+	/* Precess ra and dec from J2000 to JD */
+	
+	radec = Precession(2000.0, jd, radec[0], radec[1], 1);
+	
+	/* Include nutation for ra and dec */
+	
+	radec = Nutation(jd, radec[0], radec[1], leapSecs, 1);
+	
+	return radec;
+}
+
+
 
 /**
  * Calculate the J2000 coordinates of an object from the current (now) ra and dec.
@@ -926,6 +975,24 @@ public static double[] J2000RaDecFromNow(double ra, double dec, double leapSecs)
     return radec;
     }
 
+public static double[] J2000RaDecFromEpoch(double ra, double dec, long epoch)
+{
+
+	double[] radec = {ra, dec};
+	double jd = JDEpoch(epoch);
+
+	/* Remove nutation for JD */
+
+	radec = Nutation(jd, radec[0], radec[1], getLeapSecForEpoch(epoch), -1);
+
+	/* Remove precession to EOD from J2000 */
+
+	radec = Precession(2000.0, jd, radec[0], radec[1], -1);
+
+	/* Return J2000 coordinates */
+
+	return radec;
+}
 
 /**
  * Convert J2000 ra and dec to ra and dec on a Julian Day

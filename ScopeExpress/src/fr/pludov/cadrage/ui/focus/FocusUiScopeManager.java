@@ -8,30 +8,39 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 
-import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.scope.Scope;
-import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
-import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
+import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class FocusUiScopeManager {
+	
+	public static interface Listener {
+		void onScopeChanged();
+	}
+	
+	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
+	public final WeakListenerCollection<Listener> listeners; 
 	final FocusUi focusUi;
 	Scope scope;
 	
 	public FocusUiScopeManager(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.scope = null;
+		this.listeners = new WeakListenerCollection<FocusUiScopeManager.Listener>(Listener.class);
 	}
 
 	private void actionDeconnecter()
 	{
 		if (this.scope == null) return;
 		this.scope.close();
+		this.scope = null;
+		this.listeners.getTarget().onScopeChanged();
 	}
 	
 
@@ -39,12 +48,18 @@ public class FocusUiScopeManager {
 	{
 		if (this.scope != null) return;
 		scope = new AscomScope();
-		scope.addConnectionStateChangedListener(new ConnectionStateChangedListener() {
+		scope.getListeners().addListener(this.listenerOwner,  new Scope.Listener() {
+			final Scope scopeThatChanged = scope;
 			
 			@Override
-			public void onConnectionStateChanged(final Scope scopeThatChanged) {
-				if (scope != scopeThatChanged) return;
+			public void onCoordinateChanged() {
 				
+			}
+			
+			@Override
+			public void onConnectionStateChanged() {
+				if (scope != scopeThatChanged) return;
+
 				SwingUtilities.invokeLater(new Runnable() {
 					@Override
 					public void run() {
@@ -53,12 +68,12 @@ public class FocusUiScopeManager {
 				});
 				
 				// Une déconnection, on le met à la poubelle
-				if (!scopeThatChanged.isConnected()) {
+				if (!scope.isConnected()) {
 					SwingUtilities.invokeLater(new Runnable() {
 						@Override
 						public void run() {
-							if (scopeThatChanged == scope) {
-								scope = null;
+							if (scopeThatChanged == scope && !scope.isConnected()) {
+								actionDeconnecter();
 							}
 						}
 					});
@@ -68,6 +83,7 @@ public class FocusUiScopeManager {
 		});
 		scope.start();
 		refreshScopeMenu();
+		this.listeners.getTarget().onScopeChanged();
 	}
 	
 	public void addActionListener()

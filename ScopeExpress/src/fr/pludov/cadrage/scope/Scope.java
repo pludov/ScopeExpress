@@ -1,6 +1,17 @@
 package fr.pludov.cadrage.scope;
 
+import fr.pludov.cadrage.utils.WeakListenerCollection;
+
 public interface Scope {
+
+	/** Les notifications ne sont pas reçues dans le thread swing */
+	public static interface Listener {
+		void onCoordinateChanged();
+		void onConnectionStateChanged();
+	}
+	
+	WeakListenerCollection<Listener> getListeners();
+	
 	boolean isConnected();
 	
 	// Utiliser pour simuler des déplacements en debug.
@@ -20,18 +31,4 @@ public interface Scope {
 	void start();
 	
 	void close();
-
-	void addCoordinateChangedListener(CoordinateChangedListener listener);
-	void addConnectionStateChangedListener(ConnectionStateChangedListener listener);
-	
-	
-	public interface CoordinateChangedListener
-	{
-		public void onCoordinateChanged(Scope scope);
-	}
-	
-	public interface ConnectionStateChangedListener
-	{
-		public void onConnectionStateChanged(Scope scope);
-	}
 }

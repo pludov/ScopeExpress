@@ -15,19 +15,22 @@ import fr.pludov.cadrage.async.CancelationException;
 import fr.pludov.cadrage.platform.windows.Ole;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
+import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WorkThread;
 
 public class AscomScope extends WorkThread implements Scope {
 	private static final Logger logger = Logger.getLogger(AscomScope.class);
 	
-	final private List<ConnectionStateChangedListener> connectionStateChangedListener;
-	final private List<CoordinateChangedListener> coordinateChangedListener;
+	final WeakListenerCollection<Scope.Listener> listeners = new WeakListenerCollection<Scope.Listener>(Listener.class);
 	
 	public AscomScope()
 	{
 		super();
-		this.connectionStateChangedListener = new ArrayList<Scope.ConnectionStateChangedListener>();
-		this.coordinateChangedListener = new ArrayList<Scope.CoordinateChangedListener>();
+	}
+	
+	@Override
+	public WeakListenerCollection<Listener> getListeners() {
+		return listeners;
 	}
 	
 	double decBias, raBias;
@@ -114,10 +117,7 @@ public class AscomScope extends WorkThread implements Scope {
 			if (!this.lastConnected) return;
 			this.lastConnected = false;
 		}
-		for(ConnectionStateChangedListener listener : connectionStateChangedListener)
-		{
-			listener.onConnectionStateChanged(this);
-		}
+		this.listeners.getTarget().onConnectionStateChanged();
 	}
 	
 	private void refreshParameters() throws Throwable
@@ -148,17 +148,11 @@ public class AscomScope extends WorkThread implements Scope {
 		}
 		
 		if (fireConnectionChanged) {
-			for(ConnectionStateChangedListener listener : connectionStateChangedListener)
-			{
-				listener.onConnectionStateChanged(this);
-			}
+			this.listeners.getTarget().onConnectionStateChanged();
 		}
 		
 		if (fireCoordinateChanged) {
-			for(CoordinateChangedListener listener : this.coordinateChangedListener)
-			{
-				listener.onCoordinateChanged(this);
-			}
+			this.listeners.getTarget().onCoordinateChanged();
 		}
 	}
 	
@@ -236,7 +230,7 @@ public class AscomScope extends WorkThread implements Scope {
 						refreshParameters();
 						return null;
 					}
-				}, 1000);
+				}, 500);
 				super.run();
 			} finally {
 				notifyFinalDisconnection();
@@ -269,15 +263,5 @@ public class AscomScope extends WorkThread implements Scope {
 
 	public void setRaBias(double raBias) {
 		this.raBias = raBias;
-	}
-	
-	@Override
-	public void addConnectionStateChangedListener(ConnectionStateChangedListener listener) {
-		this.connectionStateChangedListener.add(listener);
-	}
-	
-	@Override
-	public void addCoordinateChangedListener(CoordinateChangedListener listener) {
-		this.coordinateChangedListener.add(listener);
 	}
 }

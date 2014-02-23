@@ -11,6 +11,7 @@ import java.awt.Dimension;
 import javax.swing.UIManager;
 import javax.swing.JSplitPane;
 import javax.swing.JLabel;
+import javax.swing.border.TitledBorder;
 
 public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel imageViewPanel;
@@ -21,6 +22,7 @@ public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel zoomPanel;
 	protected JPanel viewParameterPanel;
 	protected JLabel lblStatus;
+	protected JPanel astrometryParameterPanel;
 
 	/**
 	 * Create the panel.
@@ -47,19 +49,24 @@ public class MosaicImageListViewDesign extends JPanel {
 		
 		this.leftPanel = new JPanel();
 		this.splitPane.setLeftComponent(this.leftPanel);
-		this.leftPanel.setLayout(new MigLayout("", "[200px:n,grow,fill]", "[200px:n,grow,fill][][fill]"));
+		this.leftPanel.setLayout(new MigLayout("insets 1", "[150px:n,grow,fill][150px:n,grow,fill]", "[200px:n,grow,fill][][fill]"));
 		
 		this.imageViewPanel = new JPanel();
 		this.imageViewPanel.setBorder(new SoftBevelBorder(BevelBorder.LOWERED, null, null, null, null));
-		this.leftPanel.add(this.imageViewPanel, "cell 0 0,grow");
+		this.leftPanel.add(this.imageViewPanel, "cell 0 0 2 1,grow");
 		this.imageViewPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		
 		this.lblStatus = new JLabel("");
-		this.leftPanel.add(this.lblStatus, "cell 0 1,alignx left");
+		this.leftPanel.add(this.lblStatus, "cell 0 1 2 1,alignx left");
 		
 		this.viewParameterPanel = new JPanel();
+		this.viewParameterPanel.setBorder(new TitledBorder(null, "Visualisation", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		this.leftPanel.add(this.viewParameterPanel, "cell 0 2,grow");
 		this.viewParameterPanel.setLayout(new BoxLayout(this.viewParameterPanel, BoxLayout.X_AXIS));
+		
+		this.astrometryParameterPanel = new JPanel();
+		this.leftPanel.add(this.astrometryParameterPanel, "cell 1 2,grow");
+		this.astrometryParameterPanel.setLayout(new BoxLayout(this.astrometryParameterPanel, BoxLayout.X_AXIS));
 
 	}
 }

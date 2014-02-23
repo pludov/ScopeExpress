@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -14,7 +13,6 @@ import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.focus.Application;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
@@ -22,8 +20,7 @@ import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.tests.TestInstance;
 import fr.pludov.cadrage.tests.TestRunner;
-import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
-import fr.pludov.cadrage.utils.WeakListenerOwner;
+import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel.AstrometryParameter;
 
 public class StarCorrelationTest implements TestInstance {
 	private static final Logger logger = Logger.getLogger(StarCorrelationTest.class);
@@ -84,7 +81,7 @@ public class StarCorrelationTest implements TestInstance {
 		findStar = new FindStarTask(mosaic, image);
 		runner.getApplication().getBackgroundTaskQueue().addTask(findStar);
 		
-		correlateTask = new CorrelateTask(mosaic, image);
+		correlateTask = new CorrelateTask(mosaic, new AstrometryParameter(), image);
 		runner.getApplication().getBackgroundTaskQueue().addTask(correlateTask);
 	}
 

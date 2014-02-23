@@ -5,6 +5,8 @@ import java.util.Arrays;
 
 import org.w3c.dom.Element;
 
+import fr.pludov.cadrage.ui.focus.Configuration;
+import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.utils.XmlSerializationContext;
 
 /**
@@ -385,5 +387,39 @@ public class SkyProjection {
 
 	public void setCentery(double centery) {
 		this.centery = centery;
+	}
+
+	public static double [] convertSky3dToAltAz(double [] skyCoord3d, long photoTime)
+	{
+		double [] coordJ2000 = new double[2];
+		convert3DToRaDec(skyCoord3d, coordJ2000);
+	
+		// Ensuite, on veut ses coordonnées RA/Dec vraie 
+		double [] coordNow = SkyAlgorithms.raDecEpochFromJ2000(coordJ2000[0] / 15, coordJ2000[1], photoTime);
+		
+		// Enfin, on veut son azimuth (à l'heure de la photo)
+		double [] altAz = SkyAlgorithms.CelestialToHorizontal(coordNow[0], coordNow[1], 
+				Configuration.getCurrentConfiguration().getLatitude(),
+				Configuration.getCurrentConfiguration().getLongitude(),
+				SkyAlgorithms.getCalForEpoch(photoTime),
+				SkyAlgorithms.getLeapSecForEpoch(photoTime),
+				false
+				);
+		
+		return altAz;
+	}
+
+	public static double [] convertAltAzToRaDec(double [] altAz, long photoTime)
+	{
+		double [] raDec = SkyAlgorithms.HorizontalToCelestial(altAz[0], altAz[1], 
+				Configuration.getCurrentConfiguration().getLatitude(),
+				Configuration.getCurrentConfiguration().getLongitude(),
+				SkyAlgorithms.getCalForEpoch(photoTime),
+				SkyAlgorithms.getLeapSecForEpoch(photoTime),
+				false);
+		double [] coordJ2000 = SkyAlgorithms.J2000RaDecFromEpoch(raDec[0], raDec[1], photoTime);
+	
+		coordJ2000[0] *= 15;
+		return coordJ2000;
 	}
 }

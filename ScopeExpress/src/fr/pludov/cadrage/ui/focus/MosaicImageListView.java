@@ -29,6 +29,7 @@ import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.ui.FrameDisplay;
+import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
 import fr.pludov.cadrage.ui.utils.PanelFocusBorderHandler;
 import fr.pludov.cadrage.ui.utils.Utils;
@@ -45,6 +46,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	final FrameDisplayWithStar zoomed;
 	final MosaicImageList focusImageList;
 	final ImageDisplayParameterPanel displayParameterPanel;
+	final AstrometryParameterPanel astrometryParameterPanel;
 	ClicEvent onPrincipalClick = null;
 	DragOperation principalDragOperation = null;
 	Image currentImage = null;
@@ -123,6 +125,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		principal.setMosaic(mosaic);
 		zoomed.setMosaic(mosaic);
 		focusImageList.setMosaic(mosaic);
+		astrometryParameterPanel.setMosaic(mosaic);
 	}
 	
 	public MosaicImageListView(FocusUi focusUi, final ViewControler viewControler) {
@@ -164,6 +167,10 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		displayParameterPanel = new ImageDisplayParameterPanel(true);
 		displayParameterPanel.loadParameters(displayParameter);
+		
+		this.astrometryParameterPanel = new AstrometryParameterPanel();
+		this.astrometryParameterPanel.setScopeManager(focusUi.scopeManager);
+		
 		focusImageList = new MosaicImageList(focusUi);
 		
 		JScrollPane imageListScrollPane = new JScrollPane(focusImageList);
@@ -186,6 +193,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		super.zoomPanel.add(zoomed);
 		super.imageListPanel.add(imageListScrollPane);
 		super.viewParameterPanel.add(displayParameterPanel);
+		super.astrometryParameterPanel.add(this.astrometryParameterPanel);
 		
 		displayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 			

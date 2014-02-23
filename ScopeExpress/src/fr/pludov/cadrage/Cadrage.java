@@ -20,7 +20,6 @@ import fr.pludov.cadrage.correlation.ImageCorrelation;
 import fr.pludov.cadrage.correlation.ImageCorrelation.PlacementType;
 import fr.pludov.cadrage.correlation.ViewPort;
 import fr.pludov.cadrage.scope.Scope;
-import fr.pludov.cadrage.scope.Scope.ConnectionStateChangedListener;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
 import fr.pludov.cadrage.scope.dummy.DummyScope;
 import fr.pludov.cadrage.ui.CorrelationImageDisplay;
@@ -211,24 +210,24 @@ public class Cadrage {
 				temporaryScope = new AscomScope();
 			}
 			
-			temporaryScope.addConnectionStateChangedListener(new ConnectionStateChangedListener() {
-				
-				@Override
-				public void onConnectionStateChanged(final Scope scope) {
-
-					SwingUtilities.invokeLater(new Runnable() {
-						@Override
-						public void run() {
-							if (scope.isConnected()) {
-								Cadrage.setScopeInterface(scope);
-							} else {
-								// FIXME: vérifier qu'il est encore connecté !
-								Cadrage.setScopeInterface(null);
-							}
-						}
-					});
-				}
-			});
+//			temporaryScope.addConnectionStateChangedListener(new ConnectionStateChangedListener() {
+//				
+//				@Override
+//				public void onConnectionStateChanged(final Scope scope) {
+//
+//					SwingUtilities.invokeLater(new Runnable() {
+//						@Override
+//						public void run() {
+//							if (scope.isConnected()) {
+//								Cadrage.setScopeInterface(scope);
+//							} else {
+//								// FIXME: vérifier qu'il est encore connecté !
+//								Cadrage.setScopeInterface(null);
+//							}
+//						}
+//					});
+//				}
+//			});
 
 			temporaryScope.start();
 			

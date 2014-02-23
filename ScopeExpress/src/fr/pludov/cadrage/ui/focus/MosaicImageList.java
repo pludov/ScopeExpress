@@ -32,6 +32,7 @@ import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.ExclusionZone;
+import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel.AstrometryParameter;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.AxeFindAlgorithm;
@@ -275,7 +276,8 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), entry.getTarget());
+					// FIXME: il faut des paramètres de correlations reprenant les options courantes
+					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), new AstrometryParameter(), entry.getTarget());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}
@@ -438,29 +440,6 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						mosaic.getMosaicToSky().convert(sky3dPos);
 						SkyProjection.convert3DToRaDec(sky3dPos, raDec);
 						message += title + " = [" + Utils.formatHourMinSec(raDec[0]) +";" + Utils.formatDegMinSec(raDec[1])+"]\n";
-//						
-//						double rah = mosaicPos[0] * 24.0 / 360;
-//						
-//						{
-//							int h = (int)Math.floor(rah);
-//						
-//							double ms = (rah - h) * 60;
-//							int m = (int)Math.floor(ms);
-//							int s = (int)((ms - m) * 60);
-//							message += title + " = [" + h + "h" + m + "m" + s + "s  ";
-//						}
-//						rah = mosaicPos[1];
-//						{
-//							int h = (int)Math.floor(rah);
-//						
-//							double ms = (rah - h) * 60;
-//							int m = (int)Math.floor(ms);
-//							int s = (int)((ms - m) * 60);
-//						
-//							message += h + "h" + m + "m" + s + "s]\n";
-//						}
-//						
-						
 					}
 					
 					double [] upperLeft = new double [] { 0, 0 };

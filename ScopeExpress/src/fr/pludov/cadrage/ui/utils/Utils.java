@@ -213,6 +213,78 @@ public final class Utils {
 		return dllDir;
 	}
 
+	public static Double getDegFromHourMinSec(String input) throws NumberFormatException
+	{
+		// Pattern hms = Pattern.compile("\\s*(\\d+)\\s*h(?:|\\s*(\\d+)\\s*m(?:|\\s*(\\d+\\.\\d+|\\d+)\\s*s))\\s*");
+		Pattern hms = Pattern.compile("\\s*(\\+|\\-|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*h|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*m|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*s|)\\s*");
+		
+		Matcher hmsMatcher = hms.matcher(input);
+		if (hmsMatcher.matches() && (hmsMatcher.group(2) != null || hmsMatcher.group(3) != null || hmsMatcher.group(4) != null)) {
+			double result = 0;
+			if (hmsMatcher.group(2) != null) {
+				double h = Double.parseDouble(hmsMatcher.group(2));
+				result += 360 * h / 24;
+			}
+			if (hmsMatcher.group(3) != null) {
+				double m = Double.parseDouble(hmsMatcher.group(3));
+				result += 360 * m / (60 * 24);
+			}
+	
+			if (hmsMatcher.group(4) != null) {
+				double s = Double.parseDouble(hmsMatcher.group(4));
+				result += 360 * s / (60 * 60 * 24);
+			}
+			
+			if (hmsMatcher.group(1) != null && hmsMatcher.group(1).equals("-")) {
+				result = -result;
+			}
+			
+			return result;
+		}
+			
+		try {
+			return (360 / 24) * Double.parseDouble(input);
+		} catch(NumberFormatException e) {
+		}
+		
+		return null;
+	}
+
+	public static Double getDegFromDegMinSec(String input) throws NumberFormatException
+	{
+		Pattern deg = Pattern.compile("\\s*(\\+|\\-|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*°|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*'|)\\s*(?:(\\d+|\\d+\\.\\d*)\\s*(?:''|\")|)\\s*");
+		Matcher degMatcher = deg.matcher(input);
+		if (degMatcher.matches() && (degMatcher.group(2) != null || degMatcher.group(3) != null || degMatcher.group(4) != null))
+		{
+			double result = 0;
+			if (degMatcher.group(2) != null) {
+				double d = Double.parseDouble(degMatcher.group(2));
+				result += d;
+			}
+			if (degMatcher.group(3) != null) {
+				double m = Double.parseDouble(degMatcher.group(3));
+				result += m / (60);
+			}
+	
+			if (degMatcher.group(4) != null) {
+				double s = Double.parseDouble(degMatcher.group(4));
+				result += s / (60 * 60);
+			}
+			
+			if (degMatcher.group(1) != null && degMatcher.group(1).equals("-")) {
+				result = -result;
+			}
+			return result;
+		}
+		
+		try {
+			return Double.parseDouble(input);
+		} catch(NumberFormatException e) {
+		}
+		
+		return null;
+	}
+
 	public static Double getDegFromInput(String input) throws NumberFormatException
 	{
 		// Pattern hms = Pattern.compile("\\s*(\\d+)\\s*h(?:|\\s*(\\d+)\\s*m(?:|\\s*(\\d+\\.\\d+|\\d+)\\s*s))\\s*");

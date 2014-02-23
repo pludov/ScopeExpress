@@ -43,6 +43,7 @@ import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
 import fr.pludov.cadrage.ui.resources.IconProvider;
 import fr.pludov.cadrage.ui.resources.IconProvider.IconSize;
+import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
@@ -65,6 +66,7 @@ public class FocusUi extends FocusUiDesign {
 	LocateStarParameter currentStarDetectionParameter;
 
 	final FocusUiScopeManager scopeManager;
+	final AstrometryParameterPanel astrometryParameter;
 	
 	public FocusUi(final Application application, final Mosaic mosaic) {
 		this.scopeManager = new FocusUiScopeManager(this);
@@ -79,6 +81,7 @@ public class FocusUi extends FocusUiDesign {
 		viewControl = new ViewControler(this.toolBar);
 		
 		fd = new MosaicImageListView(this, viewControl);
+		this.astrometryParameter = fd.astrometryParameterPanel;
 		this.imageViewPanel.add(fd);
 		fd.setOnClick(new MosaicImageListView.ClicEvent() {
 			

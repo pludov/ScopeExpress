@@ -511,7 +511,7 @@ public class ActionMonitor implements ActionListener {
 		FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
 		focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 		
-		CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), image);
+		CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), image);
 		focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);	
 	}
 }

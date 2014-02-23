@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,6 +15,9 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.SkyProjection;
+import fr.pludov.cadrage.ui.utils.BackgroundTask;
+import fr.pludov.cadrage.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
+import fr.pludov.cadrage.ui.utils.BackgroundTaskProcessEncapsulator;
 import fr.pludov.cadrage.utils.EndUserException;
 import net.ivoa.fits.Fits;
 import net.ivoa.fits.FitsException;
@@ -89,9 +91,12 @@ public class AstrometryProcess {
 		header.addValue("ANCORR", corrTarget.getName() /*"./218634_7.corr"*/, "Correspondences output filename");
 		header.addValue("ANWCS", wcsTarget.getName(), "wcs filename");
 		if (this.searchRadius != -1) {
-			header.addValue("ANERA", this.raCenterEstimate, "RA center estimate (deg)");
-			header.addValue("ANEDEC", this.decCenterEstimate, "Dec center estimate (deg)");
-			header.addValue("ANERAD", this.searchRadius, "Search radius from estimated posn (deg)");
+			double realSearchRadius = this.searchRadius + (this.fieldMax != -1 ? this.fieldMax : 0) / 2;
+			if (realSearchRadius < 180) {
+				header.addValue("ANERA", this.raCenterEstimate, "RA center estimate (deg)");
+				header.addValue("ANEDEC", this.decCenterEstimate, "Dec center estimate (deg)");
+				header.addValue("ANERAD", realSearchRadius, "Search radius from estimated posn (deg)");
+			}
 		}
 		
 		ImageHDU imageHDU = new ImageHDU(header, null);
@@ -340,8 +345,8 @@ public class AstrometryProcess {
 		for(int starId = 0; starId < datas.length; ++starId) {
 			double x = datas[starId][0];
 			double y = datas[starId][1];
-			int bx = (int)Math.floor((x - minx) * w / nx);
-			int by = (int)Math.floor((y - miny) * h / ny);
+			int bx = (int)Math.floor((x - minx) * nx / w);
+			int by = (int)Math.floor((y - miny) * ny / h);
 			if (bx >= nx) bx = nx - 1;
 			if (by >= ny) by = ny - 1;
 			assert(bx >= 0);
@@ -394,8 +399,9 @@ public class AstrometryProcess {
 	 * @return
 	 * @throws FitsException
 	 * @throws EndUserException
+	 * @throws BackgroundTaskCanceledException 
 	 */
-	public SkyProjection doAstrometry(double [][] datas) throws FitsException, EndUserException
+	public SkyProjection doAstrometry(BackgroundTask bt, double [][] datas) throws FitsException, EndUserException, BackgroundTaskCanceledException
 	{
 		if (datas.length < 4) throw new EndUserException("Pas assez d'étoiles");
 		datas = uniformize(datas);
@@ -414,14 +420,9 @@ public class AstrometryProcess {
 			ProcessBuilder pb = new ProcessBuilder(Arrays.asList(astrometryPath, fileAxy.toString()));
 			pb.directory(matchTarget.getParentFile());
 			pb.redirectErrorStream(true);
-			
-			Process p = pb.start();
-			InputStream os = p.getInputStream();
-			int c;
-			while((c = os.read()) != -1) {
-				System.out.write(c);
-			}
-			p.waitFor();
+			BackgroundTaskProcessEncapsulator pe = new BackgroundTaskProcessEncapsulator(pb.start(), bt);
+			pe.start();
+			pe.waitEnd();
 			
 			return readWcs(wcsTarget);
 			
@@ -452,7 +453,7 @@ public class AstrometryProcess {
 		try {
 			ap.fieldMin = 0.5 * 1.46 * 2200 / 3600;
 			ap.fieldMax = 2 * 1.46 * 2500 / 3600;
-			SkyProjection skp = ap.doAstrometry(TestFits.datas);
+			SkyProjection skp = ap.doAstrometry(null, TestFits.datas);
 			
 			double [] center = { 1931/2, 1451 / 2};
 			
@@ -462,6 +463,9 @@ public class AstrometryProcess {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch(EndUserException e) {
+			e.printStackTrace();
+		} catch (BackgroundTaskCanceledException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		/*

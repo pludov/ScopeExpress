@@ -66,8 +66,8 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 		double [] coordJ2000 = new double[2];
 		SkyProjection.convert3DToRaDec(skyCoord3d, coordJ2000);
 
-		// Ensuite, on veut ses coordonnées RA/Dec vraie (FIXME: pour l'heure de la photo, mais il n'y aura pas une grosse diff)
-		double [] coordNow = SkyAlgorithms.raDecNowFromJ2000(coordJ2000[0] / 15, coordJ2000[1], 32);
+		// Ensuite, on veut ses coordonnées RA/Dec vraie 
+		double [] coordNow = SkyAlgorithms.raDecEpochFromJ2000(coordJ2000[0] / 15, coordJ2000[1], photoTime);
 		
 		// Enfin, on veut son azimuth (à l'heure de la photo)
 		double [] altAz = SkyAlgorithms.CelestialToHorizontal(coordNow[0], coordNow[1], 
@@ -82,26 +82,6 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 	}
 	
 
-	private double [] convertSky3dToAltAz(double [] skyCoord3d, long photoTime)
-	{
-		double [] coordJ2000 = new double[2];
-		SkyProjection.convert3DToRaDec(skyCoord3d, coordJ2000);
-
-		// Ensuite, on veut ses coordonnées RA/Dec vraie (FIXME: pour l'heure de la photo, mais il n'y aura pas une grosse diff)
-		double [] coordNow = SkyAlgorithms.raDecNowFromJ2000(coordJ2000[0] / 15, coordJ2000[1], 32);
-		
-		// Enfin, on veut son azimuth (à l'heure de la photo)
-		double [] altAz = SkyAlgorithms.CelestialToHorizontal(coordNow[0], coordNow[1], 
-				Configuration.getCurrentConfiguration().getLatitude(),
-				Configuration.getCurrentConfiguration().getLongitude(),
-				SkyAlgorithms.getCalForEpoch(photoTime),
-				SkyAlgorithms.getLeapSecForEpoch(photoTime),
-				false
-				);
-		
-		return altAz;
-	}
-	
 	double [] poleAltAz = null;
 	double [] [] imagesCoords = null;
 	int lastSetId = -1;
@@ -126,7 +106,7 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			
 			if (poleAltAz == null) {
 				// On calcule le pole à la date de la première photo (l'heure n'est pas trés important, elle fait seulement varier la position du pole selon l'epoch)
-				poleAltAz = convertSky3dToAltAz(pole.getSky3dPos(), photoTime);
+				poleAltAz = SkyProjection.convertSky3dToAltAz(pole.getSky3dPos(), photoTime);
 				if (poleAltAz[1] > 180) poleAltAz[1] -= 360;
 			}
 			

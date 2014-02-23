@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import fr.pludov.cadrage.focus.Image;
+
 public class LoadImagesScript extends ScriptTest {
 
 	final String dirPath;
@@ -75,6 +77,9 @@ public class LoadImagesScript extends ScriptTest {
 	public void step()
 	{
 		File f = todoList.remove(0);
+		// On fait croire que l'image vient d'être lue (utile pour les tests d'astrométrie)
+		Image image = am.focusUi.getApplication().getImage(f);
+		image.getImageDisplayMetaDataInfo().epoch = System.currentTimeMillis();
 		am.addImage(f);
 		if (todoList.isEmpty()) {
 			done();

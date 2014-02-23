@@ -280,7 +280,7 @@ public class ShapeGraphPanel extends GraphPanel {
 			g2d.transform(AffineTransform.getRotateInstance(sov.vx, sov.vy, x, y));
 			// g2d.setTransform(AffineTransform.getRotateInstance(sov.vx, sov.vy, x, y));
 			g2d.draw(new Ellipse2D.Double(x - r, y - rmin, 2 * r, 2 * rmin));
-			System.out.println("drawing at " + x + ", " + y + " with vector : " + sov.vx + "," + sov.vy);
+			// System.out.println("drawing at " + x + ", " + y + " with vector : " + sov.vx + "," + sov.vy);
 		}
 	}
 

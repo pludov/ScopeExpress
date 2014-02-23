@@ -1,7 +1,5 @@
 package fr.pludov.cadrage.ui.focus;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,13 +12,10 @@ import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
-import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
-import fr.pludov.cadrage.focus.Mosaic.CorrelatedGridPoint;
-import fr.pludov.cadrage.focus.correlation.Correlation;
+import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel.AstrometryParameter;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
-import fr.pludov.cadrage.utils.DynamicGridPoint;
 import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 
@@ -29,11 +24,13 @@ public class CorrelateTask extends BackgroundTask {
 	
 	final Mosaic mosaic;
 	final Image image;
+	final AstrometryParameter astrometryParameter;
 	
-	public CorrelateTask(Mosaic mosaic, Image image)
+	public CorrelateTask(Mosaic mosaic, AstrometryParameter astrometryParameter, Image image)
 	{
 		super("Correlation de " + image.getPath().getName());
 		this.mosaic = mosaic;
+		this.astrometryParameter = astrometryParameter;
 		this.image = image;
 	}
 
@@ -118,6 +115,8 @@ public class CorrelateTask extends BackgroundTask {
 		List<ImageStar> destStars;
 		List<Mosaic.CorrelatedGridPoint> referenceStars;
 
+		double fieldMin, fieldMax, fieldRa, fieldDec, fieldSearchRadius;
+		
 		
 		double imagePixSizeInDeg;
 		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
@@ -170,11 +169,12 @@ public class CorrelateTask extends BackgroundTask {
 				images[i] = new double[]{2.0 * is.getX(), 2.0 * is.getY(), is.getAduLevel(), 0.0};
 			}
 			
-			AstrometryProcess ap = new AstrometryProcess(image.getWidth(), image.getHeight(), 0, 90, 45);
-			ap.setFieldMin(0.3 * imagePixSizeInDeg * Math.sqrt(image.getWidth() * image.getWidth() + image.getHeight() * image.getHeight()));
-			ap.setFieldMax(9 * ap.getFieldMin());
-			
-			SkyProjection imageSkyProjectionResult = ap.doAstrometry(images);
+			AstrometryProcess ap = new AstrometryProcess(image.getWidth(), image.getHeight(), astrometryParameter.getRa(), astrometryParameter.getDec(), astrometryParameter.getRay());
+//			ap.setFieldMin(0.3 * imagePixSizeInDeg * Math.sqrt(image.getWidth() * image.getWidth() + image.getHeight() * image.getHeight()));
+//			ap.setFieldMax(9 * ap.getFieldMin());
+			ap.setFieldMin(astrometryParameter.getDiagMin());
+			ap.setFieldMax(astrometryParameter.getDiagMax());
+			SkyProjection imageSkyProjectionResult = ap.doAstrometry(this, images);
 			// Et ensuite, on veut trouver 
 			
 			// correlation.identity();

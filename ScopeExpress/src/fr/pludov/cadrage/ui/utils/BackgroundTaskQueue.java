@@ -8,7 +8,6 @@ import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
@@ -17,7 +16,7 @@ import fr.pludov.cadrage.utils.WeakListenerCollection;
  * Les ajouts/suppressions sont fait dans le thread swing
  */
 public final class BackgroundTaskQueue {
-	private static final Logger logger = Logger.getLogger(BackgroundTaskQueue.class);
+	static final private Logger logger = Logger.getLogger(BackgroundTaskQueue.class);
 	
 	public final WeakListenerCollection<BackgroundTaskQueueListener> listeners = new WeakListenerCollection<BackgroundTaskQueueListener>(BackgroundTaskQueueListener.class);
 	List<BackgroundTask> tasks;
@@ -88,7 +87,7 @@ public final class BackgroundTaskQueue {
 				return;
 			}
 			somethingChanged();
-
+			this.notifyAll();
 		}
 		
 		try {
@@ -261,4 +260,5 @@ public final class BackgroundTaskQueue {
 			}
 		}
 	}
+
 }
