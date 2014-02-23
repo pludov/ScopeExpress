@@ -12,6 +12,7 @@ import org.jawin.DispatchPtr;
 import org.jawin.win32.Ole32;
 
 import fr.pludov.cadrage.async.CancelationException;
+import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.platform.windows.Ole;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
@@ -26,6 +27,8 @@ public class AscomScope extends WorkThread implements Scope {
 	public AscomScope()
 	{
 		super();
+		this.lastNotifiedDec = Double.NaN;
+		this.lastNotifiedRa = Double.NaN;
 	}
 	
 	@Override
@@ -38,6 +41,9 @@ public class AscomScope extends WorkThread implements Scope {
 	
 	String driver;
 	DispatchPtr scope;
+	
+	// On n'emet pas de notification pour moins de 0,1 arcsec
+	double lastNotifiedRa, lastNotifiedDec;
 	
 	double lastRa;
 	double lastDec;
@@ -124,9 +130,17 @@ public class AscomScope extends WorkThread implements Scope {
 	{
 		double ra, declination;
 		boolean connectStatus;
-		ra = (Double)scope.get("RightAscension");
-		declination = (Double)scope.get("Declination");
-		connectStatus = (Boolean)scope.get("Connected");
+		if (scope != null) {
+			ra = (Double)scope.get("RightAscension");
+			declination = (Double)scope.get("Declination");
+			connectStatus = (Boolean)scope.get("Connected");
+		} else {
+			connectStatus = false;
+			ra = 0;
+			declination = 0;
+			this.lastNotifiedDec = Double.NaN;
+			this.lastNotifiedRa = Double.NaN;
+		}
 		
 		boolean fireConnectionChanged = false;
 		boolean fireCoordinateChanged = false;
@@ -136,7 +150,16 @@ public class AscomScope extends WorkThread implements Scope {
 			if (this.lastRa != ra || this.lastDec != declination) {
 				this.lastRa = ra;
 				this.lastDec = declination;
-				fireCoordinateChanged = true;
+				
+				if (Double.isNaN(this.lastNotifiedDec)) {
+					fireCoordinateChanged = true;
+				} else {
+					double degDist = SkyProjection.getDegreeDistance(
+							new double[] { this.lastNotifiedRa * 360 / 24, this.lastNotifiedDec},
+							new double[] { this.lastRa * 360 / 24, this.lastDec}
+					);
+					fireCoordinateChanged = degDist > 0.1 / 3600;
+				}
 			}
 			if (this.lastConnected != connectStatus) {
 				this.lastConnected = connectStatus;
@@ -153,6 +176,8 @@ public class AscomScope extends WorkThread implements Scope {
 		
 		if (fireCoordinateChanged) {
 			this.listeners.getTarget().onCoordinateChanged();
+			this.lastNotifiedRa = this.lastRa;
+			this.lastNotifiedDec = this.lastDec;
 		}
 	}
 	
