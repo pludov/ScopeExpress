@@ -280,6 +280,7 @@ public class InputOutputHandler<TARGET> {
 			component.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
+					if (target.target == null) return;
 					setParameter(target);
 				}
 			});
@@ -287,6 +288,7 @@ public class InputOutputHandler<TARGET> {
 				
 				@Override
 				public void focusLost(FocusEvent e) {
+					if (target.target == null) return;
 					setParameter(target);
 				}
 				
