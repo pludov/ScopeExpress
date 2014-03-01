@@ -415,7 +415,7 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 			}
 		}
 		imageAddTime.remove(img);
-		if (lastCorrelated.getImage() == img) {
+		if (lastCorrelated != null && lastCorrelated.getImage() == img) {
 			lastCorrelated = null;
 		}
 	}
