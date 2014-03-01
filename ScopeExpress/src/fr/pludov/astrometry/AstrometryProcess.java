@@ -285,6 +285,7 @@ public class AstrometryProcess {
 		Fits fits = new Fits(file);
 		fits.read();
 		BasicHDU hdu = fits.getHDU(0);
+		if (hdu == null) return null;
 		Header header = hdu.getHeader();
 		Tan tan = new Tan(header);
 		return tan.buildSkyProjection();
