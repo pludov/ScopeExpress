@@ -538,7 +538,7 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 			if (imageStartTime == null) return;
 			boolean wasAlwaysConnected = true;
 			List<ScopeState> states = getScopeStateSince(imageStartTime);
-			if (states.get(0).startTime > imageStartTime) {
+			if (states.isEmpty() || states.get(0).startTime > imageStartTime) {
 				wasAlwaysConnected = false;
 			} else {
 				for(ScopeState scopeState : states)
