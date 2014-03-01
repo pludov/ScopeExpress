@@ -80,22 +80,14 @@ public class AxeFindAlgorithm {
 	
 	void findPoint(MosaicImageParameter a, MosaicImageParameter b) throws EndUserException
 	{
-		// Premiere transfo mosaique vers image
-		AffineTransform3D t1 = a.getProjection().getTransform();
-		// Seconde transfo mosaique vers image
-		AffineTransform3D t2 = b.getProjection().getTransform();
+		double centerx = (a.getProjection().getCenterx() + b.getProjection().getCenterx()) / 2;
+		double centery = (a.getProjection().getCentery() + b.getProjection().getCentery()) / 2;
+		
+		AffineTransform3D t1 = a.getProjection().getCenteredInverseTransform(centerx, centery);
+		AffineTransform3D t2 = b.getProjection().getCenteredInverseTransform(centerx, centery);
+		
+		
 		AffineTransform3D rotation;
-		try {
-			t1 = t1.invert();
-			t2 = t2.invert();
-			
-			// rotation = t1.invert().combine(t2);
-	///		t2 = t2.invert();
-		} catch (NoninvertibleTransformException e) {
-			// TODO Auto-generated catch block
-			throw new RuntimeException(e);
-		}
-//		
 //		// On veut la rotation qui passe de t1 à t2
 		rotation = AffineTransform3D.getRotationMatrix(
 				t1.getAxis(),

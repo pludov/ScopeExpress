@@ -7,6 +7,7 @@ import org.w3c.dom.Element;
 
 import fr.pludov.cadrage.ui.focus.Configuration;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
+import fr.pludov.utils.VecUtils;
 import fr.pludov.utils.XmlSerializationContext;
 
 /**
@@ -102,6 +103,7 @@ public class SkyProjection {
 	
 	// Projette une étoile sur la sphere 3D.
 	// Dans cette projectino le pole nord pointe vers z (0,0,1).
+	// ra et dec sont en degrés
 	public static void convertRaDecTo3D(double [] i_radec, double [] o_rslt3d)
 	{
 		double ra = i_radec[0];
@@ -269,7 +271,7 @@ public class SkyProjection {
 		o_pos3d[1] = y3d;
 		o_pos3d[2] = z3d;
 	}
-
+	
 	public boolean sky3dToImage2d(double [] i_xyz, double [] o_xy)
 	{
 		double [] copy = Arrays.copyOf(i_xyz, 3);
@@ -364,6 +366,44 @@ public class SkyProjection {
 		return transform;
 	}
 
+	/**
+	 * Permet de passer de l'image à la skyProjection en considérant un décentrage particulier
+	 */
+	public AffineTransform3D getCenteredInverseTransform(double centerx, double centery) {
+		double [] imageCenter3d = new double[3];
+		image2dToImage3d(new double[]{centerx, centery}, imageCenter3d);
+		
+		invertedTransform.convert(imageCenter3d);
+		// Le vecteur z est le centre de l'image.
+		imageCenter3d = VecUtils.normalize(imageCenter3d);
+		
+		
+		// FIXME: pourquoi un et pas 10 ou 1000 ???
+		double move = 256;
+		
+		// On va créer un vecteur x et un vecteur y
+		double [] imageX1 = new double[3];
+		image2dToImage3d(new double[]{centerx - move, centery}, imageX1);
+		invertedTransform.convert(imageX1);
+
+		// Et on projette sur le plan
+		
+		// On crée une base à partir de ces vecteur.
+		// La base doit être trés proche
+		double [] yaxis = VecUtils.normalize(VecUtils.produitVectoriel(imageCenter3d, imageX1));
+		double [] xaxis = VecUtils.normalize(VecUtils.produitVectoriel(imageCenter3d, yaxis));
+		
+		// On a les axes dans l'espace de l'image
+		AffineTransform3D result = new AffineTransform3D(xaxis, yaxis, imageCenter3d);
+		// result doit être trés proche de inverse
+		try {
+			return result.invert();
+		} catch (NoninvertibleTransformException e) {
+			throw new RuntimeException("Failed to inverse a base !");
+		}
+	
+	}
+	
 	/// Taille d'un pixel (unité) en radian
 	public double getPixelRad() {
 		return pixelRad;

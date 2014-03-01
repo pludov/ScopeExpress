@@ -60,6 +60,17 @@ public class AffineTransform3D {
 			matrice[i] = values[i];
 		}
 	}
+	
+	// FIXME: commenter
+	public AffineTransform3D(double [] vx, double [] vy, double[] vz)
+	{
+		matrice = new double[12];
+		for(int i = 0; i < 3; ++i) {
+			matrice[i] = vx[i];
+			matrice[i + 4] = vy[i];
+			matrice[i + 8] = vz[i];
+		}
+	}
 
 	private AffineTransform3D(AffineTransform3D from) {
 		matrice = new double[12];

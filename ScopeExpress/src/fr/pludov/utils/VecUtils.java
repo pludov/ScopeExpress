@@ -44,4 +44,19 @@ public class VecUtils {
 		}
 		return result;
 	}
+
+	public static double[] produitVectoriel(double[] u, double[] v) {
+		double [] result = new double [] {
+			u[2 - 1] * v[3 - 1] - u[3 - 1] * v[2 - 1],
+			u[3 - 1] * v[1 - 1] - u[1 - 1] * v[3 - 1],
+			u[1 - 1] * v[2 - 1] - u[2 - 1] * v[1 - 1]
+		};
+		
+		return result;
+	}
+
+	public static double[] normalize(double[] a) {
+		double v = 1.0 / norm(a);
+		return new double [] {a[0] * v, a[1] * v, a[2] * v};
+	}
 }

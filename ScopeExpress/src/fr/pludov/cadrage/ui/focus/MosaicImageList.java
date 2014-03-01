@@ -347,7 +347,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 ////					ra = 359.9167;
 ////					dec = 89.9276;
 					
-					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromNow(180, 90, 0);;
+					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromNow(0, 90, 0);;
 					poleJ2000[0] *= 360/24;
 					SkyProjection.convertRaDecTo3D(poleJ2000, poleDuJour.getSky3dPos());
 					mosaic.addPointOfInterest(poleDuJour);
