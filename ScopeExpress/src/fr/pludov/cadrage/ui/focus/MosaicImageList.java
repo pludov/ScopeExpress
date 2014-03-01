@@ -276,8 +276,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					// FIXME: il faut des paramètres de correlations reprenant les options courantes
-					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), new AstrometryParameter(), entry.getTarget());
+					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), entry.getTarget());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}
