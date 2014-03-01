@@ -101,6 +101,16 @@ public class Star {
 		return this.sky3dPosition;
 	}
 	
+	/**
+	 * Retourne soit la position de référence, soit la position moyenne, soit null
+	 */
+	public double [] getPossiblePosition()
+	{
+		if (this.sky3dPosition != null) return this.sky3dPosition;
+		return mosaic.getAveragePosition(this);
+		
+	}
+	
 	public StarCorrelationPosition getPositionStatus() {
 		return positionStatus;
 	}

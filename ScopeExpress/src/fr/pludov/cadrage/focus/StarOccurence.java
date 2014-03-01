@@ -11,6 +11,7 @@ import org.w3c.dom.Element;
 import fr.pludov.cadrage.async.WorkStep;
 import fr.pludov.cadrage.async.WorkStepResource;
 import fr.pludov.cadrage.ui.utils.SwingThreadMonitor;
+import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.FitsPlane;
@@ -526,5 +527,22 @@ public class StarOccurence {
 
 	public void setMaxFwhmAngle(double maxFwhmAngle) {
 		this.maxFwhmAngle = maxFwhmAngle;
+	}
+	
+	/**
+	 * Retourne une indication de magnitude uniquement valable pour l'image
+	 */
+	public double getUnscaledMagByChannel(int chan)
+	{
+		double adu;
+		if (chan == -1) {
+			adu = 0;
+			for(int i = 0; i < this.aduSumByChannel.length; ++i) {
+				adu += this.aduSumByChannel[i];
+			}
+		} else {
+			adu = this.aduSumByChannel[chan];
+		}
+		return -Math.log(adu) / SkyAlgorithms.magnitudeBaseLog;
 	}
 }

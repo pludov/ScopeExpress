@@ -443,10 +443,14 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        	switch(star.getPositionStatus())
 	        	{
 	        	case Reference:
-	        		gPaint.setColor(Color.blue);
+	        		gPaint.setColor(Color.cyan);
 	        		break;
 	        	default:
-	        		gPaint.setColor(Color.red);
+	        		if (mosaic.getStarOccurences(star).size() > 1) {
+	        			gPaint.setColor(Color.blue);
+	        		} else {
+	        			gPaint.setColor(Color.red);
+	        		}
 	        		break;
 	        	}
 	        	

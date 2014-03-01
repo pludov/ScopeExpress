@@ -15,6 +15,7 @@ import org.w3c.dom.Element;
 import fr.pludov.cadrage.ui.focus.Configuration;
 import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
+import fr.pludov.utils.VecUtils;
 import fr.pludov.utils.XmlSerializationContext;
 import fr.pludov.utils.XmlSerializationContext.NodeDictionary;
 
@@ -399,11 +400,8 @@ public class Mosaic {
 		return this.imageMosaicParameter.get(image);
 	}
 	
-	void updateCorrelatedStars(Star star)
+	double [] getAveragePosition(Star star)
 	{
-		if (star.getPositionStatus() == StarCorrelationPosition.Reference) {
-			throw new RuntimeException("Cannot update reference star");
-		}
 		Map<Image, StarOccurence> starOccurences = occurences.get(star);
 		double [] socPos = new double[2];
 		double [] socSky3dPos = new double[3];
@@ -430,16 +428,21 @@ public class Mosaic {
 			
 			count ++;
 		}
-		
-		if (count > 0) {
-			try {
-				SkyProjection.normalize(result);
-				star.setCorrelatedPos(result);	
-			} catch(ArithmeticException e) {
-				logger.warn("Ignoring", e);
-				star.unsetCorrelatedPos();
-			}
-			
+		if (count == 0) return null;
+
+		VecUtils.normalize(result);
+		if (VecUtils.hasNaN(result)) return null;
+		return result;
+	}
+	
+	void updateCorrelatedStars(Star star)
+	{
+		if (star.getPositionStatus() == StarCorrelationPosition.Reference) {
+			throw new RuntimeException("Cannot update reference star");
+		}
+		double [] averagePos = getAveragePosition(star);
+		if (averagePos != null) {
+			star.setCorrelatedPos(averagePos);	
 		} else {
 			star.unsetCorrelatedPos();
 		}
@@ -518,6 +521,18 @@ public class Mosaic {
 		}
 		return result;
 	}
+
+	public List<StarOccurence> getStarOccurences(Image image)
+	{
+		List<StarOccurence> result = new ArrayList<StarOccurence>();
+		for(Map.Entry<Star, Map<Image, StarOccurence>> entry : this.occurences.entrySet())
+		{
+			StarOccurence so = entry.getValue().get(image);
+			if (so != null) result.add(so);
+		}
+		return result;
+	}
+	
 	
 	public List<StarOccurence> getAllStarOccurences()
 	{

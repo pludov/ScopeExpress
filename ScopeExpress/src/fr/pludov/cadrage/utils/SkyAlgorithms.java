@@ -100,6 +100,9 @@ public class SkyAlgorithms
      * The mathematical constant PI.
      */
     public static final double PI = 3.14159265358979;
+
+    public static final double magnitudeBase = 2.512;
+	public static final double magnitudeBaseLog = Math.log(2.512);
     
     /**
      *  Compute the Julian Day for the given date.
@@ -958,7 +961,7 @@ public static double[] raDecEpochFromJ2000(double ra, double dec, long epoch)
  */
 public static double[] J2000RaDecFromNow(double ra, double dec, double leapSecs)
     {
-
+	
     double[] radec = {ra, dec};
     double jd = JDNow();
 

@@ -1,5 +1,7 @@
 package fr.pludov.utils;
 
+import java.util.Arrays;
+
 public class VecUtils {
 
 	/**
@@ -58,5 +60,17 @@ public class VecUtils {
 	public static double[] normalize(double[] a) {
 		double v = 1.0 / norm(a);
 		return new double [] {a[0] * v, a[1] * v, a[2] * v};
+	}
+
+	public static double[] copy(double[] spos) {
+		return Arrays.copyOf(spos, spos.length);
+	}
+
+	public static boolean hasNaN(double[] result) {
+		for(int i = 0; i < result.length; ++i)
+		{
+			if (Double.isNaN(result[i])) return true;
+		}
+		return false;
 	}
 }
