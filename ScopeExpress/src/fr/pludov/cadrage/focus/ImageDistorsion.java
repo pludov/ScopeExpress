@@ -87,7 +87,6 @@ public class ImageDistorsion {
 			
 			
 			double [] starPos3dInMosaic = Arrays.copyOf(star.getSky3dPosition(), 3);
-			mosaic.skyToMosaic.convert(starPos3dInMosaic);
 			if (!mip.getProjection().sky3dToImage2d(starPos3dInMosaic, imagePosOfStar)) continue;
 
 			imgx[starCount] = so2d[0];

@@ -483,7 +483,7 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 		
 		mip.getProjection().image2dToSky3d(new double[]{0.5 * img.getWidth() * imgPos[0], 0.5 * img.getHeight() * imgPos[1]},
 											sky3dPos);
-		mosaic.getMosaicToSky().convert(sky3dPos);
+
 		return sky3dPos;
 	}
 

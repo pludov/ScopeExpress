@@ -575,24 +575,6 @@ public class FocusUi extends FocusUiDesign {
 		SkyProjection projection = new SkyProjection(pixelArcSec);
 		logger.info("createStarProjection(" + raTarget + "," + decTarget + ","+radius+"," + maxMag + "," + pixelArcSec);
 		
-		double rotateZ = Math.PI * raTarget / 180.0;
-		double rotateY = - Math.PI * (90 - decTarget) / 180.0;
-		
-		AffineTransform3D xform = AffineTransform3D.identity;
-		xform = xform.rotateZ(Math.cos(rotateZ), Math.sin(rotateZ));
-		xform = xform.rotateY(Math.cos(rotateY), Math.sin(rotateY));
-//				try {
-//					xform = xform.invert();
-//				} catch(NoninvertibleTransformException e2) {
-//					throw new RuntimeException("invertible ?", e2);
-//				}
-		
-		try {
-			mosaic.setSkyToMosaic(xform);
-		} catch (NoninvertibleTransformException e) {
-			throw new RuntimeException("rotation matrice is not invertible ???");
-		}
-		
 		StarCollection stars = StarProvider.getStarAroundNorth(projection, radius, maxMag);
 
 		double [] starSky3dPos = new double[3];
@@ -613,7 +595,6 @@ public class FocusUi extends FocusUiDesign {
 		
 		PointOfInterest poi = new PointOfInterest("projection", false);
 		double [] projectionCenter = new double[]{0,0,1};
-		mosaic.getMosaicToSky().convert(projectionCenter);
 		poi.setSky3dPos(projectionCenter);
 		
 		// poi.setSecondaryPoints(pfa.getPoints());

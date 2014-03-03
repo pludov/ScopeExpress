@@ -128,7 +128,6 @@ public class StarCorrelationTest implements TestInstance {
 			
 			
 			mip.getProjection().image2dToSky3d(new double[]{0.5 * imgWidth * imgPos[0], 0.5 * imgHeight * imgPos[1]}, mosaic3dPos);
-			mosaic.getMosaicToSky().convert(mosaic3dPos);
 			SkyProjection.convert3DToRaDec(mosaic3dPos, raDecPos);
 			
 			double distance = SkyProjection.getDegreeDistance(raDecExpected, raDecPos);

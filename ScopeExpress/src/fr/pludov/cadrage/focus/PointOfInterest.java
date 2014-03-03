@@ -104,7 +104,6 @@ public class PointOfInterest {
 			if (mip == null || !mip.isCorrelated) return false;
 			// On va d'abord transformer les coordonées sky en mosaic
 			double [] mosaicCoords3d = Arrays.copyOf(i_pointOfInteresCoords, 3);
-			mosaic.skyToMosaic.convert(mosaicCoords3d);
 			o_image2d = mip.mosaic3DToImage(mosaicCoords3d, o_image2d);
 			return o_image2d != null;
 		} else {

@@ -1,6 +1,5 @@
 package fr.pludov.cadrage.focus;
 
-import java.awt.geom.NoninvertibleTransformException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -13,7 +12,6 @@ import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 
 import fr.pludov.cadrage.ui.focus.Configuration;
-import fr.pludov.cadrage.utils.DynamicGridPointWithAdu;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.utils.VecUtils;
 import fr.pludov.utils.XmlSerializationContext;
@@ -35,14 +33,7 @@ public class Mosaic {
 	
 	// Correction de distorsion (éventuellement vide)
 	private ImageDistorsion distorsion;
-	
-	/** 
-	 * Orientation racine de la mosaic (vers où elle pointe ?)
-	 * correspond à l'ancien skyProjection.getTransform 
-	 */
-	AffineTransform3D skyToMosaic;
-	AffineTransform3D mosaicToSky;
-	
+		
 	public Mosaic(Application focus) {
 		this.occurences = new HashMap<Star, Map<Image,StarOccurence>>();
 		this.images = new ArrayList<Image>();
@@ -51,8 +42,6 @@ public class Mosaic {
 		this.exclusionZones = new ArrayList<ExclusionZone>();
 		this.focus = focus;
 		this.pointOfInterest = new TreeMap<String, PointOfInterest>();
-		this.skyToMosaic = AffineTransform3D.identity;
-		this.mosaicToSky = AffineTransform3D.identity;
 		this.setDistorsion(null);
 	}
 	
@@ -62,9 +51,6 @@ public class Mosaic {
 		Element mosaic = context.newNode(Mosaic.class.getSimpleName());
 
 		
-		Element orientationNode = this.skyToMosaic.save(context);
-		mosaic.appendChild(orientationNode);
-	
 		NodeDictionary<Image> imageDict = context.new NodeDictionary<Image>();
 		// Sauver les images
 		for(Image image : images)
@@ -336,9 +322,6 @@ public class Mosaic {
 		occurences.clear();
 		pointOfInterest.clear();
 		
-		skyToMosaic = AffineTransform3D.identity;
-		mosaicToSky = AffineTransform3D.identity;
-		
 		
 		for(StarOccurence oc : deletedStarOccurence)
 		{
@@ -543,24 +526,6 @@ public class Mosaic {
 		}
 		
 		return result;
-	}
-
-	/**
-	 * @return l'orientation (matrice de rotation)
-	 */
-	public AffineTransform3D getSkyToMosaic() {
-		return this.skyToMosaic;
-	}
-	
-	public AffineTransform3D getMosaicToSky() {
-		return this.mosaicToSky;
-	}
-	
-	public void setSkyToMosaic(AffineTransform3D orientation) throws NoninvertibleTransformException
-	{
-		this.mosaicToSky = orientation.invert();
-		this.skyToMosaic = orientation;
-		
 	}
 	
 	public ImageDistorsion getDistorsion() {

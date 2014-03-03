@@ -111,14 +111,6 @@ public class CorrelateTask extends BackgroundTask {
 	protected void proceed() throws BackgroundTaskCanceledException, Throwable {
 		List<ImageStar> destStars;
 
-		double fieldMin, fieldMax, fieldRa, fieldDec, fieldSearchRadius;
-		
-		
-		double imagePixSizeInDeg;
-		// Il faut multiplier les coordonnées dans la projection par cette valeur pour être à l'échelle de l'image
-		AffineTransform3D mosaicOrientation;
-		// Est ce que la référence est un catalogue (auquel cas, on suppose qu'il contient beaucoup plus d'étoiles, et le filtrage y est plus aggressif)
-//		double projectionToImageRatio;
 		SwingThreadMonitor.acquire();
 		try {
 			// Vérifier que l'image n'est pas déjà correllée... Sinon, remonter une erreur
@@ -131,19 +123,11 @@ public class CorrelateTask extends BackgroundTask {
 				throw new TaskException("L'image est déjà corellée");
 			}
 			
-			double imageSizeInDeg = 57.3 * this.image.getWidth() * parameter.getPixelSize() / (1000 * parameter.getFocal());
-			
-			// Le 2 correspond à la division due à la matrice de bayer
-			imagePixSizeInDeg = imageSizeInDeg * 2 / (this.image.getWidth());
-
-
 			destStars = getImageStars(this.image);
 			if (destStars.isEmpty()) {
 				throw new TaskException("Il n'y a pas d'étoiles disponibles pour la correlation");
 			}
 
-			mosaicOrientation = mosaic.getSkyToMosaic();
-			
 		} finally {
 			SwingThreadMonitor.release();
 		}
@@ -158,8 +142,6 @@ public class CorrelateTask extends BackgroundTask {
 			}
 			
 			AstrometryProcess ap = new AstrometryProcess(image.getWidth(), image.getHeight(), astrometryParameter.getRa(), astrometryParameter.getDec(), astrometryParameter.getRay());
-//			ap.setFieldMin(0.3 * imagePixSizeInDeg * Math.sqrt(image.getWidth() * image.getWidth() + image.getHeight() * image.getHeight()));
-//			ap.setFieldMax(9 * ap.getFieldMin());
 			ap.setFieldMin(astrometryParameter.getDiagMin());
 			ap.setFieldMax(astrometryParameter.getDiagMax());
 			SkyProjection imageSkyProjectionResult = ap.doAstrometry(this, images);
@@ -176,7 +158,7 @@ public class CorrelateTask extends BackgroundTask {
 			imageSkyProjectionResult.setPixelRad(2 * imageSkyProjectionResult.getPixelRad());
 			// Et parce qu'on empile imageSkyProjectionResult avec mosaicProjection
 			SkyProjection imageMosaicProjectionResult = new SkyProjection(imageSkyProjectionResult);
-			imageMosaicProjectionResult.setTransform(mosaicOrientation.invert().combine(imageMosaicProjectionResult.getTransform()));
+			imageMosaicProjectionResult.setTransform(imageMosaicProjectionResult.getTransform());
 
 			// Calculer la projection de toutes les étoiles de l'image sur l'image
 			double fwhmSum = 0;
@@ -211,9 +193,6 @@ public class CorrelateTask extends BackgroundTask {
 	
 				if (mosaic.getMosaicImageParameter(this.image) == null) {
 					throw new TaskException("L'image a été retirée de la mosaique");
-				}
-				if (!mosaic.getSkyToMosaic().equals(mosaicOrientation)) {
-					throw new TaskException("La projection de la mosaic a changé");
 				}
 			
 				// Charger les étoiles qui sont dans le champ de l'image

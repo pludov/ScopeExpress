@@ -326,7 +326,6 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			
 			double[] sky3dPos = new double[3];
 			mip.getProjection().image2dToSky3d(new double[]{imgX, imgY}, sky3dPos);
-			mosaic.getMosaicToSky().convert(sky3dPos);
 			double[] raDec = new double[2];
 			SkyProjection.convert3DToRaDec(sky3dPos, raDec);
 			double ra = raDec[0];

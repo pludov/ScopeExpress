@@ -436,7 +436,6 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 						
 						mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1]},
 															sky3dPos);
-						mosaic.getMosaicToSky().convert(sky3dPos);
 						SkyProjection.convert3DToRaDec(sky3dPos, raDec);
 						message += title + " = [" + Utils.formatHourMinSec(raDec[0]) +";" + Utils.formatDegMinSec(raDec[1])+"]\n";
 					}

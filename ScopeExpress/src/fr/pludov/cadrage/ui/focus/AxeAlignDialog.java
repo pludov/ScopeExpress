@@ -62,7 +62,6 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 	{
 		// Maintenant, on veut ses coordonnées dans le ciel (J2000)
 		double [] skyCoord3d = Arrays.copyOf(mosaicCoord3d, 3);
-		mosaic.getMosaicToSky().convert(skyCoord3d);
 		double [] coordJ2000 = new double[2];
 		SkyProjection.convert3DToRaDec(skyCoord3d, coordJ2000);
 

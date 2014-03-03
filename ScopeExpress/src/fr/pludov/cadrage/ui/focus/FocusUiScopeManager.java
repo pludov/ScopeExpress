@@ -140,7 +140,6 @@ public class FocusUiScopeManager {
 				double imgPos1 = 0.5;
 				
 				mip.getProjection().image2dToSky3d(new double[]{0.5 * img.getWidth() * imgPos0, 0.5 * img.getHeight() * imgPos1}, mosaic3dPos);
-				mosaic.getMosaicToSky().convert(mosaic3dPos);
 				target = new double[2];
 				SkyProjection.convert3DToRaDec(mosaic3dPos, target);
 				

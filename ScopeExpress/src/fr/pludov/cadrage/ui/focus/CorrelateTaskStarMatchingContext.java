@@ -1,6 +1,5 @@
 package fr.pludov.cadrage.ui.focus;
 
-import java.awt.geom.NoninvertibleTransformException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +16,6 @@ import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.focus.CorrelateTask.ImageStar;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm;
 import fr.pludov.cadrage.utils.PointMatchAlgorithm.Correlation;
-import fr.pludov.utils.VecUtils;
 
 /**
  * Encapsule les étoiles de réference lors d'une correlation
@@ -147,12 +145,6 @@ public class CorrelateTaskStarMatchingContext {
 			
 			double [] spos = s.getPossiblePosition();
 			if (spos == null) continue;
-			spos = VecUtils.copy(spos);
-			try {
-				mosaic.getSkyToMosaic().invert().convert(spos);
-			} catch (NoninvertibleTransformException e) {
-				continue;
-			}
 			
 			if (this.skyProjection.sky3dToImage2d(spos, tmp2d)) {
 				// Trouver une estimation de la magnitude

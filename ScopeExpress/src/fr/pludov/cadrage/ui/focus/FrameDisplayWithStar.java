@@ -33,6 +33,7 @@ import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 import fr.pludov.io.CameraFrame;
+import fr.pludov.utils.VecUtils;
 
 public class FrameDisplayWithStar extends FrameDisplay {
 	
@@ -285,7 +286,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
     		MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
 
     		// Dessiner les graduations polaires
-    		AffineTransform3D skyToMosaic = mosaic.getSkyToMosaic();
+//    		AffineTransform3D skyToMosaic = mosaic.getSkyToMosaic();
 
 			Stroke original = g2d.getStroke();
 //    			Stroke drawingStroke = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{9}, 0);
@@ -316,7 +317,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					at = at.scale(scale);
 					at = at.translate(0, 0, high);
 					
-					at = at.combine(skyToMosaic);
+					// at = at.combine(skyToMosaic);
 					// at = at.combine(mip.getProjection().getTransform());
 					Circle circle = new Circle(at);
 					for(Circle c : circle.cut(planeLeft)) {
@@ -330,7 +331,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					// Mettre le pole à l'angle 0
 					at = at.rotateY(0, 1);
 					at = at.rotateZ(Math.cos(ra * 2 * Math.PI / 24), Math.sin(ra * 2 * Math.PI / 24));
-					at = at.combine(skyToMosaic);
+					// at = at.combine(skyToMosaic);
 					// at = at.combine(mip.getProjection().getTransform());
 					Circle circle = new Circle(at);
 					
@@ -391,8 +392,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	    		{
 	    			if (star.getPositionStatus() != StarCorrelationPosition.Reference) continue;
 	    			
-	    			double [] starPos = Arrays.copyOf(star.getSky3dPosition(), 3);
-	    			skyToMosaic.convert(starPos);
+	    			double [] starPos = VecUtils.copy(star.getSky3dPosition());
+	    			// skyToMosaic.convert(starPos);
 	    			double [] imagePos2d = new double[2];
 	    			if (!mip.getProjection().sky3dToImage2d(starPos, imagePos2d)) continue;
 	    			
@@ -512,8 +513,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		        	if (mip != null && star.getPositionStatus() == StarCorrelationPosition.Reference)
 		        	{
 
-		    			double [] starPos = Arrays.copyOf(star.getSky3dPosition(), 3);
-		    			skyToMosaic.convert(starPos);
+		    			double [] starPos = VecUtils.copy(star.getSky3dPosition());
 		    			double [] imagePos = new double[2];
 		    			if (!mip.getProjection().sky3dToImage2d(starPos, imagePos)) continue;
 		    			
