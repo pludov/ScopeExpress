@@ -32,7 +32,7 @@ public class FrameDisplay extends JPanel {
 		this.plane = null;
 		this.zoom = 1.0;
 		this.zoomIsAbsolute = false;
-		setBackground(Color.RED);
+		setBackground(Color.DARK_GRAY);
 		
 		repainter = new Timer(250, new ActionListener() {
 			
