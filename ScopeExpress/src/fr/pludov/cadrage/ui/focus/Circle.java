@@ -18,6 +18,7 @@ import fr.pludov.cadrage.focus.SkyProjection;
  */
 public class Circle {
 
+	public static double Pi_x_2 = 2 * Math.PI;
 	
 	double minAngle, maxAngle;
 	
@@ -28,7 +29,7 @@ public class Circle {
 		position = AffineTransform3D.identity;
 		
 		minAngle = 0;
-		maxAngle = 2 * Math.PI;
+		maxAngle = Pi_x_2;
 	}
 	
 	private Circle(Circle copy, double minAngle, double maxAngle)
@@ -122,47 +123,33 @@ public class Circle {
 		double nvminangle = t - acos;
 		double nvmaxangle = t + acos;
 		
-		// FIXME : il faut faire un matching des segments en prenant en compte le modulo 2PI
+		if (minAngle == 0 && maxAngle == Pi_x_2) {
+			return Collections.singletonList(new Circle(this, nvminangle, nvmaxangle));
+		} else {
+			List<Circle> circles = new ArrayList<Circle>();
+
+			// Le cercle est valable de [min + 2kp, max + 2kp].
+			for(int i = -1; i <= 1; ++i) {
+				double dkp = Pi_x_2 * i;
+
+				double tmpmin = nvminangle;
+				double tmpmax = nvmaxangle;;
+				
+				if (tmpmin < minAngle + dkp) {
+					tmpmin = minAngle + dkp;
+				}
+				if (tmpmax > maxAngle + dkp) {
+					tmpmax = maxAngle + dkp;
+				}
+				
+				if (tmpmin < tmpmax) {
+					circles.add(new Circle(this, tmpmin, tmpmax));
+				}
+			}
+			
+			return circles;
+		}
 		
-		return Collections.singletonList(new Circle(this, t - acos, t + acos));
-		
-//		List<Circle> result = new ArrayList<Circle>();
-//		boolean lastAngleWasOk = false;
-//		double firstOkAngle = -1;
-//		double lastAngle = -1;
-//
-//		double [] tmp3d = new double[3];
-//
-//		for(int i = 0 ; i <= 360; ++i)
-//		{
-//			double angle = minAngle + i* (maxAngle - minAngle) / 360;
-//			tmp3d[0] = Math.cos(angle);
-//			tmp3d[1] = Math.sin(angle);
-//			tmp3d[2] = 0;
-//			
-//			position.convert(tmp3d);
-//			
-//			double eval = tmp3d[0] * demiplan[0] + tmp3d[1] * demiplan[1] + tmp3d[2] * demiplan[2] + demiplan[3];
-//			if (eval <= 0) {
-//				if (lastAngleWasOk)
-//				{
-//					result.add(new Circle(this, firstOkAngle, lastAngle));
-//				}
-//				lastAngleWasOk = false;
-//			} else {
-//				if (!lastAngleWasOk)
-//				{
-//					firstOkAngle = angle;
-//				}
-//				lastAngle = angle;
-//				lastAngleWasOk = true;
-//			}
-//		}
-//		if (lastAngleWasOk)
-//		{
-//			result.add(new Circle(this, firstOkAngle, lastAngle));
-//		}
-//		return result;
 	}
 	
 	public void draw(Graphics2D g2d, MosaicImageParameter mip, AffineTransform imageToScreen)
@@ -206,6 +193,24 @@ public class Circle {
 		}
 		
 		
+	}
+
+	public List<Circle> cut(double[][] planes) {
+		List<Circle> result = new ArrayList<Circle>();
+		result.add(this);
+		
+		for(int i = 0; i < planes.length; ++i)
+		{
+			List<Circle> newResult = new ArrayList<Circle>();
+			
+			for(Circle c : result) {
+				newResult.addAll(c.cut(planes[i]));
+			}
+			
+			result = newResult;
+		}
+		
+		return result;
 	}
 	
 }

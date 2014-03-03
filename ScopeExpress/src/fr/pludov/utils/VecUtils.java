@@ -73,4 +73,13 @@ public class VecUtils {
 		}
 		return false;
 	}
+
+	public static double[] getPlaneEq(double[] pt00, double[] pt01) {
+		double [] planeLeft = new double[4];
+		planeLeft[0] = -(pt00[1] * pt01[2] - pt00[2] * pt01[1]);
+		planeLeft[1] = -(pt00[2] * pt01[0] - pt00[0] * pt01[2]);
+		planeLeft[2] = -(pt00[0] * pt01[1] - pt00[1] * pt01[0]);
+		planeLeft[3] = 0;
+		return planeLeft;
+	}
 }

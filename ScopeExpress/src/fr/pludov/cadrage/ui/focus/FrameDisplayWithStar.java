@@ -298,19 +298,22 @@ public class FrameDisplayWithStar extends FrameDisplay {
     		if (mip != null && mip.isCorrelated()) {
 				double [] pt00 = new double[3];
 				double [] pt01 = new double[3];
-				screenTo3DMosaic(10, 0, mip, imageToScreen, pt00);
-				screenTo3DMosaic(10, getHeight(), mip, imageToScreen, pt01);
+				double [] pt11 = new double[3];
+				double [] pt10 = new double[3];
+				screenTo3DMosaic(0, 0, mip, imageToScreen, pt00);
+				screenTo3DMosaic(0, getHeight() - 0, mip, imageToScreen, pt01);
+				screenTo3DMosaic(getWidth() - 0, getHeight() - 10, mip, imageToScreen, pt11);
+				screenTo3DMosaic(getWidth() - 0, 0, mip, imageToScreen, pt10);
 				
-				double [] planeLeft = new double[4];
-				planeLeft[0] = -(pt00[1] * pt01[2] - pt00[2] * pt01[1]);
-				planeLeft[1] = -(pt00[2] * pt01[0] - pt00[0] * pt01[2]);
-				planeLeft[2] = -(pt00[0] * pt01[1] - pt00[1] * pt01[0]);
-				planeLeft[3] = 0;
+				double [] [] planes = new double[][]{
+						VecUtils.getPlaneEq(pt00, pt01),
+						VecUtils.getPlaneEq(pt01, pt11),
+						VecUtils.getPlaneEq(pt11, pt10),
+						VecUtils.getPlaneEq(pt10, pt00)
+				};
 				
 				for(int dec = -89; dec <= 89; ++dec)
 				{
-					
-					
 					AffineTransform3D at = AffineTransform3D.identity;
 					double scale = Math.cos(dec * Math.PI / 180);
 					double high = Math.sin(dec * Math.PI / 180);
@@ -320,7 +323,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					// at = at.combine(skyToMosaic);
 					// at = at.combine(mip.getProjection().getTransform());
 					Circle circle = new Circle(at);
-					for(Circle c : circle.cut(planeLeft)) {
+					for(Circle c : circle.cut(planes)) {
 						c.draw(g2d, mip, imageToScreen);
 					}
 				}
@@ -335,7 +338,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					// at = at.combine(mip.getProjection().getTransform());
 					Circle circle = new Circle(at);
 					
-					for(Circle c : circle.cut(planeLeft)) {
+					for(Circle c : circle.cut(planes)) {
 						c.draw(g2d, mip, imageToScreen);
 					}
 				}
@@ -651,7 +654,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	        }
     	}
 	}
-	
+
 	@Override
 	public void setFrame(BufferedImage plane, boolean isTemporary) {
 		super.setFrame(plane, isTemporary);
