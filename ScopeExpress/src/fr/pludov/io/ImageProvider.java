@@ -198,7 +198,7 @@ public class ImageProvider {
 						result.width = width;
 						result.height = height;
 						// FIXME : en dur, aller chercher dans les méta du fits !
-						result.isCfa = true;
+						result.isCfa = false;
 						result.scanPixelsForHistogram();
 						
 						return result;
