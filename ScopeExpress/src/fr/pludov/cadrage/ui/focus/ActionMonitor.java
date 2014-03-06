@@ -33,7 +33,9 @@ import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.Ransac;
+import fr.pludov.external.apt.AptComm;
 
 public class ActionMonitor implements ActionListener {
 	private static final Logger logger = Logger.getLogger(ActionMonitor.class);
@@ -69,18 +71,25 @@ public class ActionMonitor implements ActionListener {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				File exec = new File("dll/aptclick.exe");
-				if (!exec.exists()) {
-					logger.error("File not found: " + exec);
-					JOptionPane.showMessageDialog(
-							null, "file not found: " + exec, 
-							"file not found: " + exec, JOptionPane.ERROR_MESSAGE);
-					return;
-				}
+//				File exec = new File("dll/aptclick.exe");
+//				if (!exec.exists()) {
+//					logger.error("File not found: " + exec);
+//					JOptionPane.showMessageDialog(
+//							null, "file not found: " + exec, 
+//							"file not found: " + exec, JOptionPane.ERROR_MESSAGE);
+//					return;
+//				}
+//				try {
+//					Runtime.getRuntime().exec(exec.getAbsolutePath());
+//				} catch(Throwable t) {
+//					logger.error("Unable to exec : " + exec.getAbsolutePath(), t);
+//				}
+				
+				
 				try {
-					Runtime.getRuntime().exec(exec.getAbsolutePath());
-				} catch(Throwable t) {
-					logger.error("Unable to exec : " + exec.getAbsolutePath(), t);
+					AptComm.getInstance().shoot();
+				} catch (IOException e1) {
+					new EndUserException(e1).report(focusUi.getFrmFocus());
 				}
 			}
 		});
