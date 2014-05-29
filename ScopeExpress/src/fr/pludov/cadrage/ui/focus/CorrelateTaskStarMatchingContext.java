@@ -49,7 +49,7 @@ public class CorrelateTaskStarMatchingContext {
 	public void searchStars()
 	{
 		// FIXME: magnitude et rayon sont en dûr.
-		this.collection = StarProvider.getStarAroundNorth(skyProjection, 5, 11);
+		this.collection = StarProvider.getStarAroundNorth(skyProjection, 3, 12);
 
 		double [] refImgPos = new double[3];
 		double [] tmp2d = new double[2];
