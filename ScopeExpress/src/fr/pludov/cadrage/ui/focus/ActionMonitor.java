@@ -33,9 +33,7 @@ import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
-import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.Ransac;
-import fr.pludov.external.apt.AptComm;
 
 public class ActionMonitor implements ActionListener {
 	private static final Logger logger = Logger.getLogger(ActionMonitor.class);
@@ -85,12 +83,7 @@ public class ActionMonitor implements ActionListener {
 //					logger.error("Unable to exec : " + exec.getAbsolutePath(), t);
 //				}
 				
-				
-				try {
-					AptComm.getInstance().shoot();
-				} catch (IOException e1) {
-					new EndUserException(e1).report(focusUi.getFrmFocus());
-				}
+				focusUi.shoot();
 			}
 		});
 		refreshShootButtonStatus(button);

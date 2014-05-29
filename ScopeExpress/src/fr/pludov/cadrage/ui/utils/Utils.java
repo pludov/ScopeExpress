@@ -1,6 +1,7 @@
 package fr.pludov.cadrage.ui.utils;
 
 import java.awt.Component;
+import java.awt.Dialog.ModalityType;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -16,6 +17,7 @@ import java.util.regex.Pattern;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
@@ -87,6 +89,57 @@ public final class Utils {
 		});
 	}
 
+	public static boolean hasModalDialog(Component c) {
+		Window window;
+		if (c == null) {
+			window = null;
+		} else if (c instanceof Window) {
+			window = (Window)c;
+		} else {
+			window = SwingUtilities.getWindowAncestor(c);
+		}
+		if (window == null) return false;
+		for(Window w : window.getOwnedWindows())
+		{
+			if (!w.isVisible()) continue;
+			if (w instanceof JDialog) {
+				JDialog jd = (JDialog) w;
+				if (jd.getModalityType() == ModalityType.MODELESS) continue;
+				return true;
+			} else {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	public static interface WindowBuilder<DIALOG extends JDialog> {
+		DIALOG build(Window w);
+		boolean isInstance(Window w);
+	}
+	
+	public static <DIALOG extends JDialog> DIALOG openDialog(Component c, WindowBuilder<DIALOG> builder)
+	{
+		Window window;
+		if (c == null) {
+			window = null;
+		} else if (c instanceof Window) {
+			window = (Window)c;
+		} else {
+			window = SwingUtilities.getWindowAncestor(c);
+		}
+		if (window != null) {
+			for(Window w : window.getOwnedWindows())
+			{
+				if (builder.isInstance(w)) {
+					return (DIALOG)w;
+				}
+			}
+		}
+		return builder.build(window);
+	}
+	
 	public static <DIALOG extends JDialog> DIALOG openDialog(Component c, Class<? extends DIALOG> clazz)
 	{
 		Window window;

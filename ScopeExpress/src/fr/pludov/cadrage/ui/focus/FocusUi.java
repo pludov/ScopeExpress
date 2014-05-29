@@ -2,6 +2,7 @@ package fr.pludov.cadrage.ui.focus;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.Window;
 import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -10,6 +11,7 @@ import java.awt.event.WindowListener;
 import java.awt.geom.NoninvertibleTransformException;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
@@ -41,6 +43,7 @@ import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
+import fr.pludov.cadrage.ui.joystick.JoystickHandler;
 import fr.pludov.cadrage.ui.resources.IconProvider;
 import fr.pludov.cadrage.ui.resources.IconProvider.IconSize;
 import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
@@ -48,8 +51,10 @@ import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
 import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
+import fr.pludov.external.apt.AptComm;
 import fr.pludov.utils.XmlSerializationContext;
 
 public class FocusUi extends FocusUiDesign {
@@ -67,10 +72,11 @@ public class FocusUi extends FocusUiDesign {
 
 	final FocusUiScopeManager scopeManager;
 	final AstrometryParameterPanel astrometryParameter;
-	
+	final JoystickHandler joystickHandler;
+		
 	public FocusUi(final Application application, final Mosaic mosaic) {
 		this.scopeManager = new FocusUiScopeManager(this);
-		
+		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
 		this.mosaic = mosaic;
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
@@ -348,7 +354,17 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), ConfigurationEdit.class);
+				ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), new Utils.WindowBuilder<ConfigurationEdit>() {
+					@Override
+					public ConfigurationEdit build(Window w) {
+						return new ConfigurationEdit(w, FocusUi.this);
+					}
+					
+					@Override
+					public boolean isInstance(Window w) {
+						return w instanceof ConfigurationEdit;
+					}
+				});
 				edit.loadValuesFrom(Configuration.getCurrentConfiguration());
 				edit.setVisible(true);
 			}
@@ -420,6 +436,11 @@ public class FocusUi extends FocusUiDesign {
 		this.getFd().getPrincipal().requestFocusInWindow();
 	}
 
+	public JFrame getMainWindow()
+	{
+		return this.getFrmFocus();
+	}
+	
 	private void onQuit()
 	{
 		int rslt = JOptionPane.showConfirmDialog(getFrmFocus(), "Quitter Focusui ?", "Confirmation de la fermeture", JOptionPane.YES_NO_OPTION);
@@ -669,6 +690,33 @@ public class FocusUi extends FocusUiDesign {
 		});
 
 		{
+			JMenuItem prise_focus_polaire = new JMenuItem("Rotation du ciel");
+			this.mnTests.add(prise_focus_polaire);
+			prise_focus_polaire.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String [] files = {
+							"ATL_test_align_Bin1x1_s_2014-03-09_05-58-43.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_05-59-11.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_05-59-29.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_05-59-47.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-00-08.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-00-23.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-03-21.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-03-40.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-03-54.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-04-15.fit",
+							"ATL_test_align_Bin1x1_s_2014-03-09_06-04-31.fit"
+					};
+					setScript(new LoadImagesScript(actionMonitor, 
+							"C:\\Documents and Settings\\utilisateur\\Mes documents\\workspace\\workspace-perso\\cadrage\\tests\\alignement-polaire", 
+							files));	
+				}
+			});
+		}
+
+		{
 			JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire");
 			this.mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
@@ -756,6 +804,19 @@ public class FocusUi extends FocusUiDesign {
 		
 		
 		refreshTestButton();
+	}
+
+	public JoystickHandler getJoystickHandler() {
+		return joystickHandler;
+	}
+
+	public void shoot()
+	{
+		try {
+			AptComm.getInstance().shoot();
+		} catch (IOException e1) {
+			new EndUserException(e1).report(getFrmFocus());
+		}
 	}
 	
 }

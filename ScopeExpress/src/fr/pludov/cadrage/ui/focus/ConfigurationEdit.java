@@ -12,6 +12,7 @@ import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 
 import fr.pludov.cadrage.catalogs.Tycho2Fetch;
+import fr.pludov.cadrage.ui.joystick.JoystickConfPanel;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 import fr.pludov.cadrage.ui.utils.SyncTask;
 import fr.pludov.cadrage.ui.utils.Utils;
@@ -350,12 +351,17 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		tycho2
 	};
 	
-	public ConfigurationEdit(Window parent) {
+	JoystickConfPanel joystickConfPanel;
+	
+	public ConfigurationEdit(Window parent, FocusUi focusUi) {
 		super(parent);
 		for(ConfigItem i : configItems)
 		{
 			i.setupEditor(this);
 		}
+	
+		this.joystickConfPanel = new JoystickConfPanel(focusUi);
+		this.joystickPanel.add(this.joystickConfPanel);
 		
 		setupBrowseButton(starCatalogPathTyc2Field, starCatalogPathTyc2Browse,
 				"Trouver l'emplacement du fichier tyc2.dat",

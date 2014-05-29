@@ -41,6 +41,7 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JTextField starCatalogPathTyc2Field;
 	protected JButton starCatalogPathTyc2Browse;
 	protected JButton starCatalogPathTyc2Download;
+	protected JPanel joystickPanel;
 
 	/**
 	 * Launch the application.
@@ -149,6 +150,10 @@ public class ConfigurationEditDesign extends JDialog {
 		
 		this.starCatalogPathTyc2Download = new JButton("T\u00E9l\u00E9charger");
 		this.panel.add(this.starCatalogPathTyc2Download, "cell 3 0");
+		
+		this.joystickPanel = new JPanel();
+		this.tabbedPane.addTab("Joystick", null, this.joystickPanel, null);
+		this.joystickPanel.setLayout(new BorderLayout(0, 0));
 		{
 			JPanel buttonPane = new JPanel();
 			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
