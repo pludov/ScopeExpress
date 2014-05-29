@@ -24,7 +24,15 @@ public class EquationSolver {
 	/**
 	 * Trouve les meilleurs coeff a, b, c pour maximiser:
 	 * 		a.xi + b.yi + c = vi
-	 * 
+	 * (est-ce que ça peut servir pour un plan 3D)
+	 * 		a.xi + b.yi + c = zi
+	 *      a.xi + b.yi - zi + c  = 0
+	 *  
+	 *  A = k.a
+	 *  B = k.b
+	 *  C = - k
+	 *  D = k.c
+	 *  
 	 * On veut minimiser:
 	 *   SOMME((a * xi + b * yi + c - vi)²)
 	 *   SOMME(b^2*y^2+2*a*b*x*y-2*b*v*y+2*b*c*y +a^2*x^2-2*a*v*x+2*a*c*x +v^2-2*c*v+c^2)
@@ -67,6 +75,105 @@ public class EquationSolver {
 				Svy,
 				Sv
 		});
+	}
+	
+	public static double [] findPlane3d(double [] Xi, double [] Yi, double [] Zi)
+	{
+		// http://fr.scribd.com/doc/31477970/Regressions-et-trajectoires-3D
+		double xi[], yi[], zi[];
+		xi = new double[Xi.length];
+		yi = new double[Xi.length];
+		zi = new double[Xi.length];
+		
+		double XiMoy = VecUtils.moy(Xi);
+		double YiMoy = VecUtils.moy(Yi);
+		double ZiMoy = VecUtils.moy(Zi);
+		
+		for(int i = 0; i < Xi.length; ++i)
+		{
+			xi[i] = Xi[i] - XiMoy;
+			yi[i] = Yi[i] - YiMoy;
+			zi[i] = Zi[i] - ZiMoy;
+		}
+
+		double Sxx = VecUtils.polysum(xi, 2);
+		double Syy = VecUtils.polysum(yi, 2);
+		double Szz = VecUtils.polysum(zi, 2);
+		double Sxy = VecUtils.polysum(xi, 1, yi, 1);
+		double Sxz = VecUtils.polysum(xi, 1, zi, 1);
+		double Syz = VecUtils.polysum(yi, 1, zi, 1);
+		
+		
+		double c0 = Syz * (Sxy * Sxy - Sxz * Sxz)
+				+Sxy * Sxz * (Szz - Syy);
+		double c1 = Sxy * Sxy * Sxy 
+				+ Sxy * (Sxz * Sxz - 2 * Syz * Syz - Szz * Szz) 
+				+ Sxy * (Sxx * Szz + Syy * Szz - Sxx * Syy) 
+				+ Sxz * Syz * (Syy + Szz -2 * Sxx);
+		double c2 = Syz * Syz * Syz
+				+ Syz * (Sxz * Sxz - 2 * Sxy * Sxy - Sxx * Sxx)
+				+ Syz * (Sxx * Szz + Sxx * Syy - Syy * Szz)
+				+ Sxy * Sxz * (Sxx + Syy - 2 * Szz);
+		double c3 = Sxy * (Syz * Syz - Sxz * Sxz) + Sxz * Syz * (Sxx -Syy);
+		
+		double r = c2 / c3;
+		double s = c1 / c3;
+		double t = c0 / c3;
+		double p = s - r * r / 3;
+		double q = 2 * r * r * r / 27 - r * s / 3 + t;
+		double R = q * q / 4 + p * p * p / 27;
+		
+		double [] a;
+		if (R >= 0) {
+			a = new double[1];
+			a[0] = (-r / 3)
+					+ Math.cbrt((-q/2) + Math.sqrt(R))
+					+ Math.cbrt((-q/2) - Math.sqrt(R));
+		} else {
+			double _p = Math.sqrt(-p*p*p/27);
+			double _e = Math.acos(-q / (2 * _p));
+			
+			a = new double[3];
+			a[0] = (-r / 3) + 2 * Math.cbrt(_p) * Math.cos(_e / 3);
+			a[1] = (-r / 3) + 2 * Math.cbrt(_p) * Math.cos((_e + 2 * Math.PI) / 3);
+			a[2] = (-r / 3) + 2 * Math.cbrt(_p) * Math.cos((_e + 4 * Math.PI) / 3);
+		}
+		double [] b = new double[a.length];
+		for(int i = 0; i < a.length; ++i)
+		{
+			double _a = a[i];
+			double _b;
+			_b = Sxy * Syz * _a * _a + (Syz * Syz - Sxy * Sxy) * _a - Sxy * Syz;
+			_b /= (Syz * (Sxx - Syy) - Sxy * Sxz) * _a + Sxy * (Syy - Szz) + Sxz * Syz;
+			b[i] = _b;
+		}
+		int besti = 0;
+		if (a.length > 1) {
+			double bestdlt = -1;
+			for(int i = 0 ; i < a.length; ++i)
+			{
+				double _a = a[i];
+				double _b = b[i];
+				
+				double sum = 0;
+				for(int j = 0; j < xi.length; ++j)
+				{
+					double tmp = _a * xi[j] + _b * yi[j] + zi[j];
+					sum += tmp * tmp;
+				}
+				sum /= (_a*_a + _b*_b + 1);
+				if (i == 0 || sum < bestdlt) {
+					besti = i;
+					bestdlt = sum;
+				}
+			}
+		}
+		double _a = a[besti];
+		double _b = b[besti];
+		double v = (_a * VecUtils.sum(Xi) + _b * VecUtils.sum(Yi) + VecUtils.sum(Zi)) / Xi.length;
+		
+		return new double[]{ -_a / v, -_b / v, -1 / v, 1 };
+		
 	}
 	
 	/**
@@ -511,10 +618,26 @@ public class EquationSolver {
 	}
 	
 	public static void main(String[] args) {
-		testLin();
+		testPlane3d();
 		
 	}
 
+	public static void testPlane3d()
+	{
+		double X [] = {1.72, -0.69, -2.43, -2.19, -0.15, 2.16,  2.99,  1.72,  -0.69, -2.43 };
+		double Y [] = {2.3,  2.5,   1.35,  -0.29, -1.18, -0.66, 0.89,  2.29,  2.5,   1.35  };
+		double Z [] = {-2.94,-3.94, -3.05, -0.95, 0.88,  1.03,  -0.73, -2.97, -4.02, -3.11 };
+		
+		double [] result = findPlane3d(X, Y, Z);
+		
+		System.out.println("result is :");
+		for(int i = 0; i < result.length; ++i)
+		{
+			System.out.println(result[i]);
+		}
+	
+	}
+	
 	public static void testLin()
 	{
 		double hiddenA = 2342;

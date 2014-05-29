@@ -82,4 +82,113 @@ public class VecUtils {
 		planeLeft[3] = 0;
 		return planeLeft;
 	}
+
+	public static double moy(double[] xi) {
+		double sum = 0;
+		for(int i = 0; i < xi.length; ++i) {
+			sum += xi[i];
+		}
+		return sum / xi.length;
+	}
+
+	private static interface PowElevator
+	{
+		double pow(double in);
+	}
+	
+	private static final PowElevator [] basicPows = new PowElevator[] {
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				return 1;
+			}
+		},
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				return in;
+			}
+		},
+		
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				return in * in;
+			}
+		},
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				return in * in * in;
+			}
+		},
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				double i = in * in;
+				return i * i;
+			}
+		},
+		// 5
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				double i = in * in;
+				return i * i * in;
+			}
+		},
+		// 6
+		new PowElevator() {
+			@Override
+			public double pow(double in) {
+				double i = in * in;
+				return i * i * i;
+			}
+		}
+	};
+	
+	static PowElevator getPowElevator(final int deg)
+	{
+		if (deg < basicPows.length) {
+			return basicPows[deg];
+		}
+		return new PowElevator() {
+			
+			@Override
+			public double pow(double in) {
+				return Math.pow(in, deg);
+			}
+		};
+	}
+
+	public static double polysum(double[] xi, int pow) {
+		PowElevator p = getPowElevator(pow);
+		double sum = 0;
+		for(int i = 0; i < xi.length; ++i)
+		{
+			sum += p.pow(xi[i]);
+		}
+		return sum;
+	}
+
+	public static double polysum(double[] xi, int xpow, double[] yi, int ypow) {
+		PowElevator px = getPowElevator(xpow);
+		PowElevator py = getPowElevator(ypow);
+		double sum = 0;
+		for(int i = 0; i < xi.length; ++i)
+		{
+			sum += px.pow(xi[i]) * py.pow(yi[i]);
+		}
+		return sum;
+	}
+
+	public static double sum(double[] xi) {
+		double sum = 0;
+		for(int i = 0; i < xi.length; ++i)
+		{
+			sum += xi[i];
+		}
+		return sum;
+	}
+
 }

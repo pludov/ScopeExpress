@@ -37,6 +37,7 @@ import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.AxeFindAlgorithm;
 import fr.pludov.cadrage.utils.EndUserException;
+import fr.pludov.cadrage.utils.PlaneAxeFindAlgorithm;
 import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
@@ -297,16 +298,20 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				// On veut trouver le point invariant entre les différentes images
 				// (celui pour le quel imageToMosaic donne la même chose d'une image à l'autre)
 				
-				AxeFindAlgorithm pfa = new AxeFindAlgorithm();
+				PlaneAxeFindAlgorithm pfa = new PlaneAxeFindAlgorithm();
 				
+				Date refDate = null;
 				for(MosaicImageListEntry entry : entries)
 				{
 					Image image = entry.getTarget();
 					MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
 					if (mip == null) continue;
 					
-					pfa.addMosaicImageParameter(mip);
+					pfa.addImage(mip, entry.getCreationDate());
+					// pfa.addMosaicImageParameter(mip);
+					refDate = entry.getCreationDate();
 				}
+				
 				try {
 					pfa.perform();
 				} catch (EndUserException e1) {
@@ -317,11 +322,23 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				if (pfa.isFound()) {
 					PointOfInterest poi = new PointOfInterest("axe", true);
 					poi.setImgRelPos(new double[]{pfa.getX(), pfa.getY()});
-					for(int i = 0; i < pfa.getPoints().size(); i += 2)
+//					int id = 1;
+//					for(MosaicImageListEntry entry : entries)
+//					{
+//						Image image = entry.getTarget();
+//						MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+//						if (mip == null) continue;
+//						double [] pt3d = new double[3];
+//						mip.getProjection().image2dToSky3d(new double[]{pfa.getX(), pfa.getY()}, pt3d);
+//						PointOfInterest poi2 = new PointOfInterest("axis_" + (id++), false);
+//						poi2.setSky3dPos(pt3d);
+//						mosaic.addPointOfInterest(poi2);
+//					}
+/*					for(int i = 0; i < pfa.getPoints().size(); i += 2)
 					{
 						poi.addImgRelPosSecondaryPoint(new double[]{ pfa.getPoints().get(i), pfa.getPoints().get(i + 1)});
 						
-					}
+					}*/
 					mosaic.addPointOfInterest(poi);
 					
 					
@@ -346,7 +363,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 ////					ra = 359.9167;
 ////					dec = 89.9276;
 					
-					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromNow(0, 90, 0);;
+					double [] poleJ2000 = SkyAlgorithms.J2000RaDecFromEpoch(0, 90, refDate.getTime());;
 					poleJ2000[0] *= 360/24;
 					SkyProjection.convertRaDecTo3D(poleJ2000, poleDuJour.getSky3dPos());
 					mosaic.addPointOfInterest(poleDuJour);
