@@ -297,6 +297,12 @@ public class SkyProjection {
 		o_xyz[2] = z3d;
 		invertedTransform.convert(o_xyz);
 		
+		// Renormaliser
+		double n = VecUtils.norm(o_xyz);
+		o_xyz[0] /= n;
+		o_xyz[1] /= n;
+		o_xyz[2] /= n;
+		
 	}
 
 	public static void normalize(double [] i_o_vect) throws ArithmeticException
