@@ -32,7 +32,11 @@ import org.apache.log4j.Logger;
 import fr.pludov.cadrage.Cadrage;
 import fr.pludov.cadrage.focus.MosaicListener;
 import fr.pludov.cadrage.focus.MosaicListener.ImageAddedCause;
+import fr.pludov.cadrage.ui.joystick.ButtonAction;
+import fr.pludov.cadrage.ui.joystick.JoystickListener;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.ui.speech.SpeakerProvider;
+import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.Ransac;
 
 public class ActionMonitor implements ActionListener {
@@ -45,6 +49,8 @@ public class ActionMonitor implements ActionListener {
 	Thread monitoringThread;
 	List<WeakReference<AbstractButton>> onOffMenus;
 	List<WeakReference<JButton>> shootButtons;
+	
+	int duration = 1;
 	
 	public ActionMonitor(FocusUi focusUi) {
 		this.focusUi = focusUi;
@@ -86,6 +92,59 @@ public class ActionMonitor implements ActionListener {
 				focusUi.shoot();
 			}
 		});
+		
+		focusUi.getJoystickHandler().getListeners(ButtonAction.Shoot).addListener(focusUi.listenerOwner, new JoystickListener() {
+			
+			@Override
+			public void triggered() {
+				focusUi.shoot();
+				try {
+					SpeakerProvider.getSpeaker().enqueue("fauto");
+				} catch (EndUserException e) {
+					e.printStackTrace();
+				}	
+			}
+		});
+
+
+		focusUi.getJoystickHandler().getListeners(ButtonAction.IncreaseDuration).addListener(focusUi.listenerOwner, new JoystickListener() {
+			
+			@Override
+			public void triggered() {
+				if (duration < 30) {
+					if (duration < 5) {
+						duration ++;
+					} else {
+						duration += 5;
+					} 
+				}
+				try {
+					SpeakerProvider.getSpeaker().enqueue("pauses à " + duration + " seconde");
+				} catch (EndUserException e) {
+					e.printStackTrace();
+				}	
+			}
+		});
+
+		focusUi.getJoystickHandler().getListeners(ButtonAction.DecreaseDuration).addListener(focusUi.listenerOwner, new JoystickListener() {
+			
+			@Override
+			public void triggered() {
+				if (duration > 1) {
+					if (duration <= 5) {
+						duration--;
+					} else {
+						duration -= 5;
+					} 
+				}
+				try {
+					SpeakerProvider.getSpeaker().enqueue("pauses à " + duration + " seconde");
+				} catch (EndUserException e) {
+					e.printStackTrace();
+				}	
+			}
+		});
+
 		refreshShootButtonStatus(button);
 	}
 	

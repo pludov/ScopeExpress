@@ -56,7 +56,7 @@ public class AptComm {
 	{
 		ensureConnected();
 		
-		writeTo.write("C1002".getBytes(Charset.forName("ASCII")));
+		writeTo.write("C104".getBytes(Charset.forName("ASCII")));
 		StringBuilder resp = new StringBuilder();
 		for(int i = 0; i < 3; ++i) {
 			resp.append((char)readFrom.read());

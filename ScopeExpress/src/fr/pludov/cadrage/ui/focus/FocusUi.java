@@ -47,6 +47,7 @@ import fr.pludov.cadrage.ui.joystick.JoystickHandler;
 import fr.pludov.cadrage.ui.resources.IconProvider;
 import fr.pludov.cadrage.ui.resources.IconProvider.IconSize;
 import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
+import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
@@ -812,11 +813,39 @@ public class FocusUi extends FocusUiDesign {
 
 	public void shoot()
 	{
-		try {
-			AptComm.getInstance().shoot();
-		} catch (IOException e1) {
-			new EndUserException(e1).report(getFrmFocus());
-		}
+		new Thread() {
+			public void run() {
+				for(int i = 0; i < 1; ++i)
+				{
+					if (i != 0) {
+						try {
+							SpeakerProvider.getSpeaker().enqueue("shoot");
+						} catch (EndUserException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						try {
+							Thread.sleep(4000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					try {
+						AptComm.getInstance().shoot();
+					} catch (IOException e1) {
+						new EndUserException(e1).report(getFrmFocus());
+					}
+					try {
+						Thread.sleep(14000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			};
+			
+		}.start();
 	}
 	
 }

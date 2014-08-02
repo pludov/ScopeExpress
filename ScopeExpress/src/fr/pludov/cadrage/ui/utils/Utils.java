@@ -119,6 +119,28 @@ public final class Utils {
 		boolean isInstance(Window w);
 	}
 	
+	public static <DIALOG extends JDialog> DIALOG getVisibleDialog(Component c, Class<DIALOG> dialogClass)
+	{
+		Window window;
+		if (c == null) {
+			window = null;
+		} else if (c instanceof Window) {
+			window = (Window)c;
+		} else {
+			window = SwingUtilities.getWindowAncestor(c);
+		}
+		if (window != null) {
+			for(Window w : window.getOwnedWindows())
+			{
+				if (w.isVisible() && dialogClass.isInstance(w)) {
+					return (DIALOG)w;
+				}
+			}
+		}
+		return null;
+		
+	}
+	
 	public static <DIALOG extends JDialog> DIALOG openDialog(Component c, WindowBuilder<DIALOG> builder)
 	{
 		Window window;

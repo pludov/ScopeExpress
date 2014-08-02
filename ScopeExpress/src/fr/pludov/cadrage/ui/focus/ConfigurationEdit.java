@@ -530,4 +530,8 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			i.setSaved(value);
 		}
 	}
+
+	public JoystickConfPanel getJoystickConfPanel() {
+		return joystickConfPanel;
+	}
 }

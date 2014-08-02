@@ -1,7 +1,9 @@
 package fr.pludov.cadrage.ui.joystick;
 
 public enum ButtonAction {
-	Shoot("Declencher");
+	Shoot("Declencher"),
+	IncreaseDuration("Pauses plus longues"),
+	DecreaseDuration("Pauses moins longues");
 	
 	public final String title;
 	

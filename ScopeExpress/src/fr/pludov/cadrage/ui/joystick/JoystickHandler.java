@@ -1,10 +1,12 @@
 package fr.pludov.cadrage.ui.joystick;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import fr.pludov.cadrage.ui.focus.ConfigurationEdit;
 import fr.pludov.cadrage.ui.focus.FocusUi;
 import fr.pludov.cadrage.ui.preferences.ConfigItem;
 import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
@@ -13,6 +15,7 @@ import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.IdentityHashSet;
+import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
 public class JoystickHandler {
@@ -23,9 +26,17 @@ public class JoystickHandler {
 	final TriggerSource ts = TriggerSourceProvider.getInstance();
 	final WeakListenerOwner owner = new WeakListenerOwner(this);
 	
+	final EnumMap<ButtonAction, WeakListenerCollection<JoystickListener>> listeners;
+	
 	public JoystickHandler(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.inputs = new IdentityHashMap<TriggerInput, ButtonAction>();
+		this.listeners = new EnumMap<ButtonAction, WeakListenerCollection<JoystickListener>>(ButtonAction.class);
+		for(ButtonAction ba : ButtonAction.values())
+		{
+			this.listeners.put(ba, new WeakListenerCollection<JoystickListener>(JoystickListener.class));
+		}
+		
 		reload();
 	}
 	
@@ -66,6 +77,10 @@ public class JoystickHandler {
 	
 	void changeForUid(TriggerInput uid)
 	{
+		ConfigurationEdit configEdit = Utils.getVisibleDialog(focusUi.getMainWindow(), ConfigurationEdit.class);
+		if (configEdit != null && configEdit.getJoystickConfPanel().isShowing()) {
+			return;
+		}
 		if (Utils.hasModalDialog(focusUi.getMainWindow()))
 		{
 			try {
@@ -73,7 +88,7 @@ public class JoystickHandler {
 				speaker = SpeakerProvider.getSpeaker();
 
 				if (speaker != null) {
-					speaker.enqueue("Impossible");
+					speaker.enqueue("Erreur");
 				}
 			} catch (EndUserException e) {
 				// TODO Auto-generated catch block
@@ -82,8 +97,15 @@ public class JoystickHandler {
 			return;
 		}
 		ButtonAction ba = this.inputs.get(uid);
-		System.out.println("doing:" + uid + " => " + ba);
-		focusUi.shoot();
+		
+		if (ba == null) return;
+		WeakListenerCollection<JoystickListener> listeners = this.listeners.get(ba);
+		listeners.getTarget().triggered();
+	}
+	
+	public WeakListenerCollection<JoystickListener> getListeners(ButtonAction ba)
+	{
+		return listeners.get(ba);
 	}
 
 	static EnumConfigItem<ButtonAction> getButtonConfigItem(String uid)
