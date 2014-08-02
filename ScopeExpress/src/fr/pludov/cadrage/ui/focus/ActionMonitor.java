@@ -50,8 +50,6 @@ public class ActionMonitor implements ActionListener {
 	List<WeakReference<AbstractButton>> onOffMenus;
 	List<WeakReference<JButton>> shootButtons;
 	
-	int duration = 1;
-	
 	public ActionMonitor(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.currentMonitoringPath = null;
@@ -111,15 +109,15 @@ public class ActionMonitor implements ActionListener {
 			
 			@Override
 			public void triggered() {
-				if (duration < 30) {
-					if (duration < 5) {
-						duration ++;
+				if (focusUi.getShootDuration() < 30) {
+					if (focusUi.getShootDuration() < 5) {
+						focusUi.setShootDuration(focusUi.getShootDuration() + 1);
 					} else {
-						duration += 5;
+						focusUi.setShootDuration(focusUi.getShootDuration() + 5);
 					} 
 				}
 				try {
-					SpeakerProvider.getSpeaker().enqueue("pauses à " + duration + " seconde");
+					SpeakerProvider.getSpeaker().enqueue("pauses à " + focusUi.getShootDuration() + " seconde");
 				} catch (EndUserException e) {
 					e.printStackTrace();
 				}	
@@ -130,15 +128,15 @@ public class ActionMonitor implements ActionListener {
 			
 			@Override
 			public void triggered() {
-				if (duration > 1) {
-					if (duration <= 5) {
-						duration--;
+				if (focusUi.getShootDuration() > 1) {
+					if (focusUi.getShootDuration() <= 5) {
+						focusUi.setShootDuration(focusUi.getShootDuration() - 1);
 					} else {
-						duration -= 5;
+						focusUi.setShootDuration(focusUi.getShootDuration() - 5);
 					} 
 				}
 				try {
-					SpeakerProvider.getSpeaker().enqueue("pauses à " + duration + " seconde");
+					SpeakerProvider.getSpeaker().enqueue("pauses à " + focusUi.getShootDuration() + " seconde");
 				} catch (EndUserException e) {
 					e.printStackTrace();
 				}	

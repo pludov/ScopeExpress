@@ -52,11 +52,20 @@ public class AptComm {
 		}
 	}
 	
-	public void shoot() throws IOException
+	public void shoot(int duration) throws IOException
 	{
 		ensureConnected();
-		
-		writeTo.write("C104".getBytes(Charset.forName("ASCII")));
+		String command = "C1";
+		if (duration > 99) {
+			command += "99";
+		} else if (duration >= 10) {
+			command += duration;
+		} else if (duration >= 1) {
+			command += "0" + duration;
+		} else {
+			command += "01";
+		}
+		writeTo.write(command.getBytes(Charset.forName("ASCII")));
 		StringBuilder resp = new StringBuilder();
 		for(int i = 0; i < 3; ++i) {
 			resp.append((char)readFrom.read());

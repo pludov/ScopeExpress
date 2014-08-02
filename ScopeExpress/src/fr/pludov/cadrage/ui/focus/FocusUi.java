@@ -811,41 +811,28 @@ public class FocusUi extends FocusUiDesign {
 		return joystickHandler;
 	}
 
+	int shootDuration = 1;
+	
 	public void shoot()
 	{
 		new Thread() {
 			public void run() {
-				for(int i = 0; i < 1; ++i)
-				{
-					if (i != 0) {
-						try {
-							SpeakerProvider.getSpeaker().enqueue("shoot");
-						} catch (EndUserException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						try {
-							Thread.sleep(4000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
-					try {
-						AptComm.getInstance().shoot();
-					} catch (IOException e1) {
-						new EndUserException(e1).report(getFrmFocus());
-					}
-					try {
-						Thread.sleep(14000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+				try {
+					AptComm.getInstance().shoot(shootDuration);
+				} catch (IOException e1) {
+					new EndUserException(e1).report(getFrmFocus());
 				}
 			};
 			
 		}.start();
+	}
+
+	public int getShootDuration() {
+		return shootDuration;
+	}
+
+	public void setShootDuration(int shootDuration) {
+		this.shootDuration = shootDuration;
 	}
 	
 }
