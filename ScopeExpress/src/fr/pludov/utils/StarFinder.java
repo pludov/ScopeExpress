@@ -61,15 +61,15 @@ public class StarFinder {
 		Histogram histogram = new Histogram();
 
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Red);
-		blackLevelByChannel[0] = histogram.getBlackLevel(0.5);
+		blackLevelByChannel[0] = histogram.getBlackLevel(0.4);
 		blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
 		
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Green);
-		blackLevelByChannel[1] = histogram.getBlackLevel(0.5);
+		blackLevelByChannel[1] = histogram.getBlackLevel(0.4);
 		blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(1, blackLevelByChannel[1]));
 		
 		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Blue);
-		blackLevelByChannel[2] = histogram.getBlackLevel(0.5);
+		blackLevelByChannel[2] = histogram.getBlackLevel(0.4);
 		blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(2, blackLevelByChannel[2]));
 		
 		// Calcul des pixels "non noirs"
