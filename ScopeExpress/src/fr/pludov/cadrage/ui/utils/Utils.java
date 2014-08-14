@@ -198,6 +198,11 @@ public final class Utils {
 	}
 	
 	
+	/**
+	 * Présentation d'un angle (degrés) en Heure/Minute/Seconde (pour RA)
+	 * @param deg
+	 * @return
+	 */
 	public static String formatHourMinSec(double deg)
 	{
 		double raHourDouble = deg * 24.0 / 360;
@@ -217,6 +222,11 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Présentation d'un angle (degrés) en Degrés/Minute/Seconde (pour Dec)
+	 * @param deg
+	 * @return
+	 */
 	public static String formatDegMinSec(double deg)
 	{
 		boolean negate = deg < 0;
@@ -425,5 +435,15 @@ public final class Utils {
 		}
 		
 		return null;
+	}
+
+	/** Retourne un angle en degrès dans l'interaval -180, 180 */ 
+	public static double adjustDegDiff(double d) {
+		if (d < 0) {
+			d = 360 - ((-d) % 360);
+		} else {
+			d = d % 360;
+		}
+		return d > 180 ? d - 360 : d;
 	}
 }

@@ -414,7 +414,21 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 	
 		contextMenu.add(poleMenu);
+
+		JMenuItem centerMenu;
 		
+		centerMenu = new JMenuItem();
+		centerMenu.setText("Re-cadrer");
+		centerMenu.setToolTipText("Ajuster le cadrage pour correspondre à cette image...");
+		centerMenu.setEnabled(entries.size() == 1);
+		centerMenu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ReCenterDialog dialog = Utils.openDialog(MosaicImageList.this, ReCenterDialog.class);
+				dialog.open(focusUi, mosaic, entries.get(entries.size() - 1).getTarget());
+				dialog.setVisible(true);
+			}
+		});
+		contextMenu.add(centerMenu);
 		
 		focusUi.scopeManager.addImageContextMenu(mosaic, contextMenu, entries);
 		

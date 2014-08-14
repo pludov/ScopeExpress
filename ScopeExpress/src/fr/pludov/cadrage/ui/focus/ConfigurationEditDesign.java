@@ -15,6 +15,7 @@ import javax.swing.JLabel;
 import java.awt.Font;
 import java.awt.Color;
 import javax.swing.JTextField;
+import java.awt.Insets;
 
 public class ConfigurationEditDesign extends JDialog {
 
@@ -36,12 +37,16 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JLabel lblFocal;
 	protected JTextField fieldFocal;
 	protected JLabel fieldFocalErr;
-	protected JPanel panel;
+	protected JPanel filePanel;
 	protected JLabel lblRpertoireTycho;
 	protected JTextField starCatalogPathTyc2Field;
 	protected JButton starCatalogPathTyc2Browse;
 	protected JButton starCatalogPathTyc2Download;
 	protected JPanel joystickPanel;
+	protected JLabel lblRepertoiresAstroNet;
+	protected JTextField astroNetPathField;
+	protected JButton astroNetBrowse;
+	protected JButton astroNetDownload;
 
 	/**
 	 * Launch the application.
@@ -133,23 +138,41 @@ public class ConfigurationEditDesign extends JDialog {
 		this.fieldLongitudeErr.setFont(new Font("Tahoma", Font.BOLD, 10));
 		this.geoPanel.add(this.fieldLongitudeErr, "cell 2 1");
 		
-		this.panel = new JPanel();
-		this.tabbedPane.addTab("Fichiers", null, this.panel, null);
-		this.panel.setLayout(new MigLayout("", "[][grow][][]", "[]"));
+		this.filePanel = new JPanel();
+		this.tabbedPane.addTab("Fichiers", null, this.filePanel, null);
+		this.filePanel.setLayout(new MigLayout("", "[][grow][][]", "[][]"));
 		
 		this.lblRpertoireTycho = new JLabel("R\u00E9pertoire Tycho-2");
-		this.panel.add(this.lblRpertoireTycho, "cell 0 0,alignx trailing");
+		this.filePanel.add(this.lblRpertoireTycho, "cell 0 0,alignx trailing");
 		
 		this.starCatalogPathTyc2Field = new JTextField();
-		this.panel.add(this.starCatalogPathTyc2Field, "cell 1 0,growx");
+		this.filePanel.add(this.starCatalogPathTyc2Field, "cell 1 0,growx");
 		this.starCatalogPathTyc2Field.setColumns(10);
 		
 		this.starCatalogPathTyc2Browse = new JButton("...");
+		this.starCatalogPathTyc2Browse.setMargin(new Insets(2, 2, 2, 2));
 		this.starCatalogPathTyc2Browse.setToolTipText("Permet de rechercher l'emplacement des fichiers pour tycho2");
-		this.panel.add(this.starCatalogPathTyc2Browse, "cell 2 0,aligny bottom");
+		this.filePanel.add(this.starCatalogPathTyc2Browse, "cell 2 0,aligny bottom");
 		
 		this.starCatalogPathTyc2Download = new JButton("T\u00E9l\u00E9charger");
-		this.panel.add(this.starCatalogPathTyc2Download, "cell 3 0");
+		this.starCatalogPathTyc2Download.setMargin(new Insets(2, 2, 2, 2));
+		this.filePanel.add(this.starCatalogPathTyc2Download, "cell 3 0");
+		
+		this.lblRepertoiresAstroNet = new JLabel("R\u00E9pertoires des indexes Astrometry.net");
+		this.filePanel.add(this.lblRepertoiresAstroNet, "cell 0 1,alignx trailing");
+		
+		this.astroNetPathField = new JTextField();
+		this.filePanel.add(this.astroNetPathField, "cell 1 1,growx");
+		this.astroNetPathField.setColumns(10);
+		
+		this.astroNetBrowse = new JButton("...");
+		this.astroNetBrowse.setMargin(new Insets(2, 2, 2, 2));
+		this.astroNetBrowse.setToolTipText("Permet de rechercher l'emplacement des fichiers pour astrometry.net");
+		this.filePanel.add(this.astroNetBrowse, "cell 2 1");
+		
+		this.astroNetDownload = new JButton("T\u00E9l\u00E9charger");
+		this.astroNetDownload.setMargin(new Insets(2, 2, 2, 2));
+		this.filePanel.add(this.astroNetDownload, "cell 3 1");
 		
 		this.joystickPanel = new JPanel();
 		this.tabbedPane.addTab("Joystick", null, this.joystickPanel, null);

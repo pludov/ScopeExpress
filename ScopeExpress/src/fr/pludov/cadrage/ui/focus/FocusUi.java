@@ -27,6 +27,7 @@ import javax.swing.WindowConstants;
 import org.apache.log4j.Logger;
 import org.w3c.dom.Element;
 
+import fr.pludov.astrometry.IndexesFetch;
 import fr.pludov.cadrage.catalogs.StarCollection;
 import fr.pludov.cadrage.catalogs.StarProvider;
 import fr.pludov.cadrage.focus.AffineTransform3D;
@@ -44,12 +45,14 @@ import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.dialogs.MosaicStarter;
 import fr.pludov.cadrage.ui.joystick.JoystickHandler;
+import fr.pludov.cadrage.ui.preferences.StringConfigItem;
 import fr.pludov.cadrage.ui.resources.IconProvider;
 import fr.pludov.cadrage.ui.resources.IconProvider.IconSize;
 import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
 import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.Status;
+import fr.pludov.cadrage.ui.utils.AskNowOrLater;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskQueueListener;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.EndUserException;
@@ -60,6 +63,9 @@ import fr.pludov.utils.XmlSerializationContext;
 
 public class FocusUi extends FocusUiDesign {
 	private static final Logger logger = Logger.getLogger(FocusUi.class);
+	
+	private final StringConfigItem configurationInitialisationRequired = new StringConfigItem(FocusUi.class, "configurationInitialisationRequired", "");
+	
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	Application application;
@@ -355,19 +361,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), new Utils.WindowBuilder<ConfigurationEdit>() {
-					@Override
-					public ConfigurationEdit build(Window w) {
-						return new ConfigurationEdit(w, FocusUi.this);
-					}
-					
-					@Override
-					public boolean isInstance(Window w) {
-						return w instanceof ConfigurationEdit;
-					}
-				});
-				edit.loadValuesFrom(Configuration.getCurrentConfiguration());
-				edit.setVisible(true);
+				showConfigurationEdit();
 			}
 		});
 		
@@ -570,7 +564,7 @@ public class FocusUi extends FocusUiDesign {
 				try {
 					final FocusUi window = new FocusUi(focus, mosaic);
 					window.getFrmFocus().setVisible(true);
-
+					window.checkConfigAtStartup();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -578,6 +572,55 @@ public class FocusUi extends FocusUiDesign {
 		});
 	}
 
+	private boolean fileExists(String configPath, String [] requiredChilds)
+	{
+		if (configPath == null || configPath.equals("")) {
+			return false;
+		}
+		File f = new File(configPath);
+		if (!f.exists()) {
+			logger.info("File " + configPath + " from configuration does not exists");
+			return false;
+		}
+		if (requiredChilds != null) {
+			for(String child : requiredChilds) {
+				if (!new File(f, child).exists()) {
+					logger.info("File " + child + " within " + configPath + " from configuration does not exists");
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	protected void checkConfigAtStartup() {
+		AskNowOrLater showConfigDialog = new AskNowOrLater(
+				this.getFrmFocus(), 
+				"Fichiers de données",
+				"Certains fichiers de données requis ne sont pas présents - voulez-vous les télécharger maintenant ? <br><i>(vous pourrez"
+				+ " toujours le faire via le menu Configuration)</i>",
+				configurationInitialisationRequired,
+				"1.0.2",
+				false
+				)
+		{
+			@Override
+			public void onDone() {
+				if (isYes()) {
+					ConfigurationEdit configEdit = showConfigurationEdit();
+					configEdit.tabbedPane.setSelectedComponent(configEdit.filePanel);
+				}
+			}
+		};
+		
+		if (!showConfigDialog.isNo()) {
+			if (!fileExists(Configuration.getCurrentConfiguration().getStarCatalogPathTyc2(), null)
+					|| (!fileExists(Configuration.getCurrentConfiguration().getAstrometryNetPath(), IndexesFetch.getMandatoryIndexes())))
+			{
+				showConfigDialog.perform();
+			}
+		}
+	}
 
 	public Mosaic getMosaic() {
 		return mosaic;
@@ -803,6 +846,30 @@ public class FocusUi extends FocusUiDesign {
 			});
 		}
 		
+		{
+			JMenuItem prise_focus_polaire = new JMenuItem("Recadrage NGC7331");
+			this.mnTests.add(prise_focus_polaire);
+			prise_focus_polaire.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					double ra = (22.0 + 37 / 60.0 + 06.0 / 3600.0);
+					double dec = 34 + 25 / 60.0 + 00 / 3600.0;
+					scopeManager.createFakeScope(ra, dec);
+					
+					String [] files = {
+							"ATL_Bin1x1_s_2014-07-31_01-55-57.fit",
+							"Single_Bin1x1_10s_2014-07-31_02-39-25.fit",
+							"Single_Bin1x1_5s_2014-07-31_02-41-08.fit",
+							"Single_Bin1x1_5s_2014-07-31_02-42-41.fit"
+					};
+					setScript(new LoadImagesScript(actionMonitor, 
+							"C:\\APT_Images\\CameraCCD_1\\2014-07-30", 
+							files));	
+				}
+			});
+		}
+		
 		
 		refreshTestButton();
 	}
@@ -833,6 +900,23 @@ public class FocusUi extends FocusUiDesign {
 
 	public void setShootDuration(int shootDuration) {
 		this.shootDuration = shootDuration;
+	}
+
+	private ConfigurationEdit showConfigurationEdit() {
+		ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), new Utils.WindowBuilder<ConfigurationEdit>() {
+			@Override
+			public ConfigurationEdit build(Window w) {
+				return new ConfigurationEdit(w, FocusUi.this);
+			}
+			
+			@Override
+			public boolean isInstance(Window w) {
+				return w instanceof ConfigurationEdit;
+			}
+		});
+		edit.loadValuesFrom(Configuration.getCurrentConfiguration());
+		edit.setVisible(true);
+		return edit;
 	}
 	
 }

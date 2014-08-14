@@ -6,11 +6,13 @@ import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 
+import fr.pludov.astrometry.IndexesFetch;
 import fr.pludov.cadrage.catalogs.Tycho2Fetch;
 import fr.pludov.cadrage.ui.joystick.JoystickConfPanel;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
@@ -256,6 +258,29 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			return null;
 		}
 	};
+	
+	static ConfigItem<?> astrometryNetPath = new ConfigItemString("astrometryNetPath", "") {
+
+		@Override
+		String get(Configuration config) {
+			return config.getAstrometryNetPath();
+		}
+
+		@Override
+		void set(Configuration config, String o) {
+			config.setAstrometryNetPath(o);
+		}
+
+		@Override
+		JTextField getInputField(ConfigurationEdit e) {
+			return e.astroNetPathField;
+		}
+
+		@Override
+		JLabel getErrorField(ConfigurationEdit e) {
+			return null;
+		}
+	};
 
 	
 	static ConfigItem<?> [] configItems = {
@@ -348,7 +373,8 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			}
 		},
 		
-		tycho2
+		tycho2,
+		astrometryNetPath
 	};
 	
 	JoystickConfPanel joystickConfPanel;
@@ -366,6 +392,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		setupBrowseButton(starCatalogPathTyc2Field, starCatalogPathTyc2Browse,
 				"Trouver l'emplacement du fichier tyc2.dat",
 				"Fichier de données Tycho-2 (tyc2.dat)",
+				false,
 				"tyc2\\.dat");
 		
 		createTaskButton(this.starCatalogPathTyc2Download, "Téléchargement de tyc2.dat", new SyncTaskFactory() {
@@ -380,6 +407,36 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			}
 			
 		});
+		
+		setupBrowseButton(astroNetPathField, astroNetBrowse, 
+				"Emplacement des fichiers d'indexes astrometry.net",
+				"Emplacement des fichiers d'indexes astrometry.net",
+				true, 
+				null);
+		
+		
+		this.astroNetDownload.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				String path = astroNetPathField.getText();
+				final File targetDir = (path == null || path.trim().isEmpty()) ? null : new File(path.trim());
+				final AstroNetIndexSelector selector = new AstroNetIndexSelector(ConfigurationEdit.this) {
+					@Override
+					public void onDone() {
+						final SyncTask fetcher = new IndexesFetch(targetDir, getSelectedLevel()) {
+							@Override
+							protected void done() {
+								ConfigurationEdit.this.astroNetPathField.setText(getResult().toString());
+							}
+						};
+						fetcher.execute(ConfigurationEdit.this);
+					}
+				};
+				selector.setModal(true);;
+				selector.setVisible(true);
+			}
+		});
+		
 		
 		getOkButton().addActionListener(new ActionListener() {
 			
@@ -406,6 +463,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 	private void setupBrowseButton(final JTextField starCatalogPathTyc2Field, JButton starCatalogPathTyc2Browse, 
 									final String title,
 									final String fileDescription,
+									final boolean wantDir,
 									final String regex) {
 		starCatalogPathTyc2Browse.addActionListener(new ActionListener() {
 			
@@ -413,7 +471,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 				chooser.setMultiSelectionEnabled(false);
-				chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				chooser.setFileSelectionMode(wantDir ? JFileChooser.DIRECTORIES_ONLY : JFileChooser.FILES_ONLY);
 				chooser.setDialogTitle(title);
 		
 				String lastOpenLocationValue = starCatalogPathTyc2Field.getText();
@@ -429,7 +487,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 					@Override
 					public boolean accept(File f) {
 						if (f.isDirectory()) return true;
-						
+						if (wantDir) return false;
 						return f.getName().toLowerCase().matches(regex);
 					}
 				});
@@ -452,36 +510,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-//				final ProgressMonitor progressMonitor = new ProgressMonitor(ConfigurationEdit.this,
-//                        title,
-//                        "", 0, 1000);
 				final SyncTask fetcher = factory.createWorker();
-//				ConfigurationEdit.this.setEnabled(false);
-//				fetcher.addPropertyChangeListener(new PropertyChangeListener() {
-//					@Override
-//					public void propertyChange(PropertyChangeEvent evt) {
-//						if ("progress".equals(evt.getPropertyName()) ) {
-//				            int progress = (Integer) evt.getNewValue();
-//				            progressMonitor.setProgress(progress);
-//				            String message = String.format("Completed %d%%.\n", progress);
-//				            progressMonitor.setNote(message);
-//				            
-//				        }
-//			            if (progressMonitor.isCanceled() || fetcher.isDone()) {
-//
-//			                if (progressMonitor.isCanceled()) {
-//			                	fetcher.cancel(true);
-//			                	button.setEnabled(true);
-//			                }
-//			                progressMonitor.close();
-//			                ConfigurationEdit.this.setEnabled(false);
-//			            }
-//				 
-//					}
-//				});
-//				
-//				
-//				fetcher.execute();
 				fetcher.execute(ConfigurationEdit.this);
 			}
 		});

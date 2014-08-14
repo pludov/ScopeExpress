@@ -12,5 +12,10 @@
 	<classpathentry kind="lib" path="miglayout15-swing.jar" sourcepath="miglayout-src.zip"/>
 	<classpathentry kind="lib" path="jar/commons-primitives-1.0.jar" sourcepath="jar-src/commons-primitives-1.0-src.zip"/>
 	<classpathentry kind="lib" path="jar/commons-net-3.3.jar"/>
+	<classpathentry kind="lib" path="jar/jinput-nightly-20140306.jar" sourcepath="docs/jinput-apidocs">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/cadrage/docs/jinput-apidocs.zip!/apidocs"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

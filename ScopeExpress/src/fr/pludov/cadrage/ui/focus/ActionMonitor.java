@@ -102,6 +102,11 @@ public class ActionMonitor implements ActionListener {
 					e.printStackTrace();
 				}	
 			}
+			
+			@Override
+			public boolean isActive() {
+				return true;
+			}
 		});
 
 
@@ -122,6 +127,12 @@ public class ActionMonitor implements ActionListener {
 					e.printStackTrace();
 				}	
 			}
+			
+
+			@Override
+			public boolean isActive() {
+				return true;
+			}
 		});
 
 		focusUi.getJoystickHandler().getListeners(ButtonAction.DecreaseDuration).addListener(focusUi.listenerOwner, new JoystickListener() {
@@ -140,6 +151,11 @@ public class ActionMonitor implements ActionListener {
 				} catch (EndUserException e) {
 					e.printStackTrace();
 				}	
+			}
+
+			@Override
+			public boolean isActive() {
+				return true;
 			}
 		});
 

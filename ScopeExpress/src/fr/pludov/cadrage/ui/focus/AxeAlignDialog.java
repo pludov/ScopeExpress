@@ -28,6 +28,7 @@ import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.preferences.BooleanConfigItem;
 import fr.pludov.cadrage.ui.preferences.EnumConfigItem;
 import fr.pludov.cadrage.ui.preferences.StringConfigItem;
+import fr.pludov.cadrage.ui.speech.SpeakUtil;
 import fr.pludov.cadrage.ui.speech.Speaker;
 import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.Utils;
@@ -176,7 +177,6 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 				previousY = y;
 			}
 		}
-		
 	}
 	
 	
@@ -388,43 +388,6 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 		repaint();
 	}
 
-	private String enumerateAngle(double d)
-	{
-		assert(d >= 0);
-		int deg = (int)Math.floor(d);
-		d = (d - deg) * 60;
-		int min = (int)Math.floor(d);
-		d = (d - min) * 60;
-		double sec = d;
-		int isec = (int)Math.floor(sec);
-
-		if (deg > 5) {
-			return deg + " degrés";
-		}
-		if (deg > 0) {
-			return deg + " degrés et " + min + " minutes";  
-		}
-		
-		// deg est null.
-		if (min > 5) {
-			return min + " minutes";
-		}
-		if (min > 0) {
-			return min + " minutes et " + isec + " secondes";
-		}
-		// min est null
-		if (sec > 5) {
-			return isec + " secondes";
-		}
-		
-		int dixieme = (int)Math.floor(10 * (sec - isec));
-		if (isec > 0) {
-			return isec + " secondes et " + dixieme + " dixièmes";
-		} else {
-			return dixieme + " dixièmes de secondes";
-		}
-	}
-	
 	/**
 	 * Retourne un objet speaker si il a pu être initialisé, et sinon, lève une exception.
 	 * Au passage, les boutons sont grisés.
@@ -479,13 +442,13 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 					if (deltaAvant < 0 == deltaMaintenat <= 0)
 					{
 						if (Math.abs(deltaAvant) > Math.abs(deltaMaintenat)) {
-							text = "Encore " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+							text = "Encore " + SpeakUtil.sayPositiveAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
 						} else {
-							text = "A l'envers ! Inverser de " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+							text = "A l'envers ! Inverser de " + SpeakUtil.sayPositiveAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
 						}
 						
 					} else {
-						text = "Trop corrigé ! Inverser de " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir; 
+						text = "Trop corrigé ! Inverser de " + SpeakUtil.sayPositiveAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir; 
 					}
 					
 					speaker.enqueue(text);
@@ -494,7 +457,7 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 					
 					String maintenantDir = direction[deltaMaintenat > 0 ? 0 : 1];
 					
-					String text = "Faire " + enumerateAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
+					String text = "Faire " + SpeakUtil.sayPositiveAngle(Math.abs(deltaMaintenat)) + " " + maintenantDir;
 					
 					speaker.enqueue(text);
 				}

@@ -11,6 +11,8 @@ public class Configuration {
 	private double pixelSize;
 
 	private String starCatalogPathTyc2;
+	/** Chemin des indexes */
+	private String astrometryNetPath;
 	
 	public Configuration() {
 	}
@@ -107,5 +109,13 @@ public class Configuration {
 		}
 		applicationDir = dir;
 		return applicationDir;
+	}
+
+	public String getAstrometryNetPath() {
+		return astrometryNetPath;
+	}
+
+	public void setAstrometryNetPath(String astrometryNetPath) {
+		this.astrometryNetPath = astrometryNetPath;
 	}
 }

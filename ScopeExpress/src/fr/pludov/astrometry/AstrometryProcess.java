@@ -1,10 +1,14 @@
 package fr.pludov.astrometry;
 
 import java.awt.geom.NoninvertibleTransformException;
+import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,9 +19,11 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.focus.AffineTransform3D;
 import fr.pludov.cadrage.focus.SkyProjection;
+import fr.pludov.cadrage.ui.focus.Configuration;
 import fr.pludov.cadrage.ui.utils.BackgroundTask;
 import fr.pludov.cadrage.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
 import fr.pludov.cadrage.ui.utils.BackgroundTaskProcessEncapsulator;
+import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.EndUserException;
 import net.ivoa.fits.Fits;
 import net.ivoa.fits.FitsException;
@@ -30,7 +36,6 @@ import net.ivoa.fits.hdu.ImageHDU;
 public class AstrometryProcess {
 	public static final Logger logger = Logger.getLogger(AstrometryProcess.class);
 	
-	final static String astrometryPath = "C:\\MinGW\\msys\\1.0\\home\\utilisateur\\astrometry.net-0.46\\blind\\astrometry-engine.exe";
 	
 	final int imageW, imageH;
 	final double raCenterEstimate;
@@ -60,6 +65,40 @@ public class AstrometryProcess {
 		this.raCenterEstimate = raEst;
 		this.decCenterEstimate = decEst;
 		this.searchRadius = searchRadius;
+	}
+	
+	private void writeConfigFile(File outputFile) throws IOException
+	{
+		
+		FileOutputStream fos = null;
+		try
+		{
+			fos = new FileOutputStream(outputFile);
+			PrintStream stream = new PrintStream(fos);
+			try {
+				stream.println("# This is a generated config file - overwritten at each invocation");
+				stream.println();
+				// ça ne marche pas top pour l'instant
+				stream.println("#inparallel");
+				stream.println();
+				stream.println("# Maximum CPU time to spend on a field, in seconds:");
+				stream.println("cpulimit 300");
+				stream.println();
+				stream.println("# In which directories should we search for indices?");
+				stream.println("add_path " + Configuration.getCurrentConfiguration().getAstrometryNetPath());
+				stream.println();
+				stream.println("# Load any indices found in the directories listed above.");
+				stream.println("autoindex");
+	
+				stream.flush();
+			} finally {
+				stream.close();
+			}
+		} finally {
+			if (fos != null) {
+				fos.close();
+			}
+		}
 	}
 	
 	
@@ -406,19 +445,24 @@ public class AstrometryProcess {
 	{
 		if (datas.length < 4) throw new EndUserException("Pas assez d'étoiles");
 		datas = uniformize(datas);
+		File configFile = null;
 		File fileAxy = null;
 		File matchTarget = null;
 		File corrTarget = null;
 		File wcsTarget = null;
 		try {
+			configFile = File.createTempFile("astrometry", ".cfg");
 			fileAxy = File.createTempFile("solved", ".axy");
 			matchTarget = File.createTempFile("match", ".fit", fileAxy.getParentFile());
 			corrTarget = File.createTempFile("corr", ".fit", fileAxy.getParentFile());
 			wcsTarget = File.createTempFile("corr", ".fit", fileAxy.getParentFile());
 			
+			writeConfigFile(configFile);
 			writeStarFits(fileAxy, matchTarget, corrTarget, wcsTarget, datas);
 
-			ProcessBuilder pb = new ProcessBuilder(Arrays.asList(astrometryPath, fileAxy.toString()));
+			File exePath = new File(new File(Utils.getBaseInstallationPath(), "dll"), "astrometry-engine.exe");
+			
+			ProcessBuilder pb = new ProcessBuilder(Arrays.asList(exePath.getCanonicalPath(), "-c", configFile.getCanonicalPath(), fileAxy.toString()));
 			pb.directory(matchTarget.getParentFile());
 			pb.redirectErrorStream(true);
 			BackgroundTaskProcessEncapsulator pe = new BackgroundTaskProcessEncapsulator(pb.start(), bt);

@@ -80,6 +80,7 @@ public class EquationSolver {
 	public static double [] findPlane3d(double [] Xi, double [] Yi, double [] Zi)
 	{
 		// http://fr.scribd.com/doc/31477970/Regressions-et-trajectoires-3D
+		// auteur: jjacquelin
 		double xi[], yi[], zi[];
 		xi = new double[Xi.length];
 		yi = new double[Xi.length];

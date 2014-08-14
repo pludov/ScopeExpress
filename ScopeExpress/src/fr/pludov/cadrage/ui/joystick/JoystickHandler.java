@@ -15,6 +15,7 @@ import fr.pludov.cadrage.ui.speech.SpeakerProvider;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.IdentityHashSet;
+import fr.pludov.cadrage.utils.WeakActivableListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
 
@@ -26,15 +27,15 @@ public class JoystickHandler {
 	final TriggerSource ts = TriggerSourceProvider.getInstance();
 	final WeakListenerOwner owner = new WeakListenerOwner(this);
 	
-	final EnumMap<ButtonAction, WeakListenerCollection<JoystickListener>> listeners;
+	final EnumMap<ButtonAction, WeakActivableListenerCollection<JoystickListener>> listeners;
 	
 	public JoystickHandler(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.inputs = new IdentityHashMap<TriggerInput, ButtonAction>();
-		this.listeners = new EnumMap<ButtonAction, WeakListenerCollection<JoystickListener>>(ButtonAction.class);
+		this.listeners = new EnumMap<ButtonAction, WeakActivableListenerCollection<JoystickListener>>(ButtonAction.class);
 		for(ButtonAction ba : ButtonAction.values())
 		{
-			this.listeners.put(ba, new WeakListenerCollection<JoystickListener>(JoystickListener.class));
+			this.listeners.put(ba, new WeakActivableListenerCollection<JoystickListener>(JoystickListener.class));
 		}
 		
 		reload();

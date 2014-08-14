@@ -13,7 +13,9 @@ import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.scope.Scope;
+import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.scope.ascom.AscomScope;
+import fr.pludov.cadrage.scope.dummy.DummyScope;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
@@ -43,11 +45,27 @@ public class FocusUiScopeManager {
 		this.listeners.getTarget().onScopeChanged();
 	}
 	
-
+	public void createFakeScope(double ra, double dec)
+	{
+		if (this.scope != null) return;
+		scope = new DummyScope();
+		initScope();
+		try {
+			scope.sync(ra, dec);
+		} catch (ScopeException e) {
+			throw new RuntimeException("sync failed on dummy scope", e);
+		}
+	}
+	
+	
 	private void actionConnecter() 
 	{
 		if (this.scope != null) return;
 		scope = new AscomScope();
+		initScope();
+	}
+
+	private void initScope() {
 		scope.getListeners().addListener(this.listenerOwner,  new Scope.Listener() {
 			final Scope scopeThatChanged = scope;
 			

@@ -53,6 +53,11 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 				this);
 	}
 	
+	boolean isActive(Interface target)
+	{
+		return true;
+	}
+	
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable 
 	{
@@ -72,6 +77,10 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 		Object result = null;
 		for(Interface target  : objectToNotify)
 		{
+			if (!isActive(target)) {
+				continue;
+			}
+			
 			try {
 				Object r = method.invoke(target, args);
 				if (r != null && result == null) {

@@ -1,5 +1,7 @@
 package fr.pludov.cadrage.scope.dummy;
 
+import javax.swing.SwingUtilities;
+
 import fr.pludov.cadrage.scope.Scope;
 import fr.pludov.cadrage.scope.ScopeException;
 import fr.pludov.cadrage.utils.WeakListenerCollection;
@@ -20,12 +22,24 @@ public class DummyScope implements Scope{
 		return connectionStatus;
 	}
 
+	private void fireCoordChanged()
+	{
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				DummyScope.this.listeners.getTarget().onCoordinateChanged();	
+			}
+		});
+	}
+	
 	@Override
 	public void sync(final double ra, final double dec) throws ScopeException {
 		final double wantRa = ra - raBias;
 		final double wantDec = dec - decBias;
 		this.rightAscension = wantRa;
 		this.declination = wantDec;
+		
+		fireCoordChanged();
 	}
 	
 	@Override
@@ -117,6 +131,8 @@ public class DummyScope implements Scope{
 						if (decSpeedMax > 0) decSpeedMax--;
 						if (raSpeedMax > 0) raSpeedMax--;
 					}
+		
+					fireCoordChanged();
 					
 					try {
 						Thread.sleep(50);
@@ -124,6 +140,7 @@ public class DummyScope implements Scope{
 					}
 					
 				} while(doRa || doDec);
+				fireCoordChanged();
 			}
 			
 		}.start();
@@ -147,6 +164,7 @@ public class DummyScope implements Scope{
 
 	public void setRaBias(double raBias) {
 		this.raBias = raBias;
+		fireCoordChanged();
 	}
 
 	public double getDecBias() {
@@ -155,6 +173,7 @@ public class DummyScope implements Scope{
 
 	public void setDecBias(double decBias) {
 		this.decBias = decBias;
+		fireCoordChanged();
 	}
 
 	public double getRightAscension() {
