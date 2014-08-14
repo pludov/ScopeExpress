@@ -4,6 +4,7 @@ import java.awt.Cursor;
 import java.awt.Point;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -59,7 +60,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 	}
 	
-	abstract class DragOperation {
+	public abstract class DragOperation {
 		
 		abstract void init(int scx, int scy, double imgx, double imgy);
 		abstract void dragged(int scx, int scy, double imgx, double imgy);
@@ -67,7 +68,26 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		abstract Cursor getCursor();
 	}
-	
+//	
+//	class ScopeTargetMoveOperation extends DragOperation
+//	{
+//		int lastScx, lastScy;
+//		FrameDisplay fd;
+//		
+//		ScopeTargetMoveOperation(FrameDisplay fd)
+//		{
+//			this.fd = fd;
+//		}
+//
+//		@Override
+//		void init(int scx, int scy, double imgx, double imgy) {
+//			lastScx = scx;
+//			lastScy = scy;
+//		}
+//		
+//		
+//	}
+//	
 	class DisplayMoveOperation extends DragOperation
 	{
 		int lastScx, lastScy;
@@ -138,7 +158,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		principal.addMouseMotionListener(new MouseMotionListener() {
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				updateMousePosition(principal, e.getX(), e.getY());	
+				updateMousePosition(principal, e.getX(), e.getY()); 
 			}
 			
 			@Override
@@ -252,29 +272,47 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			
 			@Override
 			public void mousePressed(MouseEvent e) {
+				if (principalDragOperation == null) {
+					principalDragOperation = getDragOperation(e);
+					if (principalDragOperation != null) {
+						principal.setCursor(principalDragOperation.getCursor());
+						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
+						
+					} else {
+						if (e.getButton() != MouseEvent.BUTTON1 && onPrincipalClick != null) {
+							int x = e.getX();
+							int y = e.getY();
+							
+							AffineTransform transform = principal.getImageToScreen();
+							try {
+								transform.invert();
+							} catch(NoninvertibleTransformException ex) {
+								throw new RuntimeException("non invertible", ex);
+							}
+							Point2D coord = transform.transform(new Point(x, y), null);
+							onPrincipalClick.clicked(principal, x, y, coord.getX(), coord.getY());
+						}
+						
+						
+					}
+				}
+				
 				if (e.getButton() == MouseEvent.BUTTON1) {
 					if (principalDragOperation == null) {
-						principalDragOperation = new DisplayMoveOperation(principal);
+						if ((e.getModifiers() & InputEvent.SHIFT_DOWN_MASK) != 0) {
+							principalDragOperation = new DisplayMoveOperation(principal);
+						} else {
+							principalDragOperation = new DisplayMoveOperation(principal);
+							
+						}
 						principal.setCursor(principalDragOperation.getCursor());
 						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
 					}
 				} else {
-					if (onPrincipalClick != null) {
-						int x = e.getX();
-						int y = e.getY();
-						
-						AffineTransform transform = principal.getImageToScreen();
-						try {
-							transform.invert();
-						} catch(NoninvertibleTransformException ex) {
-							throw new RuntimeException("non invertible", ex);
-						}
-						Point2D coord = transform.transform(new Point(x, y), null);
-						onPrincipalClick.clicked(principal, x, y, coord.getX(), coord.getY());
-					}
 				}
 			}
 			
+
 			@Override
 			public void mouseExited(MouseEvent e) {
 				// TODO Auto-generated method stub
@@ -296,6 +334,12 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 	}
 	
+	private DragOperation getDragOperation(MouseEvent e) {
+		if ((e.getModifiers() & InputEvent.SHIFT_DOWN_MASK) == 0) {
+			return new DisplayMoveOperation(principal);
+		}
+		return null;
+	}
 	
 	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
 	{
