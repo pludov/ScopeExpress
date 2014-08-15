@@ -538,6 +538,12 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		for(int i = 0; i < configItems.length; ++i)
 		{
 			ConfigItem item = configItems[i];
+			
+			Object currentValue = item.get(config);
+			if (Utils.equalsWithNullity(currentValue, values[i])) {
+				continue;
+			}
+			config.setModified(true);
 			item.set(config, values[i]);
 		}
 	}
@@ -558,6 +564,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			Object value = i.get(config);
 			i.setSaved(value);
 		}
+		config.setModified(false);
 	}
 
 	public JoystickConfPanel getJoystickConfPanel() {

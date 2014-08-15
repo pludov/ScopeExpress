@@ -13,6 +13,8 @@ public class Configuration {
 	private String starCatalogPathTyc2;
 	/** Chemin des indexes */
 	private String astrometryNetPath;
+
+	private boolean modified;
 	
 	public Configuration() {
 	}
@@ -117,5 +119,13 @@ public class Configuration {
 
 	public void setAstrometryNetPath(String astrometryNetPath) {
 		this.astrometryNetPath = astrometryNetPath;
+	}
+
+	public boolean isModified() {
+		return modified;
+	}
+
+	public void setModified(boolean modified) {
+		this.modified = modified;
 	}
 }

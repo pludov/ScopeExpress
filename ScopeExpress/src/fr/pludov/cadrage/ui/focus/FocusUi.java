@@ -440,6 +440,18 @@ public class FocusUi extends FocusUiDesign {
 	{
 		int rslt = JOptionPane.showConfirmDialog(getFrmFocus(), "Quitter Focusui ?", "Confirmation de la fermeture", JOptionPane.YES_NO_OPTION);
 		if (rslt == JOptionPane.YES_OPTION) {
+			
+			if (Configuration.getCurrentConfiguration().isModified()) {
+				rslt = JOptionPane.showConfirmDialog(getFrmFocus(), "La configuration a été mise à jour. Sauvegarder la nouvelle configuration ?", "Sauvegarde de la configuration", JOptionPane.YES_NO_CANCEL_OPTION);
+				
+				if (rslt == JOptionPane.CANCEL_OPTION) {
+					return;
+				}
+				if (rslt == JOptionPane.YES_OPTION) {
+					ConfigurationEdit.save(Configuration.getCurrentConfiguration());
+				}
+				
+			}
 			System.exit(0);
 		}
 	}
