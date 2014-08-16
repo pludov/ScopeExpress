@@ -2,6 +2,8 @@ package fr.pludov.cadrage.ui.focus;
 
 import java.awt.Cursor;
 import java.awt.Point;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
@@ -36,6 +38,7 @@ import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
+import fr.pludov.cadrage.ui.FrameDisplayListener;
 import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
 import fr.pludov.cadrage.ui.utils.PanelFocusBorderHandler;
@@ -74,26 +77,10 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		abstract Cursor getCursor();
 	}
-//	
-//	class ScopeTargetMoveOperation extends DragOperation
-//	{
-//		int lastScx, lastScy;
-//		FrameDisplay fd;
-//		
-//		ScopeTargetMoveOperation(FrameDisplay fd)
-//		{
-//			this.fd = fd;
-//		}
-//
-//		@Override
-//		void init(int scx, int scy, double imgx, double imgy) {
-//			lastScx = scx;
-//			lastScy = scy;
-//		}
-//		
-//		
-//	}
-//	
+
+	/** Dernière position de la souris (controle la vue "zoomed") */
+	int mousePosX, mousePosY;
+	
 	class DisplayMoveOperation extends DragOperation
 	{
 		int lastScx, lastScy;
@@ -202,17 +189,18 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 
 		principal = new FrameDisplayWithStar(focusUi.application);
 		principal.setImageDisplayParameter(displayParameter);
-		principal.addMouseMotionListener(new MouseMotionListener() {
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				updateMousePosition(principal, e.getX(), e.getY()); 
-			}
-			
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				updateMousePosition(principal, e.getX(), e.getY());				
-			}
-		});
+//		principal.addMouseMotionListener(new MouseMotionListener() {
+//			@Override
+//			public void mouseDragged(MouseEvent e) {
+//				updateMousePosition(principal, e.getX(), e.getY()); 
+//			}
+//			
+//			@Override
+//			public void mouseMoved(MouseEvent e) {
+//				updateMousePosition(principal, e.getX(), e.getY());				
+//			}
+//		});
+		principal.setKeyboardNavAllowed(true);
 		
 		principal.addFocusListener(new FocusListener() {
 			
@@ -262,6 +250,30 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		super.viewParameterPanel.add(displayParameterPanel);
 		super.astrometryParameterPanel.add(this.astrometryParameterPanel);
 		
+		mousePosX = principal.getWidth() / 2;
+		mousePosY = principal.getHeight() / 2;
+		principal.addComponentListener(new ComponentListener() {
+			
+			@Override
+			public void componentShown(ComponentEvent e) {
+			}
+			
+			@Override
+			public void componentResized(ComponentEvent e) {
+				mousePosX = principal.getWidth() / 2;
+				mousePosY = principal.getHeight() / 2;
+				updatePrincipalMousePos();
+			}
+			
+			@Override
+			public void componentMoved(ComponentEvent e) {
+			}
+			
+			@Override
+			public void componentHidden(ComponentEvent e) {
+			}
+		});
+		
 		displayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 			
 			@Override
@@ -278,23 +290,22 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			}
 		});
 		
+		principal.listeners.addListener(this.listenerOwner, new FrameDisplayListener() {
+			
+			@Override
+			public void viewParametersChanged() {
+				updatePrincipalMousePos();
+			}
+		});
+		
 		principal.addMouseMotionListener(new MouseMotionListener() {
 			
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				int x = e.getX();
-				int y = e.getY();
+				mousePosX = e.getX();
+				mousePosY = e.getY();
 				
-				AffineTransform transform = principal.getImageToScreen();
-				try {
-					transform.invert();
-				} catch(NoninvertibleTransformException ex) {
-					throw new RuntimeException("non invertible", ex);
-				}
-				Point2D coord = transform.transform(new Point(x, y), null);
-				logger.debug("x=" + coord.getX() + " y=" + coord.getY());
-				
-				zoomed.setCenter(coord.getX(), coord.getY());
+				updatePrincipalMousePos();
 			}
 			
 			@Override
@@ -303,6 +314,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 					principalDragOperation.dragged(e.getX(), e.getY(), -1, -1);
 					principal.setCursor(principalDragOperation.getCursor());
 				}
+				mousePosX = e.getX();
+				mousePosY = e.getY();
+				updatePrincipalMousePos();
 			}
 		});
 		
@@ -378,7 +392,26 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 				
 			}
 		});
+	}
+	
+	private void updatePrincipalMousePos()
+	{
+		int x = mousePosX;
+		int y = mousePosY;
 		
+		AffineTransform transform = principal.getImageToScreen();
+		try {
+			transform.invert();
+		} catch(NoninvertibleTransformException ex) {
+			throw new RuntimeException("non invertible", ex);
+		}
+		Point2D coord = transform.transform(new Point(x, y), null);
+		logger.debug("x=" + coord.getX() + " y=" + coord.getY());
+		
+		zoomed.setCenter(coord.getX(), coord.getY());
+		
+		
+		lblStatus.setText(getPositionLabel(principal, x, y));
 	}
 	
 	private DragOperation getDragOperation(MouseEvent e) {

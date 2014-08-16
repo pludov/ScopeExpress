@@ -16,6 +16,8 @@ import javax.swing.Timer;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.cadrage.utils.WeakListenerCollection;
+
 public class FrameDisplay extends JPanel {
 	private static final Logger logger = Logger.getLogger(FrameDisplay.class);
 	
@@ -26,6 +28,8 @@ public class FrameDisplay extends JPanel {
 	double centerx, centery;
 	double zoom;
 	boolean zoomIsAbsolute;			// Si zoomIsAbsolute, on parle de pixel, sinon, on parle du ration with/width des images
+
+	public final WeakListenerCollection<FrameDisplayListener> listeners = new WeakListenerCollection<FrameDisplayListener>(FrameDisplayListener.class);
 	
 	public FrameDisplay() {
 		this.backBuffer = null;
@@ -147,6 +151,7 @@ public class FrameDisplay extends JPanel {
 		this.centerx = x;
 		this.centery = y;
 		scheduleRepaint(true);
+		this.listeners.getTarget().viewParametersChanged();
 	}
 	
 	/**
@@ -176,6 +181,7 @@ public class FrameDisplay extends JPanel {
 		if (this.zoom == zoom) return;
 		this.zoom = zoom;
 		scheduleRepaint(true);
+		this.listeners.getTarget().viewParametersChanged();
 	}
 
 	public boolean isZoomIsAbsolute() {
@@ -186,6 +192,7 @@ public class FrameDisplay extends JPanel {
 		if (this.zoomIsAbsolute == zoomIsAbsolute) return;
 		this.zoomIsAbsolute = zoomIsAbsolute;
 		scheduleRepaint(true);
+		this.listeners.getTarget().viewParametersChanged();
 	}
 
 	
