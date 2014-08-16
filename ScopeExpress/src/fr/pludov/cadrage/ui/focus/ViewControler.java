@@ -19,7 +19,7 @@ public class ViewControler {
 	}
 	
 	FrameDisplayWithStar currentView;
-	
+	JButton zoomFitButton;
 	JButton zoomInButton;
 	JButton zoomOutButton;
 	
@@ -51,10 +51,15 @@ public class ViewControler {
 		zoomOutButton.setRequestFocusEnabled(false);
 		toolBar.add(zoomOutButton);
 
+
+		zoomFitButton = new JButton(IconProvider.getIcon("zoom-fit-best", IconSize.IconSizeButton));
+		zoomFitButton.setToolTipText("Voir l'image entière");
+		zoomFitButton.setRequestFocusEnabled(false);
+		toolBar.add(zoomFitButton);
 		
 		zoomInButton.addActionListener(new ZoomButtonActionListener(ZoomOperation.ZoomIn));
 		zoomOutButton.addActionListener(new ZoomButtonActionListener(ZoomOperation.ZoomOut));
-
+		zoomFitButton.addActionListener(new ZoomButtonActionListener(ZoomOperation.ZoomFit));
 		refreshButtonStatus();
 	}
 
@@ -74,6 +79,9 @@ public class ViewControler {
 		case ZoomOut:
 			currentView.setZoom(currentView.getZoom() / zoomFact);
 			break;
+		case ZoomFit:
+			currentView.setBestFit();
+			break;
 		}
 	}
 	
@@ -82,10 +90,11 @@ public class ViewControler {
 		if (currentView == null) {
 			zoomInButton.setEnabled(false);
 			zoomOutButton.setEnabled(false);
-			
+			zoomFitButton.setEnabled(false);
 		} else {
 			zoomInButton.setEnabled(true);
 			zoomOutButton.setEnabled(true);
+			zoomFitButton.setEnabled(true);
 		}
 	}
 	
