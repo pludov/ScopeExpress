@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
@@ -25,10 +26,15 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.ImageDisplayParameter;
 import fr.pludov.cadrage.ImageDisplayParameterListener;
+import fr.pludov.cadrage.focus.ExclusionZone;
 import fr.pludov.cadrage.focus.Mosaic;
 import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.MosaicImageParameter;
+import fr.pludov.cadrage.focus.MosaicListener;
+import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.SkyProjection;
+import fr.pludov.cadrage.focus.Star;
+import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.ui.FrameDisplay;
 import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel;
 import fr.pludov.cadrage.ui.settings.ImageDisplayParameterPanel;
@@ -137,15 +143,56 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		}
 	}
 	
-	public void setMosaic(Mosaic mosaic)
+	public void setMosaic(final Mosaic mosaic)
 	{
 		if (this.mosaic == mosaic) return;
+
+		if (this.mosaic != null) {
+			this.mosaic.listeners.removeListener(this.listenerOwner);
+		}
 		
 		this.mosaic = mosaic;
 		principal.setMosaic(mosaic);
 		zoomed.setMosaic(mosaic);
 		focusImageList.setMosaic(mosaic);
 		astrometryParameterPanel.setMosaic(mosaic);
+		
+		if (mosaic != null) {
+			mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
+				@Override
+				public void imageAdded(final Image image, ImageAddedCause cause) {
+					if (mosaic.getImages().size() == 1) {
+						// Première image
+						SwingUtilities.invokeLater(new Runnable() {
+							public void run() {
+								if (principal.getImage() == image) {
+									principal.setBestFit();
+								}
+							};
+						});
+					}
+				}
+				
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {}
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {}
+				@Override
+				public void imageRemoved(Image image) {}
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {}
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {}
+				@Override
+				public void starAdded(Star star) {}
+				@Override
+				public void starOccurenceAdded(StarOccurence sco) {}
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {}
+				@Override
+				public void starRemoved(Star star) {}
+			});
+		}
 	}
 	
 	public MosaicImageListView(FocusUi focusUi, final ViewControler viewControler) {

@@ -860,4 +860,13 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	public Image getImage() {
 		return image;
 	}
+
+	public void setBestFit()
+	{
+		setCenter(image.getWidth() / 4.0, image.getHeight() / 4.0);
+		setZoom(1.0);
+		
+	}
+	
+
 }
