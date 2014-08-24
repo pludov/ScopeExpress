@@ -40,6 +40,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 	FocusUi focus;	
 	boolean speechEnabled;
 	
+	// Différences en degrés
 	Double diffRa, diffDec, diffAngle;
 	
 	
@@ -196,7 +197,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 		double curRa = scope.getRightAscension();
 		double curDec = scope.getDeclination();
 		try {
-			scope.slew(curRa + this.diffRa, curDec + this.diffDec);
+			scope.slew(curRa + this.diffRa * 24 / 360, curDec + this.diffDec);
 		} catch (ScopeException e) {
 			e.printStackTrace();
 		}
