@@ -34,6 +34,35 @@ public class MultiStarFinder {
 		stars = new ArrayList<StarFinder>();
 	}
 	
+	private final int getChannelId(int x, int y)
+	{
+		if (frame.isCfa()) {
+			return ChannelMode.getRGBBayerId(x, y);
+		} else {
+			return 0;
+		}
+	}
+	
+	private final int getChannelCount()
+	{
+		return frame.isCfa() ? 3 : 1;
+		
+	}
+	
+	private final ChannelMode getChannelMode(int channel)
+	{
+		if (frame.isCfa()) return ChannelMode.Bayer;
+		switch(channel) {
+		case 0:
+			return ChannelMode.Red;
+		case 1:
+			return ChannelMode.Green;
+		case 2:
+			return ChannelMode.Blue;
+		}
+		throw new RuntimeException("invalid channel");
+	}
+	
 	public void proceed()
 	{
 		int stepX = frame.getWidth() / 24;
@@ -43,29 +72,20 @@ public class MultiStarFinder {
 		
 		Histogram histogram = new Histogram();
 
-		int [] blackLevelByChannel = new int[3];
-		int [] blackStddevByChannel = new int[3];
+		int [] blackLevelByChannel = new int[getChannelCount()];
+		int [] blackStddevByChannel = new int[getChannelCount()];
 		
-		histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), ChannelMode.Red);
-		blackLevelByChannel[0] = histogram.getBlackLevel(0.60);
-		blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
+		for(int channel = 0; channel < getChannelCount(); ++channel)
+		{
+			histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), getChannelMode(channel));
+			blackLevelByChannel[channel] = histogram.getBlackLevel(0.60);
+			blackStddevByChannel[channel] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[channel]));
+			
+			percent(((channel + 1) * 15) / getChannelCount());
+		}
 		
-		percent(5);
-		
-		histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), ChannelMode.Green);
-		blackLevelByChannel[1] = histogram.getBlackLevel(0.60);
-		blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[1]));
-		
-		percent(10);
-		
-		histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), ChannelMode.Blue);
-		blackLevelByChannel[2] = histogram.getBlackLevel(0.60);
-		blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[2]));
-
-		percent(15);
-		
-		int [] limitByChannel = new int[3];
-		for(int i = 0; i < 3; ++i)
+		int [] limitByChannel = new int[getChannelCount()];
+		for(int i = 0; i < getChannelCount(); ++i)
 		{
 			limitByChannel[i] = blackStddevByChannel[i] + blackLevelByChannel[i];
 		}
@@ -76,7 +96,7 @@ public class MultiStarFinder {
 			for(int x = 0; x < frame.getWidth(); ++x)
 			{
 				int adu = frame.getAdu(x, y);
-				if (adu > limitByChannel[ChannelMode.getRGBBayerId(x, y)]) {
+				if (adu > limitByChannel[getChannelId(x, y)]) {
 					notBlack.set(x, y);
 				}
 			}
@@ -145,7 +165,7 @@ public class MultiStarFinder {
 					int y = c.pixelPositions.get(i + 1);
 					
 					double v = frame.getAdu(x, y);
-					v -= limitByChannel[ChannelMode.getRGBBayerId(x, y)];
+					v -= limitByChannel[getChannelId(x, y)];
 					
 					// FIXME : retirer le black et l'estimation du fond !
 					xmoy += v * x;
@@ -169,7 +189,7 @@ public class MultiStarFinder {
 					int y = c.pixelPositions.get(i + 1);
 					
 					double v = frame.getAdu(x, y);
-					v -= limitByChannel[ChannelMode.getRGBBayerId(x, y)];
+					v -= limitByChannel[getChannelId(x, y)];
 					
 					// FIXME : retirer le black et l'estimation du fond !
 					

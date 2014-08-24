@@ -164,6 +164,7 @@ public class CameraFrame {
 		case NarrowBlue:
 		case NarrowGreen:
 		case NarrowRed:
+			// FIXME: si isCfa, sélectionner uniquement les pixels correspondant dans la matrice
 			return asGreyImage(displayParameter, metadataInfo);
 		}
 		throw new RuntimeException("unimplemented");
@@ -254,7 +255,7 @@ public class CameraFrame {
 	
 	public BufferedImage asRgbImageDebayer(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
 	{
-		if (isCfa()) return asFullSizeGrey(displayParameter, metadataInfo);
+		if (!isCfa()) return asFullSizeGrey(displayParameter, metadataInfo);
 		
 		int imgW = width;
 		int imgH = height;
