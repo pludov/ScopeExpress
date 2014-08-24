@@ -415,7 +415,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	}
 	
 	private DragOperation getDragOperation(MouseEvent e) {
-		if ((e.getModifiers() & InputEvent.SHIFT_DOWN_MASK) == 0) {
+		if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) == 0) {
 			return new DisplayMoveOperation(principal);
 		}
 		return null;
