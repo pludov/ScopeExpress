@@ -22,9 +22,7 @@ public class GuideStarFinderDesign extends JPanel {
 	protected JLabel lblDec;
 	protected JTextField decTextField;
 	protected JPanel panel_1;
-	protected JCheckBox chckbxNordCeleste;
-	protected JLabel lblAngle;
-	protected JTextField angleField;
+	protected JCheckBox chckbxEstTop;
 	protected JPanel panel_2;
 	protected JLabel lblDistanceMiniAu;
 	protected JLabel lblDistanceMaxiAu;
@@ -37,7 +35,6 @@ public class GuideStarFinderDesign extends JPanel {
 	protected JPanel resultPanel;
 	protected JLabel raTextFieldError;
 	protected JLabel decTextFieldError;
-	protected JLabel angleFieldError;
 	protected JLabel textFieldMinAngleError;
 	protected JLabel textFieldMaxAngleError;
 	protected JLabel textFieldMinDistError;
@@ -110,46 +107,34 @@ public class GuideStarFinderDesign extends JPanel {
 		this.panel_1 = new JPanel();
 		this.panel_1.setBorder(new TitledBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null), "Rotation", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		add(this.panel_1, "cell 0 2,grow");
-		this.panel_1.setLayout(new MigLayout("", "[][][grow]", "[][][][]"));
+		this.panel_1.setLayout(new MigLayout("", "[][][grow]", "[][][]"));
 		
-		this.chckbxNordCeleste = new JCheckBox("Orient\u00E9 vers le Nord");
-		this.panel_1.add(this.chckbxNordCeleste, "cell 0 0 3 1");
-		
-		this.lblAngle = new JLabel("Angle :");
-		this.panel_1.add(this.lblAngle, "cell 1 1,alignx trailing");
-		
-		this.angleField = new JTextField();
-		this.panel_1.add(this.angleField, "flowx,cell 2 1,growx");
-		this.angleField.setColumns(10);
+		this.chckbxEstTop = new JCheckBox("Pointage vers l'EST");
+		this.panel_1.add(this.chckbxEstTop, "cell 0 0 3 1");
 		
 		this.lblAngleMini = new JLabel("Angle mini:");
-		this.panel_1.add(this.lblAngleMini, "cell 1 2");
+		this.panel_1.add(this.lblAngleMini, "cell 1 1");
 		
 		this.textFieldMinAngle = new JTextField();
-		this.panel_1.add(this.textFieldMinAngle, "flowx,cell 2 2,growx");
+		this.panel_1.add(this.textFieldMinAngle, "flowx,cell 2 1,growx");
 		this.textFieldMinAngle.setColumns(10);
 		
 		this.lblAngleMaxi = new JLabel("Angle maxi:");
-		this.panel_1.add(this.lblAngleMaxi, "cell 1 3");
+		this.panel_1.add(this.lblAngleMaxi, "cell 1 2");
 		
 		this.textFieldMaxAngle = new JTextField();
-		this.panel_1.add(this.textFieldMaxAngle, "flowx,cell 2 3,growx");
+		this.panel_1.add(this.textFieldMaxAngle, "flowx,cell 2 2,growx");
 		this.textFieldMaxAngle.setColumns(10);
-		
-		this.angleFieldError = new JLabel("!");
-		this.angleFieldError.setForeground(Color.RED);
-		this.angleFieldError.setFont(new Font("Tahoma", Font.BOLD, 11));
-		this.panel_1.add(this.angleFieldError, "cell 2 1");
 		
 		this.textFieldMinAngleError = new JLabel("!");
 		this.textFieldMinAngleError.setForeground(Color.RED);
 		this.textFieldMinAngleError.setFont(new Font("Tahoma", Font.BOLD, 11));
-		this.panel_1.add(this.textFieldMinAngleError, "cell 2 2");
+		this.panel_1.add(this.textFieldMinAngleError, "cell 2 1");
 		
 		this.textFieldMaxAngleError = new JLabel("!");
 		this.textFieldMaxAngleError.setForeground(Color.RED);
 		this.textFieldMaxAngleError.setFont(new Font("Tahoma", Font.BOLD, 11));
-		this.panel_1.add(this.textFieldMaxAngleError, "cell 2 3");
+		this.panel_1.add(this.textFieldMaxAngleError, "cell 2 2");
 		
 		this.panel_2 = new JPanel();
 		this.panel_2.setBorder(new TitledBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null), "Distance au centre", TitledBorder.LEADING, TitledBorder.TOP, null, null));
