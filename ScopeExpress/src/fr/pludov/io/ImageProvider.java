@@ -29,6 +29,7 @@ import java.util.WeakHashMap;
 import javax.imageio.ImageIO;
 
 import net.ivoa.fits.Fits;
+import net.ivoa.fits.FitsExceptionNoKey;
 import net.ivoa.fits.data.Data;
 import net.ivoa.fits.hdu.BasicHDU;
 import net.ivoa.fits.hdu.ImageHDU;
@@ -197,8 +198,12 @@ public class ImageProvider {
 						result.buffer = (char[])datas;
 						result.width = width;
 						result.height = height;
-						// FIXME : en dur, aller chercher dans les méta du fits !
-						result.isCfa = false;
+						try {
+							String bayerPat = imageHDU.getTrimmedString("BAYERPAT");
+							result.isCfa = bayerPat != null && !"".equals(bayerPat);
+						} catch(FitsExceptionNoKey nokey) {
+							result.isCfa = false;
+						}
 						result.scanPixelsForHistogram();
 						
 						return result;
@@ -206,7 +211,7 @@ public class ImageProvider {
 					}
 
 				}
-				throw new Exception("c'est pas fini !");
+				throw new RuntimeException("FITS non reconnu");
 			} catch(Exception e) {
 				throw new IOException("Echec de lecture FITS", e);
 			}
@@ -231,6 +236,7 @@ public class ImageProvider {
 			result.height = loader.getHeight();
 			result.maximum = loader.getMaximum();
 			result.black = loader.getBlack();
+			result.isCfa = true;
 			result.histogram = new int[3][];
 			result.histogram[0] = loader.getRedHistogram();
 			result.histogram[1] = loader.getGreenHistogram();
