@@ -24,12 +24,12 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			// Nb Star Max
 			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.nbStarMaxText) {
 				@Override
-				Integer getFromParameter(StarDetectionParameters parameters) {
+				public Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getNbStarMax();
 				}
 				
 				@Override
-				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
 					if (content == null) throw new Exception("Obligatoire");
 					if (content < 10) throw new Exception("Au moins 10 svp...");
 					if (content > 10000) throw new Exception("Limité à 10000 (perfs)");
@@ -40,12 +40,12 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			// binFactor
 			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.binFactorCombo) {
 				@Override
-				Integer getFromParameter(StarDetectionParameters parameters) {
+				public Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getBinFactor();
 				}
 				
 				@Override
-				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
 					if (content == null || content < 1) throw new Exception("Au moins 1 !");
 					if (content > 4) throw new Exception("Limité à 4");
 					parameters.setBinFactor(content);
@@ -55,11 +55,11 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			// backgroundEvaluationPct
 			new InputOutputHandler.PercentConverter<StarDetectionParameters>(this.backgroundEvaluationPctText) {
 				@Override
-				Double getFromParameter(StarDetectionParameters parameters) {
+				public Double getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getBackgroundEvaluationPct();
 				}
 				
-				void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
 					if (content == null || content < 0.01) throw new Exception("Doit être au moins 1%");
 					if (content > 1) throw new Exception("Maxi 100% !");
 					parameters.setBackgroundEvaluationPct(content);
@@ -70,14 +70,14 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.backgroundSquareText) {
 				
 				@Override
-				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
 					if (content == null || content < 6) throw new Exception("Au moins 6 !");
 					if (content > 256) throw new Exception("Maxi 256");
 					parameters.setBackgroundSquare(content);
 				}
 				
 				@Override
-				Integer getFromParameter(StarDetectionParameters parameters) {
+				public Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getBackgroundSquare();
 				}
 			},
@@ -85,14 +85,14 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			// absoluteAduSeuil 
 			new InputOutputHandler.DoubleConverter<StarDetectionParameters>(this.absoluteAduSeuilText) {
 				@Override
-				void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
 					if (content == null) throw new Exception("Obligatoire");
 					if (content <= 0) throw new Exception("Doit être positif");
 					parameters.setAbsoluteAduSeuil(content);
 				}
 				
 				@Override
-				Double getFromParameter(StarDetectionParameters parameters) {
+				public Double getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getAbsoluteAduSeuil();
 				}
 			},
@@ -101,14 +101,14 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			new InputOutputHandler.PercentConverter<StarDetectionParameters>(this.starGrowIntensityRatioText) {
 				
 				@Override
-				void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Double content) throws Exception {
 					if (content == null || content < 0) throw new Exception("Doit être positif");
 					if (content > 1) throw new Exception("Maxi 100%");
 					parameters.setStarGrowIntensityRatio(content);
 				}
 				
 				@Override
-				Double getFromParameter(StarDetectionParameters parameters) {
+				public Double getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getStarGrowIntensityRatio();
 				}
 			},
@@ -116,14 +116,14 @@ public class StarDetectionParameterPanel extends StarDetectionParameterPanelDesi
 			new InputOutputHandler.IntConverter<StarDetectionParameters>(this.starMaxSizeText) {
 				
 				@Override
-				void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
+				public void setParameter(StarDetectionParameters parameters, Integer content) throws Exception {
 					if (content == null || content < 1) throw new Exception("Au moins 1");
 					if (content > 256) throw new Exception("Maxi 256");
 					parameters.setStarMaxSize(content);
 				}
 				
 				@Override
-				Integer getFromParameter(StarDetectionParameters parameters) {
+				public Integer getFromParameter(StarDetectionParameters parameters) {
 					return parameters.getStarMaxSize();
 				}
 			}

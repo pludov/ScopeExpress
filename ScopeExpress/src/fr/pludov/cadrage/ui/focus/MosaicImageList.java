@@ -6,19 +6,13 @@ import java.awt.TrayIcon.MessageType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
-
 import org.apache.log4j.Logger;
 
 import fr.pludov.cadrage.focus.ImageDistorsion;
@@ -29,19 +23,16 @@ import fr.pludov.cadrage.focus.Image;
 import fr.pludov.cadrage.focus.PointOfInterest;
 import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.focus.Star;
-import fr.pludov.cadrage.focus.StarCorrelationPosition;
 import fr.pludov.cadrage.focus.StarOccurence;
 import fr.pludov.cadrage.focus.ExclusionZone;
-import fr.pludov.cadrage.ui.settings.AstrometryParameterPanel.AstrometryParameter;
+import fr.pludov.cadrage.ui.focus.GuideStarFinder.GuideStarFinderParameters;
 import fr.pludov.cadrage.ui.utils.GenericList;
 import fr.pludov.cadrage.ui.utils.Utils;
-import fr.pludov.cadrage.utils.AxeFindAlgorithm;
 import fr.pludov.cadrage.utils.EndUserException;
 import fr.pludov.cadrage.utils.PlaneAxeFindAlgorithm;
 import fr.pludov.cadrage.utils.PoleFindAlgorithm;
 import fr.pludov.cadrage.utils.SkyAlgorithms;
 import fr.pludov.cadrage.utils.WeakListenerOwner;
-import fr.pludov.utils.EquationSolver;
 import fr.pludov.utils.VecUtils;
 
 public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
@@ -534,6 +525,57 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		
 		contextMenu.add(evaluateDistorsionMenu);
+		
+		/*********************/
+
+		JMenuItem guideStarFinderMenu;
+		
+		guideStarFinderMenu = new JMenuItem();
+		guideStarFinderMenu.setText("Trouver une étoile guide");
+		guideStarFinderMenu.setToolTipText("Dans un rayon donné autours de l'image...");
+		guideStarFinderMenu.setEnabled(entries.size() > 1);
+		guideStarFinderMenu.setEnabled(entries.size() == 1 && 
+				mosaic.getMosaicImageParameter(entries.get(0).getTarget()) != null &&
+						mosaic.getMosaicImageParameter(entries.get(0).getTarget()).isCorrelated());
+
+		guideStarFinderMenu.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				MosaicImageListEntry mile = entries.get(0);
+				Image image = mile.getTarget();
+				MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+				if (mip == null) return;
+				
+				if (!mip.isCorrelated()) {
+					return;
+				} 
+				
+				
+					
+				double [] imgPos = new double[]{0.5,0.5};
+				
+				double [] sky3dPos = new double[3];
+				double [] raDec = new double[2];
+						
+				mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1]},
+															sky3dPos);
+				SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+				
+				
+				GuideStarFinderDialog dialog = Utils.openDialog(MosaicImageList.this, GuideStarFinderDialog.class);
+				
+				GuideStarFinderParameters param  = dialog.getGuideStarFinder().getParameters();
+				
+				
+				param.ra = raDec[0];
+				param.dec = raDec[1];
+				dialog.getGuideStarFinder().setParameters(param);
+				dialog.setVisible(true);
+			}
+		});
+	
+		contextMenu.add(guideStarFinderMenu);
+		
 		
 		return contextMenu;
 	}

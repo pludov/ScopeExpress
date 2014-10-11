@@ -147,6 +147,24 @@ public class AffineTransform3D {
 		}
 		return result;
 	}
+	
+	public AffineTransform3D rotateX(double cos, double sin)
+	{
+		AffineTransform3D result = new AffineTransform3D(this);
+		result.matrice[m21] = cos * matrice[m21] + sin * matrice[m31];
+		result.matrice[m22] = cos * matrice[m22] + sin * matrice[m32];
+		result.matrice[m23] = cos * matrice[m23] + sin * matrice[m33];
+		result.matrice[m24] = cos * matrice[m24] + sin * matrice[m34];
+
+		result.matrice[m31] = (-sin) * matrice[m21] + cos * matrice[m31];
+		result.matrice[m32] = (-sin) * matrice[m22] + cos * matrice[m32];
+		result.matrice[m33] = (-sin) * matrice[m23] + cos * matrice[m33];
+		result.matrice[m34] = (-sin) * matrice[m24] + cos * matrice[m34];
+
+		return result;
+		
+	}
+	
 
 	public AffineTransform3D rotateY(double cos, double sin)
 	{

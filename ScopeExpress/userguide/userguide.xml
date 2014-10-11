@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article
+  PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<article lang="">
+   <para>FocusUI</para>
+   <para/><sect1><title>Fonctionnalités</title>
+   <para/>
+   <para>FocusUI est un logiciel d'aide à la mise en route rapide d'une session d'astro-photo, notamment destiné au poste itinérant. Il permet d'obtenir rapidement les réglages précis nécessaires à la prise de vue (mise au point, alignement polaire, initialisation du goto, cadrage fin, ...)</para>
+   <para/>
+   <para>L'ergonomie de FocusUI est orientée vers une utilisation nocturne, et un écran pas forcement visible depuis le télescope.</para>
+   <orderedlist>
+      <listitem>
+         <para>L'utilisation de la synthèse vocale (par exemple pour suivre le FWHM pendant la MAP)</para>
+      </listitem>
+      <listitem>
+         <para>La possibilité de contrôler les fonctions au joystick.</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Pour ça, FocusUI s'appuie sur l'analyse de photo (APN ou CCD), notamment la résolution de champs (reconnaître les étoiles d'un cliché pour déduire l'orientation précise du téléscope). Cette fonction est obtenue en incluant l'excellent utilitaire « astrometry.net » (inclu).</para>
+   <para/>
+   <para>FocusUI n'est pas un logiciel de prise de vue : il ne parle pas directement à votre APN/CCD. Cette fonction est laissée à un logiciel tiers, tel que APT. FocusUI détecte automatiquement les nouveaux fichiers (CR2 ou fits). L'intégration avec APT est plus complète puisqu'elle permet de contrôler le déclenchement des prises de vues et leur durée.</para>
+   <para/><sect2><title>Visualisation de fichiers bruts</title>
+   <para/>
+   <para>FocusUI permet de surveiller un répertoire et d'afficher les fichiers brut qui y apparaissent.</para>
+   <para/>
+   <para>Des niveaux de visualisation (noir/blanc) sont calculés automatiquement pour mettre en avant l'information de l'image. Si ils ne suffisent pas, ils peuvent être réglés manuellement.</para>
+   <para/>
+   <para>Le chargement des fichiers est particulièrement rapide, grace à l'utilisation de librairies spécifiques (libraw pour les fichiers issus des APN, libfits pour les fits)</para>
+   <para/>
+   <para>Remarque: Pour l'instant seuls les fichiers .CR2 couleurs et FITS N&amp;B sont supportés. </para>
+   <para/></sect2><sect2><title>Détection des étoiles</title>
+   <para/>
+   <para>FocusUI est capable de détecter les étoiles dans un fichier brut, et de mesurer leur FWHM et leur forme (aspect ratio).</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images3" width="17.001cm" depth="10.279cm"/>
+   </para>
+   <para/>
+   <para>Il présente un graphique montrant l'évolution de ces paramètres, soit pendant la phase de mise au point, soit pour suivre une séance.</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images4" width="17.001cm" depth="10.279cm"/>
+   </para>
+   <para/>
+   <para/></sect2><sect2><title>Corrélation (plate solving)</title>
+   <para>Une fois les étoiles détectées, FocusUI va utiliser l'astrométrie pour calculer précisément la position d'une photo sur le ciel. </para>
+   <para/>
+   <para>Conjointement avec une monture pilotée par un driver ASCOM, ceci permet d'affiner l'alignement de la monture (opération « sync »), ou d'effectuer un cadrage très précis (pour reprendre une mosaique par exemple)</para>
+   <para/>
+   <para>La corrélation obtenue est très précise puisqu'elle utilise des positions corrigées (précession, nutation et mouvement propre des étoiles, basé sur la librairie SkyAlgorithms)</para>
+   <para/>
+   <para>Enfin, à partir d'une corrélation, il est possible de calculer la déformation du champ et de la prendre en compte dans les alignements suivants (utile avec un Newton)</para>
+   <para>
+      <inlinegraphic fileref="embedded:images5" width="17.001cm" depth="11.002cm"/>
+   </para>
+   <para/></sect2><sect2><title>Alignement polaire</title>
+   <para>FocusUI inclus une fonction d'alignement polaire très simple à utiliser.</para>
+   <para/>
+   <para>À partir de plusieurs clichés pris successivement après une rotation de la monture autours de l'axe pôlaire, FocusUI déduit la projection de cet axe sur le ciel et donc la correction à apporter. Il indique ensuite pour chaque nouvelle photo la correction restant à appliquer sur chaque axe.</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images6" width="13.495cm" depth="13.733cm"/>
+   </para></sect2><sect2><title>Synthèse vocale</title>
+   <para/>
+   <para>Lors des phases de réglage (focus, alignement polaire, cadrage), FocusUI utilise la synthèse vocale pour lire les valeurs trouvées. Ceci est particulièrement utile si vous faite la mise au point manuellement, ou pour finir l'alignement polaire (pas besoin de bouger)</para>
+   <para/></sect2><sect2><title>contrôle à la manette de jeu</title>
+   <para/>
+   <para>Cette fonction permet de faire des réglage prêt du téléscope (ex: alignement polaire, map, rotation, …) sans avoir à se déplacer pour lancer les fonctions simples (prise de vue, cadrage)</para>
+   <para/>
+   <para/></sect2></sect1><sect1><title>Installation</title>
+   <para/>
+   <para>FocusUI requiert java. Il faut donc installer une JRE, 32bits (même si votre système est 64 bits, ce n'est pas incompatible).</para>
+   <para/>
+   <para>Une fois java installé, il reste à lancer l'installeur et suivre les instructions...</para>
+   <para/></sect1><sect1><title>Configuration</title>
+   <para/>
+   <para>Avant d'utiliser FocusUI, il convient de renseigner un certain nombre d'informations.... Les options de configuration sont disponibles dans le menu « Configuration »/ « Configuration ».</para>
+   <para>Une fois les informations entrées, n'oubliez pas de sauver la configuration (menu « Configuration »/ « Sauver »)</para><sect2><title>Imageur</title>
+   <para/>
+   <para>Dans la section imageur, il faut renseigner la tailledes pixels du capteur (en um), et la focale. Ces informations sont inutilisées pour l'instant</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images1" width="11.907cm" depth="7.939cm"/>
+   </para>
+   <para/></sect2><sect2><title>Géographie</title>
+   <para/>
+   <para>Entrez ici la latitude et la longitude de l'observatoire. Pour l'instant, ces informations servent uniquement lors de l'alignement polaire.</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images2" width="11.907cm" depth="7.939cm"/>
+   </para>
+   <para/></sect2><sect2><title>Fichiers</title>
+   <para/>
+   <para>Cet onglet permet d'entrer le chemin vers le catalogue hyparcos. Le catalogue n'est pas requis pour l'astrométrie, mais il permet de mieux visualiser le résultat. Vous pouvez cliquer sur le bouton « Télécharger » et FocusUI téléchargera le catalogue depuis Internet... (si vous disposez d'une connection Internet !)</para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images7" width="11.907cm" depth="7.939cm"/>
+   </para>
+   <para/></sect2><sect2><title>Joystick</title>
+   <para>Cet onglet permet de configurer le pilotage par une manette de jeu USB. Les fonctions disponibles sont:</para>
+   <orderedlist>
+      <listitem>
+         <para>Prise de vue : valable si APT est en cours d'exécution et que la surveillance d'un répertoire est démarrée</para>
+      </listitem>
+      <listitem>
+         <para>Augmenter/diminuer la durée: contrôle la durée de pause pour les prises de vue APT</para>
+      </listitem>
+      <listitem>
+         <para>Cadrer : si un cadrage est en cours, équivalent du bouton « Goto ».</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images13" width="10.523cm" depth="11.914cm"/>
+   </para></sect2><sect2><title>Synthèse vocale</title>
+   <para>Cette fonction n'est supportée que sous windows. FocusUI utilise le moteur de synthèse vocale du système d'exploitation. Or celui-ci par défaut ne sait parler que en Anglais (et encore...).</para>
+   <para/>
+   <para>Le site suivant explique comment installer une voix française de qualité:</para>
+   <para>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">http://www.zebulon.fr/astuces/200</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">-</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">synthese</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">-</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">vocale</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">-</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">windows</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">-</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">en</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">-</ulink>
+      <ulink url="http://www.zebulon.fr/astuces/200-synthese-vocale-windows-en-francais.html">francais.html</ulink>
+   </para>
+   <para/></sect2></sect1><sect1><title>Session typique</title>
+   <para>Ce paragraphe décrit une session de photo (mise au point, alignement polaire, cadrage).</para>
+   <para>Avant toute chose, pensez à vérifier la configuration, notamment la position géographique pour l'alignement polaire. Les changement en cours de route ne fonctionne pas toujours... </para>
+   <para/><sect2><title>Mise au point</title>
+   <para/>
+   <para>L'intérêt est la lecture de la FWHM au fur et à mesure...</para>
+   <para>Lancer la surveillance du répertoire ou les fichiers brutes sont sauvés.</para>
+   <para>Prendre une photo (FocusUI peut le faire si APT est utilisé). La photo apparaît dans la liste, les étoiles sont détectées. Si la synthèse vocale est active, la FWHM est lue.</para>
+   <para>Réglez et shootez (attention à garder les même temps de pause, iso, …) !</para>
+   <para>L'onglet « détails » permet d'avoir plus d'information sur la mise au point, notamment un graphe d'évolution (image par image), les détails pour chaque étoile du champs, et la forme des étoiles pour chaque image. (ce qui permet de voir par exemple des défauts de collimations)</para>
+   <para/></sect2><sect2><title>Pointage fin</title>
+   <para>On va ici améliorer l'alignement du téléscope, et éventuellement affiner un cadrage. Cette opération peut être faite alors que le téléscope pointe très près de la cible. Je me sers généralement uniquement de cet fonction pour initialiser le pointage (après un unpark et un goto).</para>
+   <para/>
+   <para>Cliquez sur le bouton « reset » pour repartir d'un état vierge.</para>
+   <para>Dans le menu Téléscope, cliquer sur connecter. Choisir le driver correspondant à la monture.</para>
+   <para/>
+   <para>Lancer la surveillance du répertoire (icône bleue), et choisir le répertoire où les fichiers brutes vont être sauvés par l'outil de capture (on peut choisir un répertoire parent).</para>
+   <para>Prendre un cliché. FocusUI devrait détecter automatiquement la nouvelle image (elle va apparaître dans la liste). Ensuite, il va détecter les images, qui vont apparaître sous forme de croix rouges. (la progression apparaît en bas de la fenêtre). Enfin, il va identifier les étoiles (corrélation). À l'issue de cette phase, les étoiles reconnues vont être indiquées par une croix bleue. Le décalage entre la  position théorique et celle calculée est également indiqué visuellement par un trait jaune. (il est agrandi d'un facteur 50 pour être bien visible).</para>
+   <para>
+      <inlinegraphic fileref="embedded:images9" width="17.001cm" depth="10.279cm"/>
+   </para>
+   <para/>
+   <para>Une fois que l'image est corrélée, vous pouvez faire un sync à partir des infos de l'image par un clic droit sur l'image dans la liste puis menu « Sync ».(Avec le driver eqmod, le sync ne fonctionnera pas si le décalage trouvé est énorme. Il faut donc avoir des valeurs initiale raisonnable coté eqmod)</para>
+   <para/>
+   <para>Remarque:</para>
+   <para>La corrélation est plus rapide si la zone de recherche peut être restreinte (en direction et en taille). Lors de la première correlation, FocusUI va utiliser une zone large (15°); elle sera réduite après la première corrélation, et grandira de nouveau en cas de déplacement de la monture. Vous pouvez contrôler dans le cadre « Astrométrie »:</para>
+   <para>
+      <inlinegraphic fileref="embedded:images11" width="17.001cm" depth="13.916cm"/>
+   </para>
+   <para>Vous pouvez également calculer la distorsion de champ, par le menu « Evaluer la distorsion du champs ». Une fenêtre présente la distorsion évaluée. (une régression polynomiale de troisième degrés est utilisée). </para>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images10" width="11.907cm" depth="7.939cm"/>
+   </para>
+   <para>Mon Newton présente une grosse déformation de champs; ce n'est pas le cas de mon Mak.</para>
+   <para/>
+   <para>Si vous cliquez sur Appliquer, la distorsion affichée sera automatiquement appliquées aux images, et les lignes jaunes affichées seront beaucoup plus courtes. Le pointage sera plus précis.</para></sect2><sect2><title>Alignement polaire</title>
+   <para>Cliquez sur le bouton « reset » (ce bouton efface tout sauf la déformation de champs calculée précédemment)</para>
+   <para>Lancer la surveillance du répertoire</para>
+   <para>Pointer le téléscope vers l'est, à 45° d'angle avec direction du pole.</para>
+   <para>Faire successivement trois photos en tournant le téléscope autours de l'axe polaire (avec le plus possible de rotation entre les trois. Je fais typiquement 30° entre chaque).</para>
+   <para>FocusUI va détecter la position exacte des trois clichés. Une fois fait, sélectionnez les trois photos dans la liste et cliquez sur « déduire l'axe polaire ».</para>
+   <para>Une nouvelle fenêtre s'ouvre alors. Elle indique la position de l'axe de rotation de la monture, par rapport au pole nord céleste. En cliquant sur le haut parleur, des indications de déplacement sont diffusées à chaque photo, soit pour la verticale, soit pour l'horizontal (selon l'axe sélectionné)</para>
+   <para/>
+   <para>Vous pouvez alors jouer sur les réglages de votre monture et utiliser le joystick puis déclencher une prise de vue. De nouvelles indications sont données à chaque photo.</para>
+   <para>
+      <inlinegraphic fileref="embedded:images8" width="13.495cm" depth="13.733cm"/>
+   </para>
+   <para/></sect2><sect2><title>Cadrage</title>
+   <para/>
+   <para>Cette fonction permet de retrouver le cadrage d'une photo déjà faite (par exemple pour reprendre une séquence de prises de vue). Elle suppose que le téléscope pointe déjà à peu près dans la bonne direction (par un goto préalable par exemple)</para>
+   <orderedlist>
+      <listitem>
+         <para>Ouvrir la photo (menu fichier/ouvrir)</para>
+      </listitem>
+      <listitem>
+         <para>Lancer la recherche des étoiles dessus (clic droit sur l'image dans la liste)</para>
+      </listitem>
+      <listitem>
+         <para>Lancer la corrélation de l'image (clic droit sur l'image dans la liste)</para>
+      </listitem>
+      <listitem>
+         <para>Lancer le re-cadrage (clic droit sur l'image dans la liste)</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Une nouvelle fenêtre apparaît. Elle va indiquer pour chaque nouveau cliché les écart en RA/DEC et rotation. Les écarts en rotations peuvent être lus en synthèse vocale.</para>
+   <orderedlist>
+      <listitem>
+         <para>Prendre un cliché, attendre les informations</para>
+      </listitem>
+      <listitem>
+         <para>Ajuster la rotation selon l'angle indiqué</para>
+      </listitem>
+      <listitem>
+         <para>Cliquer sur le bouton « Goto » (accessible au joystick)</para>
+      </listitem>
+      <listitem>
+         <para>Si nécessaire, recommencer plusieurs fois jusqu'à un résultat satisfaisant (l'axe mécanique n'étant pas forcement au milieu du capteur, la rotation peut introduire un décalage...)</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>
+      <inlinegraphic fileref="embedded:images12" width="17.001cm" depth="14.396cm"/>
+   </para>
+   <para/>
+   <para/>
+   <para/>
+   <para/>
+   <para/>
+   <para/></sect2></sect1></article>

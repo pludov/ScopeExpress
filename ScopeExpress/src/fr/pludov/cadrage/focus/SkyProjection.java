@@ -37,6 +37,7 @@ public class SkyProjection {
 	AffineTransform3D transform;
 	AffineTransform3D invertedTransform;
 	
+	// pixelArcSec : taille d'un pixel en arcsec
 	public SkyProjection(double pixelArcSec) {
 		this.pixelRad = 2 * Math.PI * pixelArcSec / (3600 * 360);
 		this.centerx = 0;
@@ -102,7 +103,7 @@ public class SkyProjection {
 	}
 	
 	// Projette une étoile sur la sphere 3D.
-	// Dans cette projectino le pole nord pointe vers z (0,0,1).
+	// Dans cette projectino le pole nord pointe vers z (0,0,1). et ra=0 pointe vers x
 	// ra et dec sont en degrés
 	public static void convertRaDecTo3D(double [] i_radec, double [] o_rslt3d)
 	{

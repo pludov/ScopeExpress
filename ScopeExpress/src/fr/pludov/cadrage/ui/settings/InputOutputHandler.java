@@ -149,8 +149,8 @@ public class InputOutputHandler<TARGET> {
     	}
 
 		
-		abstract CONTENT getFromParameter(TARGET parameters);
-		abstract void setParameter(TARGET parameters, CONTENT content) throws Exception;
+		public abstract CONTENT getFromParameter(TARGET parameters);
+		public abstract void setParameter(TARGET parameters, CONTENT content) throws Exception;
 		
 		abstract String toString(CONTENT t);
 		abstract CONTENT fromString(String s) throws Exception;
@@ -212,7 +212,7 @@ public class InputOutputHandler<TARGET> {
 	// Gestion d'une valeur en degrés représentée au format HHMMSS (RA)
 	public static abstract class HourMinSecConverter<TARGET> extends TextConverter<TARGET, Double>
 	{
-		HourMinSecConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+		public HourMinSecConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
 			super(component, errorLabel, configItem);
 		}
 		
@@ -235,7 +235,7 @@ public class InputOutputHandler<TARGET> {
 	// Gestion d'une valeur en degrés
 	public static abstract class DegConverter<TARGET> extends TextConverter<TARGET, Double>
 	{
-		DegConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+		public DegConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
 			super(component, errorLabel, configItem);
 		}
 		
@@ -352,7 +352,7 @@ public class InputOutputHandler<TARGET> {
 		JCheckBox component;
 		BooleanConfigItem configItem;
 
-		BooleanConverter(JCheckBox component) {
+		public BooleanConverter(JCheckBox component) {
 			this.component = component;
 		}
 
@@ -361,8 +361,8 @@ public class InputOutputHandler<TARGET> {
 			this.configItem = configItem;
 		}
 		
-		abstract Boolean getFromParameter(TARGET parameters);
-		abstract void setParameter(TARGET parameters, Boolean content) throws Exception;
+		public abstract Boolean getFromParameter(TARGET parameters);
+		public abstract void setParameter(TARGET parameters, Boolean content) throws Exception;
 		
 		@Override
 		public void addListener(final InputOutputHandler<TARGET> target) {

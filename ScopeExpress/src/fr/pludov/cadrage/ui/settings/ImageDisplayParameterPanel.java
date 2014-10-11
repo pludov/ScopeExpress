@@ -85,12 +85,12 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 				},
 				new InputOutputHandler.BooleanConverter<ImageDisplayParameter>(this.autoHistogramCheckBox, isDefaultViewParameter ? lastAutoMode : null) {
 					@Override
-					Boolean getFromParameter(ImageDisplayParameter parameters) {
+					public Boolean getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.isAutoHistogram();
 					}
 					
 					@Override
-					void setParameter(ImageDisplayParameter parameters, Boolean content) throws Exception {
+					public void setParameter(ImageDisplayParameter parameters, Boolean content) throws Exception {
 						if (content == null) throw new Exception("Obligatoire!");
 						parameters.setAutoHistogram(content);
 					}
@@ -98,12 +98,12 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 
 				new InputOutputHandler.IntConverter<ImageDisplayParameter>(this.zeroText) {
 					@Override
-					Integer getFromParameter(ImageDisplayParameter parameters) {
+					public Integer getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.getZero();
 					}
 					
 					@Override
-					void setParameter(ImageDisplayParameter parameters, Integer content) throws Exception {
+					public void setParameter(ImageDisplayParameter parameters, Integer content) throws Exception {
 						if (content == null) throw new Exception("obligatoire");
 						parameters.setZero(content);
 						
@@ -111,12 +111,12 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 				},
 				new InputOutputHandler.IntConverter<ImageDisplayParameter>(this.targetIsoText) {
 					@Override
-					Integer getFromParameter(ImageDisplayParameter parameters) {
+					public Integer getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.getTargetIso();
 					}
 					
 					@Override
-					void setParameter(ImageDisplayParameter parameters, Integer content) throws Exception {
+					public void setParameter(ImageDisplayParameter parameters, Integer content) throws Exception {
 						if (content != null && content < 1) {
 							throw new Exception("minimum 1 !");
 						}
@@ -125,12 +125,12 @@ public class ImageDisplayParameterPanel extends ImageDisplayParameterPanelDesign
 				},
 				new InputOutputHandler.DoubleConverter<ImageDisplayParameter>(this.targetExpositionText) {
 					@Override
-					Double getFromParameter(ImageDisplayParameter parameters) {
+					public Double getFromParameter(ImageDisplayParameter parameters) {
 						return parameters.getTargetExposition();
 					}
 					
 					@Override
-					void setParameter(ImageDisplayParameter parameters, Double content) throws Exception {
+					public void setParameter(ImageDisplayParameter parameters, Double content) throws Exception {
 						if (content != null && content <= 0) {
 							throw new Exception("must be > 0");
 						}

@@ -167,65 +167,65 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 		raConverter = new HourMinSecConverter<AstrometryParameter>(this.raText, this.raErrorLbl, null) {
 			
 			@Override
-			void setParameter(AstrometryParameter parameters, Double content) throws Exception {
+			public void setParameter(AstrometryParameter parameters, Double content) throws Exception {
 				if (content == null) throw new Exception("Obligatoire");
 				parameters.setRa(content);
 			}
 			
 			@Override
-			Double getFromParameter(AstrometryParameter parameters) {
+			public Double getFromParameter(AstrometryParameter parameters) {
 				return parameters.getRa();
 			}
 		};
 		
 		decConverter = new DegConverter<AstrometryParameter>(this.decText, this.decErrorLbl, null) {
 			@Override
-			void setParameter(AstrometryParameter parameters, Double content) throws Exception {
+			public void setParameter(AstrometryParameter parameters, Double content) throws Exception {
 				if (content == null) throw new Exception("Obligatoire");
 				parameters.setDec(content);
 			}
 			
 			@Override
-			Double getFromParameter(AstrometryParameter parameters) {
+			public Double getFromParameter(AstrometryParameter parameters) {
 				return parameters.getDec();
 			}
 		};
 		
 		rayonConverter = new DegConverter<AstrometryParameter>(this.rayonText, this.rayonErrorLbl, null) {
 			@Override
-			void setParameter(AstrometryParameter parameters, Double content) throws Exception {
+			public void setParameter(AstrometryParameter parameters, Double content) throws Exception {
 				if (content == null) throw new Exception("Obligatoire");
 				parameters.setRay(content);
 			}
 			
 			@Override
-			Double getFromParameter(AstrometryParameter parameters) {
+			public Double getFromParameter(AstrometryParameter parameters) {
 				return parameters.getRay();
 			}
 		};
 
 		diagMinConverter = new DegConverter<AstrometryParameter>(this.fieldMinText, this.fieldMinErrorLbl, null) {
 			@Override
-			void setParameter(AstrometryParameter parameters, Double content) throws Exception {
+			public void setParameter(AstrometryParameter parameters, Double content) throws Exception {
 				if (content == null) throw new Exception("Obligatoire");
 				parameters.setDiagMin(content);
 			}
 			
 			@Override
-			Double getFromParameter(AstrometryParameter parameters) {
+			public Double getFromParameter(AstrometryParameter parameters) {
 				return parameters.getDiagMin();
 			}
 		}; 
 
 		diagMaxConverter = new DegConverter<AstrometryParameter>(this.fieldMaxText, this.fieldMaxErrorLbl, null) {
 			@Override
-			void setParameter(AstrometryParameter parameters, Double content) throws Exception {
+			public void setParameter(AstrometryParameter parameters, Double content) throws Exception {
 				if (content == null) throw new Exception("Obligatoire");
 				parameters.setDiagMax(content);
 			}
 			
 			@Override
-			Double getFromParameter(AstrometryParameter parameters) {
+			public Double getFromParameter(AstrometryParameter parameters) {
 				return parameters.getDiagMax();
 			}
 		}; 

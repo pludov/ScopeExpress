@@ -47,6 +47,7 @@ public class VecUtils {
 		return result;
 	}
 
+	// Retourne une vecteur perpendiculaire au deux donnés en paramètres
 	public static double[] produitVectoriel(double[] u, double[] v) {
 		double [] result = new double [] {
 			u[2 - 1] * v[3 - 1] - u[3 - 1] * v[2 - 1],

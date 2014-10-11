@@ -17,5 +17,6 @@
 			<attribute name="javadoc_location" value="jar:platform:/resource/cadrage/docs/jinput-apidocs.zip!/apidocs"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="jar/gson-2.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
