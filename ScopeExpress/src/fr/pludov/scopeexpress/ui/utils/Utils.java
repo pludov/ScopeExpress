@@ -282,10 +282,11 @@ public final class Utils {
 		
 		String newPath = currentPath == null || currentPath.equals("") ?
 				dllDir.toString() :
-					currentPath + separator + dllDir.toString();
+					dllDir.toString() + separator + currentPath;
 				
 		System.out.println("setting path to " + newPath);
 		System.setProperty("java.library.path", newPath);
+		System.setProperty("org.jawin.hardlib", dllDir.toString() + "/jawin.dll");
 		
 	}
 
