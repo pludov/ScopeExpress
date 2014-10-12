@@ -194,8 +194,16 @@ public class InputOutputHandler<TARGET> {
 
 	public static abstract class DoubleConverter<TARGET> extends TextConverter<TARGET, Double>
 	{
-		DoubleConverter(JTextField component) {
+		public DoubleConverter(JTextField component) {
 			super(component);
+		}
+		
+		public DoubleConverter(JTextField component, JLabel errorLabel) {
+			super(component, errorLabel, null);
+		}
+
+		public DoubleConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+			super(component, errorLabel, configItem);
 		}
 		
 		String toString(Double d)

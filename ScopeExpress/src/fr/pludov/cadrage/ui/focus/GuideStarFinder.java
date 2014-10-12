@@ -37,6 +37,7 @@ import fr.pludov.cadrage.focus.SkyProjection;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler.BooleanConverter;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler.DegConverter;
+import fr.pludov.cadrage.ui.settings.InputOutputHandler.DoubleConverter;
 import fr.pludov.cadrage.ui.settings.InputOutputHandler.HourMinSecConverter;
 import fr.pludov.cadrage.ui.utils.Utils;
 import fr.pludov.utils.VecUtils;
@@ -49,6 +50,7 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 	DegConverter<GuideStarFinderParameters> maxDistanceConverter;
 	DegConverter<GuideStarFinderParameters> minOrientationConverter;
 	DegConverter<GuideStarFinderParameters> maxOrientationConverter;
+	DoubleConverter<GuideStarFinderParameters> magLimiteConverter;
 	BooleanConverter<GuideStarFinderParameters> estTopConverter;
 	
 	GuideStarFinderParameters parameter;
@@ -60,6 +62,7 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 	private int currentStarId;
 	private int currentParameterSerial;
 	
+	/** Les parametres d'un "setup" (fixes, ne dépendant pas de la cible) */
 	public class GuideStarSetupParameters implements Cloneable
 	{
 		double minOrientation;
@@ -70,6 +73,13 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 		Double minDistance;
 		double maxDistance;
 
+		double magLimite;
+		
+		GuideStarSetupParameters()
+		{
+			this.magLimite = 10.5;
+		}
+		
 
 		boolean is360()
 		{
@@ -82,6 +92,7 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 			this.maxDistance = gssp.maxDistance;
 			this.minOrientation = gssp.minOrientation;
 			this.maxOrientation = gssp.maxOrientation;
+			this.magLimite = gssp.magLimite;
 		}
 	}
 	
@@ -672,6 +683,23 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 			}
 		};
 		
+
+		magLimiteConverter = new DoubleConverter<GuideStarFinderParameters>(this.textFieldMagLimite, this.textFieldMagLimiteError, null) {
+			@Override
+			public void setParameter(GuideStarFinderParameters parameters, Double content) throws Exception {
+				if (content == null) throw new Exception("Obligatoire");
+				if (Utils.equalsWithNullity(parameters.magLimite, content)) return;
+				parameters.magLimite = content;
+				triggerUpdate();
+				setupDataChanged();
+			}
+			
+			@Override
+			public Double getFromParameter(GuideStarFinderParameters parameters) {
+				return parameters.magLimite;
+			}
+		};
+		
 		estTopConverter = new BooleanConverter<GuideStarFinderParameters>(this.chckbxEstTop) {
 			@Override
 			public void setParameter(GuideStarFinderParameters parameters, Boolean content) throws Exception {
@@ -699,7 +727,8 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 				minOrientationConverter,
 				maxOrientationConverter,
 				minDistanceConverter,
-				maxDistanceConverter
+				maxDistanceConverter,
+				magLimiteConverter
 		});
 		
 		this.parameter = new GuideStarFinderParameters();
@@ -793,7 +822,7 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 		// Prend celle qui se retrouvent à z = 1.
 		// projection = projection.rotateZ(cos, sin);
 		skp.setTransform(projection);
-		StarCollection sc = StarProvider.getStarAroundNorth(skp, parameter.maxDistance, 10.5);
+		StarCollection sc = StarProvider.getStarAroundNorth(skp, parameter.maxDistance, parameter.magLimite);
 		
 		this.skyProjection = skp;
 		this.starCollection = sc;
