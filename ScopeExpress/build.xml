@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="create_exe" name="Create Runnable Jar for Project Scope Express with Jar-in-Jar Loader">
+	<property name="project_root" value="C:/Documents and Settings/utilisateur/Mes documents/workspace/workspace-perso/cadrage"></property>
+		
 	<property name="build" location="build/"/>
 	<property name="dist" location="dist/"/>
 	<property name="launch4j.dir" location="tools/launch4j"/>
@@ -27,17 +29,23 @@
                 <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
                 <attribute name="Rsrc-Main-Class" value="fr.pludov.scopeexpress.ui.FocusUi"/>
                 <attribute name="Class-Path" value="."/>
-                <attribute name="Rsrc-Class-Path" value="./ jawin.jar metadata-extractor-2.5.0-RC2.jar xmpcore.jar commons-io-2.4.jar log4j-1.2.17.jar miglayout15-swing.jar commons-primitives-1.0.jar"/>
+                <attribute name="Rsrc-Class-Path" value="./ commons-io-2.4.jar commons-net-3.3.jar commons-primitives-1.0.jar gson-2.3.jar jawin.jar jinput-nightly-20140306.jar log4j-1.2.17.jar metadata-extractor-2.5.0-RC2.jar xmpcore.jar miglayout15-swing.jar"/>
             </manifest>
             <zipfileset src="jar-in-jar-loader.zip"/>
-            <fileset dir="C:/Users/Ludovic/Documents/workspace-perso/cadrage/bin"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="jawin.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="metadata-extractor-2.5.0-RC2.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="xmpcore.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="commons-io-2.4.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="log4j-1.2.17.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage" includes="miglayout15-swing.jar"/>
-            <zipfileset dir="C:\Users\Ludovic\Documents\workspace-perso\cadrage\jar" includes="commons-primitives-1.0.jar"/>
+            <fileset dir="${project_root}/bin">
+        		<exclude name="localisation/**"/>
+            	<exclude name="**/*.fit"/>
+        	</fileset>
+            <zipfileset dir="${project_root}/jar" includes="commons-io-2.4.jar"/>
+            <zipfileset dir="${project_root}/jar" includes="commons-net-3.3.jar"/>
+            <zipfileset dir="${project_root}/jar" includes="commons-primitives-1.0.jar"/>
+        	<zipfileset dir="${project_root}/jar" includes="gson-2.3.jar"/>
+        	<zipfileset dir="${project_root}/jar" includes="jawin.jar"/>
+        	<zipfileset dir="${project_root}/jar" includes="jinput-nightly-20140306.jar"/>
+            <zipfileset dir="${project_root}/jar" includes="log4j-1.2.17.jar"/>
+            <zipfileset dir="${project_root}/jar" includes="metadata-extractor-2.5.0-RC2.jar"/>
+            <zipfileset dir="${project_root}/jar" includes="xmpcore.jar"/>
+            <zipfileset dir="${project_root}" includes="miglayout15-swing.jar"/>
         </jar>
     </target>
 	
