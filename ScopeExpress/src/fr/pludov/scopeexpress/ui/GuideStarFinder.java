@@ -480,10 +480,13 @@ public class GuideStarFinder extends GuideStarFinderDesign {
 		createEmptySetupSelectorChoice();
 		
 		File setupFolders = getSetupFolders();
-		for(String child : setupFolders.list())
-		{
-			
-			addSetupItem(new SetupSelectorItem(false, new File(setupFolders, child), child));
+		String [] list = setupFolders.list();
+		if (list != null) {
+			for(String child : list)
+			{
+				
+				addSetupItem(new SetupSelectorItem(false, new File(setupFolders, child), child));
+			}
 		}
 		refreshSetupBtonStatus();
 		
