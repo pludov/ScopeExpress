@@ -2,8 +2,8 @@ package fr.pludov.utils;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.focus.BitMask;
 import fr.pludov.io.CameraFrame;
+import fr.pludov.scopeexpress.focus.BitMask;
 
 /**
  * Trouve les caractéristiques d'une étoile dans une frame

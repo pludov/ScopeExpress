@@ -13,9 +13,9 @@ import javax.imageio.ImageIO;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.focus.BitMask;
-import fr.pludov.cadrage.focus.BitMask.ConnexityGroup;
 import fr.pludov.io.CameraFrame;
+import fr.pludov.scopeexpress.focus.BitMask;
+import fr.pludov.scopeexpress.focus.BitMask.ConnexityGroup;
 
 /**
  * Trouve des étoiles dans une image.

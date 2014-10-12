@@ -3,9 +3,9 @@ package fr.pludov.io;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 
-import fr.pludov.cadrage.ImageDisplayParameter;
-import fr.pludov.cadrage.ImageDisplayParameter.ImageDisplayMetaDataInfo;
-import fr.pludov.cadrage.utils.cache.Cache;
+import fr.pludov.scopeexpress.ImageDisplayParameter;
+import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
+import fr.pludov.scopeexpress.utils.cache.Cache;
 
 public class CameraFrame {
 	int width, height;

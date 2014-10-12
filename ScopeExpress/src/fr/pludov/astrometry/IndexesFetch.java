@@ -16,9 +16,9 @@ import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.io.IOUtils;
 
-import fr.pludov.cadrage.ui.focus.Configuration;
-import fr.pludov.cadrage.ui.utils.SyncTask;
-import fr.pludov.cadrage.utils.EndUserException;
+import fr.pludov.scopeexpress.ui.Configuration;
+import fr.pludov.scopeexpress.ui.utils.SyncTask;
+import fr.pludov.scopeexpress.utils.EndUserException;
 
 public class IndexesFetch extends SyncTask{
 

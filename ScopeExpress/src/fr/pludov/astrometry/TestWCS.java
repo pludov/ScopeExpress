@@ -5,8 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import fr.pludov.cadrage.focus.AffineTransform3D;
-import fr.pludov.cadrage.focus.SkyProjection;
+import fr.pludov.scopeexpress.focus.AffineTransform3D;
+import fr.pludov.scopeexpress.focus.SkyProjection;
 import net.ivoa.fits.Fits;
 import net.ivoa.fits.FitsException;
 import net.ivoa.fits.Header;

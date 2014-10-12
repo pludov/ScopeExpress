@@ -38,7 +38,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.ui.utils.Utils;
+import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.utils.ChannelMode;
 
 public class ImageProvider {

@@ -17,14 +17,14 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.cadrage.focus.AffineTransform3D;
-import fr.pludov.cadrage.focus.SkyProjection;
-import fr.pludov.cadrage.ui.focus.Configuration;
-import fr.pludov.cadrage.ui.utils.BackgroundTask;
-import fr.pludov.cadrage.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
-import fr.pludov.cadrage.ui.utils.BackgroundTaskProcessEncapsulator;
-import fr.pludov.cadrage.ui.utils.Utils;
-import fr.pludov.cadrage.utils.EndUserException;
+import fr.pludov.scopeexpress.focus.AffineTransform3D;
+import fr.pludov.scopeexpress.focus.SkyProjection;
+import fr.pludov.scopeexpress.ui.Configuration;
+import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
+import fr.pludov.scopeexpress.ui.utils.BackgroundTaskProcessEncapsulator;
+import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
+import fr.pludov.scopeexpress.utils.EndUserException;
 import net.ivoa.fits.Fits;
 import net.ivoa.fits.FitsException;
 import net.ivoa.fits.Header;

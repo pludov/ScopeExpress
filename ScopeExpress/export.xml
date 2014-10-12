@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project cadrage">
+<project default="create_run_jar" name="Create Runnable Jar for Project scopeexpress">
     <!--this file was created by Eclipse Runnable JAR Export Wizard-->
     <!--ANT 1.7 is required                                        -->
 	
 	<property name="project_root" value="C:/Documents and Settings/utilisateur/Mes documents/workspace/workspace-perso/cadrage"></property>
 	<property name="target_dir" value="C:/Astro/Programmes/FocusUI"/>
     <target name="create_run_jar">
-        <jar destfile="${target_dir}/focusui.jar" filesetmanifest="mergewithoutmain">
+        <jar destfile="${target_dir}/scopeexpress.jar" filesetmanifest="mergewithoutmain">
             <manifest>
-                <attribute name="Main-Class" value="fr.pludov.cadrage.ui.focus.FocusUi"/>
+                <attribute name="Main-Class" value="fr.pludov.scopeexpress.ui.FocusUi"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${project_root}/bin">
