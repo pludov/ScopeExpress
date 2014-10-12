@@ -60,6 +60,11 @@ public class EndUserException extends Exception {
 				}
 				
 				String message = getMessage();
+				if (getCause() != null) {
+					message += "\n";
+					message += getCause().getMessage();
+//					message += "java.library.path = " + System.getProperty("java.library.path");
+				}
 				JOptionPane.showMessageDialog(
 						parentContainer, message, "Erreur de traitement", JOptionPane.ERROR_MESSAGE);		
 			};
