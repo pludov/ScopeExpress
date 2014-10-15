@@ -31,6 +31,7 @@ public class ActionOpen implements ActionListener {
 			File currentDir = "".equals(lastOpenLocationValue) ? null : new File(lastOpenLocationValue);
 			chooser = new JFileChooser(currentDir);
 			chooser.setFileFilter(new FileNameExtensionFilter("Canon raw", "cr2", "crw"));
+			chooser.setFileFilter(new FileNameExtensionFilter("FITS", "fit", "fits"));
 		}
 		
 		chooser.setMultiSelectionEnabled(true);
