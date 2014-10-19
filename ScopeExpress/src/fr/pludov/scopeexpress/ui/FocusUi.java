@@ -429,6 +429,8 @@ public class FocusUi extends FocusUiDesign {
 		
 		scopeManager.addActionListener();
 		
+		getMainWindow().setTransferHandler(new ActionOpen(this).createTransferHandler());
+		
 		// Donner le focus à chaque activation de la fenêtre
 		this.getFd().getPrincipal().requestFocusInWindow();
 	}

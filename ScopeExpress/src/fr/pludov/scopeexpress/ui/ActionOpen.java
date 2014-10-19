@@ -1,18 +1,22 @@
 package fr.pludov.scopeexpress.ui;
 
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.JFileChooser;
+import javax.swing.TransferHandler;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.scopeexpress.Cadrage;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
@@ -86,13 +90,56 @@ public class ActionOpen implements ActionListener {
 		}
 		
 		
-		File[] files = chooser.getSelectedFiles();
-		
+		openFiles(Arrays.asList(chooser.getSelectedFiles()));
+	}
+
+	private void openFiles(List<File> files) {
 		for(File file : files)
 		{
 			// Pour forcer une pseudo détection...
 			Image image = focusUi.getApplication().getImage(file);
 			focusUi.mosaic.addImage(image, MosaicListener.ImageAddedCause.Explicit);
 		}
-	}	
+	}
+	
+	private class OpenTransferHandler extends TransferHandler
+	{
+		public OpenTransferHandler() {
+		}
+		public boolean canImport(TransferHandler.TransferSupport support) {
+			if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+				return false;
+			}
+
+			support.setDropAction(LINK);
+
+			return true;
+		}
+
+		public boolean importData(TransferHandler.TransferSupport support) {
+			if (!canImport(support)) {
+				return false;
+			}
+
+			Transferable t = support.getTransferable();
+
+			try {
+				List<File> l = (List<File>)t.getTransferData(DataFlavor.javaFileListFlavor);
+
+				openFiles(l);
+
+			} catch (UnsupportedFlavorException e) {
+				return false;
+			} catch (IOException e) {
+				return false;
+			}
+
+			return true;
+		}
+	}
+	
+	public TransferHandler createTransferHandler()
+	{
+		return new OpenTransferHandler(); 
+	}
 }
