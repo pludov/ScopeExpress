@@ -286,7 +286,7 @@ public final class Utils {
 				
 		System.out.println("setting path to " + newPath);
 		System.setProperty("java.library.path", newPath);
-		System.setProperty("org.jawin.hardlib", dllDir.toString() + "/jawin.dll");
+		// System.setProperty("org.jawin.hardlib", dllDir.toString() + "/jawin.dll");
 		
 	}
 
