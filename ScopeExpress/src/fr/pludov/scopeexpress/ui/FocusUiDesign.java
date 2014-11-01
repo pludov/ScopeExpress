@@ -43,17 +43,13 @@ public class FocusUiDesign {
 	protected JMenuItem mnAutoOpen;
 	protected JMenu mnEtoiles;
 	protected JMenuItem mnChercheEtoiles;
-	protected JCheckBoxMenuItem mnChercheEtoilesAuto;
 	protected JPanel statusPanel;
 	protected JLabel taskQueueStatus;
 	protected JProgressBar taskQueueProgress;
 	protected JButton taskQueueStop;
 	protected JButton shootButton;
-	protected JMenuItem mnPolaire;
-	protected JMenuItem mntmAutre;
 	protected JTabbedPane starOccurenceControlPane;
 	protected JPanel graphParamPanel;
-	protected JMenu mnTests;
 	protected JButton scriptAdvanceBton;
 	protected JMenuItem mnProjectSave;
 	protected JTabbedPane graphsPane;
@@ -64,7 +60,6 @@ public class FocusUiDesign {
 	protected JMenu mnTlscope;
 	protected JMenuItem mntmConnecter;
 	protected JMenuItem mntmDconnecter;
-	protected JMenuItem mntmLoadStarAroundScope;
 	protected JButton btnReset;
 	protected JMenu mnConfiguration;
 	protected JMenuItem mntmConfiguration;
@@ -112,18 +107,6 @@ public class FocusUiDesign {
 		this.mnChercheEtoiles = new JMenuItem("Rechercher...");
 		this.mnEtoiles.add(this.mnChercheEtoiles);
 		
-		this.mnChercheEtoilesAuto = new JCheckBoxMenuItem("Rechercher automatiquement");
-		this.mnEtoiles.add(this.mnChercheEtoilesAuto);
-		
-		this.mnPolaire = new JMenuItem("Charger autours du pole Nord");
-		this.mnEtoiles.add(this.mnPolaire);
-		
-		this.mntmLoadStarAroundScope = new JMenuItem("Charger autours du t\u00E9l\u00E9scope");
-		this.mnEtoiles.add(this.mntmLoadStarAroundScope);
-		
-		this.mntmAutre = new JMenuItem("Charger ...");
-		this.mnEtoiles.add(this.mntmAutre);
-		
 		this.mnTlscope = new JMenu("T\u00E9l\u00E9scope");
 		this.menuBar.add(this.mnTlscope);
 		
@@ -141,9 +124,6 @@ public class FocusUiDesign {
 		
 		this.mntmSauverConfig = new JMenuItem("Sauver");
 		this.mnConfiguration.add(this.mntmSauverConfig);
-		
-		this.mnTests = new JMenu("Tests");
-		this.menuBar.add(this.mnTests);
 		
 		this.toolBar = new JToolBar();
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);

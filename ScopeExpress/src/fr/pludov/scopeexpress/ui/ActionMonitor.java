@@ -29,7 +29,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.scopeexpress.Cadrage;
 import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.scopeexpress.ui.joystick.ButtonAction;

@@ -11,8 +11,6 @@ import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.scopeexpress.Cadrage;
-
 /**
  * Cette exception est propre a être affichée à l'utilisateur, sous forme de message d'erreur.
  */

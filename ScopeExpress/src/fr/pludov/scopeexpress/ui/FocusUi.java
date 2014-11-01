@@ -17,8 +17,10 @@ import java.util.Properties;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -58,6 +60,7 @@ import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTaskQueueListener;
 import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTask.Status;
+import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
 import fr.pludov.scopeexpress.utils.EndUserException;
 import fr.pludov.scopeexpress.utils.SkyAlgorithms;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
@@ -249,6 +252,33 @@ public class FocusUi extends FocusUiDesign {
 				dialog.setVisible(true);
 			}
 		});
+
+		scopeButton = new ToolbarButton("scope", true);
+		scopeButton.setPopupProvider(new ToolbarButton.PopupProvider() {
+			@Override
+			public JPopupMenu popup() {
+				JPopupMenu result = new JPopupMenu();
+				
+				JMenuItem changeStatus = new JMenuItem("switch");
+				result.add(changeStatus);
+				changeStatus.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if (scopeButton.getStatus() == ToolbarButton.Status.ACTIVATED)
+							scopeButton.setStatus(ToolbarButton.Status.DEFAULT);
+						else 
+							scopeButton.setStatus(ToolbarButton.Status.ACTIVATED);
+					}
+				});
+				
+				return result;
+			}
+		});
+		this.toolBar.add(scopeButton, 0);
+		
+//		ToolbarButton otherButton = new ToolbarButton("text-speak", false);
+//		this.toolBar.add(otherButton);
 		
 		this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
 			
@@ -274,31 +304,30 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-				if (!mnChercheEtoilesAuto.isSelected()) return;
-				
-				// FIXME: on devrait ajouter une tache qui les cherches toutes les une après les autres
-				switch(currentStarDetectionParameter.correlationMode)
-				{
-				case SamePosition:
-					Image referenceImage;
-					referenceImage = currentStarDetectionParameter.getEffectiveReferenceImage(image);
-					if (referenceImage != null) {
-						// Ajouter toutes les étoiles, les correler
-						for(Star star : mosaic.getStars())
-						{
-							StarOccurence previous = mosaic.getStarOccurence(star, referenceImage);
-							if (previous == null) continue;
-							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
-							
-							StarOccurence copy = new StarOccurence(mosaic, image, star);
-							copy.setPicX(previous.getPicX());
-							copy.setPicY(previous.getPicY());
-							mosaic.addStarOccurence(copy);
-							
-							copy.asyncSearch(precise);
-						}
-					}
-				}
+//				
+//				// FIXME: on devrait ajouter une tache qui les cherches toutes les une après les autres
+//				switch(currentStarDetectionParameter.correlationMode)
+//				{
+//				case SamePosition:
+//					Image referenceImage;
+//					referenceImage = currentStarDetectionParameter.getEffectiveReferenceImage(image);
+//					if (referenceImage != null) {
+//						// Ajouter toutes les étoiles, les correler
+//						for(Star star : mosaic.getStars())
+//						{
+//							StarOccurence previous = mosaic.getStarOccurence(star, referenceImage);
+//							if (previous == null) continue;
+//							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
+//							
+//							StarOccurence copy = new StarOccurence(mosaic, image, star);
+//							copy.setPicX(previous.getPicX());
+//							copy.setPicY(previous.getPicY());
+//							mosaic.addStarOccurence(copy);
+//							
+//							copy.asyncSearch(precise);
+//						}
+//					}
+//				}
 			}
 
 			@Override
@@ -319,43 +348,6 @@ public class FocusUi extends FocusUiDesign {
 
 			@Override
 			public void exclusionZoneRemoved(ExclusionZone ze) {
-			}
-		});
-	
-		this.mnPolaire.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				loadStarsSomewhere("pole", 0.0, 90.0, 6.0, 10.5);
-			}
-		});
-		
-		this.mntmAutre.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				loadStarsSomewhere("other", null, null, null, null);
-			}
-		});
-		
-		this.mntmLoadStarAroundScope.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Scope scope = scopeManager.getConnectedScope();
-				if (scope == null) return;
-				
-				double ra, dec;
-				ra = scope.getRightAscension();
-				dec = scope.getDeclination();
-				logger.info("Got from scope : " + Utils.formatHourMinSec(ra * 15) + " " + Utils.formatDegMinSec(dec));
-				
-				// On veut les coordonnées J2000 du téléscope.
-				double [] tmp = SkyAlgorithms.J2000RaDecFromNow(ra, dec, 0);
-				ra = tmp[0];
-				dec = tmp[1];
-				logger.info("Got J2000 from scope : " + Utils.formatHourMinSec(ra * 15) + " " + Utils.formatDegMinSec(dec));
-				loadStarsSomewhere("scope", ra * 15, dec, null, null);
 			}
 		});
 		
@@ -737,8 +729,18 @@ public class FocusUi extends FocusUiDesign {
 	
 	public void createTestMenus()
 	{
+		refreshTestButton();
+		
+		if (System.getProperty("fr.pludov.scopeexpress.devmode") == null) {
+			return;
+		}
+		
+		JMenu mnTests = new JMenu("Tests");
+		this.menuBar.add(mnTests);
+		
+		
 		JMenuItem prise_M101_240s = new JMenuItem("M101 240s");
-		this.mnTests.add(prise_M101_240s);
+		mnTests.add(prise_M101_240s);
 		prise_M101_240s.addActionListener(new ActionListener() {
 			
 			@Override
@@ -751,7 +753,7 @@ public class FocusUi extends FocusUiDesign {
 
 		{
 			JMenuItem prise_focus_polaire = new JMenuItem("Rotation du ciel");
-			this.mnTests.add(prise_focus_polaire);
+			mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
 				
 				@Override
@@ -778,7 +780,7 @@ public class FocusUi extends FocusUiDesign {
 
 		{
 			JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire");
-			this.mnTests.add(prise_focus_polaire);
+			mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
 				
 				@Override
@@ -808,7 +810,7 @@ public class FocusUi extends FocusUiDesign {
 		
 		{
 			JMenuItem prise_focus_polaire = new JMenuItem("focus autours de la polaire (2014-07)");
-			this.mnTests.add(prise_focus_polaire);
+			mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
 				
 				@Override
@@ -864,7 +866,7 @@ public class FocusUi extends FocusUiDesign {
 		
 		{
 			JMenuItem prise_focus_polaire = new JMenuItem("Recadrage NGC7331");
-			this.mnTests.add(prise_focus_polaire);
+			mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
 				
 				@Override
@@ -887,7 +889,6 @@ public class FocusUi extends FocusUiDesign {
 		}
 		
 		
-		refreshTestButton();
 	}
 
 	public JoystickHandler getJoystickHandler() {
@@ -895,6 +896,8 @@ public class FocusUi extends FocusUiDesign {
 	}
 
 	int shootDuration = 1;
+
+	ToolbarButton scopeButton;
 	
 	public void shoot()
 	{

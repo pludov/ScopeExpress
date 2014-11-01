@@ -22,11 +22,15 @@ import fr.pludov.scopeexpress.utils.WorkThread;
 public class AscomScope extends WorkThread implements Scope {
 	private static final Logger logger = Logger.getLogger(AscomScope.class);
 	
+//	static StringConfigItem lastUsedScope = new StringConfigItem(AscomScope.class, "previousScope", "");
+
+	
 	final WeakListenerCollection<Scope.Listener> listeners = new WeakListenerCollection<Scope.Listener>(Listener.class);
 	
-	public AscomScope()
+	public AscomScope(String driver)
 	{
 		super();
+		this.driver = driver;
 		this.lastNotifiedDec = Double.NaN;
 		this.lastNotifiedRa = Double.NaN;
 	}
@@ -39,7 +43,7 @@ public class AscomScope extends WorkThread implements Scope {
 	double decBias, raBias;
 	
 	
-	String driver;
+	final String driver;
 	DispatchPtr scope;
 	
 	// On n'emet pas de notification pour moins de 0,1 arcsec
@@ -187,20 +191,9 @@ public class AscomScope extends WorkThread implements Scope {
 		try {
 			Ole.initOle();
 
-			DispatchPtr app = new DispatchPtr("ASCOM.Utilities.Chooser");
-		  
-			app.put("DeviceType", "Telescope");
-		  
-			String result = (String)app.invoke("Choose", "");
-		  
-			if (result == null || "".equals(result)) {
-				throw new CancelationException("Pas de driver séléctionné");
-			}
+			logger.debug("driver : " + driver);
 			
-			logger.debug("driver : " + result);
-			driver = result;
-			
-			scope = new DispatchPtr(result);
+			scope = new DispatchPtr(driver);
 			
 			scope.put("Connected", true);
 			
@@ -237,7 +230,7 @@ public class AscomScope extends WorkThread implements Scope {
 			chooseScope();
 			
 		} catch(Throwable t) {
-			notifyFinalDisconnection();
+			this.listeners.getTarget().onConnectionStateChanged();
 			if (t instanceof CancelationException) {
 				return;
 			}
@@ -263,11 +256,6 @@ public class AscomScope extends WorkThread implements Scope {
 		} finally {
 			// releaseOle();
 		}
-	}
-	
-	public static void connectScope()
-	{
-		new AscomScope().start();
 	}
 
 	public String getDriver() {
