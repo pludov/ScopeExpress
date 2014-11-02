@@ -15,6 +15,7 @@ import javax.swing.SwingUtilities;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
+import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.PointOfInterest;
 import fr.pludov.scopeexpress.focus.Star;
@@ -134,7 +135,7 @@ public abstract class GraphPanel extends JPanel {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 				if ((!isCurrentImageOnly) || image == currentImage) {
 					invalidateData();
 				}

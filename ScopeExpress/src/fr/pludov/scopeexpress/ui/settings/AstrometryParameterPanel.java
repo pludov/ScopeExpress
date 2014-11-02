@@ -650,7 +650,7 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 				AstrometryParameterPanel.this.imageRemoved(image);
 			}
 			

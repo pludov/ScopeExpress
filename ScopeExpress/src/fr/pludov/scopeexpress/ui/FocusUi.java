@@ -38,6 +38,7 @@ import fr.pludov.scopeexpress.focus.Application;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
+import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.PointOfInterest;
 import fr.pludov.scopeexpress.focus.SkyProjection;
@@ -305,7 +306,7 @@ public class FocusUi extends FocusUiDesign {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 			}
 			
 			@Override

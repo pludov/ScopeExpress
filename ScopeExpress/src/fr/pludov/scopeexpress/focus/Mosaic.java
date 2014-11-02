@@ -289,7 +289,7 @@ public class Mosaic {
 	public void removeImage(Image image)
 	{
 		if (!images.remove(image)) return;
-		this.imageMosaicParameter.remove(image);
+		MosaicImageParameter mip = this.imageMosaicParameter.remove(image);
 		
 		for(Star star : stars)
 		{
@@ -300,12 +300,12 @@ public class Mosaic {
 			}
 		}
 		
-		listeners.getTarget().imageRemoved(image);
+		listeners.getTarget().imageRemoved(image, mip);
 	}
 	
 	public void reset()
 	{
-		List<Image> deletedImages = new ArrayList<Image>(this.images);
+		List<MosaicImageParameter> deletedImages = new ArrayList<MosaicImageParameter>(this.imageMosaicParameter.values());
 		List<Star> deletedStars = new ArrayList<Star>(this.stars);
 		List<ExclusionZone> deletedExclusionZones = new ArrayList<ExclusionZone>(this.exclusionZones);
 		List<StarOccurence> deletedStarOccurence = new ArrayList<StarOccurence>();
@@ -333,9 +333,9 @@ public class Mosaic {
 			this.listeners.getTarget().starRemoved(s);
 		}
 		
-		for(Image i : deletedImages)
+		for(MosaicImageParameter i : deletedImages)
 		{
-			this.listeners.getTarget().imageRemoved(i);
+			this.listeners.getTarget().imageRemoved(i.getImage(), i);
 		}
 		
 		for(ExclusionZone ex : deletedExclusionZones)

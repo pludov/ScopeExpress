@@ -345,7 +345,7 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 				unregisterImage(image);
 			}
 			

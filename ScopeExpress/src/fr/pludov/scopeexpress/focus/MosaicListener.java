@@ -9,7 +9,7 @@ public interface MosaicListener {
 	}
 	
 	void imageAdded(Image image, MosaicListener.ImageAddedCause cause);
-	void imageRemoved(Image image);
+	void imageRemoved(Image image, MosaicImageParameter mip);
 	
 	void starAdded(Star star);
 	void starRemoved(Star star);

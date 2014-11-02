@@ -4,11 +4,12 @@ import java.io.Serializable;
 import java.util.Date;
 
 import fr.pludov.scopeexpress.focus.Image;
+import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.ui.utils.ListEntry;
 
-public class MosaicImageListEntry extends ListEntry<Image, MosaicImageListEntry> implements Serializable{
+public class MosaicImageListEntry extends ListEntry<MosaicImageParameter, MosaicImageListEntry> implements Serializable{
 
-	public MosaicImageListEntry(Image image) {
+	public MosaicImageListEntry(MosaicImageParameter image) {
 		super(image);
 	}
 	
@@ -19,7 +20,7 @@ public class MosaicImageListEntry extends ListEntry<Image, MosaicImageListEntry>
 	{
 		if (!hasDate) {
 			hasDate = true;
-			long modif = getTarget().getPath().lastModified();
+			long modif = getTarget().getImage().getPath().lastModified();
 			if (modif != 0L) {
 				date = new Date(modif);
 			} else {

@@ -204,7 +204,7 @@ public class StarOccurenceTable extends JTable {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 				tableModel.fireTableStructureChanged();
 
 				for(int i = 0; i < getColumnModel().getColumnCount(); ++i) {

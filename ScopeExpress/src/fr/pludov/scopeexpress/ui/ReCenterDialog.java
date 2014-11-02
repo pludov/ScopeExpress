@@ -428,7 +428,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 			}
 			
 			@Override
-			public void imageRemoved(Image image) {
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
 				boolean isCurrent = current != null && current.getImage() == image;
 				boolean isReference = reference != null && reference.getImage() == image;
 				if (isCurrent || isReference)

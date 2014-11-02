@@ -163,7 +163,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 				@Override
 				public void exclusionZoneRemoved(ExclusionZone ze) {}
 				@Override
-				public void imageRemoved(Image image) {}
+				public void imageRemoved(Image image, MosaicImageParameter mip) {}
 				@Override
 				public void pointOfInterestAdded(PointOfInterest poi) {}
 				@Override
@@ -504,7 +504,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		if (!selected.isEmpty()) {
 			MosaicImageListEntry firstEntry = selected.get(0);
 		
-			image = firstEntry.getTarget();
+			image = firstEntry.getTarget().getImage();
 		}
 		
 		currentImage = image;

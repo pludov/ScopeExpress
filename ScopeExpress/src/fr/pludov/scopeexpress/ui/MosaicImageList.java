@@ -37,7 +37,7 @@ import fr.pludov.scopeexpress.utils.SkyAlgorithms;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 import fr.pludov.utils.VecUtils;
 
-public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> implements MosaicListener {
+public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicImageListEntry> implements MosaicListener {
 	private static final Logger logger = Logger.getLogger(MosaicImageList.class);
 	Mosaic mosaic;
 	final FocusUi focusUi;
@@ -48,16 +48,14 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		new ColumnDefinition("Image", String.class, 120) {
 			@Override
 			public Object getValue(MosaicImageListEntry ile) {
-				return ile.getTarget().getPath().getName();
+				return ile.getTarget().getImage().getPath().getName();
 			}
 		},
 		
 		new ColumnDefinition("Focale", Double.class, 30) {
 			@Override
 			public Object getValue(MosaicImageListEntry ile) {
-				MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
-				if (mip == null) return null;
-				return mip.getFocal();
+				return ile.getTarget().getFocal();
 			}
 			@Override
 			public void setValue(MosaicImageListEntry ile, Object rv) {
@@ -65,8 +63,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				try {
 					if (v == null) throw new EndUserException("Valeur obligatoire");
 					
-					MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
-					mip.setFocal(v);
+					ile.getTarget().setFocal(v);
 				} catch(EndUserException e) {
 					e.report(MosaicImageList.this);
 				}
@@ -77,7 +74,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		new ColumnDefinition("Ech", Double.class, 30) {
 			@Override
 			public Object getValue(MosaicImageListEntry ile) {
-				MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+				MosaicImageParameter mip = ile.getTarget();
 				if (mip == null) return null;
 				return mip.getPixelSize();
 			}
@@ -88,7 +85,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				try {
 					if (v == null) throw new EndUserException("Valeur obligatoire");
 					
-					MosaicImageParameter mip = mosaic.getMosaicImageParameter(ile.getTarget());
+					MosaicImageParameter mip = ile.getTarget();
 					mip.setPixelSize(v);
 				} catch(EndUserException e) {
 					e.report(MosaicImageList.this);
@@ -156,7 +153,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		if (this.mosaic != null) {
 			this.mosaic.listeners.removeListener(this.listenerOwner);
 			for(Image image : this.mosaic.getImages()) {
-				removeEntry(image);
+				removeEntry(this.mosaic.getMosaicImageParameter(image));
 			}
 		}
 		
@@ -172,22 +169,24 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 	
 	@Override
 	public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-		if (hasEntry(image)) return;
+		MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+
+		if (hasEntry(mip)) return;
 		
-		MosaicImageListEntry ile = new MosaicImageListEntry(image); 
+		MosaicImageListEntry ile = new MosaicImageListEntry(mip); 
 		
 		addEntry(ile);
 		
 		if (cause == MosaicListener.ImageAddedCause.Explicit || cause == MosaicListener.ImageAddedCause.AutoDetected)
 		{
-			MosaicImageListEntry listEntry = getEntryFor(image);
+			MosaicImageListEntry listEntry = getEntryFor(mip);
 			selectEntry(listEntry);
 		}
 	}
 
 	@Override
-	public void imageRemoved(Image image) {
-		removeEntry(image);
+	public void imageRemoved(Image image, MosaicImageParameter mip) {
+		removeEntry(mip);
 	}
 
 	@Override
@@ -231,7 +230,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 			public void actionPerformed(ActionEvent e) {
 				for(MosaicImageListEntry entry : entries)
 				{
-					Image image = entry.getTarget();
+					Image image = entry.getTarget().getImage();
 					mosaic.removeImage(image);
 				}
 			}
@@ -248,7 +247,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					FindStarTask task = new FindStarTask(focusUi.getMosaic(), entry.getTarget());
+					FindStarTask task = new FindStarTask(focusUi.getMosaic(), entry.getTarget().getImage());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}
@@ -269,7 +268,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 			public void actionPerformed(ActionEvent e) {
 				if (entries.size() != 1) return;
 				
-				Image image = entries.get(0).getTarget();
+				Image image = entries.get(0).getTarget().getImage();
 				if (image == null) return;
 				
 				FWHM3DView view = new FWHM3DView(MosaicImageList.this.mosaic, image);
@@ -292,7 +291,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), entry.getTarget());
+					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), entry.getTarget().getImage());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}
@@ -318,8 +317,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				Date refDate = null;
 				for(MosaicImageListEntry entry : entries)
 				{
-					Image image = entry.getTarget();
-					MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+					MosaicImageParameter mip = entry.getTarget();
 					if (mip == null) continue;
 					
 					pfa.addImage(mip, entry.getCreationDate());
@@ -384,7 +382,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 					mosaic.addPointOfInterest(poleDuJour);
 					
 					AxeAlignDialog dialog = Utils.openDialog(MosaicImageList.this, AxeAlignDialog.class);
-					dialog.openPoi(mosaic, poleDuJour, poi, entries.get(entries.size() - 1).getTarget());
+					dialog.openPoi(mosaic, poleDuJour, poi, entries.get(entries.size() - 1).getTarget().getImage());
 					dialog.setVisible(true);
 				}
 					
@@ -408,8 +406,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					Image image = entry.getTarget();
-					MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+					MosaicImageParameter mip = entry.getTarget();
 					if (mip == null) continue;
 					
 					pfa.addMosaicImageParameter(mip);
@@ -439,7 +436,7 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		centerMenu.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ReCenterDialog dialog = Utils.openDialog(MosaicImageList.this, ReCenterDialog.class);
-				dialog.open(focusUi, mosaic, entries.get(entries.size() - 1).getTarget());
+				dialog.open(focusUi, mosaic, entries.get(entries.size() - 1).getTarget().getImage());
 				dialog.setVisible(true);
 			}
 		});
@@ -456,8 +453,8 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				MosaicImageListEntry mile = entries.get(0);
-				Image image = mile.getTarget();
-				MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
+				MosaicImageParameter mip = mile.getTarget();
+				Image image = mip.getImage();
 				if (mip == null) return;
 				String message;
 				
@@ -527,14 +524,13 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		JMenuItem evaluateDistorsionMenu = new JMenuItem();
 		evaluateDistorsionMenu.setText("Evaluer la distorsion de champ");
 		evaluateDistorsionMenu.setEnabled(entries.size() == 1 && 
-				mosaic.getMosaicImageParameter(entries.get(0).getTarget()) != null &&
-						mosaic.getMosaicImageParameter(entries.get(0).getTarget()).isCorrelated());
+						entries.get(0).getTarget().isCorrelated());
 		
 		evaluateDistorsionMenu.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Image image = entries.get(0).getTarget();
+					Image image = entries.get(0).getTarget().getImage();
 					ImageDistorsion id = ImageDistorsion.evaluateImageDistorsion(mosaic, image);
 					System.out.println(id);
 					
@@ -559,16 +555,14 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		guideStarFinderMenu.setToolTipText("Dans un rayon donné autours de l'image...");
 		guideStarFinderMenu.setEnabled(entries.size() > 1);
 		guideStarFinderMenu.setEnabled(entries.size() == 1 && 
-				mosaic.getMosaicImageParameter(entries.get(0).getTarget()) != null &&
-						mosaic.getMosaicImageParameter(entries.get(0).getTarget()).isCorrelated());
+						entries.get(0).getTarget().isCorrelated());
 
 		guideStarFinderMenu.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				
 				MosaicImageListEntry mile = entries.get(0);
-				Image image = mile.getTarget();
-				MosaicImageParameter mip = mosaic.getMosaicImageParameter(image);
-				if (mip == null) return;
+				MosaicImageParameter mip = mile.getTarget();
+				Image image = mip.getImage();
 				
 				if (!mip.isCorrelated()) {
 					return;

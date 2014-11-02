@@ -402,9 +402,9 @@ public class FocusUiScopeManager {
 		if (scope == null || entries.size() != 1) {
 			target = null;
 		} else {
-			Image img = entries.get(0).getTarget();
-			MosaicImageParameter mip = mosaic.getMosaicImageParameter(img);
-			if (mip == null || !mip.isCorrelated()) {
+			MosaicImageParameter mip = entries.get(0).getTarget();
+			Image img = mip.getImage();
+			if (!mip.isCorrelated()) {
 				target = null;
 			} else {
 				double [] mosaic3dPos = new double[3];

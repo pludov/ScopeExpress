@@ -315,7 +315,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				}
 				
 				@Override
-				public void imageRemoved(Image removedImage) {
+				public void imageRemoved(Image removedImage, MosaicImageParameter mip) {
 				}
 				
 				@Override
