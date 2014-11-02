@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JFrame;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
@@ -257,6 +258,28 @@ public class MosaicImageList extends GenericList<Image, MosaicImageListEntry> im
 		});
 		contextMenu.add(findStarMenu);
 		
+		JMenuItem fwhmMenuItem;
+		fwhmMenuItem = new JMenuItem();
+		fwhmMenuItem.setText("Vue fwhm");
+		fwhmMenuItem.setToolTipText("Tracer un graphe de FWHM");
+		fwhmMenuItem.setEnabled(entries.size() == 1);
+		fwhmMenuItem.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (entries.size() != 1) return;
+				
+				Image image = entries.get(0).getTarget();
+				if (image == null) return;
+				
+				FWHM3DView view = new FWHM3DView(MosaicImageList.this.mosaic, image);
+				JFrame frame = new JFrame();
+				frame.getContentPane().add(view);
+				frame.setSize(640, 470);
+				frame.setVisible(true);
+			}
+		});
+		contextMenu.add(fwhmMenuItem);
 		
 		JMenuItem correlateMenu;
 		

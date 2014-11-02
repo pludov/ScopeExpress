@@ -90,7 +90,8 @@ public class FocusUi extends FocusUiDesign {
 	private ToolbarButton shootButton;
 	
 	private ToolbarButton detectBton;
-		
+	private ToolbarButton btnReset;
+	
 	public FocusUi(final Application application, final Mosaic mosaic) {
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.joystickHandler = new JoystickHandler(this);
@@ -216,21 +217,6 @@ public class FocusUi extends FocusUiDesign {
 		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
 		this.toolBar.add(this.shootButton);
 		
-		
-		this.fwhmGraphBton.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				Image image = fd.getCurrentImage();
-				if (image == null) return;
-				
-				FWHM3DView view = new FWHM3DView(FocusUi.this.mosaic, image);
-				JFrame frame = new JFrame();
-				frame.getContentPane().add(view);
-				frame.setSize(640, 470);
-				frame.setVisible(true);
-			}
-		});
 		
 		this.mnOpen.addActionListener(new ActionOpen(this));
 		
@@ -387,6 +373,10 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
+		
+		this.btnReset = new ToolbarButton("view-remove");
+		this.btnReset.setToolTipText("Efface les donn\u00E9es et repart sur un \u00E9tat vierge");
+		this.toolBar.add(btnReset);
 		
 		this.btnReset.addActionListener(new ActionListener() {
 			

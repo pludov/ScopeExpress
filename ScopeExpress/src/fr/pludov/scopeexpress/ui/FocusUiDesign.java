@@ -36,7 +36,6 @@ public class FocusUiDesign {
 	protected JPanel detailsPanel;
 	protected JSplitPane detailsSplitPane;
 	protected JToolBar toolBar;
-	protected JButton fwhmGraphBton;
 	protected JMenuItem mnOpen;
 	protected JMenuItem mnAutoOpen;
 	protected JMenu mnEtoiles;
@@ -57,7 +56,6 @@ public class FocusUiDesign {
 	protected JMenu mnTlscope;
 	protected JMenuItem mntmConnecter;
 	protected JMenuItem mntmDconnecter;
-	protected JButton btnReset;
 	protected JMenu mnConfiguration;
 	protected JMenuItem mntmConfiguration;
 	protected JMenuItem mntmSauverConfig;
@@ -125,17 +123,8 @@ public class FocusUiDesign {
 		this.toolBar = new JToolBar();
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);
 		
-		this.fwhmGraphBton = new JButton("Vue fwhm");
-		this.fwhmGraphBton.setToolTipText("Tracer un graphe de FWHM");
-		this.toolBar.add(this.fwhmGraphBton);
-		
 		this.scriptAdvanceBton = new JButton("Avancer le script");
 		this.toolBar.add(this.scriptAdvanceBton);
-		
-		this.btnReset = new JButton("Reset");
-		this.btnReset.setToolTipText("Efface les donn\u00E9es et repart sur un \u00E9tat vierge");
-		this.btnReset.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/scopeexpress/ui/resources/icons/view-remove.png")));
-		this.toolBar.add(this.btnReset);
 		
 		this.tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		this.frmFocus.getContentPane().add(this.tabbedPane, BorderLayout.CENTER);
