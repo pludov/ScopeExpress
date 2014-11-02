@@ -159,18 +159,6 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		return result;
 	}
 	
-	/**
-	 * Retourne un objet contenant l'ensemble des méta data qui seront utilisée
-	 * pour calculer l'image d'une frame. Permet de comparer par la suite les métadata...
-	 */
-	public ImageDisplayMetaDataInfo getMetadataInUse(Image frame)
-	{
-		ImageDisplayMetaDataInfo result = new ImageDisplayMetaDataInfo();
-		if (this.targetIso != null) result.iso = frame.getIso();
-		if (this.targetExposition != null) result.expositionDuration = frame.getPause();
-		return result;
-	}
-	
 	public static class AduLevelMapperId
 	{
 		final int black;

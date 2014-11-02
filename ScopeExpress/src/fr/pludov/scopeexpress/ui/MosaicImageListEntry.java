@@ -3,7 +3,6 @@ package fr.pludov.scopeexpress.ui;
 import java.io.Serializable;
 import java.util.Date;
 
-import fr.pludov.scopeexpress.correlation.ImageCorrelation;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.ui.utils.ListEntry;
 

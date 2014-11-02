@@ -1,6 +1,5 @@
 package fr.pludov.scopeexpress.ui;
 
-import fr.pludov.scopeexpress.correlation.CorrelationListener;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 
 public abstract class ScriptTest {
