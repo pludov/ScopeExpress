@@ -85,6 +85,11 @@ public class FocusUi extends FocusUiDesign {
 	final FocusUiScopeManager scopeManager;
 	final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
+
+	private ToolbarButton followDirBton;
+	private ToolbarButton shootButton;
+	
+	private ToolbarButton detectBton;
 		
 	public FocusUi(final Application application, final Mosaic mosaic) {
 		this.scopeManager = new FocusUiScopeManager(this);
@@ -186,6 +191,9 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
+		
+		this.detectBton = new ToolbarButton("star");
+		this.detectBton.setToolTipText("Trouver les étoiles");
 		this.detectBton.addActionListener(new ActionListener() {
 			
 			@Override
@@ -196,6 +204,18 @@ public class FocusUi extends FocusUiDesign {
 				application.getBackgroundTaskQueue().addTask(detectStar);
 			}
 		});
+		this.toolBar.add(this.detectBton, 0);
+		
+		this.followDirBton = new ToolbarButton("camera-photo");
+		this.followDirBton.setToolTipText("Connection Caméra/appareil photo");
+		// this.followDirBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/scopeexpress/ui/resources/icons/media-playback-start-7.png")));
+		// this.followDirBton.setToolTipText("Surveiller les nouvelles photos dans un r\u00E9pertoire");
+		this.toolBar.add(this.followDirBton);
+		
+		this.shootButton = new ToolbarButton("media-record-5");
+		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
+		this.toolBar.add(this.shootButton);
+		
 		
 		this.fwhmGraphBton.addActionListener(new ActionListener() {
 			

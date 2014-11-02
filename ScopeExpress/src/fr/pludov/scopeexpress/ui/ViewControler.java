@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.scopeexpress.ui.resources.IconProvider;
 import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
+import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
 
 public class ViewControler {
 	private static final Logger logger = Logger.getLogger(ViewControler.class);
@@ -19,9 +20,9 @@ public class ViewControler {
 	}
 	
 	FrameDisplayWithStar currentView;
-	JButton zoomFitButton;
-	JButton zoomInButton;
-	JButton zoomOutButton;
+	ToolbarButton zoomFitButton;
+	ToolbarButton zoomInButton;
+	ToolbarButton zoomOutButton;
 	
 	private class ZoomButtonActionListener implements ActionListener
 	{
@@ -41,18 +42,18 @@ public class ViewControler {
 	
 	public ViewControler(JToolBar toolBar) {
 		
-		zoomInButton = new JButton(IconProvider.getIcon("zoom-in", IconSize.IconSizeButton));
+		zoomInButton = new ToolbarButton("zoom-in");
 		zoomInButton.setToolTipText("Zoomer");
 		zoomInButton.setRequestFocusEnabled(false);
 		toolBar.add(zoomInButton);
 		
-		zoomOutButton = new JButton(IconProvider.getIcon("zoom-out", IconSize.IconSizeButton));
+		zoomOutButton = new ToolbarButton("zoom-out");
 		zoomOutButton.setToolTipText("Dé-Zoomer");
 		zoomOutButton.setRequestFocusEnabled(false);
 		toolBar.add(zoomOutButton);
 
 
-		zoomFitButton = new JButton(IconProvider.getIcon("zoom-fit-best", IconSize.IconSizeButton));
+		zoomFitButton = new ToolbarButton("zoom-fit-best");
 		zoomFitButton.setToolTipText("Voir l'image entière");
 		zoomFitButton.setRequestFocusEnabled(false);
 		toolBar.add(zoomFitButton);

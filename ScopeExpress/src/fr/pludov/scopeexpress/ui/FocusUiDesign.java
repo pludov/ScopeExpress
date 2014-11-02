@@ -36,8 +36,6 @@ public class FocusUiDesign {
 	protected JPanel detailsPanel;
 	protected JSplitPane detailsSplitPane;
 	protected JToolBar toolBar;
-	protected JButton followDirBton;
-	protected JButton detectBton;
 	protected JButton fwhmGraphBton;
 	protected JMenuItem mnOpen;
 	protected JMenuItem mnAutoOpen;
@@ -47,7 +45,6 @@ public class FocusUiDesign {
 	protected JLabel taskQueueStatus;
 	protected JProgressBar taskQueueProgress;
 	protected JButton taskQueueStop;
-	protected JButton shootButton;
 	protected JTabbedPane starOccurenceControlPane;
 	protected JPanel graphParamPanel;
 	protected JButton scriptAdvanceBton;
@@ -128,24 +125,9 @@ public class FocusUiDesign {
 		this.toolBar = new JToolBar();
 		this.frmFocus.getContentPane().add(this.toolBar, BorderLayout.NORTH);
 		
-		this.detectBton = new JButton("Trouver etoiles");
-		this.detectBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/scopeexpress/ui/resources/icons/star.png")));
-		this.detectBton.setToolTipText("Trouver automatiquement des \u00E9toiles dans l'image courante");
-		this.toolBar.add(this.detectBton);
-		
 		this.fwhmGraphBton = new JButton("Vue fwhm");
 		this.fwhmGraphBton.setToolTipText("Tracer un graphe de FWHM");
 		this.toolBar.add(this.fwhmGraphBton);
-		
-		this.followDirBton = new JButton("");
-		this.followDirBton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/scopeexpress/ui/resources/icons/media-playback-start-7.png")));
-		this.followDirBton.setToolTipText("Surveiller les nouvelles photos dans un r\u00E9pertoire");
-		this.toolBar.add(this.followDirBton);
-		
-		this.shootButton = new JButton("");
-		this.shootButton.setIcon(new ImageIcon(FocusUiDesign.class.getResource("/fr/pludov/scopeexpress/ui/resources/icons/media-record-5.png")));
-		this.shootButton.setToolTipText("Prendre une photo (n\u00E9cessite la surveillance d'un r\u00E9pertoire et APT)");
-		this.toolBar.add(this.shootButton);
 		
 		this.scriptAdvanceBton = new JButton("Avancer le script");
 		this.toolBar.add(this.scriptAdvanceBton);
