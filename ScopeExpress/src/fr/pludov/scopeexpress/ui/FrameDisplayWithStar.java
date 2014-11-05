@@ -387,6 +387,11 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			@Override
 			public void onPixelSizeChanged() {
 			}
+			
+			@Override
+			public void metadataStatusChanged() {
+				scheduleRepaint(true);
+			}
 		};
 		
 	}
@@ -869,6 +874,11 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			BackgroundTask loadImageTask = new BackgroundTask("Preparing display for " + image.getPath().getName())
 			{
 				BufferedImage buffimage;
+				
+				@Override
+				public int getResourceOpportunity() {
+					return image.hasReadyCameraFrame() ? 1 : 0; 
+				}
 				
 				@Override
 				protected void proceed() throws BackgroundTaskCanceledException, Throwable {

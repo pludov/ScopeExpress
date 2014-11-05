@@ -264,7 +264,7 @@ public class Mosaic {
 		
 	}
 	
-	public void addImage(Image image, MosaicListener.ImageAddedCause cause)
+	public MosaicImageParameter addImage(Image image, MosaicListener.ImageAddedCause cause)
 	{
 		if (this.imageMosaicParameter.get(image) != null) {
 			throw new RuntimeException("image already present");
@@ -275,9 +275,11 @@ public class Mosaic {
 		double pixSize = Configuration.getCurrentConfiguration().getPixelSize();
 		double focal = Configuration.getCurrentConfiguration().getFocal();
 		
-		this.imageMosaicParameter.put(image,  new MosaicImageParameter(this, image, pixSize, focal));
+		MosaicImageParameter mip = new MosaicImageParameter(this, image, pixSize, focal);
+		this.imageMosaicParameter.put(image,  mip);
 		listeners.getTarget().imageAdded(image, cause);
 		
+		return mip;
 //		for(Star star : stars)
 //		{
 //			StarOccurence sco = new StarOccurence(this, image, star);

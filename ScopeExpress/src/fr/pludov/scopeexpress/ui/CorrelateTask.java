@@ -55,6 +55,12 @@ public class CorrelateTask extends BackgroundTask {
 		return super.isReady();
 	}
 	
+	@Override
+	public int getResourceOpportunity() {
+		// On n'utilise pas de données en cache
+		return 0;
+	}
+	
 	static class ImageStar implements DynamicGridPointWithAdu
 	{
 		StarOccurence so;

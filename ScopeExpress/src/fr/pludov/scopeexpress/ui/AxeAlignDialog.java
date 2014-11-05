@@ -100,9 +100,9 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			if (!mip.isCorrelated()) continue;
 
 			// FIXME : aller chercher sur les méta data !
-			long photoTime = mip.getImage().getImageDisplayMetaDataInfo().epoch;
+			Long photoTime = mip.getImage().getMetadata().getStartMsEpoch();
 			
-			if (photoTime == -1) continue;
+			if (photoTime == null) continue;
 			
 			if (poleAltAz == null) {
 				// On calcule le pole à la date de la première photo (l'heure n'est pas trés important, elle fait seulement varier la position du pole selon l'epoch)
@@ -271,6 +271,11 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			
 			@Override
 			public void onPixelSizeChanged() {
+			}
+
+			@Override
+			public void metadataStatusChanged() {
+				
 			}
 		});
 		

@@ -11,7 +11,7 @@ public class MultiStarFinderTest {
 
 	public static void testFile(File file) throws IOException
 	{
-		CameraFrame frame = ImageProvider.readImage(file);
+		CameraFrame frame = ImageProvider.readImage(file).getA();
 		
 		MultiStarFinder msf = new MultiStarFinder(frame);
 		

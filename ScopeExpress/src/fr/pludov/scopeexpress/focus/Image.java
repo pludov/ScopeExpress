@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
+import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 
 import org.apache.log4j.Logger;
 
@@ -14,9 +17,11 @@ import com.drew.metadata.Tag;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 import fr.pludov.io.CameraFrame;
+import fr.pludov.io.CameraFrameMetadata;
 import fr.pludov.io.ImageProvider;
 import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.scopeexpress.async.WorkStepResource;
+import fr.pludov.scopeexpress.utils.Couple;
 
 public class Image implements WorkStepResource {
 	private static final Logger logger = Logger.getLogger(Image.class);
@@ -25,16 +30,13 @@ public class Image implements WorkStepResource {
 	
 	SoftReference<CameraFrame> cameraFrame;
 	CameraFrame cameraFrameLocked;
+	
 	int cameraFrameLockCount;
 	boolean loading;
 	
-	// Valide uniquement si cameraFrame a été obtenu !
-	
-	boolean hasMetadata;
-	long epoch;
-	Metadata metadata;
-	Double pause;
-	Integer iso;
+	// Pas de softref pour ça, c'est tout petit
+	CameraFrameMetadata cameraFrameMetadata;
+
 	volatile boolean hasSize;
 	int width, height;
 	
@@ -49,24 +51,27 @@ public class Image implements WorkStepResource {
 		this.cameraFrameLocked = null;
 	}
 
+	// FIXME: maintenant ça peut retourner null 
 	public ImageDisplayMetaDataInfo getImageDisplayMetaDataInfo()
 	{
+		CameraFrameMetadata cfm = getMetadata();
+		
 		ImageDisplayMetaDataInfo result = new ImageDisplayMetaDataInfo();
-		loadMetadata();
-		result.expositionDuration = this.pause;
-		result.iso = this.iso;
-		result.epoch = this.epoch;
+		
+		result.expositionDuration = cfm.getDuration();
+		result.iso = cfm.getGain() != null ? (int)Math.round(cfm.getGain()) : 1600;
+		result.epoch = cfm.getStartMsEpoch();
 		return result;
 	}
-	
-	private void loadMetadata()
-	{
-		if (hasMetadata) return;
-		pause = 1.0;
-		iso = 1600;
-		epoch = path.lastModified();
-		hasMetadata = true;
-		
+//	
+//	private void loadMetadata()
+//	{
+//		if (hasMetadata) return;
+//		pause = 1.0;
+//		iso = 1600;
+//		epoch = path.lastModified();
+//		hasMetadata = true;
+//		
 //		try {
 //			Metadata metadata = ImageMetadataReader.readMetadata(this.path);
 //			Directory directory = metadata.getDirectory(ExifSubIFDDirectory.class);
@@ -89,7 +94,7 @@ public class Image implements WorkStepResource {
 //			System.out.println("unable to read metadata for " + this.path);
 //			e.printStackTrace();
 //		}
-	}
+//	}
 	
 	@Override
 	public boolean lock() {
@@ -137,7 +142,7 @@ public class Image implements WorkStepResource {
 			}
 			loading = true;
 		}
-		CameraFrame loaded = null;
+		Couple<CameraFrame, CameraFrameMetadata> loaded = null;
 		try {
 			try {
 				logger.info("Loading " + path);
@@ -147,22 +152,31 @@ public class Image implements WorkStepResource {
 			}
 		} finally {
 			if (loaded == null) {
-				loaded = new CameraFrame();
+				loaded = new Couple<CameraFrame, CameraFrameMetadata>(new CameraFrame(), null);
 			}
 			
 			synchronized(this)
 			{
 				this.loading = false;
-				this.cameraFrame = new SoftReference<CameraFrame>(loaded);
-				this.cameraFrameLocked = loaded;
+				CameraFrame frame = loaded.getA();
+				setFrame(frame);
+				if (loaded.getB() != null) {
+					this.cameraFrameMetadata = loaded.getB();
+				}
+				this.cameraFrameLocked = frame;
 				this.cameraFrameLockCount++;
-				this.hasSize = true;
-				this.width = loaded.getWidth();
-				this.height = loaded.getHeight();
+				
 				
 				notifyAll();
 			}
 		}
+	}
+
+	private void setFrame(CameraFrame frame) {
+		this.cameraFrame = new SoftReference<CameraFrame>(frame);
+		this.hasSize = true;
+		this.width = frame.getWidth();
+		this.height = frame.getHeight();
 	}
 	
 	/**
@@ -180,6 +194,80 @@ public class Image implements WorkStepResource {
 		return result;
 	}
 
+	/** FIXME: pour l'instant ça peut etre null */
+	public CameraFrameMetadata getMetadata()
+	{
+		synchronized(this) {
+			if (this.cameraFrameMetadata != null) {
+				return this.cameraFrameMetadata;
+			}
+			while(loading) {
+				try {
+					wait(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (this.cameraFrameMetadata != null) {
+					return this.cameraFrameMetadata;
+				}
+			}
+			loading = true;
+		}
+		Couple<CameraFrame, CameraFrameMetadata> result = null;
+		try {
+			result = ImageProvider.readImageMetadata(this.path);
+		} catch(IOException e) {
+			result = new Couple<CameraFrame, CameraFrameMetadata>(null, new CameraFrameMetadata());
+		} finally {
+			// Eventuellement, on va chercher sur le filesystem (date de création, ...)
+			metadataFallback(result.getB(), this.path, result);
+			synchronized(this) {
+				loading = false;
+				if (result != null && this.cameraFrameMetadata == null) {
+					this.cameraFrameMetadata = result.getB();
+				}
+				if (result != null && result.getA() != null && this.cameraFrameLockCount == 0) {
+					// Assurer qu'on ait une camera frame
+					setFrame(result.getA());
+				}
+				notifyAll();
+			}
+		}
+		return result.getB();
+	}
+	
+	private void metadataFallback(CameraFrameMetadata cfm, File path2, Couple<CameraFrame, CameraFrameMetadata> result) {
+		try {
+			BasicFileAttributes attr = Files.readAttributes(path2.toPath(), BasicFileAttributes.class);
+			FileTime creationTime = attr.creationTime();
+			if (creationTime != null) { 
+				long epoch = creationTime.toMillis();
+				if (cfm.getDuration() != null) {
+					// On suppose que le fichier est toujours créé après la fin de la prise de vue.
+					epoch -= cfm.getDuration() * 1000;
+				}
+				cfm.setStartMsEpoch(epoch);
+			}
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public boolean hasReadyCameraFrame() {
+		synchronized(this)
+		{
+			return cameraFrame.get() != null;
+		}
+	}
+	
+	public boolean hasReadyMetadata()
+	{
+		synchronized(this) {
+			return this.cameraFrameMetadata != null;
+		}
+	}
+	
 	public File getPath() {
 		return path;
 	}

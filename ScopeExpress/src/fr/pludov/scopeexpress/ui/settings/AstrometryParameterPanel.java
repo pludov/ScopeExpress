@@ -466,6 +466,10 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 					}
 				}
 			}
+			
+			@Override
+			public void metadataStatusChanged() {
+			}
 		});
 		if (mip.isCorrelated()) {
 			if (isLastCorrelated(mip.getImage())) {

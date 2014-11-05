@@ -21,14 +21,17 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.WeakHashMap;
 
 import javax.imageio.ImageIO;
 
 import net.ivoa.fits.Fits;
+import net.ivoa.fits.FitsException;
 import net.ivoa.fits.FitsExceptionNoKey;
 import net.ivoa.fits.data.Data;
 import net.ivoa.fits.hdu.BasicHDU;
@@ -38,7 +41,17 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.log4j.Logger;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
+import com.drew.metadata.exif.CanonMakernoteDirectory;
+import com.drew.metadata.exif.ExifIFD0Directory;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+
 import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.utils.Couple;
 import fr.pludov.utils.ChannelMode;
 
 public class ImageProvider {
@@ -48,7 +61,7 @@ public class ImageProvider {
 	{
 		boolean loading;
 		IOException problem;
-		SoftReference<CameraFrame> frame;
+		SoftReference<Couple<CameraFrame, CameraFrameMetadata>> frame;
 	}
 	
 	static HashMap<File, FileStatus> frames = new HashMap<File, FileStatus>();
@@ -70,7 +83,7 @@ public class ImageProvider {
 		}
 	}
 	
-	public static CameraFrame readImage(final File file) throws IOException
+	public static Couple<CameraFrame, CameraFrameMetadata> readImage(final File file) throws IOException
 	{
 		FileStatus status;
 
@@ -89,7 +102,7 @@ public class ImageProvider {
 				} else {
 					if (status != null) {
 						if (status.problem == null) {
-							CameraFrame frame = status.frame.get();
+							Couple<CameraFrame,CameraFrameMetadata> frame = status.frame.get();
 							if (frame != null) return frame;
 							status.loading = true;
 							break;
@@ -110,7 +123,7 @@ public class ImageProvider {
 		}
 		
 		IOException problem = null;
-		CameraFrame frame = null;
+		Couple<CameraFrame, CameraFrameMetadata> frame = null;
 		// Charger l'image
 		try {
 			frame = doReadImage(file);
@@ -129,7 +142,7 @@ public class ImageProvider {
 			status.loading = false;
 			status.problem = problem;
 			if (frame != null) {
-				status.frame = new SoftReference<CameraFrame>(frame);
+				status.frame = new SoftReference<Couple<CameraFrame, CameraFrameMetadata>>(frame);
 			} else {
 				status.frame = null;
 			}
@@ -155,9 +168,108 @@ public class ImageProvider {
 		}
 	}
 	
-	private static CameraFrame doReadImage(final File file) throws IOException
+	public static Couple<CameraFrame, CameraFrameMetadata> readImageMetadata(final File file) throws IOException
 	{
-		if (file.getName().toLowerCase().matches(".*\\.fit(|s)")) {
+		if (isFits(file)) {
+			return doReadImage(file);
+		}
+		
+		try {
+			CameraFrameMetadata result = new CameraFrameMetadata();
+			
+			Metadata metadata = ImageMetadataReader.readMetadata(file);
+			Directory directory = metadata.getDirectory(ExifSubIFDDirectory.class);
+			if (directory != null) {
+				Double pause = directory.getDoubleObject(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
+				result.setDuration(pause);
+				
+				Integer iso = directory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
+				result.setGain(iso != null ? iso.doubleValue() : null);
+				
+				double cvFactor = 0.1; // Pour les CM
+				Integer unit;
+				unit = directory.getInteger(ExifSubIFDDirectory.TAG_FOCAL_PLANE_UNIT);
+				if (unit == null) unit = 2;
+				switch(unit) {
+				case 2:
+					cvFactor = 0.03937007870;
+				case 1:
+					Double xPixSize = null, yPixSize = null;
+					if (directory.getRational(ExifSubIFDDirectory.TAG_FOCAL_PLANE_X_RES) != null) {
+						// Pas de convertion
+						double pixPerMm;
+						// Pour l'avoir en pixel par mm:
+						pixPerMm = directory.getRational(ExifSubIFDDirectory.TAG_FOCAL_PLANE_X_RES).doubleValue();
+						pixPerMm *= cvFactor;
+						
+						xPixSize = 1000 / pixPerMm;
+					}
+					if (directory.getRational(ExifSubIFDDirectory.TAG_FOCAL_PLANE_Y_RES) != null) {
+						// Pas de convertion
+						double pixPerMm;
+						// Pour l'avoir en pixel par mm:
+						pixPerMm = directory.getRational(ExifSubIFDDirectory.TAG_FOCAL_PLANE_Y_RES).doubleValue();
+						pixPerMm *= cvFactor;
+						
+						yPixSize = 1000 / pixPerMm;
+					}
+					if (xPixSize == null) {
+						xPixSize = yPixSize;
+					} else if (yPixSize == null) {
+						yPixSize = xPixSize;
+					} else {
+						// On a deux valeurs
+						double ratio = xPixSize / yPixSize;
+						
+						if (ratio > 0.99 && ratio < 1.01) {
+							xPixSize = (xPixSize + yPixSize) / 2.0;
+							yPixSize = xPixSize;
+						}
+					}
+					result.setPixSizeX(xPixSize);
+					result.setPixSizeY(yPixSize);
+				}
+				
+				
+			
+			}
+//			
+//			ExifIFD0Directory directoryExifIFD0Directory = metadata.getDirectory(ExifIFD0Directory.class);
+//			if (directoryExifIFD0Directory != null) {
+//				String model = directoryExifIFD0Directory.getString(ExifIFD0Directory.TAG_MODEL);
+//				result.setInstrument(model);
+//				
+//				Double xRes = directoryExifIFD0Directory.getDoubleObject(ExifIFD0Directory.TAG_X_RESOLUTION);
+//				Double yRes = directoryExifIFD0Directory.getDoubleObject(ExifIFD0Directory.TAG_Y_RESOLUTION);
+//				Integer resUnit = directoryExifIFD0Directory.getInteger(ExifIFD0Directory.TAG_RESOLUTION_UNIT);
+//				System.out.println("plo)");
+//			}
+			
+
+			CanonMakernoteDirectory directoryCanonMakernoteDirectory = metadata.getDirectory(CanonMakernoteDirectory.class);
+			if (directoryCanonMakernoteDirectory != null) {
+				Integer temp = directoryCanonMakernoteDirectory.getInteger(CanonMakernoteDirectory.ShotInfo.TAG_CAMERA_TEMPERATURE);
+				if (temp != null && temp.intValue() != 0) {
+					result.setCcdTemp(new Double(temp - 128));
+				}
+			}
+			
+			for (Directory directory2 : metadata.getDirectories()) {
+			    for (Tag tag : directory2.getTags()) {
+			        System.out.println(tag);
+			    }
+			}
+			
+			return new Couple<CameraFrame,CameraFrameMetadata>(null,result);
+		} catch(ImageProcessingException e) {
+			e.printStackTrace();
+			return new Couple<CameraFrame,CameraFrameMetadata>(null, new CameraFrameMetadata());
+		}
+	}
+	
+	private static Couple<CameraFrame, CameraFrameMetadata> doReadImage(final File file) throws IOException
+	{
+		if (isFits(file)) {
 			try {
 				Fits fits = new Fits(file);
 				BasicHDU basicHDU = fits.getHDU(0);
@@ -206,8 +318,40 @@ public class ImageProvider {
 						}
 						result.scanPixelsForHistogram();
 						
-						return result;
-					
+						
+						CameraFrameMetadata fitsMetadata = new CameraFrameMetadata();
+						fitsMetadata.setInstrument(imageHDU.getInstrument());
+						Date obsDate = imageHDU.getObservationDate();
+						if (obsDate != null) {
+							fitsMetadata.setStartMsEpoch(obsDate.getTime());
+						}
+						
+						try {
+							fitsMetadata.setDuration(imageHDU.getHeader().getDoubleValue("EXPTIME"));
+						} catch(FitsException e) {}
+						try {
+							fitsMetadata.setBinX(imageHDU.getHeader().getIntValue("XBINNING"));
+						} catch(FitsException e) {}
+						try {
+							fitsMetadata.setBinY(imageHDU.getHeader().getIntValue("YBINNING"));
+						} catch(FitsException e) {}
+						try {
+							fitsMetadata.setGain(imageHDU.getHeader().getDoubleValue("EGAIN"));
+						} catch(FitsException e) {}
+						try {
+							fitsMetadata.setCcdTemp(imageHDU.getHeader().getDoubleValue("CCD-TEMP"));
+						} catch(FitsException e) {}
+						
+						try {
+							fitsMetadata.setPixSizeX(imageHDU.getHeader().getDoubleValue("XPIXSZ"));
+						} catch(FitsException e) {}
+						try {
+							fitsMetadata.setPixSizeY(imageHDU.getHeader().getDoubleValue("YPIXSZ"));
+						} catch(FitsException e) {}
+						
+						// Il reste: IMAGETYP et PIXEL SIZE X ET Y
+						
+						return new Couple<CameraFrame, CameraFrameMetadata>(result, fitsMetadata);
 					}
 
 				}
@@ -215,7 +359,7 @@ public class ImageProvider {
 			} catch(Exception e) {
 				throw new IOException("Echec de lecture FITS", e);
 			}
-		} else if (file.getName().toLowerCase().matches(".*\\.cr.")) {
+		} else if (isCr2(file)) {
 			try {
 				File library = Utils.locateDll("libjrawlib.dll");
 
@@ -247,7 +391,7 @@ public class ImageProvider {
 			result.histogramNbPix[1] = width * height / 2;
 			result.histogramNbPix[2] = width * height / 4;
 			
-			return result;
+			return new Couple<CameraFrame, CameraFrameMetadata>(result, null);
 		} else {
 			
 			
@@ -308,8 +452,40 @@ public class ImageProvider {
 			result.histogramNbPix[1] = outwidth * outheight / 2;
 			result.histogramNbPix[2] = outwidth * outheight / 4;
 			
-			return result;
+			return new Couple<CameraFrame, CameraFrameMetadata>(result, null);
 		}
+	}
+
+	private static Integer parseFitsInteger(String trimmedString) {
+		if (trimmedString == null || "".equals(trimmedString)) {
+			return null;
+		}
+		try {
+			return Integer.parseInt(trimmedString);
+		} catch(NumberFormatException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	private static Double parseFitsDouble(String trimmedString) {
+		if (trimmedString == null || "".equals(trimmedString)) {
+			return null;
+		}
+		try {
+			return Double.valueOf(trimmedString);
+		} catch(NumberFormatException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	private static boolean isCr2(final File file) {
+		return file.getName().toLowerCase().matches(".*\\.cr.");
+	}
+
+	private static boolean isFits(final File file) {
+		return file.getName().toLowerCase().matches(".*\\.fit(|s)");
 	}
 	
 //	public static BufferedImage readImage(final File file) throws IOException

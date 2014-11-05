@@ -24,6 +24,15 @@ public final class FindStarTask extends BackgroundTask {
 
 	@Override
 	protected boolean isReady() {
+		// Attendre la fin éventuelle d'une tache de type LoadMetadata
+		// Pas deux chargement sur la même image...
+		for(LoadMetadataTask otherFindStar : getQueue().getTasksWithStatus(LoadMetadataTask.class, Status.Running))
+		{
+			if (otherFindStar.getMosaic() == this.getMosaic() && otherFindStar.getImage().getImage() == this.getImage()) {
+				return false;
+			}
+		}
+		
 		// Pas deux detections sur la même étoiles...
 		for(FindStarTask otherFindStar : getQueue().getTasksWithStatus(FindStarTask.class, Status.Running))
 		{
@@ -41,6 +50,11 @@ public final class FindStarTask extends BackgroundTask {
 		}
 		
 		return super.isReady();
+	}
+	
+	@Override
+	public int getResourceOpportunity() {
+		return image.hasReadyCameraFrame() ? 1 : 0;
 	}
 	
 	@Override

@@ -63,6 +63,12 @@ public abstract class BackgroundTask {
 	{
 		return true;
 	}
+
+	/**
+	 * Indique si du point de vue ressource, cette tache est particulièrement intéressante à lancer maintenant
+	 * c.a.d les données dont elle a besoin sont déjà dispo
+	 */
+	public abstract int getResourceOpportunity();
 	
 	// Ceci est appellé dès que isReady est vrai et que le nombre de taches en attente le permet
 	protected abstract void proceed() throws BackgroundTaskCanceledException, Throwable;

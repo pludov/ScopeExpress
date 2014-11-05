@@ -98,22 +98,38 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 			public Object getValue(MosaicImageListEntry ile) {
 				return ile.getCreationDate();
 			}
-		}
+		},
 		
-//		new ColumnDefinition("Exp", Double.class, 30) {
+		new ColumnDefinition("Exp", Double.class, 30) {
+			@Override
+			public Object getValue(MosaicImageListEntry ile) {
+				MosaicImageParameter mip = ile.getTarget();
+				return mip.getImage().getMetadata().getDuration();
+			}
+
 //			@Override
-//			public Object getValue(FocusImageListEntry ile) {
-//				return ile.getTarget().getPause();
-//			}
-//
-//			@Override
-//			public void setValue(FocusImageListEntry ile, Object value) {
+//			public void setValue(MosaicImageListEntry ile, Object value) {
 //				Double v = (Double)value;
 //				if (v != null && v <= 0) throw new RuntimeException("exposition must be >= 0!");
 //				ile.getTarget().setPause((Double)value);
 //			}
-//			
-//		}.setEditable(true),
+			
+		}.setEditable(false),
+		new ColumnDefinition("T°", Double.class, 30) {
+			@Override
+			public Object getValue(MosaicImageListEntry ile) {
+				MosaicImageParameter mip = ile.getTarget();
+				return mip.getImage().getMetadata().getCcdTemp();
+			}
+
+//			@Override
+//			public void setValue(MosaicImageListEntry ile, Object value) {
+//				Double v = (Double)value;
+//				if (v != null && v <= 0) throw new RuntimeException("exposition must be >= 0!");
+//				ile.getTarget().setPause((Double)value);
+//			}
+			
+		}.setEditable(false)
 //		
 //		new ColumnDefinition("ISO", Integer.class, 45) {
 //			@Override

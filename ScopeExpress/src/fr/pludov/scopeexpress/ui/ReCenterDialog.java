@@ -353,6 +353,10 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 				@Override
 				public void onPixelSizeChanged() {
 				}
+				
+				@Override
+				public void metadataStatusChanged() {
+				}
 			});
 		}
 		return mip;
