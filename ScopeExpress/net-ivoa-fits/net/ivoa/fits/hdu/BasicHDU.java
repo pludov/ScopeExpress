@@ -245,7 +245,9 @@ public abstract class BasicHDU implements FitsElement {
 	 */
 	public String getTrimmedString(String keyword) throws FitsException {
 		String s = myHeader.getStringValue(keyword);
-		s.trim();
+		if (s != null) {
+			s.trim();
+		}
 		return s;
 	}
 
