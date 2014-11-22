@@ -319,7 +319,12 @@ public class HistogramDisplay extends JPanel {
 	        			b += bar.ch.channel.b;
 	        		}
 	        	}
-	        	colors[v] = new Color((int)(r * fact), (int)(g * fact), (int)(b *fact));
+	        	double vfact = fact;
+	        	int high = Math.max(r, Math.max(g, b));
+	        	if (high > 255) {
+	        		vfact = 255 / high;
+	        	}
+	        	colors[v] = new Color((int)(r * vfact), (int)(g * vfact), (int)(b * vfact));
 	        }
 		}
 
