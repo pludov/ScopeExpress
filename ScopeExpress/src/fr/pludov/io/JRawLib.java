@@ -13,10 +13,6 @@ public class JRawLib {
 	private int maximum;
 	private char [] data;
 	
-	private int [] redHistogram;
-	private int [] greenHistogram;
-	private int [] blueHistogram;
-	
 	native char [] doLoad(byte [] path);
 	
 	public void load(File  path)
@@ -50,17 +46,5 @@ public class JRawLib {
 
 	public void setMaximum(int maximum) {
 		this.maximum = maximum;
-	}
-
-	public int[] getRedHistogram() {
-		return redHistogram;
-	}
-
-	public int[] getGreenHistogram() {
-		return greenHistogram;
-	}
-
-	public int[] getBlueHistogram() {
-		return blueHistogram;
 	}
 }

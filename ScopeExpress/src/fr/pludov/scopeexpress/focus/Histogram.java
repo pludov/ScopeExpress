@@ -1,14 +1,15 @@
-package fr.pludov.utils;
+package fr.pludov.scopeexpress.focus;
 
 import java.util.Arrays;
 
 import fr.pludov.io.CameraFrame;
+import fr.pludov.utils.ChannelMode;
 
 public class Histogram {
 	final int [] count;
 	int pixCount;
 	
-	public Histogram() {
+	Histogram() {
 		this.count = new int[65536];
 		this.pixCount = 0;
 	}
@@ -19,6 +20,13 @@ public class Histogram {
 			Arrays.fill(this.count, 0);
 			pixCount = 0;
 		}
+	}
+	
+	public static Histogram forArea(CameraFrame cf, int x0, int y0, int x1, int y1, ChannelMode mode)
+	{
+		Histogram result = new Histogram();
+		result.calc(cf, x0, y0, x1, y1, mode);
+		return result;
 	}
 	
 	public double getMoy(int minAdu, int maxAdu)
@@ -62,7 +70,13 @@ public class Histogram {
 		return blackLevel;
 	}
 	
-	public void calc(CameraFrame frame, int x0, int y0, int x1, int y1, ChannelMode mode)
+	public int getValue(int adu)
+	{
+		if ((adu < 0) || (adu >= count.length)) return 0;
+		return count[adu];
+	}
+	
+	void calc(CameraFrame frame, int x0, int y0, int x1, int y1, ChannelMode mode)
 	{
 		reset();
 		

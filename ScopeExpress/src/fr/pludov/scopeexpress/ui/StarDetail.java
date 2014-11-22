@@ -15,6 +15,7 @@ import fr.pludov.scopeexpress.focus.StarOccurenceListener;
 import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 import fr.pludov.utils.ChannelMode;
+import fr.pludov.utils.StarDetectionMode;
 
 public class StarDetail extends StarDetailDesign {
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -120,23 +121,45 @@ public class StarDetail extends StarDetailDesign {
 					+ " (" + Utils.doubleToString(this.so.getMinStddev(),  2)+" < " + Utils.doubleToString(this.so.getMaxStddev(),  2) + ")");
 			int aduMax = 0;
 			int aduSum = 0;
-			for(int i = 0; i < 3; ++i)
+			StarDetectionMode sd = this.so.getStarDetectionMode();
+			for(int i = 0; i < 4; ++i)
 			{
-				int aduMaxC = so.getAduMaxByChannel()[i];
-				int aduSumC = so.getAduSumByChannel()[i];
-				this.lblAduMaxList[i].setText(Integer.toString(aduMaxC));
-				this.lblAduSumList[i].setText(Integer.toString(aduSumC));
-				this.lblBlackList[i].setText(Integer.toString(so.getBlackLevel(ChannelMode.values()[i])));
-				
-				if (aduMaxC > aduMax) {
-					aduMax = aduMaxC;
+				int chid = -1;
+				if (sd != null)
+				{
+					for(chid = 0; chid < sd.channels.length; ++chid)
+					{
+						ChannelMode chMode= sd.channels[chid];
+						if (chMode.ordinal() == i) {
+							break; 
+						}
+					}
 				}
 				
-				aduSum += aduSumC;
+			
+				if (sd != null && chid < sd.channels.length) {
+					int aduMaxC = so.getAduMaxByChannel()[chid];
+					int aduSumC = so.getAduSumByChannel()[chid];
+					this.lblAduMaxList[i].setText(Integer.toString(aduMaxC) + (sd.channelCount == 1 && this.so.isSaturationDetected() ? " (sat)" : ""));
+					this.lblAduSumList[i].setText(Integer.toString(aduSumC));
+					this.lblBlackList[i].setText(Integer.toString(so.getBlackLevelByChannel()[chid]));
+					
+					if (aduMaxC > aduMax) {
+						aduMax = aduMaxC;
+					}
+					
+					aduSum += aduSumC;
+				} else {
+					this.lblAduMaxList[i].setText("");
+					this.lblAduSumList[i].setText("");
+					this.lblBlackList[i].setText("");
+				}
 			}
-			this.lblAduMaxList[3].setText(Integer.toString(aduMax) + (this.so.isSaturationDetected() ? " (sat)" : ""));
-			this.lblAduSumList[3].setText(Integer.toString(aduSum));
-			this.lblBlackList[3].setText("");
+			if (sd.channelCount > 1) {
+				this.lblAduMaxList[3].setText(Integer.toString(aduMax) + (this.so.isSaturationDetected() ? " (sat)" : ""));
+				this.lblAduSumList[3].setText(Integer.toString(aduSum));
+				this.lblBlackList[3].setText("");
+			}
 
 			if (this.so != null && this.so.getStar().getPositionStatus() == StarCorrelationPosition.Reference)
 			{

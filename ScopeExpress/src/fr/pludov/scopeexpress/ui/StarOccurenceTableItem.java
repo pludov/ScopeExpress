@@ -3,22 +3,16 @@ package fr.pludov.scopeexpress.ui;
 import java.awt.image.BufferedImage;
 
 import fr.pludov.io.CameraFrame;
-import fr.pludov.scopeexpress.ImageDisplayParameter;
-import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
-import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.focus.StarOccurenceListener;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 
 public class StarOccurenceTableItem extends FrameDisplay {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	final StarOccurence starOccurence;
-	final ImageDisplayParameter displayParameter;
 	
-	public StarOccurenceTableItem(StarOccurence so, ImageDisplayParameter displayParameter) {
+	public StarOccurenceTableItem(StarOccurence so) {
 		this.starOccurence = so;
-		this.displayParameter = displayParameter;
 		refreshDisplay();
 	}
 	
@@ -27,13 +21,9 @@ public class StarOccurenceTableItem extends FrameDisplay {
 		BufferedImage image = null;
 		StarOccurence so = starOccurence;
 		if (so != null) {
-			Image sourceImage = so.getImage();
-			
-			ImageDisplayMetaDataInfo metadataInfo = sourceImage.getImageDisplayMetaDataInfo();
-			
 			CameraFrame frame = so != null ? so.getSubFrame() : null;
 			if (frame != null) {
-				image = frame.asRgbImageDebayer(displayParameter, metadataInfo);
+				image = frame.asRgbImageDebayer(so.getSubFrameDisplayParameters());
 			}
 		}
 		

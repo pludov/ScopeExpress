@@ -93,7 +93,7 @@ public abstract class BackgroundTask {
 	/**
 	 * Peut-être appellé par proceed.
 	 */
-	protected final void checkInterrupted() throws BackgroundTaskCanceledException
+	public final void checkInterrupted() throws BackgroundTaskCanceledException
 	{
 		if (queue == null) {
 			return;

@@ -7,73 +7,38 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import fr.pludov.io.CameraFrame;
+import fr.pludov.scopeexpress.focus.Histogram;
+import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 import fr.pludov.scopeexpress.utils.cache.Cache;
 
 public class ImageDisplayParameter implements Serializable, Cloneable {
 	
-	public static enum TransfertFunction {
-		Linear,
-		SquareRoot,
-		CubeRoot
-	};
-	
-	/**
-	 * Cet objet contient les métadata utilisée sur l'objet image.
-	 * La méthode equals permet de savoir si les métadatas utilisées ont changé.
-	 */
-	public static class ImageDisplayMetaDataInfo implements Cloneable
-	{
-		public Double expositionDuration;
-		public Integer iso;
-		public Long epoch;
-		
-		public ImageDisplayMetaDataInfo clone()
-		{
-			ImageDisplayMetaDataInfo result = new ImageDisplayMetaDataInfo();
-			result.expositionDuration = this.expositionDuration;
-			result.iso = this.iso;
-			return result;
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if (!(obj instanceof ImageDisplayMetaDataInfo)) return false;
-			ImageDisplayMetaDataInfo other = (ImageDisplayMetaDataInfo)obj;
-			return Utils.equalsWithNullity(this.expositionDuration, other.expositionDuration)
-					&& Utils.equalsWithNullity(this.iso,  other.iso);
-		}
-		
-		@Override
-		public int hashCode() {
-			int result = 42;
-			if (iso != null) result ^= iso.hashCode();
-			if (expositionDuration != null) result ^= expositionDuration.hashCode();
-			return result;
-		}
-	}
-	
 	private static final long serialVersionUID = -8001279656594732796L;
 
 	public transient WeakListenerCollection<ImageDisplayParameterListener> listeners;
 
-	public enum ChannelMode { Color, GreyScale, NarrowRed, NarrowGreen, NarrowBlue }; 
+	public enum ChannelMode { 
+		Color(null), 
+		GreyScale(java.awt.Color.white), 
+		NarrowRed(java.awt.Color.red), 
+		NarrowGreen(java.awt.Color.green),
+		NarrowBlue(java.awt.Color.blue);
+		
+		public final java.awt.Color displayColor;
+		ChannelMode(java.awt.Color color)
+		{
+			this.displayColor = color;
+		}
+		
+	}; 
 	
 	private ChannelMode channelMode;
-	
-	private TransfertFunction transfertFunction;
-	
-	// Durée d'exposition ciblée : multiplie l'image par targetExposition / duration 
-	private Double targetExposition;
-	
-	// Niveau d'iso ciblé : multiplie l'image par targetIso / iso
-	private Integer targetIso;
-
-	private int zero;
-	
+		
 	// En adu, éventuellement après scaling par targetExpo et targetIso
 	private double [] low;
 	private double [] median;
@@ -81,26 +46,20 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	private boolean autoHistogram;
 	
+	private boolean darkEnabled;
+	
+	private Image darkFrame;
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (!(obj instanceof ImageDisplayParameter)) return false;
 		
 		ImageDisplayParameter other = (ImageDisplayParameter)obj;
-		
+		if ((other.darkFrame == null) != (this.darkFrame == null)) return false;
+		if (other.darkFrame != null && !other.darkFrame.equals(this.darkFrame)) return false;
 		if (other.autoHistogram != autoHistogram) return false;
 		if (other.channelMode != channelMode) return false;
-		if (other.zero != zero) return false;
-		if (other.transfertFunction != transfertFunction) return false;
-		
-		if (((other.targetExposition == null) != (this.targetExposition == null))
-				|| (this.targetExposition != null && !this.targetExposition.equals(other.targetExposition))) {
-			return false;
-		}
-		
-		if (((other.targetIso == null) != (this.targetIso == null))
-				|| (this.targetIso != null && !this.targetIso.equals(other.targetIso))) {
-			return false;
-		}
+		if (other.darkEnabled != darkEnabled) return false;
 		
 		for(int i = 0; i < 3; ++i)
 		{
@@ -110,6 +69,28 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		}
 		return true;
 	}
+	
+	public boolean equalsExceptAutoHistValue(Object obj) {
+		if (!(obj instanceof ImageDisplayParameter)) return false;
+		
+		ImageDisplayParameter other = (ImageDisplayParameter)obj;
+		if ((other.darkFrame == null) != (this.darkFrame == null)) return false;
+		if (other.darkFrame != null && !other.darkFrame.equals(this.darkFrame)) return false;
+		if (other.autoHistogram != autoHistogram) return false;
+		if (other.channelMode != channelMode) return false;
+		if (other.darkEnabled != darkEnabled) return false;
+		if (!autoHistogram) {
+			for(int i = 0; i < 3; ++i)
+			{
+				if (this.low[i] != other.low[i]) return false;
+				if (this.median[i] != other.median[i]) return false;
+				if (this.high[i] != other.high[i]) return false;
+			}
+		}
+		return true;
+	}
+	
+	
 	
 	private static final int hashDouble(double d)
 	{
@@ -121,23 +102,18 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 	public int hashCode() {
 		int result = 1;
 		if (autoHistogram) result ^= 238;
+		if (darkEnabled) result ^= 3423948;
 		result ^= channelMode.hashCode();
-		result ^= zero;
-		result ^= transfertFunction.hashCode();
-		
-		if (this.targetExposition != null) {
-			result ^= this.targetExposition.hashCode();
+		if (this.darkFrame != null) {
+			result ^= darkFrame.hashCode();
 		}
-
-		if (this.targetIso != null) {
-			result ^= this.targetIso.hashCode();
-		}
-
-		for(int i = 0; i < 3; ++i)
-		{
-			result ^= hashDouble(this.low[i]);
-			result ^= hashDouble(this.median[i]);
-			result ^= hashDouble(this.high[i]);
+		if (!autoHistogram) {
+			for(int i = 0; i < 3; ++i)
+			{
+				result ^= hashDouble(this.low[i]);
+				result ^= hashDouble(this.median[i]);
+				result ^= hashDouble(this.high[i]);
+			}
 		}
 		return result;
 	}
@@ -147,31 +123,29 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		ImageDisplayParameter result = new ImageDisplayParameter();
 		
 		result.channelMode = this.channelMode;
-		result.transfertFunction = this.transfertFunction;
-		result.targetExposition = this.targetExposition;
-		result.targetIso = this.targetIso;
-		result.zero = this.zero;
 		result.low = Arrays.copyOf(this.low, this.low.length);
 		result.median = Arrays.copyOf(this.median, this.median.length);
 		result.high = Arrays.copyOf(this.high, this.high.length);
 		result.autoHistogram = this.autoHistogram;
-
+		result.darkFrame = this.darkFrame;
+		result.darkEnabled = this.darkEnabled;
 		return result;
 	}
 	
 	public static class AduLevelMapperId
 	{
-		final int black;
-		final int maximum;
+		final double black;
+		final double medium;
+		final double maximum;
 		final int channel;
-		final double mul;
+		int hashCode;
 
-		AduLevelMapperId(int black, int maximum, int channel, double mul)
+		AduLevelMapperId(double black, double medium, double maximum, int channel)
 		{
 			this.black = black;
+			this.medium = medium;
 			this.maximum = maximum;
 			this.channel = channel;
-			this.mul = mul;
 		}
 		
 		@Override
@@ -179,142 +153,167 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 			if (!(obj instanceof AduLevelMapperId)) return false;
 			AduLevelMapperId other = (AduLevelMapperId)obj;
 			return other.black == this.black
+					&& other.medium == this.medium
 					&& other.maximum == this.maximum
-					&& other.channel == this.channel
-					&& other.mul == this.mul;
+					&& other.channel == this.channel;
 		}
 		
 		public int hashCode() {
-			return this.black ^ this.maximum ^ this.channel;
+			if (hashCode == -1) {
+				hashCode = channel
+						^new Double(black).hashCode()
+						^new Double(medium).hashCode()
+						^new Double (maximum).hashCode();
+			}
+			return hashCode;
 		}
 
-		public int getBlack() {
+		public double getBlack() {
 			return black;
 		}
 
-		public int getMaximum() {
+		public double getMaximum() {
 			return maximum;
+		}
+
+		public double getMedium() {
+			return medium;
 		}
 
 		public int getChannel() {
 			return channel;
 		}
-
-		public double getMul() {
-			return mul;
-		};
 	}
 	
 	public class AduLevelMapper
 	{
 		final AduLevelMapperId id;
-		
+		double gamma;
 		short [] mapping;
 		
 		AduLevelMapper(AduLevelMapperId id)
 		{
 			this.id = id;
+			
 		}
 		
 		boolean shareParameters(AduLevelMapper other)
 		{
 			return other.id.getBlack() == id.getBlack()
 					&& other.id.getMaximum() == id.getMaximum()
-					&& other.id.getChannel() == id.getChannel()
-					&& other.id.getMul() == id.getMul();
+					&& other.id.getMedium() == id.getMedium()
+					&& other.id.getChannel() == id.getChannel();
 		}
 		
 		void init()
 		{
-			this.mapping = new short[id.getMaximum() - id.getBlack() + 1];
+			this.mapping = new short[(int)Math.floor(id.getMaximum() - id.getBlack()) + 1];
 			for(int i = 0; i < mapping.length; ++i)
 			{
 				this.mapping[i] = -1;
 			}
+			// (medium - black) / (max - black) ^ gamma = 0.5
+			// log((med - black)/(max - black) ^ gamma) = log(0.5)
+			// gamma . log((med - black)/(max - black)) = log(0.5)
+			// gamma = log(0.5) / log((med - black)/(max - black))
+			this.gamma = Math.log(0.5) / Math.log((id.getMedium() - id.getBlack()) / (id.getMaximum() - id.getBlack()));
+			System.out.println("gamma = " + gamma);
+			//gamma = 1.0;
 		}
 		
-		public int getLevelForAdu(int adu)
+		public int getLevelForAdu(int iAdu)
 		{
+			double adu = iAdu;
 			if (adu < id.getBlack()) {
-				// System.err.println("adu is bellow min");
 				adu = id.getBlack();
 			}
 			
 			if (adu > id.getMaximum()) {
-			//	System.err.println("adu is over max");
 				adu = id.getMaximum();
 			}
 			
-			int cacheId = adu - id.getBlack();
+			int cacheId = (int)Math.floor(adu - id.getBlack());
 			
 			int cacheValue = this.mapping[cacheId];
 			if (cacheValue != -1) {
 				return cacheValue;
 			}
 			
-			int normalizeAdu = 65535 * (adu - id.getBlack()) / (id.getMaximum() - id.getBlack());
-			cacheValue = getLevelForNormalizedAdu(normalizeAdu);
-			this.mapping[cacheId] = (short)cacheValue;
+			// Entre 0 et 1
+			double normalised = (adu - id.getBlack()) / (id.getMaximum() - id.getBlack());
+			double m = (id.getMedium() - id.getBlack()) / (id.getMaximum() - id.getBlack());
 			
-			return cacheValue;
+			
+			double v = (m-1) * normalised / (( 2 * m - 1) * normalised - m);
+			
+			double gammaAdjusted = 256.0 * v;
+			// Applique le gamma pour que min mène à 50%
+			int result = (int)Math.floor(gammaAdjusted);
+			
+			if (result > 255) {
+				result = 255;
+			}
+			this.mapping[cacheId] = (short)result;
+			
+			return result;
 		}
-		
-		private int getLevelForNormalizedAdu(int adu)
-		{
-			// adu est nécessairement entre 
-			// low => 0
-			// high => 255
-			// median => 128
-			
-			double adudouble;
-			
-			adudouble = adu;
-			adudouble *= id.getMul();
-			if (!autoHistogram) adudouble -= zero;
-			
-			// adu est normalisé entre 0 - 65535. Au delà, c'est non spécifié...
-			if (adudouble < 0) adudouble = 0;
-			if (adudouble > 65535) adudouble = 65535;
-			switch(transfertFunction)
-			{
-			case Linear:
-				break;
-//			case Logarithm:
-//				// adu /= 65535.0;
-//				adudouble = 65535.0 * Math.log(1 + adudouble) / Math.log( 1 + 65535);
+//		
+//		private int getLevelForNormalizedAdu(int adu)
+//		{
+//			// adu est nécessairement entre 
+//			// low => 0
+//			// high => 255
+//			// median => 128
+//			
+//			double adudouble;
+//			
+//			adudouble = adu;
+//			adudouble *= id.getMul();
+//			if (!autoHistogram) adudouble -= zero;
+//			
+//			// adu est normalisé entre 0 - 65535. Au delà, c'est non spécifié...
+//			if (adudouble < 0) adudouble = 0;
+//			if (adudouble > 65535) adudouble = 65535;
+//			switch(transfertFunction)
+//			{
+//			case Linear:
 //				break;
-			case SquareRoot:
-				adudouble = 65535.0 * Math.sqrt(adudouble) / Math.sqrt(65535.0);
-				break;
-			case CubeRoot:
-				adudouble = 65535.0 * Math.pow(adudouble, 1.0/3) / Math.pow(65535.0, 1.0/3);
-				break;
-			default:
-				throw new RuntimeException("unsupported transfert function");
-			}
-			
-			if (!autoHistogram) {
-				if (adudouble < low[id.getChannel()]) return 0;
-				if (adudouble < median[id.getChannel()])
-				{
-					int ret = (int)((adudouble - low[id.getChannel()]) * 128.0 / (median[id.getChannel()] - low[id.getChannel()]));
-					return ret;
-				} else if (adudouble < high[id.getChannel()]) {
-					int ret = (int)(128.0 + (adudouble - median[id.getChannel()]) * 128.0 / (high[id.getChannel()] - median[id.getChannel()]));
-					if (ret > 255) ret = 255;
-					return ret;
-				} else {
-					return 255;
-				}
-			} else {
-				if (adudouble < 0) return 0;
-				if (adudouble > 65535) return 0;
-				int rslt = (int)Math.round(adudouble / 256);
-				
-				if (rslt > 255) return 255;
-				return rslt;
-			}
-		}
+////			case Logarithm:
+////				// adu /= 65535.0;
+////				adudouble = 65535.0 * Math.log(1 + adudouble) / Math.log( 1 + 65535);
+////				break;
+//			case SquareRoot:
+//				adudouble = 65535.0 * Math.sqrt(adudouble) / Math.sqrt(65535.0);
+//				break;
+//			case CubeRoot:
+//				adudouble = 65535.0 * Math.pow(adudouble, 1.0/3) / Math.pow(65535.0, 1.0/3);
+//				break;
+//			default:
+//				throw new RuntimeException("unsupported transfert function");
+//			}
+//			
+//			if (!autoHistogram) {
+//				if (adudouble < low[id.getChannel()]) return 0;
+//				if (adudouble < median[id.getChannel()])
+//				{
+//					int ret = (int)((adudouble - low[id.getChannel()]) * 128.0 / (median[id.getChannel()] - low[id.getChannel()]));
+//					return ret;
+//				} else if (adudouble < high[id.getChannel()]) {
+//					int ret = (int)(128.0 + (adudouble - median[id.getChannel()]) * 128.0 / (high[id.getChannel()] - median[id.getChannel()]));
+//					if (ret > 255) ret = 255;
+//					return ret;
+//				} else {
+//					return 255;
+//				}
+//			} else {
+//				if (adudouble < 0) return 0;
+//				if (adudouble > 65535) return 0;
+//				int rslt = (int)Math.round(adudouble / 256);
+//				
+//				if (rslt > 255) return 255;
+//				return rslt;
+//			}
+//		}
 	}
 	
 	final List<SoftReference<AduLevelMapper>> mappers = new ArrayList<SoftReference<AduLevelMapper>>();
@@ -333,35 +332,38 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		mappers.clear();
 	}
 	
-	public AduLevelMapper getAduLevelMapper(CameraFrame source, ImageDisplayMetaDataInfo frame, int channel)
+	public AduLevelMapper getAduLevelMapper(int channel)
 	{
-		double mul = 1.0;
-					
+//		double mul = 1.0;
+//		
+//		if (this.targetIso != null && frame.iso != null)
+//		{
+//			mul = this.targetIso * 1.0 / frame.iso;
+//		}
+//		
+//		if (this.targetExposition != null && frame.expositionDuration != null)
+//		{
+//			mul *= this.targetExposition * 1.0 / frame.expositionDuration;
+//		}
+//		
+//		int black, max;
+//
+////		if (autoHistogram) {
+//
+//			black = (int)Math.round(this.low[channel]);
+//			max = (int)Math.round(this.high[channel]);
+//			if (max == black)  {
+//				max = black + 1;
+//			}
+////		} else {
+////			black = source.getBlack();
+////			max = source.getMaximum();
+////		}
 		
-		if (this.targetIso != null && frame.iso != null)
-		{
-			mul = this.targetIso * 1.0 / frame.iso;
-		}
-		
-		if (this.targetExposition != null && frame.expositionDuration != null)
-		{
-			mul *= this.targetExposition * 1.0 / frame.expositionDuration;
-		}
-		
-		int black, max;
-
-		if (autoHistogram) {
-			black = source.getAduForHistogramPos(channel, 0.5);
-			max = source.getAduForHistogramPos(channel, 0.99999);
-			if (max == black)  {
-				max = black + 1;
-			}
-		} else {
-			black = source.getBlack();
-			max = source.getMaximum();
-		}
-		
-		AduLevelMapperId id = new AduLevelMapperId(black, max, channel, mul);
+		double black = this.low[channel];
+		double median = this.median[channel];
+		double high = this.high[channel];
+		AduLevelMapperId id = new AduLevelMapperId(black, median, high, channel);
 		
 		return levelMapperCache.get(id);
 	}
@@ -370,23 +372,17 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 	{
 		this.listeners = new WeakListenerCollection<ImageDisplayParameterListener>(ImageDisplayParameterListener.class);
 		this.channelMode = ChannelMode.Color;
-		this.transfertFunction = TransfertFunction.Linear;
-		this.targetExposition = null;
-		this.targetIso = null;
 		this.low = new double[] { 0, 0, 0};
 		this.high = new double[] { 65535, 65535, 65535 };
 		this.median = new double[] { 32767, 32767, 32767};
-		this.autoHistogram = false;
+		this.autoHistogram = true;
+		this.darkEnabled = true;
 	}
 	
 	public ImageDisplayParameter(ImageDisplayParameter copy)
 	{
 		this.listeners = new WeakListenerCollection<ImageDisplayParameterListener>(ImageDisplayParameterListener.class);
 		this.channelMode = copy.getChannelMode();
-		this.transfertFunction = copy.transfertFunction;
-		this.targetExposition = copy.getTargetExposition();
-		this.targetIso = copy.getTargetIso();
-		this.zero = copy.zero;
 		this.low = new double[] { 0, 0, 0};
 		this.high = new double[] { 65535, 65535, 65535 };
 		this.median = new double[] { 16384, 16384, 16384 };
@@ -399,6 +395,8 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		}
 		
 		this.autoHistogram = copy.autoHistogram;
+		this.darkFrame = copy.darkFrame;
+		this.darkEnabled = copy.darkEnabled;
 	}
 
 	private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -408,6 +406,28 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 	    clearAduLevelCache();
 	}
 
+	public void copyFrom(ImageDisplayParameter idp)
+	{
+		if (this.equals(idp)) {
+			return;
+		}
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
+		this.darkFrame = idp.darkFrame;
+		this.channelMode = idp.getChannelMode();
+		
+		for(int i = 0; i < 3; ++i)
+		{
+			this.low[i] = idp.low[i];
+			this.high[i] = idp.high[i];
+			this.median[i] = idp.median[i];
+		}
+		
+		this.autoHistogram = idp.autoHistogram;
+		this.darkEnabled = idp.darkEnabled;
+		clearAduLevelCache();
+		listeners.getTarget().parameterChanged(previous, this);
+	}
+	
 
 	public ChannelMode getChannelMode() {
 		return channelMode;
@@ -416,35 +436,10 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	public void setChannelMode(ChannelMode channelMode) {
 		if (this.channelMode == channelMode) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
 		this.channelMode = channelMode;
 		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
-	}
-
-
-	public Double getTargetExposition() {
-		return targetExposition;
-	}
-
-
-	public void setTargetExposition(Double targetExposition) {
-		if (Utils.equalsWithNullity(this.targetExposition, targetExposition)) return;
-		this.targetExposition = targetExposition;
-		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
-	}
-
-
-	public Integer getTargetIso() {
-		return targetIso;
-	}
-
-
-	public void setTargetIso(Integer targetIso) {
-		if (Utils.equalsWithNullity(this.targetIso, targetIso)) return;
-		this.targetIso = targetIso;
-		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
+		listeners.getTarget().parameterChanged(previous, this);
 	}
 
 
@@ -455,9 +450,10 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	public void setLow(int channel, double low) {
 		if (this.low[channel] == low) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
 		this.low[channel] = low;
 		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
+		listeners.getTarget().parameterChanged(previous, this);
 	}
 
 
@@ -468,9 +464,10 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	public void setMedian(int channel, double median) {
 		if (this.median[channel] == median) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
 		this.median[channel] = median;
 		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
+		listeners.getTarget().parameterChanged(previous, this);
 	}
 
 
@@ -481,33 +478,10 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	public void setHigh(int channel, double high) {
 		if (this.high[channel] == high) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
 		this.high[channel] = high;
 		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
-	}
-
-
-	public int getZero() {
-		return zero;
-	}
-
-
-	public void setZero(int zero) {
-		if (this.zero == zero) return;
-		this.zero = zero;
-		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
-	}
-
-	public TransfertFunction getTransfertFunction() {
-		return transfertFunction;
-	}
-
-	public void setTransfertFunction(TransfertFunction transfertFunction) {
-		if (this.transfertFunction == transfertFunction) return;
-		this.transfertFunction = transfertFunction;
-		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
+		listeners.getTarget().parameterChanged(previous, this);
 	}
 
 	public boolean isAutoHistogram() {
@@ -516,8 +490,60 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 
 	public void setAutoHistogram(boolean autoHistogram) {
 		if (this.autoHistogram == autoHistogram) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
 		this.autoHistogram = autoHistogram;
 		clearAduLevelCache();
-		listeners.getTarget().parameterChanged();
+		listeners.getTarget().parameterChanged(previous, this);
+	}
+
+	public Image getDarkFrame() {
+		return darkFrame;
+	}
+
+	public void setDarkFrame(Image darkFrame) {
+		if (Objects.equals(this.darkFrame, darkFrame)) return;
+		
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
+		this.darkFrame = darkFrame;
+		clearAduLevelCache();
+		listeners.getTarget().parameterChanged(previous, this);
+	}
+
+	public double[] getLowMedHigh(int index) {
+		if (index == 0) {
+			return getLow();
+		} else if (index == 1) {
+			return getMedian();
+		} else {
+			return getHigh();
+		}
+	}
+
+	public boolean isDarkEnabled() {
+		return darkEnabled;
+	}
+
+	public void setDarkEnabled(boolean darkEnabled) {
+		if (this.darkEnabled == darkEnabled) return;
+		ImageDisplayParameter previous = new ImageDisplayParameter(this);
+		this.darkEnabled = darkEnabled;
+		clearAduLevelCache();
+		listeners.getTarget().parameterChanged(previous, this);
+	}
+
+	public void resetChannelToneMapping() {
+		for(int i = 0; i < low.length; ++i)
+		{
+			low[i] = 0;
+		}
+		for(int i = 0; i < median.length; ++i)
+		{
+			median[i] = 32768;
+		}
+		for(int i = 0; i < high.length; ++i)
+		{
+			high[i] = 65535;
+		}
+		
 	}
 }

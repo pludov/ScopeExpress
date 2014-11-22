@@ -5,15 +5,20 @@ import java.io.IOException;
 
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.ImageProvider;
+import fr.pludov.scopeexpress.focus.Application;
+import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.utils.MultiStarFinder;
 
 public class MultiStarFinderTest {
 
 	public static void testFile(File file) throws IOException
 	{
-		CameraFrame frame = ImageProvider.readImage(file).getA();
+		final Application focus = new Application();
 		
-		MultiStarFinder msf = new MultiStarFinder(frame);
+		Image image = focus.getImage(file);
+		CameraFrame frame = image.getCameraFrame();
+		
+		MultiStarFinder msf = new MultiStarFinder(frame, image, null);
 		
 		msf.proceed();
 	}

@@ -4,20 +4,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import javax.jws.WebParam.Mode;
-
 import org.w3c.dom.Element;
 
 import fr.pludov.io.CameraFrame;
-import fr.pludov.io.FitsPlane;
+import fr.pludov.scopeexpress.ImageDisplayParameter;
 import fr.pludov.scopeexpress.async.WorkStep;
 import fr.pludov.scopeexpress.async.WorkStepResource;
 import fr.pludov.scopeexpress.ui.utils.SwingThreadMonitor;
 import fr.pludov.scopeexpress.utils.SkyAlgorithms;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.utils.ChannelMode;
-import fr.pludov.utils.EquationSolver;
-import fr.pludov.utils.Histogram;
+import fr.pludov.utils.StarDetectionMode;
 import fr.pludov.utils.StarFinder;
 import fr.pludov.utils.XmlSerializationContext;
 
@@ -31,15 +27,17 @@ public class StarOccurence {
 	
 	boolean analyseDone;
 	boolean starFound;
-	final int [] blackLevelByChannel;
-	final int [] blackStddevByChannel;
-	final int [] aduSumByChannel;
-	final int [] aduMaxByChannel;
+	int [] blackLevelByChannel;
+	int [] blackStddevByChannel;
+	int [] aduSumByChannel;
+	int [] aduMaxByChannel;
 	
 	BitMask starMask;
 	
 	// Les données
 	CameraFrame subFrame;
+	ImageDisplayParameter subFrameDisplayParameters;
+	private StarDetectionMode detectMode;
 	int dataX0, dataY0;
 	
 	double fwhm, stddev;
@@ -69,9 +67,11 @@ public class StarOccurence {
 		this.aduMaxByChannel = Arrays.copyOf(copy.aduMaxByChannel, copy.aduMaxByChannel.length);
 
 		this.starMask = copy.starMask;
+		this.detectMode = copy.detectMode;
 
 		// Les données
 		this.subFrame = copy.subFrame;
+		this.subFrameDisplayParameters = copy.subFrameDisplayParameters;
 		this.dataX0 = copy.dataX0;
 		this.dataY0 = copy.dataY0;
 
@@ -100,10 +100,10 @@ public class StarOccurence {
 		this.star = star;
 		this.analyseDone = false;
 		this.starFound = false;
-		this.blackLevelByChannel = new int[3];
-		this.blackStddevByChannel = new int[3];
-		this.aduMaxByChannel = new int[3];
-		this.aduSumByChannel = new int[3];
+		this.blackLevelByChannel = new int[0];
+		this.blackStddevByChannel = new int[0];
+		this.aduMaxByChannel = new int[0];
+		this.aduSumByChannel = new int[0];
 	}
 	
 	public Element save(XmlSerializationContext xsc, 
@@ -153,6 +153,15 @@ public class StarOccurence {
 		this.picX = finder.getPicX();
 		this.picY = finder.getPicY();
 		this.starMask = finder.getStarMask();
+		
+		this.detectMode = finder.getStarDetectionMode();
+		
+		int chCount = this.detectMode.channelCount;
+		this.blackLevelByChannel = new int[chCount];
+		this.blackStddevByChannel = new int[chCount];
+		this.aduMaxByChannel = new int[chCount];
+		this.aduSumByChannel = new int[chCount];
+		
 		for(int i = 0; i < this.blackLevelByChannel.length; ++i)
 		{
 			this.blackLevelByChannel[i] = finder.getBlackLevelByChannel()[i];
@@ -162,7 +171,7 @@ public class StarOccurence {
 		}
 	}
 	
-	void copyFrameContent(CameraFrame frame, int centerX, int centerY) {
+	void copyFrameContent(CameraFrame frame, ImageDisplayParameter displayParameters, int centerX, int centerY) {
 		int maxX = frame.getWidth() / 2 - 1;
 		int maxY = frame.getHeight() / 2 - 1;
 		
@@ -178,6 +187,7 @@ public class StarOccurence {
 		
 		SwingThreadMonitor.acquire();
 		try {
+			this.subFrameDisplayParameters = displayParameters;
 			if ((x1 < x0) || (y1 < y0)) {
 				subFrame = new CameraFrame();
 				StarOccurence.this.dataX0 = 0;
@@ -204,41 +214,7 @@ public class StarOccurence {
 		starFound = true;
 		
 		copyFromStarFinder(finder);
-		if (image.lock()) {
-			try {
-				CameraFrame frame = image.getCameraFrame();
-				
-				copyFrameContent(frame, centerX, centerY);		
-			} finally {
-				image.unlock();
-			}
-		} else {
-			// On crée un tache qui a besoin des données
-			subFrame = new CameraFrame();
-			StarOccurence.this.dataX0 = 0;
-			StarOccurence.this.dataY0 = 0;
-			
-			WorkStep load = new WorkStep() {
-				@Override
-				public List<WorkStepResource> getRequiredResources() {
-					return Collections.singletonList((WorkStepResource)image);
-				}
-				
-				@Override
-				public boolean readyToProceed() {
-					return true;
-				}
-				
-				@Override
-				public void proceed() {
-					CameraFrame frame = image.getCameraFrame();
-					copyFrameContent(frame, centerX, centerY);
-				}
-			};
-			// On lance la lecture en asynchrone.
-			// FIXME: si l'image est retirée de la mosaic, on devrait arreter !
-			getMosaic().getApplication().getWorkStepProcessor().add(load);
-		}
+		copyFrameContent(finder.getFrame(), finder.getFrameDisplayParameter(), centerX, centerY);
 		listeners.getTarget().analyseDone();
 	}
 	
@@ -280,7 +256,7 @@ public class StarOccurence {
 			public void proceed() {
 				try {
 
-					CameraFrame frame = image.getCameraFrame();
+					CameraFrame frame = image.getCameraFrameWithAutoDark();
 					if (frame == null) {
 						return;
 					}
@@ -344,7 +320,7 @@ public class StarOccurence {
 					if (StarOccurence.this.starFound) {
 						copyFromStarFinder(finder);
 					}
-					copyFrameContent(frame, finder.getCenterX(), finder.getCenterY());
+					copyFrameContent(frame, finder.getFrameDisplayParameter(), finder.getCenterX(), finder.getCenterY());
 					
 				} finally {
 					analyseDone = true;
@@ -371,6 +347,10 @@ public class StarOccurence {
 
 	public CameraFrame getSubFrame() {
 		return subFrame;
+	}
+
+	public ImageDisplayParameter getSubFrameDisplayParameters() {
+		return subFrameDisplayParameters;
 	}
 
 	public boolean isAnalyseDone() {
@@ -461,8 +441,8 @@ public class StarOccurence {
 		return maxStddev;
 	}
 
-	public int getBlackLevel(ChannelMode channel) {
-		return blackLevelByChannel[channel.ordinal()];
+	public int [] getBlackLevelByChannel() {
+		return blackLevelByChannel;
 	}
 
 	public BitMask getStarMask() {
@@ -544,5 +524,9 @@ public class StarOccurence {
 			adu = this.aduSumByChannel[chan];
 		}
 		return -Math.log(adu) / SkyAlgorithms.magnitudeBaseLog;
+	}
+
+	public StarDetectionMode getStarDetectionMode() {
+		return detectMode;
 	}
 }

@@ -379,8 +379,8 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 					continue;
 				}
 			
-				double width = currentImage.getCameraFrame().getWidth() / 100.0;
-				double height = currentImage.getCameraFrame().getHeight() / 100.0;
+				double width = currentImage.getWidth() / 100.0;
+				double height = currentImage.getHeight() / 100.0;
 				
 				if (minX != null && 2 * so.getPicX() < minX * width)
 				{

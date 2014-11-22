@@ -1,6 +1,5 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -18,27 +17,28 @@ import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 
 import javax.swing.Timer;
-
 import fr.pludov.io.CameraFrame;
 import fr.pludov.scopeexpress.ImageDisplayParameter;
 import fr.pludov.scopeexpress.ImageDisplayParameterListener;
-import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.scopeexpress.focus.AffineTransform3D;
 import fr.pludov.scopeexpress.focus.Application;
+import fr.pludov.scopeexpress.focus.DarkLibrary;
+import fr.pludov.scopeexpress.focus.DarkRequest;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
+import fr.pludov.scopeexpress.focus.Histogram;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
 import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.focus.MosaicImageParameterListener;
 import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.SkyProjection;
 import fr.pludov.scopeexpress.focus.Star;
 import fr.pludov.scopeexpress.focus.StarCorrelationPosition;
 import fr.pludov.scopeexpress.focus.StarOccurence;
 import fr.pludov.scopeexpress.focus.StarOccurenceListener;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.utils.ChannelMode;
 import fr.pludov.utils.VecUtils;
 
 public class FrameDisplayWithStar extends FrameDisplay {
@@ -65,7 +65,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 	OtherStarDisplayMode otherStarDisplayMode;
 	boolean mindCorrelatedStars;
 	
-	ImageDisplayParameter imageDisplayParameter; 
+	ImageDisplayParameter imageDisplayParameter;
 	BackgroundTask taskToGetImageToDisplay;
 	
 	public FrameDisplayWithStar(Application application) {
@@ -869,48 +869,118 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			setFrame(null, false);
 		}
 		
-		
 		if (image != null && imageDisplayParameter != null) {
 			BackgroundTask loadImageTask = new BackgroundTask("Preparing display for " + image.getPath().getName())
 			{
+				Image image = FrameDisplayWithStar.this.image;
+				
 				BufferedImage buffimage;
+				ImageDisplayParameter imageDisplayParameter = new ImageDisplayParameter(FrameDisplayWithStar.this.imageDisplayParameter);
 				
 				@Override
 				public int getResourceOpportunity() {
 					return image.hasReadyCameraFrame() ? 1 : 0; 
 				}
 				
+				void histToAdu(Image darkImage, ChannelMode channelMode, ImageDisplayParameter adjustedDisplayParameter, int channel)
+				{
+					Histogram r = image.getHistogram(darkImage, channelMode);
+					double l,m,h;
+					l = r.getBlackLevel(0.02);
+					m = r.getBlackLevel(0.96);
+					h = r.getBlackLevel(0.999999);
+					adjustedDisplayParameter.setLow(channel, l);
+					adjustedDisplayParameter.setMedian(channel, m);
+					adjustedDisplayParameter.setHigh(channel, h);
+				}
+				
 				@Override
 				protected void proceed() throws BackgroundTaskCanceledException, Throwable {
-					final ImageDisplayMetaDataInfo metadataInfo;
-					setRunningDetails("chargement des méta-informations");
+					setRunningDetails("chargement de l'image");
 					
-					if (image != null) {
-						metadataInfo = image.getImageDisplayMetaDataInfo();
-					} else {
-						metadataInfo = new ImageDisplayMetaDataInfo();
-						metadataInfo.expositionDuration = 1.0;
-						metadataInfo.iso = 1600;
+					CameraFrame frame;
+					Image darkImage;
+					if (imageDisplayParameter.isDarkEnabled()) {
 						
+						DarkLibrary dl = DarkLibrary.getInstance();
+						darkImage = dl.getDark(new DarkRequest(image.getMetadata()));
+						checkInterrupted();
+
+						if (darkImage != null && (darkImage.getWidth() != image.getWidth() || darkImage.getHeight() != image.getHeight())) {
+							darkImage = null;
+						}
+						this.imageDisplayParameter.setDarkFrame(darkImage);
+						checkInterrupted();
+						frame = image.getCameraFrameWithDark(darkImage);
+						
+					} else {
+						this.imageDisplayParameter.setDarkFrame(null);
+						frame = image.getCameraFrame();
+						darkImage = null;
 					}
-					
-					
 					checkInterrupted();
-					setRunningDetails("chargement du brut");
-					setPercent(20);
-					CameraFrame frame = image.getCameraFrame();
-					
+					setPercent(50);
+
+					if (frame != null && imageDisplayParameter.isAutoHistogram()) {
+						setRunningDetails("Optimisation de l'histogramme");
+							
+						if (frame.isCfa()) {
+							switch(imageDisplayParameter.getChannelMode()) {
+							case Color:
+								histToAdu(darkImage, ChannelMode.Red, imageDisplayParameter, 0);
+								checkInterrupted();
+								histToAdu(darkImage, ChannelMode.Green, imageDisplayParameter, 1);
+								checkInterrupted();
+								histToAdu(darkImage, ChannelMode.Blue, imageDisplayParameter, 2);
+								break;
+							case GreyScale:
+								histToAdu(darkImage, ChannelMode.Bayer, imageDisplayParameter, 0);
+								break;
+							case NarrowBlue:
+								histToAdu(darkImage, ChannelMode.Blue, imageDisplayParameter, 0);
+								break;
+							case NarrowGreen:
+								histToAdu(darkImage, ChannelMode.Green, imageDisplayParameter, 0);
+								break;
+							case NarrowRed:
+								histToAdu(darkImage, ChannelMode.Red, imageDisplayParameter, 0);
+								break;
+							}
+						} else {
+							switch(imageDisplayParameter.getChannelMode()) {
+							case Color:
+							case GreyScale:
+								histToAdu(darkImage, ChannelMode.Bayer, imageDisplayParameter, 0);
+								break;
+							case NarrowBlue:
+								histToAdu(darkImage, ChannelMode.Blue, imageDisplayParameter, 0);
+								break;
+							case NarrowGreen:
+								histToAdu(darkImage, ChannelMode.Green, imageDisplayParameter, 0);
+								break;
+							case NarrowRed:
+								histToAdu(darkImage, ChannelMode.Red, imageDisplayParameter, 0);
+								break;
+							}
+						}
+						imageDisplayParameter.setAutoHistogram(false);
+						setPercent(60);
+					}
 					checkInterrupted();
 					setRunningDetails("application des paramètres de visualisation");
-					setPercent(70);
-					buffimage = frame != null ? frame.asImage(imageDisplayParameter, metadataInfo) : null;
+					buffimage = frame != null ? frame.asImage(imageDisplayParameter) : null;
 				}
 				
 				@Override
 				protected void onDone() {
 					if (getStatus() == Status.Done && taskToGetImageToDisplay == this) {
 						setFrame(buffimage, false);
+						if (FrameDisplayWithStar.this.imageDisplayParameter.isAutoHistogram()) {
+							imageDisplayParameter.setAutoHistogram(true);	
+						}
 						
+						FrameDisplayWithStar.this.imageDisplayParameter.copyFrom(imageDisplayParameter);
+
 						if (resetSize)
 						{
 							if (buffimage != null) {
@@ -922,6 +992,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 							setZoom(1);
 							setZoomIsAbsolute(false);
 						}
+						taskToGetImageToDisplay = null;
 					}
 				}
 			};
@@ -949,11 +1020,20 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			this.imageDisplayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 				
 				@Override
-				public void parameterChanged() {
-					refreshFrame(false, true);
+				public void parameterChanged(ImageDisplayParameter previous, ImageDisplayParameter current) {
+					// On veut lancer uniquement si il y a un changement autre que :
+					//  - le dark choisi
+					//  - les niveau en cas d'histo auto
+					ImageDisplayParameter forComp = new ImageDisplayParameter(current);
+					forComp.setDarkFrame(previous.getDarkFrame());
+					
+					if (!previous.equalsExceptAutoHistValue(forComp)) {
+						refreshFrame(false, true);
+					}
 				}
 			});
 		}
+		
 		refreshFrame(false, true);
 	}
 	
@@ -989,6 +1069,8 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		} else {
 			mindCorrelatedStars = false;
 		}
+		
+		this.imageDisplayParameter.setDarkFrame(null);
 		
 		refreshFrame(resetImagePosition, false);
 	}

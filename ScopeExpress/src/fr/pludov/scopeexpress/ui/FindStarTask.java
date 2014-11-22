@@ -1,13 +1,13 @@
 package fr.pludov.scopeexpress.ui;
 
 import fr.pludov.io.CameraFrame;
+import fr.pludov.scopeexpress.focus.DarkLibrary;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
 import fr.pludov.scopeexpress.focus.Star;
 import fr.pludov.scopeexpress.focus.StarOccurence;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
 import fr.pludov.scopeexpress.ui.utils.SwingThreadMonitor;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
 import fr.pludov.utils.MultiStarFinder;
 import fr.pludov.utils.StarFinder;
 
@@ -71,10 +71,11 @@ public final class FindStarTask extends BackgroundTask {
 			SwingThreadMonitor.release();
 		}
 
-		frame = image.getCameraFrame();
+		Image darkImage = DarkLibrary.getInstance().getDarkFor(image);
+		frame = image.getCameraFrameWithDark(darkImage);
 		setPercent(20);
 		
-		final MultiStarFinder msf = new MultiStarFinder(frame) {
+		final MultiStarFinder msf = new MultiStarFinder(frame, image, darkImage) {
 			@Override
 			public void percent(int pct) {
 				setPercent(30 + pct * (98 - 30) / 100);

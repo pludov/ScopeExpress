@@ -3,7 +3,9 @@ package fr.pludov.utils;
 import org.apache.log4j.Logger;
 
 import fr.pludov.io.CameraFrame;
+import fr.pludov.scopeexpress.ImageDisplayParameter;
 import fr.pludov.scopeexpress.focus.BitMask;
+import fr.pludov.scopeexpress.focus.Histogram;
 
 /**
  * Trouve les caractéristiques d'une étoile dans une frame
@@ -15,7 +17,9 @@ public class StarFinder {
 	final int square;
 	final int searchRadius;
 	final CameraFrame frame;
+	final ImageDisplayParameter frameDisplayParameter;
 	int centerX, centerY;
+	StarDetectionMode starDetectionMode;;
 	final int [] blackLevelByChannel;
 	final int [] blackStddevByChannel;
 	final int [] aduSumByChannel;
@@ -43,35 +47,49 @@ public class StarFinder {
 	// Si positionné, on ne cherche que dans ce mask;
 	BitMask includeMask;
 	
+	static final StarDetectionMode GreyScale = new StarDetectionMode(1, ImageDisplayParameter.ChannelMode.GreyScale, ChannelMode.Bayer)
+	{
+		int getChannelId(int x, int y) {
+			return 0;
+		}
+	};
+	
+	static final StarDetectionMode CfaMode = new StarDetectionMode(3, ImageDisplayParameter.ChannelMode.Color, ChannelMode.Red, ChannelMode.Green, ChannelMode.Blue)
+	{
+		int getChannelId(int x, int y) {
+			return ChannelMode.getRGBBayerId(x, y);
+		}
+	};
+	
+	
 	// Trouver une étoile à environ centerX, dans un rayon de square.
 	public StarFinder(CameraFrame frame, int centerX, int centerY, int square, int searchRadius) {
 		this.centerX = centerX;
 		this.centerY = centerY;
 		this.frame = frame;
-		this.blackLevelByChannel = new int[3];
-		this.blackStddevByChannel = new int[3];
-		this.aduSumByChannel = new int[3];
-		this.aduMaxByChannel = new int[3];
+		this.starDetectionMode = frame.isCfa() ? CfaMode : GreyScale;
+		this.frameDisplayParameter = new ImageDisplayParameter();
+		frameDisplayParameter.setDarkEnabled(false);
+		frameDisplayParameter.setChannelMode(this.starDetectionMode.displayMode);
+		this.blackLevelByChannel = new int[this.starDetectionMode.channelCount];
+		this.blackStddevByChannel = new int[this.starDetectionMode.channelCount];
+		this.aduSumByChannel = new int[this.starDetectionMode.channelCount];
+		this.aduMaxByChannel = new int[this.starDetectionMode.channelCount];
 		this.square = square;
 		this.searchRadius = square;
 	}
 
 	public void perform()
 	{
-		Histogram histogram = new Histogram();
 
-		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Red);
-		blackLevelByChannel[0] = histogram.getBlackLevel(0.4);
-		blackStddevByChannel[0] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[0]));
+		for(int i = 0; i < this.starDetectionMode.channelCount; ++i)
+		{
+			Histogram histogram = Histogram.forArea(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, this.starDetectionMode.channels[i]);
+			blackLevelByChannel[i] = histogram.getBlackLevel(0.4);
+			blackStddevByChannel[i] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[i]));
+		}
 		
-		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Green);
-		blackLevelByChannel[1] = histogram.getBlackLevel(0.4);
-		blackStddevByChannel[1] = (int)Math.ceil(2 * histogram.getStdDev(1, blackLevelByChannel[1]));
-		
-		histogram.calc(frame, 2 * centerX - square, 2 * centerY - square, 2 * centerX + square, 2 * centerY + square, ChannelMode.Blue);
-		blackLevelByChannel[2] = histogram.getBlackLevel(0.4);
-		blackStddevByChannel[2] = (int)Math.ceil(2 * histogram.getStdDev(2, blackLevelByChannel[2]));
-		
+		int [] maxAduByChannel = new int[this.starDetectionMode.channelCount];
 		// Calcul des pixels "non noirs"
 		BitMask notBlack = new BitMask(
 				2 * centerX - square,  2 * centerY - square,
@@ -82,7 +100,11 @@ public class StarFinder {
 			{
 				if (includeMask != null && !includeMask.get(x, y)) continue;
 				int adu = frame.getAdu(x, y);
-				if (adu > blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)]) {
+				int channelId = this.starDetectionMode.getChannelId(x, y);
+				if (adu > blackLevelByChannel[channelId]) {
+					if (adu > maxAduByChannel[channelId]) {
+						maxAduByChannel[channelId] = adu;
+					}
 					notBlack.set(x, y);
 				}
 			}
@@ -107,7 +129,7 @@ public class StarFinder {
 			int y = xy[1];
 
 			int adu = frame.getAdu(x, y);
-			int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+			int black = blackLevelByChannel[this.starDetectionMode.getChannelId(x, y)];
 			adu -= black;
 			if (adu >= maxAdu) {
 				maxAdu = adu;
@@ -115,6 +137,17 @@ public class StarFinder {
 				maxAduY = y;
 			}
 		}
+
+		frameDisplayParameter.setAutoHistogram(false);
+		for(int i = 0; i < blackLevelByChannel.length; ++i) {
+			int b = blackLevelByChannel[i] + blackStddevByChannel[i];
+			int h = maxAduByChannel[i];
+			int m = (2 * b + h) / 3;
+			frameDisplayParameter.setLow(i, b);
+			frameDisplayParameter.setMedian(i, m);
+			frameDisplayParameter.setHigh(i, h);
+		}
+
 		
 		// On remonte le niveau de noir de 20%
 		// blackLevel = (int)Math.round(blackLevel + 0.2 * (maxAdu - blackLevel));
@@ -133,7 +166,7 @@ public class StarFinder {
 			for(int x = 2 * centerX - square; x <= 2 * centerX + square; ++x)
 			{
 				int adu = frame.getAdu(x, y);
-				int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+				int black = blackLevelByChannel[this.starDetectionMode.getChannelId(x, y)];
 				if (adu > black) {
 					adu -= black;
 					
@@ -184,9 +217,9 @@ public class StarFinder {
 			int x = xy[0];
 			int y = xy[1];
 
-			int channelId = ChannelMode.getRGBBayerId(x, y);
+			int channelId = this.starDetectionMode.getChannelId(x, y);
 			int adu = frame.getAdu(x, y);
-			// FIXME: en cas d'utilisation de black, on a peut être un pixel chaud qui sera ignoré
+			// en cas d'utilisation de black, on fait en sorte de garder saturé les pixels saturés
 			if (adu >= cameraSat) {
 				this.saturationDetected = true;
 			}
@@ -225,7 +258,7 @@ public class StarFinder {
 //						if (!star.get(x, y)) continue;
 //						
 //						int adu = frame.getAdu(x, y);
-//						int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+//						int black = blackLevelByChannel[this.channelMode.getChannelId(x, y)];
 //						
 //						if (adu <= black) continue;
 //						adu -= black;
@@ -266,7 +299,7 @@ public class StarFinder {
 					if (!star.get(x, y)) continue;
 					
 					int adu = frame.getAdu(x, y);
-					int black = blackLevelByChannel[ChannelMode.getRGBBayerId(x, y)];
+					int black = blackLevelByChannel[this.starDetectionMode.getChannelId(x, y)];
 					
 					if (adu <= black) continue;
 					adu -= black;
@@ -435,5 +468,13 @@ public class StarFinder {
 
 	public void setMaxFwhmAngle(double maxFwhmAngle) {
 		this.maxFwhmAngle = maxFwhmAngle;
+	}
+
+	public ImageDisplayParameter getFrameDisplayParameter() {
+		return frameDisplayParameter;
+	}
+
+	public StarDetectionMode getStarDetectionMode() {
+		return starDetectionMode;
 	}
 }

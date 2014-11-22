@@ -60,8 +60,8 @@ public class StarCorrelationTest implements TestInstance {
 		
 		image = runner.getApplication().getImage(imageFile);
 		
-		imgWidth = image.getCameraFrame().getWidth();
-		imgHeight = image.getCameraFrame().getHeight();
+		imgWidth = image.getWidth();
+		imgHeight = image.getHeight();
 		
 		double raTarget;
 		double decTarget;

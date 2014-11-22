@@ -61,6 +61,7 @@ import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTaskQueueListener;
 import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTask.Status;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton;
 import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
 import fr.pludov.scopeexpress.utils.EndUserException;
 import fr.pludov.scopeexpress.utils.SkyAlgorithms;
@@ -90,8 +91,8 @@ public class FocusUi extends FocusUiDesign {
 	private ToolbarButton followDirBton;
 	private ToolbarButton shootButton;
 	
-	private ToolbarButton detectBton;
-	private ToolbarButton btnReset;
+	private AbstractIconButton detectBton;
+	private AbstractIconButton btnReset;
 	
 	public FocusUi(final Application application, final Mosaic mosaic) {
 		this.scopeManager = new FocusUiScopeManager(this);
@@ -123,7 +124,7 @@ public class FocusUi extends FocusUiDesign {
 		});
 		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
 		
-		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, fd.getDisplayParameter(), starFocusFilter);
+		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, starFocusFilter);
 		JScrollPane sotScrollPane = new JScrollPane(sot);
 		this.detailsSplitPane.setTopComponent(sotScrollPane);
 		
@@ -272,10 +273,10 @@ public class FocusUi extends FocusUiDesign {
 					
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						if (scopeButton.getStatus() == ToolbarButton.Status.ACTIVATED)
-							scopeButton.setStatus(ToolbarButton.Status.DEFAULT);
+						if (scopeButton.getStatus() == AbstractIconButton.Status.ACTIVATED)
+							scopeButton.setStatus(AbstractIconButton.Status.DEFAULT);
 						else 
-							scopeButton.setStatus(ToolbarButton.Status.ACTIVATED);
+							scopeButton.setStatus(AbstractIconButton.Status.ACTIVATED);
 					}
 				});
 				

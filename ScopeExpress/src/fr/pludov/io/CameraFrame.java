@@ -4,9 +4,12 @@ import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 
 import fr.pludov.scopeexpress.ImageDisplayParameter;
-import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.scopeexpress.utils.cache.Cache;
 
+/**
+ * Les pixels chauds valent maximum
+ *
+ */
 public class CameraFrame {
 	int width, height;
 	// Données sous forme d'ADU 16-bits
@@ -14,12 +17,9 @@ public class CameraFrame {
 
 	boolean isCfa;
 	
-	int black;
 	// Les pixels atteignant cette valeur sont considéré comme saturés
 	int maximum;
 
-	int [] [] histogram;
-	int [] histogramNbPix;
 	/**
 	 * Retourne une sous-image (coordonnées super pixel)
 	 */
@@ -29,10 +29,7 @@ public class CameraFrame {
 		result.width = 2 * (maxx - minx + 1);
 		result.height = 2 * (maxy - miny + 1);
 		result.buffer = new char[result.width * result.height];
-		result.black = this.black;
 		result.maximum = this.maximum;
-		result.histogram = this.histogram;
-		result.histogramNbPix = this.histogramNbPix;
 		char [] in = this.buffer;
 		char [] out = result.buffer;
 		int outptr = 0;
@@ -47,6 +44,31 @@ public class CameraFrame {
 		}
 		
 		result.isCfa = this.isCfa;
+		return result;
+	}
+	
+	public CameraFrame substract(CameraFrame dark)
+	{
+		if (dark.getWidth() != getWidth()) return this;
+		if (dark.getHeight() != getHeight()) return this;
+		CameraFrame result = new CameraFrame();
+		result.width = this.width;
+		result.height = this.height;
+		result.isCfa = this.isCfa;
+		result.maximum = this.maximum;
+		result.buffer = new char[width * height];
+		char [] thisb = this.buffer;
+		char [] darkb = dark.buffer;
+		char [] outb = result.buffer;
+		int sat = this.maximum;
+		for(int i = 0; i < thisb.length; ++i) {
+			int v = ((int)thisb[i]);
+			if (v < sat) {
+				v -= darkb[i];
+				if (v < 0) v = 0;
+			}
+			outb[i] = (char)v;
+		}
 		return result;
 	}
 	
@@ -110,32 +132,34 @@ public class CameraFrame {
 	private static class BufferCacheItem {
 		
 		final ImageDisplayParameter displayParameter;
-		final ImageDisplayMetaDataInfo metadataInfo;
 		
-		BufferCacheItem(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+		BufferCacheItem(ImageDisplayParameter displayParameter)
 		{
 			this.displayParameter = displayParameter.clone();
-			this.metadataInfo = metadataInfo.clone();
+			// Forcer l'auto dark
+			if (this.displayParameter.isAutoHistogram()) {
+				this.displayParameter.resetChannelToneMapping();
+			}
+			this.displayParameter.setDarkFrame(null);
 		}
 		
 		@Override
 		public boolean equals(Object obj) {
 			if (!(obj instanceof BufferCacheItem)) return false;
 			BufferCacheItem other = (BufferCacheItem)obj;
-			return other.displayParameter.equals(displayParameter)
-					&& other.metadataInfo.equals(metadataInfo);
+			return other.displayParameter.equals(displayParameter);
 		}
 		
 		@Override
 		public int hashCode() {
-			return displayParameter.hashCode() ^ metadataInfo.hashCode();
+			return displayParameter.hashCode();
 		}
 	}
 	
 	final Cache<BufferCacheItem, BufferedImage> cache = new Cache<BufferCacheItem, BufferedImage>() {
 		@Override
 		public BufferedImage produce(BufferCacheItem identifier) {
-			return produceImage(identifier.displayParameter, identifier.metadataInfo);
+			return produceImage(identifier.displayParameter);
 		}
 	};
 	
@@ -145,33 +169,45 @@ public class CameraFrame {
 	 * @param metadataInfo
 	 * @return
 	 */
-	public BufferedImage asImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	public BufferedImage asImage(ImageDisplayParameter displayParameter)
 	{
-		BufferCacheItem id = new BufferCacheItem(displayParameter, metadataInfo);
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
+		
+		BufferCacheItem id = new BufferCacheItem(displayParameter);
 		return cache.get(id);
 	}
 	
-	private BufferedImage produceImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	private BufferedImage produceImage(ImageDisplayParameter displayParameter)
 	{
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
 		
 		switch(displayParameter.getChannelMode())
 		{
 		case Color:
 			if (isCfa()) {
-				return asRgbImage(displayParameter, metadataInfo);
+				return asRgbImage(displayParameter);
 			}
 		case GreyScale:
 		case NarrowBlue:
 		case NarrowGreen:
 		case NarrowRed:
 			// FIXME: si isCfa, sélectionner uniquement les pixels correspondant dans la matrice
-			return asGreyImage(displayParameter, metadataInfo);
+			return asGreyImage(displayParameter);
 		}
 		throw new RuntimeException("unimplemented");
 	}
 	
-	public BufferedImage asGreyImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	public BufferedImage asGreyImage(ImageDisplayParameter displayParameter)
 	{
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
+		
+		
 		int imgW = width / 2;
 		int imgH = height / 2;
 		if (imgW < 1) imgW = 1;
@@ -179,11 +215,11 @@ public class CameraFrame {
 		
 		BufferedImage result = new BufferedImage(imgW, imgH, BufferedImage.TYPE_BYTE_GRAY);
 
-
-		ImageDisplayParameter.AduLevelMapper greyMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 0);
-
+		ImageDisplayParameter.AduLevelMapper greyMapper = displayParameter.getAduLevelMapper(0);
+		
 		WritableRaster raster = result.getRaster();
 		byte [] inData = new byte[1];
+
 		for(int y = 0; y < height / 2 ; ++y)
 		{
 			for(int x = 0; x < width / 2; ++x)
@@ -207,8 +243,12 @@ public class CameraFrame {
 	private static final int bayer_g2 = 2;
 	private static final int bayer_b = 3;
 	
-	public BufferedImage asFullSizeGrey(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	public BufferedImage asFullSizeGrey(ImageDisplayParameter displayParameter)
 	{
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
+		
 		int imgW = width;
 		int imgH = height;
 		if (imgW < 1) imgW = 1;
@@ -216,9 +256,9 @@ public class CameraFrame {
 		
 		BufferedImage result = new BufferedImage(imgW, imgH, BufferedImage.TYPE_3BYTE_BGR);
 
-		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 0);
-		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 1);
-		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 2);
+		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(0);
+		//ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(1);
+		//ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(2);
 
 		WritableRaster raster = result.getRaster();
 		byte [] inData = new byte[3];
@@ -227,13 +267,9 @@ public class CameraFrame {
 			for(int x = 0; x < width; ++x)
 			{
 				int offset = (x) + (y) * width;
-				int adur = buffer[offset];
-				int adug = buffer[offset];
-				int adub = buffer[offset];
+				int adu = buffer[offset];
 				
-				int r = rMapper.getLevelForAdu(adur);
-				int g = gMapper.getLevelForAdu(adug);
-				int b = bMapper.getLevelForAdu(adub);
+				int g = gMapper.getLevelForAdu(adu);
 //				r = b;
 //				g = b;
 //				int g1 = (int)buffer[offset + 1];
@@ -242,9 +278,9 @@ public class CameraFrame {
 //				
 //				int g = displayParameter.getLevelForAdu(metadataInfo, 1, (g1 + g2) / 2);
 				
-				inData[0] = (byte) (r);
+				inData[0] = (byte) (g);
 				inData[1] = (byte) (g);
-				inData[2] = (byte) (b);
+				inData[2] = (byte) (g);
 				raster.setDataElements(x , y, inData);
 
 			}
@@ -253,9 +289,13 @@ public class CameraFrame {
 		return result;
 	}
 	
-	public BufferedImage asRgbImageDebayer(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	public BufferedImage asRgbImageDebayer(ImageDisplayParameter displayParameter)
 	{
-		if (!isCfa()) return asFullSizeGrey(displayParameter, metadataInfo);
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
+		
+		if (!isCfa()) return asFullSizeGrey(displayParameter);
 		
 		int imgW = width;
 		int imgH = height;
@@ -264,9 +304,9 @@ public class CameraFrame {
 		
 		BufferedImage result = new BufferedImage(imgW, imgH, BufferedImage.TYPE_3BYTE_BGR);
 
-		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 0);
-		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 1);
-		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 2);
+		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(0);
+		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(1);
+		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(2);
 
 		WritableRaster raster = result.getRaster();
 		byte [] inData = new byte[3];
@@ -473,8 +513,11 @@ public class CameraFrame {
 	}
 
 	
-	public BufferedImage asRgbImage(ImageDisplayParameter displayParameter, ImageDisplayMetaDataInfo metadataInfo)
+	public BufferedImage asRgbImage(ImageDisplayParameter displayParameter)
 	{
+		if (displayParameter.isAutoHistogram()) {
+			throw new RuntimeException("DisplayParameter cannot be auto histo here...");
+		}
 		int imgW = width / 2;
 		int imgH = height / 2;
 		if (imgW < 1) imgW = 1;
@@ -482,9 +525,9 @@ public class CameraFrame {
 		
 		BufferedImage result = new BufferedImage(imgW, imgH, BufferedImage.TYPE_3BYTE_BGR);
 
-		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 0);
-		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 1);
-		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(this, metadataInfo, 2);
+		ImageDisplayParameter.AduLevelMapper rMapper = displayParameter.getAduLevelMapper(0);
+		ImageDisplayParameter.AduLevelMapper gMapper = displayParameter.getAduLevelMapper(1);
+		ImageDisplayParameter.AduLevelMapper bMapper = displayParameter.getAduLevelMapper(2);
 		
 		
 		WritableRaster raster = result.getRaster();
@@ -544,64 +587,7 @@ public class CameraFrame {
 		return isCfa;
 	}
 
-	public int getBlack() {
-		return black;
-	}
-
 	public int getMaximum() {
 		return maximum;
-	}
-	
-	public int getAduForHistogramPos(int channel, double pct)
-	{
-		int nbPix = this.histogramNbPix[channel];
-		
-		nbPix *= pct;
-		
-		int pixCount = 0;
-		int [] channelHist = this.histogram[channel];
-		for(int i = 0; i < channelHist.length; ++i)
-		{
-			if (pixCount >= nbPix) {
-				return black + i;
-			}
-			pixCount += channelHist[i];
-		}
-		return maximum;
-	}
-
-	public void scanPixelsForHistogram() {
-		int min, max;
-		min = Integer.MAX_VALUE;
-		max = Integer.MIN_VALUE;
-		for(int i = 0; i < this.buffer.length; ++i)
-		{
-			int d = this.buffer[i];
-			if (d < min) min = d;
-			if (d > max) max = d;
-		}
-		this.maximum = max;
-		this.black = min;
-		
-		int [] histogram = new int[max - min + 1];
-		for(int i = 0; i < this.buffer.length; ++i)
-		{
-			int d = this.buffer[i];
-			histogram[d - min]++;
-		}
-		
-		// FIXME: n&b
-		this.histogram = new int[3][];
-		this.histogram[0] = histogram;
-		this.histogram[1] = histogram;
-		this.histogram[2] = histogram;
-		
-		
-		this.histogramNbPix = new int[3];
-		this.histogramNbPix[0] = width * height;
-		this.histogramNbPix[1] = width * height;
-		this.histogramNbPix[2] = width * height;
-
-		
 	}
 }

@@ -3,25 +3,21 @@ package fr.pludov.scopeexpress.focus;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
-import java.lang.ref.WeakReference;
 import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.apache.log4j.Logger;
-
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.metadata.Directory;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.Tag;
-import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 import fr.pludov.io.CameraFrame;
 import fr.pludov.io.CameraFrameMetadata;
 import fr.pludov.io.ImageProvider;
-import fr.pludov.scopeexpress.ImageDisplayParameter.ImageDisplayMetaDataInfo;
 import fr.pludov.scopeexpress.async.WorkStepResource;
 import fr.pludov.scopeexpress.utils.Couple;
+import fr.pludov.utils.ChannelMode;
 
 public class Image implements WorkStepResource {
 	private static final Logger logger = Logger.getLogger(Image.class);
@@ -29,6 +25,8 @@ public class Image implements WorkStepResource {
 	final File path;
 	
 	SoftReference<CameraFrame> cameraFrame;
+	/** On garde un softReference sur l'application de dark */
+	final WeakHashMap<Image, SoftReference<CameraFrame>> darkedCameraFrame;
 	CameraFrame cameraFrameLocked;
 	
 	int cameraFrameLockCount;
@@ -39,6 +37,9 @@ public class Image implements WorkStepResource {
 
 	volatile boolean hasSize;
 	int width, height;
+	boolean cfa;
+	
+	Map<Couple<Image, ChannelMode>, SoftReference<Histogram>> histograms;
 	
 	/**
 	 * Une image ne doit pas être construite directement.
@@ -47,54 +48,11 @@ public class Image implements WorkStepResource {
 	Image(File path) {
 		this.path = path;
 		this.cameraFrame = new SoftReference<CameraFrame>(null);
+		this.darkedCameraFrame = new WeakHashMap<>(1);
+		this.histograms = new HashMap<>();
 		this.cameraFrameLockCount = 0;
 		this.cameraFrameLocked = null;
 	}
-
-	// FIXME: maintenant ça peut retourner null 
-	public ImageDisplayMetaDataInfo getImageDisplayMetaDataInfo()
-	{
-		CameraFrameMetadata cfm = getMetadata();
-		
-		ImageDisplayMetaDataInfo result = new ImageDisplayMetaDataInfo();
-		
-		result.expositionDuration = cfm.getDuration();
-		result.iso = cfm.getGain() != null ? (int)Math.round(cfm.getGain()) : 1600;
-		result.epoch = cfm.getStartMsEpoch();
-		return result;
-	}
-//	
-//	private void loadMetadata()
-//	{
-//		if (hasMetadata) return;
-//		pause = 1.0;
-//		iso = 1600;
-//		epoch = path.lastModified();
-//		hasMetadata = true;
-//		
-//		try {
-//			Metadata metadata = ImageMetadataReader.readMetadata(this.path);
-//			Directory directory = metadata.getDirectory(ExifSubIFDDirectory.class);
-//			if (directory != null) {
-//				pause = directory.getDoubleObject(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
-//				if (pause == null) pause = 1.0;
-//				// ExifSubIFDDirectory.TAG_GAIN_CONTROL
-//				iso = directory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
-//				if (iso == null) iso = 1600;
-//			}
-//			
-//
-//			for (Directory directory2 : metadata.getDirectories()) {
-//			    for (Tag tag : directory2.getTags()) {
-//			        System.out.println(tag);
-//			    }
-//			}
-//			
-//		} catch(Exception e) {
-//			System.out.println("unable to read metadata for " + this.path);
-//			e.printStackTrace();
-//		}
-//	}
 	
 	@Override
 	public boolean lock() {
@@ -177,6 +135,7 @@ public class Image implements WorkStepResource {
 		this.hasSize = true;
 		this.width = frame.getWidth();
 		this.height = frame.getHeight();
+		this.cfa = frame.isCfa();
 	}
 	
 	/**
@@ -194,6 +153,97 @@ public class Image implements WorkStepResource {
 		return result;
 	}
 
+	
+	public CameraFrame getCameraFrameWithDark(Image darkFrame) {
+		if (darkFrame == null) {
+			return getCameraFrame();
+		}
+		
+		CameraFrame result = getCachedFrameWithDark(darkFrame, null);
+		if (result != null) return result;
+		
+		CameraFrame image = getCameraFrame();
+		
+		result = getCachedFrameWithDark(darkFrame, null);
+		if (result != null) return result;
+		
+		CameraFrame dark = darkFrame.getCameraFrame();
+		
+		result = getCachedFrameWithDark(darkFrame, null);
+		if (result != null) return result;
+		
+		// Substract...
+		result = image;
+		if (dark.getWidth() == image.getWidth() && dark.getHeight() == image.getHeight()) {
+			result = result.substract(dark);
+		}
+		
+		// Store the result, or get the current one (to avoid duplication)
+		return getCachedFrameWithDark(darkFrame, result);
+	}
+
+	/**
+	 * @param darkFrame le dark
+	 * @param newValue Si il n'y a pas d'image en cache, on peut y mettre celle-ci
+	 * @return
+	 */
+	private CameraFrame getCachedFrameWithDark(Image darkFrame, CameraFrame newValue) {
+		synchronized(this.darkedCameraFrame) {
+			SoftReference<CameraFrame> ref = this.darkedCameraFrame.get(darkFrame);
+			if (ref != null) {
+				CameraFrame cf = ref.get();
+				if (cf != null) return cf;
+			}
+			
+			if (newValue != null) {
+				this.darkedCameraFrame.put(darkFrame, new SoftReference<>(newValue));
+			}
+			return newValue;
+		}
+	}
+
+	public Histogram getHistogram(Image dark, fr.pludov.utils.ChannelMode channel, boolean nullIfNotAvailabel) {
+		if (nullIfNotAvailabel) {
+			Couple<Image, ChannelMode> id = new Couple<>(dark, channel);
+			return getCachedHistogram(id, null);
+		} else {
+			return getHistogram(dark, channel);
+		}
+	}
+
+	public Histogram getHistogram(Image dark, fr.pludov.utils.ChannelMode channel) {
+		Couple<Image, ChannelMode> id = new Couple<>(dark, channel);
+		Histogram result;
+		result = getCachedHistogram(id, null);
+		if (result != null) return result;
+		
+		// FIXME: eviter deux calculs en parallèle...
+		
+		CameraFrame frame = getCameraFrameWithDark(dark);
+		result = getCachedHistogram(id, null);
+		if (result != null) return result;
+		
+		result = new Histogram();
+		result.calc(frame, 0, 0, frame.getWidth() - 1, frame.getHeight() - 1, channel);
+		
+		result = getCachedHistogram(id, result);
+		return result;
+	}
+	
+	private Histogram getCachedHistogram(Couple<Image, ChannelMode> id, Histogram newValue) {
+		synchronized(this.histograms) {
+			SoftReference<Histogram> ref = this.histograms.get(id);
+			if (ref != null) {
+				Histogram h = ref.get();
+				if (h != null) return h;
+			}
+			if (newValue != null) {
+				this.histograms.put(id,  new SoftReference<>(newValue));
+			}
+			return newValue;
+		}
+	}
+	
 	/** FIXME: pour l'instant ça peut etre null */
 	public CameraFrameMetadata getMetadata()
 	{
@@ -279,26 +329,28 @@ public class Image implements WorkStepResource {
 	
 	public int getWidth() {
 		if (!hasSize) {
-			synchronized(this) {
-				if (!hasSize) {
-					getCameraFrame();
-				}
-			}
-			
+			getCameraFrame();
 		}
 		return width;
 	}
 
 	public int getHeight() {
 		if (!hasSize) {
-			synchronized(this) {
-				if (!hasSize) {
-					getCameraFrame();
-				}
-			}
-			
+			getCameraFrame();
 		}
 		return height;
 	}
 
+	public CameraFrame getCameraFrameWithAutoDark() {
+		Image dark = DarkLibrary.getInstance().getDarkFor(this);
+		return getCameraFrameWithDark(dark);
+	}
+
+
+	public boolean isCfa() {
+		if (!hasSize) {
+			getCameraFrame();
+		}
+		return cfa;
+	}
 }

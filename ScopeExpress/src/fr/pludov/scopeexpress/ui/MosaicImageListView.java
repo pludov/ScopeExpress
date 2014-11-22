@@ -218,7 +218,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
 		
-		displayParameterPanel = new ImageDisplayParameterPanel(true);
+		displayParameterPanel = new ImageDisplayParameterPanel(focusUi.application, true);
 		displayParameterPanel.loadParameters(displayParameter);
 		
 		this.astrometryParameterPanel = new AstrometryParameterPanel();
@@ -275,7 +275,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		displayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 			
 			@Override
-			public void parameterChanged() {
+			public void parameterChanged(ImageDisplayParameter previous, ImageDisplayParameter current) {
 				loadCurrentFrame();	
 			}
 		});
@@ -513,6 +513,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		zoomed.setZoom(2);
 		zoomed.setZoomIsAbsolute(true);
 		zoomed.setImage(image, false);
+		displayParameterPanel.setImage(image);
 	}
 
 	public ClicEvent getOnClick() {

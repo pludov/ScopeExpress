@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.scopeexpress.ui.resources.IconProvider;
 import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton;
 import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
 
 public class ViewControler {
@@ -20,9 +21,9 @@ public class ViewControler {
 	}
 	
 	FrameDisplayWithStar currentView;
-	ToolbarButton zoomFitButton;
-	ToolbarButton zoomInButton;
-	ToolbarButton zoomOutButton;
+	AbstractIconButton zoomFitButton;
+	AbstractIconButton zoomInButton;
+	AbstractIconButton zoomOutButton;
 	
 	private class ZoomButtonActionListener implements ActionListener
 	{

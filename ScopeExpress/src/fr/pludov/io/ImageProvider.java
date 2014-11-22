@@ -300,6 +300,7 @@ public class ImageProvider {
 						for(int y = 0; y < height; ++y) {
 							short [] sline = sdatas[y];
 							for(int x = 0; x < width; ++x) {
+								// FIXME : pkoi /2 ?
 								datas[i++] = (char)((((int)sline[x]) - Short.MIN_VALUE) / 2); 
 							}
 						}
@@ -316,8 +317,7 @@ public class ImageProvider {
 						} catch(FitsExceptionNoKey nokey) {
 							result.isCfa = false;
 						}
-						result.scanPixelsForHistogram();
-						
+						result.maximum = 32767;
 						
 						CameraFrameMetadata fitsMetadata = new CameraFrameMetadata();
 						fitsMetadata.setInstrument(imageHDU.getInstrument());
@@ -379,17 +379,7 @@ public class ImageProvider {
 			result.width = loader.getWidth();
 			result.height = loader.getHeight();
 			result.maximum = loader.getMaximum();
-			result.black = loader.getBlack();
 			result.isCfa = true;
-			result.histogram = new int[3][];
-			result.histogram[0] = loader.getRedHistogram();
-			result.histogram[1] = loader.getGreenHistogram();
-			result.histogram[2] = loader.getBlueHistogram();
-			
-			result.histogramNbPix = new int[3];
-			result.histogramNbPix[0] = width * height / 4;
-			result.histogramNbPix[1] = width * height / 2;
-			result.histogramNbPix[2] = width * height / 4;
 			
 			return new Couple<CameraFrame, CameraFrameMetadata>(result, null);
 		} else {
@@ -433,24 +423,6 @@ public class ImageProvider {
 			result.width = outwidth;
 			result.height = outheight;
 			result.maximum = 4 * 255;
-			result.black = 0;
-			result.histogram = new int[3][];
-			result.histogram[0] = new int[4 * 255 + 1];
-			result.histogram[1] = new int[4 * 255 + 1];
-			result.histogram[2] = new int[4 * 255 + 1];
-			
-			for(int y = 0; y < outheight; ++y)
-				for(int x = 0; x < outwidth; ++x)
-				{
-					int chid = ChannelMode.getRGBBayerId(x, y);
-					int adu = charBuffer[x + (width / 2) * y];
-					result.histogram[chid][adu]++;
-				}
-			
-			result.histogramNbPix = new int[3];
-			result.histogramNbPix[0] = outwidth * outheight / 4;
-			result.histogramNbPix[1] = outwidth * outheight / 2;
-			result.histogramNbPix[2] = outwidth * outheight / 4;
 			
 			return new Couple<CameraFrame, CameraFrameMetadata>(result, null);
 		}

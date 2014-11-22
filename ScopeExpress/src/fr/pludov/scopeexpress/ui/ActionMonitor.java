@@ -1,6 +1,5 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -12,34 +11,24 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
 import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
 import org.apache.log4j.Logger;
 
 import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
 import fr.pludov.scopeexpress.ui.joystick.ButtonAction;
 import fr.pludov.scopeexpress.ui.joystick.JoystickListener;
 import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
 import fr.pludov.scopeexpress.ui.speech.SpeakerProvider;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton.Status;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton;
 import fr.pludov.scopeexpress.utils.EndUserException;
-import fr.pludov.scopeexpress.utils.Ransac;
 
 public class ActionMonitor implements ActionListener {
 	private static final Logger logger = Logger.getLogger(ActionMonitor.class);
@@ -50,16 +39,16 @@ public class ActionMonitor implements ActionListener {
 	File currentMonitoringPath;
 	Thread monitoringThread;
 	List<WeakReference<AbstractButton>> onOffMenus;
-	List<WeakReference<ToolbarButton>> onOffTbButtons;
-	List<WeakReference<ToolbarButton>> shootButtons;
+	List<WeakReference<AbstractIconButton>> onOffTbButtons;
+	List<WeakReference<AbstractIconButton>> shootButtons;
 	
 	public ActionMonitor(FocusUi focusUi) {
 		this.focusUi = focusUi;
 		this.currentMonitoringPath = null;
 		this.monitoringThread = null;
 		this.onOffMenus = new ArrayList<WeakReference<AbstractButton>>();
-		this.onOffTbButtons = new ArrayList<WeakReference<ToolbarButton>>();
-		this.shootButtons = new ArrayList<WeakReference<ToolbarButton>>();
+		this.onOffTbButtons = new ArrayList<WeakReference<AbstractIconButton>>();
+		this.shootButtons = new ArrayList<WeakReference<AbstractIconButton>>();
 	}
 
 	public void addPopupMenu(AbstractButton item)
@@ -70,17 +59,17 @@ public class ActionMonitor implements ActionListener {
 		refreshMenus();
 	}
 
-	public void addPopupMenu(ToolbarButton item)
+	public void addPopupMenu(AbstractIconButton item)
 	{
-		onOffTbButtons.add(new WeakReference<ToolbarButton>(item));
+		onOffTbButtons.add(new WeakReference<AbstractIconButton>(item));
 		item.addActionListener(this);
 		
 		refreshMenus();
 	}
 	
-	public void makeShootButton(ToolbarButton button)
+	public void makeShootButton(AbstractIconButton button)
 	{
-		this.shootButtons.add(new WeakReference<ToolbarButton>(button));
+		this.shootButtons.add(new WeakReference<AbstractIconButton>(button));
 		button.addActionListener(new ActionListener() {
 			
 			@Override
@@ -174,7 +163,7 @@ public class ActionMonitor implements ActionListener {
 		refreshShootButtonStatus(button);
 	}
 	
-	private void refreshShootButtonStatus(ToolbarButton shootButton)
+	private void refreshShootButtonStatus(AbstractIconButton shootButton)
 	{
 		shootButton.setEnabled(currentMonitoringPath != null);	
 	}
@@ -191,19 +180,19 @@ public class ActionMonitor implements ActionListener {
 			);
 	}
 
-	private void refreshMonitoringMenuStatus(ToolbarButton jmenu) {
+	private void refreshMonitoringMenuStatus(AbstractIconButton jmenu) {
 		jmenu.setToolTipText(currentMonitoringPath != null ?
 					"Arrêter la surveillance du répertoire" :
 					"Surveiller un répertoire");
-		jmenu.setStatus(currentMonitoringPath != null ? ToolbarButton.Status.OK : ToolbarButton.Status.DEFAULT);
+		jmenu.setStatus(currentMonitoringPath != null ? AbstractIconButton.Status.OK : AbstractIconButton.Status.DEFAULT);
 	}
 	
 	public void refreshMenus()
 	{
-		for(Iterator<WeakReference<ToolbarButton>> it = shootButtons.iterator(); it.hasNext(); )
+		for(Iterator<WeakReference<AbstractIconButton>> it = shootButtons.iterator(); it.hasNext(); )
 		{
-			WeakReference<ToolbarButton> wr = it.next();
-			ToolbarButton button = wr.get();
+			WeakReference<AbstractIconButton> wr = it.next();
+			AbstractIconButton button = wr.get();
 			if (button == null) {
 				it.remove();
 				continue;
@@ -222,10 +211,10 @@ public class ActionMonitor implements ActionListener {
 			refreshMonitoringMenuStatus(jmenu);	
 		}
 
-		for(Iterator<WeakReference<ToolbarButton>> it = onOffTbButtons.iterator(); it.hasNext(); )
+		for(Iterator<WeakReference<AbstractIconButton>> it = onOffTbButtons.iterator(); it.hasNext(); )
 		{
-			WeakReference<ToolbarButton> wr = it.next();
-			ToolbarButton jmenu = wr.get();
+			WeakReference<AbstractIconButton> wr = it.next();
+			AbstractIconButton jmenu = wr.get();
 			if (jmenu == null) {
 				it.remove();
 				continue;

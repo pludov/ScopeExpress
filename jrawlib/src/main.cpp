@@ -75,6 +75,15 @@ JNIEXPORT jcharArray JNICALL Java_fr_pludov_io_JRawLib_doLoad (JNIEnv * env, job
 		 int black = iProcessor->imgdata.color.black;
 		 int maximum = iProcessor->imgdata.color.maximum;
 
+		 int shift = 0;
+		 while((maximum << shift) < 32768 && shift < 8)
+		 {
+			 shift++;
+		 }
+
+		 maximum = maximum << shift;
+		 black = black << shift;
+
 		 fid = env->GetFieldID(cls, "black", "I");
 		 env->SetIntField(obj, fid, black);
 
@@ -110,61 +119,14 @@ JNIEXPORT jcharArray JNICALL Java_fr_pludov_io_JRawLib_doLoad (JNIEnv * env, job
 				 // decoder_info.cdesc => RGBG
 				 for(int y = 0; y < height; ++y)
 				 {
-					 env->SetCharArrayRegion(jb, y * width, width, (jchar*) iProcessor->imgdata.rawdata.raw_image + raw_width * (y + y_margin) + x_margin);
-				 }
-
-				 // Compter l'histogramme.
-				 jint * redHistogram = (jint*)malloc(sizeof(jint) * (maximum - black + 1));
-				 jint * greenHistogram = (jint*)malloc(sizeof(jint) * (maximum - black + 1));
-				 jint * blueHistogram = (jint*)malloc(sizeof(jint) * (maximum - black + 1));
-
-				 for(int i = 0 ; i < maximum - black + 1; ++i)
-				 {
-					 redHistogram[i] = 0;
-					 greenHistogram[i] = 0;
-					 blueHistogram[i] = 0;
-				 }
-
-				 for(int y = 0; y < height / 2; ++y)
-				 {
-					 for(int x = 0; x < width / 2; ++x)
+					 ushort * pixels = iProcessor->imgdata.rawdata.raw_image + raw_width * (y + y_margin) + x_margin;
+					 for(int i =0; i < width; ++i)
 					 {
-						 jchar * pixel = (jchar*) iProcessor->imgdata.rawdata.raw_image + raw_width * (2 * y + y_margin) + x_margin + 2 * x;
-
-						 jchar r = pixel[0];
-						 jchar g1 = pixel[1];
-						 jchar g2 = pixel[raw_width];
-						 jchar b = pixel[raw_width + 1];
-
-						 if (r < black) r = black;
-						 if (r > maximum) r = maximum;
-						 if (g1 < black) g1 = black;
-						 if (g1 > maximum) g1 = maximum;
-						 if (g2 < black) g2 = black;
-						 if (g2 > maximum) g2 = maximum;
-						 if (b < black) b = black;
-						 if (b > maximum) b = maximum;
-						 redHistogram[r - black] ++;
-						 greenHistogram[g1 - black] ++;
-						 greenHistogram[g2 - black] ++;
-						 blueHistogram[b - black] ++;
+						 pixels[i] = pixels[i] << shift;
 					 }
+					 // Shift
+					 env->SetCharArrayRegion(jb, y * width, width, (jchar*) pixels);
 				 }
-
-				 jintArray jredHistogram = env->NewIntArray(maximum - black + 1);
-				 env->SetIntArrayRegion(jredHistogram, 0, maximum - black + 1, redHistogram);
-				 fid = env->GetFieldID(cls, "redHistogram", "[I");
-				 env->SetObjectField(obj, fid, jredHistogram);
-
-				 jintArray jgreenHistogram = env->NewIntArray(maximum - black + 1);
-				 env->SetIntArrayRegion(jgreenHistogram, 0, maximum - black + 1, greenHistogram);
-				 fid = env->GetFieldID(cls, "greenHistogram", "[I");
-				 env->SetObjectField(obj, fid, jgreenHistogram);
-
-				 jintArray jblueHistogram = env->NewIntArray(maximum - black + 1);
-				 env->SetIntArrayRegion(jblueHistogram, 0, maximum - black + 1, blueHistogram);
-				 fid = env->GetFieldID(cls, "blueHistogram", "[I");
-				 env->SetObjectField(obj, fid, jblueHistogram);
 			 }
 
 

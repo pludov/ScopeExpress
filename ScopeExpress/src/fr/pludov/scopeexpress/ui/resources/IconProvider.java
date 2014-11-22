@@ -8,7 +8,8 @@ import javax.swing.ImageIcon;
 public class IconProvider {
 
 	public static enum IconSize {
-		IconSizeButton(16, 16);
+		IconSizeButton(16, 16),
+		IconSizeSmallButton(13, 13);
 		
 		private final int expectedWidth;
 		private final int expectedHeight;

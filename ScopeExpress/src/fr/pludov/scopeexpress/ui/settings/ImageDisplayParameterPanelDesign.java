@@ -9,147 +9,80 @@ import java.awt.Insets;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.JComboBox;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import javax.swing.JScrollBar;
+import net.miginfocom.swing.MigLayout;
 
 public class ImageDisplayParameterPanelDesign extends JPanel {
-	protected JLabel lblDureDexpoCible;
-	protected JCheckBox targetExpositionCheckBox;
-	protected JTextField targetExpositionText;
-	protected JLabel lblIsoCible;
-	protected JCheckBox targetIsoCheckBox;
-	protected JTextField targetIsoText;
 	protected JLabel lblMode;
 	protected JComboBox channelModeCombo;
-	protected JLabel lblNiveauDeNoir;
-	protected JTextField zeroText;
-	protected JLabel lblTransfert;
-	protected JComboBox transfertComboBox;
 	protected JCheckBox autoHistogramCheckBox;
-	protected JLabel label;
+	protected JLabel lblAutomatique;
+	protected JLabel lblHistogramme;
+	protected JPanel levelPanel;
+	protected JLabel lblDark;
+	protected JTextField darkTextBox;
+	protected JCheckBox darkEnabledCheckbox;
+	protected JPanel panel;
+	protected JScrollBar scrollBar;
+	protected JPanel histoPanel;
 
 	/**
 	 * Create the panel.
 	 */
 	public ImageDisplayParameterPanelDesign() {
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] {0, 31, 0, 0};
-		gridBagLayout.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0};
-		gridBagLayout.columnWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
-		setLayout(gridBagLayout);
+		setLayout(new MigLayout("insets 1", "[][][60px,grow 30][160px,grow 70]", "[grow,center][grow,center][grow,center][center]"));
 		
 		this.lblMode = new JLabel("Mode :");
-		GridBagConstraints gbc_lblMode = new GridBagConstraints();
-		gbc_lblMode.anchor = GridBagConstraints.EAST;
-		gbc_lblMode.insets = new Insets(0, 0, 5, 5);
-		gbc_lblMode.gridx = 0;
-		gbc_lblMode.gridy = 0;
-		add(this.lblMode, gbc_lblMode);
+		add(this.lblMode, "cell 0 0,alignx right,aligny center");
 		
 		this.channelModeCombo = new JComboBox();
-		GridBagConstraints gbc_channelModeCombo = new GridBagConstraints();
-		gbc_channelModeCombo.gridwidth = 2;
-		gbc_channelModeCombo.insets = new Insets(0, 0, 5, 0);
-		gbc_channelModeCombo.fill = GridBagConstraints.HORIZONTAL;
-		gbc_channelModeCombo.gridx = 1;
-		gbc_channelModeCombo.gridy = 0;
-		add(this.channelModeCombo, gbc_channelModeCombo);
+		add(this.channelModeCombo, "cell 1 0 2 1,growx,aligny center");
 		
-		this.lblTransfert = new JLabel("Transfert :");
-		GridBagConstraints gbc_lblTransfert = new GridBagConstraints();
-		gbc_lblTransfert.anchor = GridBagConstraints.EAST;
-		gbc_lblTransfert.insets = new Insets(0, 0, 5, 5);
-		gbc_lblTransfert.gridx = 0;
-		gbc_lblTransfert.gridy = 1;
-		add(this.lblTransfert, gbc_lblTransfert);
+		this.histoPanel = new JPanel();
+		add(this.histoPanel, "cell 3 0 1 3,grow");
+		this.histoPanel.setLayout(new BorderLayout(0, 0));
 		
-		this.transfertComboBox = new JComboBox();
-		GridBagConstraints gbc_transfertComboBox = new GridBagConstraints();
-		gbc_transfertComboBox.gridwidth = 2;
-		gbc_transfertComboBox.insets = new Insets(0, 0, 5, 0);
-		gbc_transfertComboBox.fill = GridBagConstraints.HORIZONTAL;
-		gbc_transfertComboBox.gridx = 1;
-		gbc_transfertComboBox.gridy = 1;
-		add(this.transfertComboBox, gbc_transfertComboBox);
+		this.lblDark = new JLabel("Dark :");
+		add(this.lblDark, "cell 0 1,alignx right,aligny center");
+		
+		this.darkEnabledCheckbox = new JCheckBox("");
+		add(this.darkEnabledCheckbox, "cell 1 1,alignx center,aligny center");
+		
+		this.darkTextBox = new JTextField();
+		this.darkTextBox.setEditable(false);
+		this.darkTextBox.setEnabled(false);
+		add(this.darkTextBox, "cell 2 1,growx,aligny center");
+		this.darkTextBox.setColumns(10);
+		
+		this.lblHistogramme = new JLabel("Histogramme :");
+		add(this.lblHistogramme, "cell 0 2,alignx right,aligny center");
 		
 		this.autoHistogramCheckBox = new JCheckBox("");
-		GridBagConstraints gbc_autoHistogramCheckBox = new GridBagConstraints();
-		gbc_autoHistogramCheckBox.insets = new Insets(0, 0, 5, 5);
-		gbc_autoHistogramCheckBox.gridx = 1;
-		gbc_autoHistogramCheckBox.gridy = 2;
-		add(this.autoHistogramCheckBox, gbc_autoHistogramCheckBox);
+		add(this.autoHistogramCheckBox, "cell 1 2,alignx center,aligny center");
 		
-		this.label = new JLabel("R\u00E9glage automatique");
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.anchor = GridBagConstraints.WEST;
-		gbc_label.insets = new Insets(0, 0, 5, 0);
-		gbc_label.gridx = 2;
-		gbc_label.gridy = 2;
-		add(this.label, gbc_label);
+		this.lblAutomatique = new JLabel("Automatique");
+		add(this.lblAutomatique, "cell 2 2,alignx left,aligny center");
 		
-		this.lblDureDexpoCible = new JLabel("Dur\u00E9e d'expo cible :");
-		GridBagConstraints gbc_lblDureDexpoCible = new GridBagConstraints();
-		gbc_lblDureDexpoCible.anchor = GridBagConstraints.EAST;
-		gbc_lblDureDexpoCible.insets = new Insets(0, 0, 5, 5);
-		gbc_lblDureDexpoCible.gridx = 0;
-		gbc_lblDureDexpoCible.gridy = 3;
-		add(this.lblDureDexpoCible, gbc_lblDureDexpoCible);
+		this.panel = new JPanel();
+		add(this.panel, "cell 0 3 4 1,grow");
+		this.panel.setLayout(new MigLayout("insets 1", "[grow,fill][][][]", "[][]"));
 		
-		this.targetExpositionCheckBox = new JCheckBox("");
-		GridBagConstraints gbc_targetExpositionCheckBox = new GridBagConstraints();
-		gbc_targetExpositionCheckBox.insets = new Insets(0, 0, 5, 5);
-		gbc_targetExpositionCheckBox.gridx = 1;
-		gbc_targetExpositionCheckBox.gridy = 3;
-		add(this.targetExpositionCheckBox, gbc_targetExpositionCheckBox);
+		this.levelPanel = new JPanel();
+		this.panel.add(this.levelPanel, "cell 0 0 4 1");
+		GridBagLayout gbl_levelPanel = new GridBagLayout();
+		gbl_levelPanel.columnWidths = new int[]{0};
+		gbl_levelPanel.rowHeights = new int[]{0};
+		gbl_levelPanel.columnWeights = new double[]{Double.MIN_VALUE};
+		gbl_levelPanel.rowWeights = new double[]{Double.MIN_VALUE};
+		this.levelPanel.setLayout(gbl_levelPanel);
 		
-		this.targetExpositionText = new JTextField();
-		GridBagConstraints gbc_targetExpositionText = new GridBagConstraints();
-		gbc_targetExpositionText.insets = new Insets(0, 0, 5, 0);
-		gbc_targetExpositionText.fill = GridBagConstraints.HORIZONTAL;
-		gbc_targetExpositionText.gridx = 2;
-		gbc_targetExpositionText.gridy = 3;
-		add(this.targetExpositionText, gbc_targetExpositionText);
-		this.targetExpositionText.setColumns(10);
-		
-		this.lblIsoCible = new JLabel("ISO cible :");
-		GridBagConstraints gbc_lblIsoCible = new GridBagConstraints();
-		gbc_lblIsoCible.anchor = GridBagConstraints.EAST;
-		gbc_lblIsoCible.insets = new Insets(0, 0, 5, 5);
-		gbc_lblIsoCible.gridx = 0;
-		gbc_lblIsoCible.gridy = 4;
-		add(this.lblIsoCible, gbc_lblIsoCible);
-		
-		this.targetIsoCheckBox = new JCheckBox("");
-		GridBagConstraints gbc_targetIsoCheckBox = new GridBagConstraints();
-		gbc_targetIsoCheckBox.insets = new Insets(0, 0, 5, 5);
-		gbc_targetIsoCheckBox.gridx = 1;
-		gbc_targetIsoCheckBox.gridy = 4;
-		add(this.targetIsoCheckBox, gbc_targetIsoCheckBox);
-		
-		this.targetIsoText = new JTextField();
-		GridBagConstraints gbc_targetIsoText = new GridBagConstraints();
-		gbc_targetIsoText.insets = new Insets(0, 0, 5, 0);
-		gbc_targetIsoText.fill = GridBagConstraints.HORIZONTAL;
-		gbc_targetIsoText.gridx = 2;
-		gbc_targetIsoText.gridy = 4;
-		add(this.targetIsoText, gbc_targetIsoText);
-		this.targetIsoText.setColumns(10);
-		
-		this.lblNiveauDeNoir = new JLabel("Niveau de noir :");
-		GridBagConstraints gbc_lblNiveauDeNoir = new GridBagConstraints();
-		gbc_lblNiveauDeNoir.anchor = GridBagConstraints.EAST;
-		gbc_lblNiveauDeNoir.insets = new Insets(0, 0, 0, 5);
-		gbc_lblNiveauDeNoir.gridx = 0;
-		gbc_lblNiveauDeNoir.gridy = 5;
-		add(this.lblNiveauDeNoir, gbc_lblNiveauDeNoir);
-		
-		this.zeroText = new JTextField();
-		GridBagConstraints gbc_zeroText = new GridBagConstraints();
-		gbc_zeroText.gridwidth = 2;
-		gbc_zeroText.fill = GridBagConstraints.HORIZONTAL;
-		gbc_zeroText.gridx = 1;
-		gbc_zeroText.gridy = 5;
-		add(this.zeroText, gbc_zeroText);
-		this.zeroText.setColumns(10);
+		this.scrollBar = new JScrollBar();
+		this.scrollBar.setUnitIncrement(50);
+		this.scrollBar.setBlockIncrement(50);
+		this.scrollBar.setOrientation(JScrollBar.HORIZONTAL);
+		this.panel.add(this.scrollBar, "cell 0 1,alignx center");
 
 	}
 

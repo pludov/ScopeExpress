@@ -28,7 +28,7 @@ import fr.pludov.scopeexpress.scope.dummy.DummyScope;
 import fr.pludov.scopeexpress.ui.ConfigurationEdit.ConfigItemString;
 import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
 import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton.Status;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton.Status;
 import fr.pludov.scopeexpress.utils.SkyAlgorithms;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;

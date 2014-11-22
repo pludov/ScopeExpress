@@ -15,7 +15,9 @@ import org.apache.log4j.Logger;
 
 import fr.pludov.io.CameraFrame;
 import fr.pludov.scopeexpress.focus.BitMask;
+import fr.pludov.scopeexpress.focus.Histogram;
 import fr.pludov.scopeexpress.focus.BitMask.ConnexityGroup;
+import fr.pludov.scopeexpress.focus.Image;
 
 /**
  * Trouve des étoiles dans une image.
@@ -24,12 +26,16 @@ import fr.pludov.scopeexpress.focus.BitMask.ConnexityGroup;
 public class MultiStarFinder {
 	private static final Logger logger = Logger.getLogger(MultiStarFinder.class);
 	
+	final Image image;
+	final Image dark;
 	List<StarFinder> stars;
 	CameraFrame frame;
 	BitMask checkedArea;
 	
-	public MultiStarFinder(CameraFrame frame) {
-		this.frame = frame;	
+	public MultiStarFinder(CameraFrame frame, Image image, Image dark) {
+		this.frame = frame;
+		this.image = image;
+		this.dark = dark;
 		checkedArea = new BitMask(0, 0, frame.getWidth(), frame.getHeight());
 		stars = new ArrayList<StarFinder>();
 	}
@@ -70,14 +76,13 @@ public class MultiStarFinder {
 
 		percent(0);
 		
-		Histogram histogram = new Histogram();
 
 		int [] blackLevelByChannel = new int[getChannelCount()];
 		int [] blackStddevByChannel = new int[getChannelCount()];
 		
 		for(int channel = 0; channel < getChannelCount(); ++channel)
 		{
-			histogram.calc(frame, 0, 0, frame.getWidth(), frame.getHeight(), getChannelMode(channel));
+			Histogram histogram = image.getHistogram(dark, getChannelMode(channel));
 			blackLevelByChannel[channel] = histogram.getBlackLevel(0.60);
 			blackStddevByChannel[channel] = (int)Math.ceil(2 * histogram.getStdDev(0, blackLevelByChannel[channel]));
 			

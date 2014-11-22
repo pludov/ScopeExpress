@@ -27,7 +27,6 @@ import javax.swing.table.TableColumn;
 
 import org.apache.log4j.Logger;
 
-import fr.pludov.scopeexpress.ImageDisplayParameter;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
@@ -51,7 +50,6 @@ public class StarOccurenceTable extends JTable {
 	
 	Mosaic focus;
 	StarOccurenceTableModel tableModel;
-	ImageDisplayParameter displayParameter;
 	final GraphPanelParameters graphParameter;
 	
 	
@@ -139,10 +137,9 @@ public class StarOccurenceTable extends JTable {
 		
 	}
 	
-	public StarOccurenceTable(Mosaic pFocus, ImageDisplayParameter displayParameter, GraphPanelParameters graphParameter) {
+	public StarOccurenceTable(Mosaic pFocus, GraphPanelParameters graphParameter) {
 		this.graphParameter = graphParameter;
 		this.focus = pFocus;
-		this.displayParameter = displayParameter;
 		tableModel = new StarOccurenceTableModel();
 		setModel(tableModel);
 		setRowHeight(128);
@@ -622,7 +619,7 @@ public class StarOccurenceTable extends JTable {
 				JPanel result = new JPanel();
 				
 				result.setLayout(new BorderLayout(2, 2));
-				StarOccurenceTableItem display = new StarOccurenceTableItem(so, displayParameter);
+				StarOccurenceTableItem display = new StarOccurenceTableItem(so);
 				result.add(display, BorderLayout.CENTER);
 
 				JLabel label = new JLabel();

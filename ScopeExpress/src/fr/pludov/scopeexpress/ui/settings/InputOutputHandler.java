@@ -155,6 +155,24 @@ public class InputOutputHandler<TARGET> {
 		abstract String toString(CONTENT t);
 		abstract CONTENT fromString(String s) throws Exception;
 	}
+
+	public static abstract class StringConverter<TARGET> extends TextConverter<TARGET, String>
+	{
+		StringConverter(JTextField component) {
+			super(component);
+		}
+		
+		String toString(String t)
+		{
+			return t;
+		}
+		
+		String fromString(String s)
+		{
+			return s;
+		}
+	}
+
 	
 	public static abstract class IntConverter<TARGET> extends TextConverter<TARGET, Integer>
 	{

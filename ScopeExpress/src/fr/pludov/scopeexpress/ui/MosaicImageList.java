@@ -52,46 +52,6 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 			}
 		},
 		
-		new ColumnDefinition("Focale", Double.class, 30) {
-			@Override
-			public Object getValue(MosaicImageListEntry ile) {
-				return ile.getTarget().getFocal();
-			}
-			@Override
-			public void setValue(MosaicImageListEntry ile, Object rv) {
-				Double v = (Double)rv;
-				try {
-					if (v == null) throw new EndUserException("Valeur obligatoire");
-					
-					ile.getTarget().setFocal(v);
-				} catch(EndUserException e) {
-					e.report(MosaicImageList.this);
-				}
-			}
-
-		},
-		
-		new ColumnDefinition("Ech", Double.class, 30) {
-			@Override
-			public Object getValue(MosaicImageListEntry ile) {
-				MosaicImageParameter mip = ile.getTarget();
-				if (mip == null) return null;
-				return mip.getPixelSize();
-			}
-			
-			@Override
-			public void setValue(MosaicImageListEntry ile, Object rv) {
-				Double v = (Double)rv;
-				try {
-					if (v == null) throw new EndUserException("Valeur obligatoire");
-					
-					MosaicImageParameter mip = ile.getTarget();
-					mip.setPixelSize(v);
-				} catch(EndUserException e) {
-					e.report(MosaicImageList.this);
-				}
-			}
-		}.setEditable(true),
 		
 		new ColumnDefinition("Date", Date.class, 80) {
 			@Override
