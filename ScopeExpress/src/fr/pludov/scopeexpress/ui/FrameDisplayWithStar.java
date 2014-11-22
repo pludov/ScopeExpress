@@ -854,7 +854,9 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		super.setFrame(plane, isTemporary);
 	}
 	
-	private void refreshFrame(final boolean resetSize, final boolean keepCurrentBufferUntilUpdate)
+	boolean canAdjustImageDisplayParameters = false;
+	
+	private void refreshFrame(final boolean resetSize, final boolean keepCurrentBufferUntilUpdate, final boolean adjustDisplayModeForColor)
 	{
 		if (this.taskToGetImageToDisplay != null) {
 			this.taskToGetImageToDisplay.abort();
@@ -869,11 +871,15 @@ public class FrameDisplayWithStar extends FrameDisplay {
 			setFrame(null, false);
 		}
 		
+		if (adjustDisplayModeForColor) {
+			canAdjustImageDisplayParameters = true;
+		}
+		
 		if (image != null && imageDisplayParameter != null) {
 			BackgroundTask loadImageTask = new BackgroundTask("Preparing display for " + image.getPath().getName())
 			{
 				Image image = FrameDisplayWithStar.this.image;
-				
+				boolean canAdjustImageDisplayParameters = FrameDisplayWithStar.this.canAdjustImageDisplayParameters;
 				BufferedImage buffimage;
 				ImageDisplayParameter imageDisplayParameter = new ImageDisplayParameter(FrameDisplayWithStar.this.imageDisplayParameter);
 				
@@ -921,6 +927,14 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					checkInterrupted();
 					setPercent(50);
 
+					if (canAdjustImageDisplayParameters) {
+						if (imageDisplayParameter.getChannelMode() == ImageDisplayParameter.ChannelMode.GreyScale && frame.isCfa()) {
+							imageDisplayParameter.setChannelMode(ImageDisplayParameter.ChannelMode.Color);
+						} else if (imageDisplayParameter.getChannelMode() == ImageDisplayParameter.ChannelMode.Color && !frame.isCfa()) {
+							imageDisplayParameter.setChannelMode(ImageDisplayParameter.ChannelMode.GreyScale);
+						}
+					}
+					
 					if (frame != null && imageDisplayParameter.isAutoHistogram()) {
 						setRunningDetails("Optimisation de l'histogramme");
 							
@@ -980,7 +994,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 						}
 						
 						FrameDisplayWithStar.this.imageDisplayParameter.copyFrom(imageDisplayParameter);
-
+						FrameDisplayWithStar.this.canAdjustImageDisplayParameters = false;
 						if (resetSize)
 						{
 							if (buffimage != null) {
@@ -1028,13 +1042,13 @@ public class FrameDisplayWithStar extends FrameDisplay {
 					forComp.setDarkFrame(previous.getDarkFrame());
 					
 					if (!previous.equalsExceptAutoHistValue(forComp)) {
-						refreshFrame(false, true);
+						refreshFrame(false, true, false);
 					}
 				}
 			});
 		}
 		
-		refreshFrame(false, true);
+		refreshFrame(false, true, false);
 	}
 	
 	public void setImage(Image image, boolean resetImagePosition)
@@ -1072,7 +1086,7 @@ public class FrameDisplayWithStar extends FrameDisplay {
 		
 		this.imageDisplayParameter.setDarkFrame(null);
 		
-		refreshFrame(resetImagePosition, false);
+		refreshFrame(resetImagePosition, false, true);
 	}
 
 	/**
