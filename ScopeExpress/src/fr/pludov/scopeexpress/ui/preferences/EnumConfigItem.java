@@ -16,6 +16,9 @@ public class EnumConfigItem<ENUM extends Enum<ENUM>> extends ConfigItem {
 	{
 		String value = prefs.get(this.key, "");
 		try {
+			if (value == null || value.equals("")) {
+				return defaultValue;
+			}
 			return Enum.valueOf(this.enumClass, value);
 		} catch(IllegalArgumentException e) {
 			return defaultValue;
