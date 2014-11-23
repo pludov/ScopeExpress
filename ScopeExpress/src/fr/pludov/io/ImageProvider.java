@@ -452,11 +452,11 @@ public class ImageProvider {
 		}
 	}
 
-	private static boolean isCr2(final File file) {
+	public static boolean isCr2(final File file) {
 		return file.getName().toLowerCase().matches(".*\\.cr.");
 	}
 
-	private static boolean isFits(final File file) {
+	public static boolean isFits(final File file) {
 		return file.getName().toLowerCase().matches(".*\\.fit(|s)");
 	}
 	

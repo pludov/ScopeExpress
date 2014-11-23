@@ -35,6 +35,7 @@ import fr.pludov.scopeexpress.catalogs.StarCollection;
 import fr.pludov.scopeexpress.catalogs.StarProvider;
 import fr.pludov.scopeexpress.focus.AffineTransform3D;
 import fr.pludov.scopeexpress.focus.Application;
+import fr.pludov.scopeexpress.focus.DarkLibrary;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.Mosaic;
@@ -585,6 +586,7 @@ public class FocusUi extends FocusUiDesign {
 					final FocusUi window = new FocusUi(focus, mosaic);
 					window.getFrmFocus().setVisible(true);
 					window.checkConfigAtStartup();
+					focus.getBackgroundTaskQueue().addTask(DarkLibrary.getInstance().getScanTask(focus));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

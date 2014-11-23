@@ -5,6 +5,8 @@ import java.awt.HeadlessException;
 import java.awt.TrayIcon.MessageType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +19,7 @@ import javax.swing.JTextArea;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.scopeexpress.focus.DarkLibrary;
 import fr.pludov.scopeexpress.focus.ExclusionZone;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.focus.ImageDistorsion;
@@ -569,7 +572,28 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		});
 	
 		contextMenu.add(guideStarFinderMenu);
+	
 		
+		contextMenu.addSeparator();
+		JMenuItem addToDarkLib = new JMenuItem();
+		addToDarkLib.setText("Copier dans la librairie de darks");
+		addToDarkLib.setToolTipText("Copier ce fichier dans la librairie de darks");
+		addToDarkLib.setEnabled(entries.size() >= 1);
+		addToDarkLib.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				List<File> images = new ArrayList<>();
+				for(MosaicImageListEntry mile : entries)
+				{
+					images.add(mile.getTarget().getImage().getPath());
+				}
+				
+				focusUi.getApplication().getBackgroundTaskQueue().addTask(DarkLibrary.getInstance().getImportTask(focusUi, images));
+			}
+		});
+		
+		contextMenu.add(addToDarkLib);
 		
 		return contextMenu;
 	}
