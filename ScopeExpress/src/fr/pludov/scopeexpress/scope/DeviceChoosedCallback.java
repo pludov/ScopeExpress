@@ -1,7 +1,7 @@
 package fr.pludov.scopeexpress.scope;
 
-public interface ScopeChoosedCallback {
+public interface DeviceChoosedCallback {
 
 	/** Appellé quand un scope a été choisi ou null si annulation/erreur */
-	void onScopeChoosed(ScopeIdentifier si);
+	void onDeviceChoosed(DeviceIdentifier si);
 }

@@ -1,12 +1,12 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import fr.pludov.scopeexpress.scope.ScopeIdentifier;
+import fr.pludov.scopeexpress.scope.DeviceIdentifier;
 
-public class AscomScopeIdentifier implements ScopeIdentifier {
+public class AscomDeviceIdentifier implements DeviceIdentifier {
 	String classId;
 	String title;
 	
-	AscomScopeIdentifier(String classId, String title)
+	AscomDeviceIdentifier(String classId, String title)
 	{
 		this.classId = classId;
 		this.title = title;

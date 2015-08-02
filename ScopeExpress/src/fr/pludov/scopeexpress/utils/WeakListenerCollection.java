@@ -2,11 +2,16 @@ package fr.pludov.scopeexpress.utils;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.swing.SwingUtilities;
+
+import fr.pludov.scopeexpress.scope.Scope;
 
 /**
  * Tant que le owner est en vie vis à vis du gc, garder le listener.
@@ -15,7 +20,7 @@ import java.util.List;
  * 
  * => il faut que le owner ait une référence sur le listener
  */
-public class WeakListenerCollection<Interface> implements InvocationHandler {
+public class WeakListenerCollection<Interface> implements InvocationHandler, IWeakListenerCollection<Interface> {
 	private static class ControlledObject<Interface>
 	{
 		WeakReference<WeakListenerOwner> reference;
@@ -45,12 +50,20 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 	// private List<WeakReference<Interface>> listeners;
 	private List<ControlledObject<Interface>> listeners;
 	
+	private boolean async = false;
+	
 	public WeakListenerCollection(Class<? extends Interface> clazz)
+	{
+		this(clazz, false);
+	}
+	
+	public WeakListenerCollection(Class<? extends Interface> clazz, boolean async)
 	{
 		listeners = new ArrayList<ControlledObject<Interface>>();
 		proxy = (Interface)Proxy.newProxyInstance(clazz.getClassLoader(), 
 				new Class[]{clazz}, 
 				this);
+		this.async = async;
 	}
 	
 	boolean isActive(Interface target)
@@ -59,7 +72,7 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 	}
 	
 	@Override
-	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable 
+	public Object invoke(Object proxy, final Method method, final Object[] args) throws Throwable 
 	{
 		List<Interface> objectToNotify = new ArrayList<Interface>();
 		// 1 - vider les références vide
@@ -75,16 +88,29 @@ public class WeakListenerCollection<Interface> implements InvocationHandler {
 		}
 		
 		Object result = null;
-		for(Interface target  : objectToNotify)
+		for(final Interface target  : objectToNotify)
 		{
 			if (!isActive(target)) {
 				continue;
 			}
 			
 			try {
-				Object r = method.invoke(target, args);
-				if (r != null && result == null) {
-					result = r;
+				if (!async) {
+					Object r = method.invoke(target, args);
+					if (r != null && result == null) {
+						result = r;
+					}
+				} else {
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							try {
+								method.invoke(target, args);
+							} catch (Throwable e) {
+								e.printStackTrace();
+							}
+						}
+					});
 				}
 			} catch(Throwable t) {
 				t.printStackTrace();

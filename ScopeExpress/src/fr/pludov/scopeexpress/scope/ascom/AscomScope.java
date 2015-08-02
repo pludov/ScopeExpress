@@ -16,6 +16,9 @@ import fr.pludov.scopeexpress.focus.SkyProjection;
 import fr.pludov.scopeexpress.platform.windows.Ole;
 import fr.pludov.scopeexpress.scope.Scope;
 import fr.pludov.scopeexpress.scope.ScopeException;
+import fr.pludov.scopeexpress.ui.IDriverStatusListener;
+import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
+import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 import fr.pludov.scopeexpress.utils.WorkThread;
 
@@ -25,7 +28,8 @@ public class AscomScope extends WorkThread implements Scope {
 //	static StringConfigItem lastUsedScope = new StringConfigItem(AscomScope.class, "previousScope", "");
 
 	
-	final WeakListenerCollection<Scope.Listener> listeners = new WeakListenerCollection<Scope.Listener>(Listener.class);
+	final WeakListenerCollection<Scope.Listener> listeners = new WeakListenerCollection<Scope.Listener>(Listener.class, true);
+	final IWeakListenerCollection<IDriverStatusListener> statusListener;
 	
 	public AscomScope(String driver)
 	{
@@ -33,6 +37,26 @@ public class AscomScope extends WorkThread implements Scope {
 		this.driver = driver;
 		this.lastNotifiedDec = Double.NaN;
 		this.lastNotifiedRa = Double.NaN;
+		this.statusListener = new SubClassListenerCollection<IDriverStatusListener, Scope.Listener>(this.listeners) {
+
+			@Override
+			protected Listener createListenerFor(final IDriverStatusListener i) {
+				return new Listener() {
+					@Override
+					public void onConnectionStateChanged() {
+						i.onConnectionStateChanged();
+					}
+					@Override
+					public void onCoordinateChanged() {
+					}
+				};
+			}
+		};
+	}
+	
+	@Override
+	public IWeakListenerCollection<IDriverStatusListener> getStatusListener() {
+		return statusListener;
 	}
 	
 	@Override

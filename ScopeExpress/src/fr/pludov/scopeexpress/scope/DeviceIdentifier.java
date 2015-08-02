@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.scope;
 
-public interface ScopeIdentifier {
+public interface DeviceIdentifier {
 	public String getTitle();
 	public String getStorableId();
 	public boolean matchStorableId(String storedId);

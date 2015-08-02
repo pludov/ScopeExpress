@@ -366,6 +366,12 @@ public class AxeAlignDialog extends AxeAlignDialogDesign {
 			@Override
 			public void exclusionZoneAdded(ExclusionZone ze) {
 			}
+
+			@Override
+			public void starAnalysisDone(Image image) {
+				// TODO Auto-generated method stub
+				
+			}
 		});
 	}
 	

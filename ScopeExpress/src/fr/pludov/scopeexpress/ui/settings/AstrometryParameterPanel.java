@@ -319,12 +319,12 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 		manager.listeners.addListener(this.listenerOwner, new FocusUiScopeManager.Listener() {
 			
 			@Override
-			public void onScopeChanged() {
-				setCurrentScope(scopeManager.getScope());
+			public void onDeviceChanged() {
+				setCurrentScope(scopeManager.getDevice());
 			}
 		});
 		
-		setCurrentScope(scopeManager.getScope());
+		setCurrentScope(scopeManager.getDevice());
 	}
 	
 	private void setCurrentScope(Scope scope)
@@ -671,6 +671,12 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 			
 			@Override
 			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void starAnalysisDone(Image image) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
 		

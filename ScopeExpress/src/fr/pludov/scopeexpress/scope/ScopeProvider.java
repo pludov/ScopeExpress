@@ -2,17 +2,23 @@ package fr.pludov.scopeexpress.scope;
 
 import java.util.List;
 
+import fr.pludov.scopeexpress.ui.DriverProvider;
 import fr.pludov.scopeexpress.utils.Couple;
 
-public interface ScopeProvider {
+public interface ScopeProvider extends DriverProvider<Scope> {
 	/** Liste les scope dispos (attention, c'est asynchrone) */
-	void listScopes(ScopeListedCallback onListed);
+	@Override
+	void listDevices(DeviceListedCallback onListed);
 	
+	@Override
 	boolean canChooseScope();
-	void chooseScope(String prefered, ScopeChoosedCallback onChoose);
+	@Override
+	void chooseDevice(String prefered, DeviceChoosedCallback onChoose);
 	
-	Scope buildScope(ScopeIdentifier si);
+	@Override
+	Scope buildDevice(DeviceIdentifier si);
 
 	/** Retourne un identifiant pour la chaine donnée */
-	ScopeIdentifier buildIdFor(String storedId);
+	@Override
+	DeviceIdentifier buildIdFor(String storedId);
 }
