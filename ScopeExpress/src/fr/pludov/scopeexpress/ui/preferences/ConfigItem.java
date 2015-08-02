@@ -8,11 +8,19 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ConfigItem {
-	Preferences prefs = loadPreferences();
-	protected final String key;
+	Preferences prefs;
+	Class<?> packageLocation;
+	protected String key;
 	
 	public ConfigItem(Class<?> packageLocation, String storageName) {
-		key = packageLocation.getCanonicalName() + ":" + storageName;
+		key = storageName;
+		this.packageLocation = packageLocation;
+		prefs = loadPreferences();
+	}
+	
+	public void setKey(String key)
+	{
+		this.key = key;
 	}
 	
 	public boolean exists()
@@ -20,23 +28,22 @@ public class ConfigItem {
 		return prefs.get(key, null) != null;
 	}
 	
-	private static Preferences loadPreferences()
+	private Preferences loadPreferences()
 	{
-		return Preferences.userNodeForPackage(ConfigItem.class);
+		return Preferences.userNodeForPackage(packageLocation);
 	}
 	
 	public static List<String> getKeyCollection(Class<?> packageLocation, Pattern p)
 	{
-		String prefix = packageLocation.getCanonicalName() + ":";
 		List<String> result = new ArrayList<String>();
 		try {
-			for(String s : loadPreferences().keys())
+			for(String s : Preferences.userNodeForPackage(packageLocation).keys())
 			{
-				if (!s.startsWith(prefix)) {
-					continue;
-				}
+//				if (!s.startsWith(prefix)) {
+//					continue;
+//				}
 				
-				String key = s.substring(prefix.length());
+				String key = s;//.substring(prefix.length());
 				Matcher m = p.matcher(key);
 				if (m.matches()) {
 					result.add(key);
@@ -47,5 +54,9 @@ public class ConfigItem {
 		}
 		
 		return result;
+	}
+
+	public String getKey() {
+		return key;
 	}
 }

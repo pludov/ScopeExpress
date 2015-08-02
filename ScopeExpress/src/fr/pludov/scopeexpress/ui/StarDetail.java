@@ -21,16 +21,16 @@ public class StarDetail extends StarDetailDesign {
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	final StarOccurence3DView view;
 
-	final Mosaic focus;
+	Mosaic focus;
 	StarOccurence so;
 	
 	final JLabel [] lblBlackList;
 	final JLabel [] lblAduMaxList;
 	final JLabel [] lblAduSumList;
 	
-	public StarDetail(Mosaic fo) {
+	public StarDetail() {
 		super();
-		this.focus = fo;
+		this.focus = null;
 		this.so = null;
 		view = new StarOccurence3DView();
 		this.lblBlackList = new JLabel[] {
@@ -56,59 +56,79 @@ public class StarDetail extends StarDetailDesign {
 		
 		
 		this.graphPanel.add(view);
-		this.focus.listeners.addListener(this.listenerOwner, new MosaicListener() {
-			
-			@Override
-			public void starRemoved(Star star) {
-			}
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				if (sco == StarDetail.this.so) {
-					setStarOccurence(null);
-				}
-			}
-			
-			@Override
-			public void starOccurenceAdded(StarOccurence sco) {
-			}
-			
-			@Override
-			public void starAdded(Star star) {
-				
-			}
-			
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-				
-			}
-			
-			@Override
-			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-				
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {
-			}
-		});
 		
+		
+		refreshLabels();
+	}
+	
+	public void setMosaic(Mosaic mosaic)
+	{
+		if (this.focus == mosaic) return;
+		if (this.focus != null) {
+			this.focus.listeners.removeListener(this.listenerOwner);
+		}
+		this.focus = mosaic;
+		if (this.focus != null) {
+			this.focus.listeners.addListener(this.listenerOwner, new MosaicListener() {
+				
+				@Override
+				public void starRemoved(Star star) {
+				}
+				
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					if (sco == StarDetail.this.so) {
+						setStarOccurence(null);
+					}
+				}
+				
+				@Override
+				public void starOccurenceAdded(StarOccurence sco) {
+				}
+				
+				@Override
+				public void starAdded(Star star) {
+					
+				}
+				
+				@Override
+				public void imageRemoved(Image image, MosaicImageParameter mip) {
+					
+				}
+				
+				@Override
+				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+					
+				}
+	
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {
+				}
+	
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {
+				}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+		}
+		setStarOccurence(null);
 		refreshLabels();
 	}
 	

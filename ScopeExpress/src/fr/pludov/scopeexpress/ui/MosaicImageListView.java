@@ -176,6 +176,12 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 				public void starOccurenceRemoved(StarOccurence sco) {}
 				@Override
 				public void starRemoved(Star star) {}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
 			});
 		}
 	}

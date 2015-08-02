@@ -61,6 +61,10 @@ public class FocusUiDesign {
 	protected JMenuItem mntmSauverConfig;
 	protected JPanel starDetailPanel;
 	protected JPanel shapeRepartitionPanel;
+	protected JMenu mnFocuser;
+	protected JMenuItem mntmAutofocus;
+	protected JMenuItem mntmFocuserConnecter;
+	protected JMenuItem mntmFocuserDeconnecter;
 
 	/**
 	 * Create the application.
@@ -110,6 +114,18 @@ public class FocusUiDesign {
 		
 		this.mntmDconnecter = new JMenuItem("D\u00E9connecter");
 		this.mnTlscope.add(this.mntmDconnecter);
+		
+		this.mnFocuser = new JMenu("Focuser");
+		this.menuBar.add(this.mnFocuser);
+		
+		this.mntmFocuserConnecter = new JMenuItem("Connecter");
+		this.mnFocuser.add(this.mntmFocuserConnecter);
+		
+		this.mntmFocuserDeconnecter = new JMenuItem("D\u00E9connecter");
+		this.mnFocuser.add(this.mntmFocuserDeconnecter);
+		
+		this.mntmAutofocus = new JMenuItem("Autofocus");
+		this.mnFocuser.add(this.mntmAutofocus);
 		
 		this.mnConfiguration = new JMenu("Configuration");
 		this.menuBar.add(this.mnConfiguration);

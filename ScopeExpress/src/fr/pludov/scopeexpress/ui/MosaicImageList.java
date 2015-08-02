@@ -605,4 +605,10 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 	@Override
 	public void exclusionZoneRemoved(ExclusionZone ze) {
 	}
+
+	@Override
+	public void starAnalysisDone(Image image) {
+		// TODO Auto-generated method stub
+		
+	}
 }

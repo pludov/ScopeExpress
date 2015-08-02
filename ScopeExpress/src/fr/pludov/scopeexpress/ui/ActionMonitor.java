@@ -608,7 +608,14 @@ public class ActionMonitor implements ActionListener {
 		FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
 		focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 		
-		CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), image);
-		focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);	
+		if (focusUi.getActivity() == Activity.Aligning) {
+			CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), image);
+			focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
+		} else {
+			if (focusUi.getMosaic().getImages().size() > 1) {
+				StarShiftTask correlate = new StarShiftTask(focusUi.getMosaic(), image);
+				focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
+			}
+		}
 	}
 }

@@ -13,38 +13,38 @@ public class LocateStarParameter {
 		Global			// Recherche avec toutes les étoiles connues 
 	};
 	
-	final Mosaic focus;
+//	final Mosaic focus;
 	
 	int blackPercent;
 	int aduSumMini;
 	CorrelationMode correlationMode;
-	// Null signifie prend la derniere
-	Image reference;
+//	// Null signifie prend la derniere
+//	Image reference;
 	
-	public LocateStarParameter(Mosaic focus) {
-		this.focus = focus;
+	public LocateStarParameter() {
+//		this.focus = focus;
 		this.blackPercent = 25;
 		this.aduSumMini = 10000;
 		this.correlationMode = CorrelationMode.SamePosition;
-		this.reference = null;
+//		this.reference = null;
 	}
 	
-	public Image getEffectiveReferenceImage(Image forImage)
-	{
-		if (reference != null) {
-			if (reference != forImage) return reference;
-			return null;
-		}
-		
-		List<Image> images = focus.getImages();
-		for(int i = images.size() - 1; i >= 0; --i)
-		{
-			Image result = images.get(i);
-			if (result != forImage) return result;
-		}
-		
-		return null;
-	}
+//	public Image getEffectiveReferenceImage(Image forImage)
+//	{
+//		if (reference != null) {
+//			if (reference != forImage) return reference;
+//			return null;
+//		}
+//		
+//		List<Image> images = focus.getImages();
+//		for(int i = images.size() - 1; i >= 0; --i)
+//		{
+//			Image result = images.get(i);
+//			if (result != forImage) return result;
+//		}
+//		
+//		return null;
+//	}
 
 	public int getBlackPercent() {
 		return blackPercent;
@@ -70,17 +70,17 @@ public class LocateStarParameter {
 		this.correlationMode = correlationMode;
 	}
 
-	public Image getReference() {
-		return reference;
-	}
-
-	public void setReference(Image reference) {
-		this.reference = reference;
-	}
-
-	public Mosaic getFocus() {
-		return focus;
-	}
+//	public Image getReference() {
+//		return reference;
+//	}
+//
+//	public void setReference(Image reference) {
+//		this.reference = reference;
+//	}
+//
+//	public Mosaic getFocus() {
+//		return focus;
+//	}
 
 	
 }

@@ -112,11 +112,13 @@ public class StarOccurenceTable extends JTable {
 
 		@Override
 		public int getColumnCount() {
+			if (focus == null) return 0;
 			return focus.getImages().size();
 		}
 		
 		@Override
 		public int getRowCount() {
+			if (focus == null) return 0;
 			return focus.getStars().size();
 		}
 		
@@ -137,9 +139,9 @@ public class StarOccurenceTable extends JTable {
 		
 	}
 	
-	public StarOccurenceTable(Mosaic pFocus, GraphPanelParameters graphParameter) {
+	public StarOccurenceTable(GraphPanelParameters graphParameter) {
 		this.graphParameter = graphParameter;
-		this.focus = pFocus;
+		this.focus = null;
 		tableModel = new StarOccurenceTableModel();
 		setModel(tableModel);
 		setRowHeight(128);
@@ -156,101 +158,6 @@ public class StarOccurenceTable extends JTable {
 			}
 		});
 		
-		focus.listeners.addListener(listenerOwner, new MosaicListener() {
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				tableModel.fireTableDataChanged();
-			}
-			
-			@Override
-			public void starOccurenceAdded(final StarOccurence sco) {
-				int modelCol = tableModel.getColumnOfImage(sco.getImage());
-				int modelRow = tableModel.getRowOfStar(sco.getStar());
-				if (modelCol != -1 && modelRow != -1) {
-					tableModel.fireTableCellUpdated(modelRow, modelCol);
-				}
-				
-				sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
-					
-					@Override
-					public void analyseDone() {
-						int modelCol = tableModel.getColumnOfImage(sco.getImage());
-						if (modelCol == -1) return;
-						int modelRow = tableModel.getRowOfStar(sco.getStar());
-						if (modelRow == -1) return;
-						
-						tableModel.fireTableCellUpdated(modelRow, modelCol);
-					}
-					
-					@Override
-					public void imageUpdated() {
-						analyseDone();
-					}
-				});
-			}
-
-			@Override
-			public void starRemoved(Star star) {
-				tableModel.fireTableDataChanged();
-			}
-			
-			@Override
-			public void starAdded(Star star) {
-				tableModel.fireTableDataChanged();
-			}
-			
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-				tableModel.fireTableStructureChanged();
-
-				for(int i = 0; i < getColumnModel().getColumnCount(); ++i) {
-					getColumnModel().getColumn(i).setPreferredWidth(128);
-				}
-			}
-			
-			@Override
-			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-				// tableModel.fireTableStructureChanged();
-				// FIXME: ceci assume que l'image est ajoutée en derniere position
-				TableColumn newColumn = new TableColumn(focus.getImages().indexOf(image), 128);
-				newColumn.setResizable(false);
-				getColumnModel().addColumn(newColumn);
-
-				for(int i = 0; i < getColumnModel().getColumnCount(); ++i) {
-					// getColumnModel().getColumn(i).setPreferredWidth(128);
-				}
-				
-
-				//if (cause == ImageAddedCause.Explicit || cause == ImageAddedCause.AutoDetected)
-				{
-					// FocusImageListEntry listEntry = getEntryFor(image);
-					getColumnModel().getSelectionModel().setSelectionInterval(getColumnModel().getColumnCount() - 1, getColumnModel().getColumnCount() - 1);
-					int firstSelected = getSelectedColumn();
-					scrollRectToVisible(getCellRect(firstSelected, getColumnModel().getColumnCount() - 1, true));
-				}
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {		
-			}
-		});
 		
 		getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			
@@ -324,6 +231,130 @@ public class StarOccurenceTable extends JTable {
 
 		});
 
+	}
+	
+	public void setMosaic(final Mosaic focus)
+	{
+		if (this.focus == focus) return;
+		if (this.focus != null) {
+			this.focus.listeners.removeListener(this.listenerOwner);
+		}
+		this.focus = focus;
+		if (focus != null) {
+			focus.listeners.addListener(listenerOwner, new MosaicListener() {
+				
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					tableModel.fireTableDataChanged();
+				}
+				
+				@Override
+				public void starOccurenceAdded(final StarOccurence sco) {
+					int modelCol = tableModel.getColumnOfImage(sco.getImage());
+					int modelRow = tableModel.getRowOfStar(sco.getStar());
+					if (modelCol != -1 && modelRow != -1) {
+						tableModel.fireTableCellUpdated(modelRow, modelCol);
+					}
+					
+					sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
+						
+						@Override
+						public void analyseDone() {
+							int modelCol = tableModel.getColumnOfImage(sco.getImage());
+							if (modelCol == -1) return;
+							int modelRow = tableModel.getRowOfStar(sco.getStar());
+							if (modelRow == -1) return;
+							
+							tableModel.fireTableCellUpdated(modelRow, modelCol);
+						}
+						
+						@Override
+						public void imageUpdated() {
+							analyseDone();
+						}
+					});
+				}
+	
+				@Override
+				public void starRemoved(Star star) {
+					tableModel.fireTableDataChanged();
+				}
+				
+				@Override
+				public void starAdded(Star star) {
+					tableModel.fireTableDataChanged();
+				}
+				
+				@Override
+				public void imageRemoved(Image image, MosaicImageParameter mip) {
+					tableModel.fireTableStructureChanged();
+	
+					for(int i = 0; i < getColumnModel().getColumnCount(); ++i) {
+						getColumnModel().getColumn(i).setPreferredWidth(128);
+					}
+				}
+				
+				@Override
+				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+					// tableModel.fireTableStructureChanged();
+					// FIXME: ceci assume que l'image est ajoutée en derniere position
+					TableColumn newColumn = new TableColumn(focus.getImages().indexOf(image), 128);
+					newColumn.setResizable(false);
+					getColumnModel().addColumn(newColumn);
+	
+					for(int i = 0; i < getColumnModel().getColumnCount(); ++i) {
+						// getColumnModel().getColumn(i).setPreferredWidth(128);
+					}
+					
+	
+					//if (cause == ImageAddedCause.Explicit || cause == ImageAddedCause.AutoDetected)
+					{
+						// FocusImageListEntry listEntry = getEntryFor(image);
+						getColumnModel().getSelectionModel().setSelectionInterval(getColumnModel().getColumnCount() - 1, getColumnModel().getColumnCount() - 1);
+						int firstSelected = getSelectedColumn();
+						scrollRectToVisible(getCellRect(firstSelected, getColumnModel().getColumnCount() - 1, true));
+					}
+				}
+	
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {
+				}
+	
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {		
+				}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+		}
+		tableModel.fireTableStructureChanged();
+		this.getTableModel().fireTableDataChanged();
+
+		while(getColumnModel().getColumnCount() > 0) {
+			getColumnModel().removeColumn(getColumnModel().getColumn(0));
+		}
+		for(int i = 0; i < tableModel.getColumnCount(); ++i) {
+			TableColumn newColumn = new TableColumn(i, 128);
+			newColumn.setResizable(false);
+			getColumnModel().addColumn(newColumn);
+		}
+		
 	}
 	
 	public List<StarOccurence> getCurrentSelection()

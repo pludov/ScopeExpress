@@ -33,8 +33,8 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 	enum EnergyLimitType { None, Raw, Tantieme };
 	Mosaic focus;
 	
-	public GraphPanelParameters(Mosaic focus) {
-		this.focus = focus;
+	public GraphPanelParameters() {
+		this.focus = null;
 		
 		for(EnergyLimitType elt : EnergyLimitType.values())
 		{
@@ -65,79 +65,99 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 		this.chckbxCacherLesSatures.setSelected(true);
 		
 
-		focus.listeners.addListener(listenerOwner, new MosaicListener() {
-
-			@Override
-			public void starAdded(Star star) {
-				invalidateData();
-			}
-			
-			@Override
-			public void starRemoved(Star star) {
-				invalidateData();
-			}
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				sco.listeners.removeListener(listenerOwner);
-				invalidateData();
-			}
-			
-			@Override
-			public void starOccurenceAdded(final StarOccurence sco) {
-				repaint();
-				sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
-					
-					@Override
-					public void analyseDone() {
-						invalidateData();	
-					}
-
-					@Override
-					public void imageUpdated() {
-					}
-				});
-			}
-			
-			
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-				invalidateData();
-			}
-			
-			@Override
-			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-				invalidateData();				
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {
-				invalidateData();				
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {
-				invalidateData();				
-			}
-		});
 		
 		
 		// FIXME : mettre en conf et retenir !
 		
+	}
+	
+	
+	public void setMosaic(Mosaic focus)
+	{
+		if (this.focus == focus) return;
+		if (this.focus != null) {
+			this.focus.listeners.removeListener(this.listenerOwner);
+		}
+		this.focus = focus;
+		if (this.focus != null) {
+			this.focus.listeners.addListener(listenerOwner, new MosaicListener() {
+	
+				@Override
+				public void starAdded(Star star) {
+					invalidateData();
+				}
+				
+				@Override
+				public void starRemoved(Star star) {
+					invalidateData();
+				}
+				
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					sco.listeners.removeListener(listenerOwner);
+					invalidateData();
+				}
+				
+				@Override
+				public void starOccurenceAdded(final StarOccurence sco) {
+					repaint();
+					sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
+						
+						@Override
+						public void analyseDone() {
+							invalidateData();	
+						}
+	
+						@Override
+						public void imageUpdated() {
+						}
+					});
+				}
+				
+				
+				@Override
+				public void imageRemoved(Image image, MosaicImageParameter mip) {
+					invalidateData();
+				}
+				
+				@Override
+				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+					invalidateData();				
+				}
+	
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {
+					invalidateData();				
+				}
+	
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {
+					invalidateData();				
+				}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+		}
+
 		refreshUi();
 	}
+	
 	
 	private EnergyLimitType getEnergyLimitType()
 	{
@@ -445,7 +465,11 @@ public class GraphPanelParameters extends GraphPanelParametersDesign {
 	private void ensureDataIsReady()
 	{
 		if (this.images != null) return;
-	
+		if (this.focus == null) {
+			images = new ArrayList<>();
+			stars = new ArrayList<>();
+		}
+		
 		images = new ArrayList<Image>(focus.getImages());
 		stars = new ArrayList<Star>(focus.getStars());
 		// Filtrer les étoiles selon leur état de correlation

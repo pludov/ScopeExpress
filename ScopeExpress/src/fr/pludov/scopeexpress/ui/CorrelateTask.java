@@ -43,6 +43,14 @@ public class CorrelateTask extends BackgroundTask {
 			}
 		}
 		
+		for(StarShiftTask task : getQueue().getTasksWithStatus(StarShiftTask.class, Status.Running))
+		{
+			if (task.mosaic == this.mosaic) {
+				// Une autre travaille déjà sur la mosaic... On attend gentillement.
+				return false;
+			}
+		}
+		
 		// Les recherches d'étoiles en attente ou en cours sont bloquante pour la correlation...
 		for(FindStarTask findStarTask : getQueue().getTasksWithStatus(FindStarTask.class, Status.Pending, Status.Running))
 		{

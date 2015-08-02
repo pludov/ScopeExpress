@@ -180,7 +180,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 	private Scope getScope()
 	{
 		if (focus == null) return null;
-		return focus.scopeManager.getScope();
+		return focus.scopeManager.getDevice();
 		
 	}
 	
@@ -398,7 +398,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 		
 		focusUi.scopeManager.listeners.addListener(this.listenerOwner, new FocusUiScopeManager.Listener() {
 			@Override
-			public void onScopeChanged() {
+			public void onDeviceChanged() {
 				update();
 			}
 		});
@@ -477,6 +477,12 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 			
 			@Override
 			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void starAnalysisDone(Image image) {
+				// TODO Auto-generated method stub
+				
 			}
 		});
 		

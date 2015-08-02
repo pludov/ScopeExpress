@@ -97,75 +97,8 @@ public abstract class GraphPanel extends JPanel {
 				}
 			}
 		});
-		
-		focus.listeners.addListener(listenerOwner, new MosaicListener() {
-			
-			@Override
-			public void starRemoved(Star star) {
-				invalidateData();
-			}
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				sco.listeners.removeListener(listenerOwner);
-				invalidateData();
-			}
-			
-			@Override
-			public void starOccurenceAdded(final StarOccurence sco) {
-				repaint();
-				sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
-					
-					@Override
-					public void analyseDone() {
-						if ((!isCurrentImageOnly) || sco.getImage() == currentImage) {
-							invalidateData();	
-						}
-					}
+		setMosaic(focus);
 
-					@Override
-					public void imageUpdated() {
-					}
-				});
-			}
-			
-			@Override
-			public void starAdded(Star star) {
-				invalidateData();
-			}
-			
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-				if ((!isCurrentImageOnly) || image == currentImage) {
-					invalidateData();
-				}
-			}
-			
-			@Override
-			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-				invalidateData();				
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {				
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {				
-			}
-		});
 		
 		filter.listeners.addListener(this.listenerOwner, new GraphPanelParametersListener() {
 			
@@ -184,7 +117,100 @@ public abstract class GraphPanel extends JPanel {
 		return new JPopupMenu();
 	}
 	
+	public Mosaic getMosaic()
+	{
+		return this.focus;
+	}
+	
+	public void setMosaic(Mosaic focus)
+	{
+		if (this.focus == focus) return;
+		if (this.focus != null) {
+			this.focus.listeners.removeListener(listenerOwner);
+		}
+		
+		this.focus = focus;
+		if (this.focus != null) {
+			this.focus.listeners.addListener(listenerOwner, new MosaicListener() {
+				
+				@Override
+				public void starRemoved(Star star) {
+					invalidateData();
+				}
+				
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					sco.listeners.removeListener(listenerOwner);
+					invalidateData();
+				}
+				
+				@Override
+				public void starOccurenceAdded(final StarOccurence sco) {
+					repaint();
+					sco.listeners.addListener(listenerOwner, new StarOccurenceListener() {
+						
+						@Override
+						public void analyseDone() {
+							if ((!isCurrentImageOnly) || sco.getImage() == currentImage) {
+								invalidateData();	
+							}
+						}
+	
+						@Override
+						public void imageUpdated() {
+						}
+					});
+				}
+				
+				@Override
+				public void starAdded(Star star) {
+					invalidateData();
+				}
+				
+				@Override
+				public void imageRemoved(Image image, MosaicImageParameter mip) {
+					if ((!isCurrentImageOnly) || image == currentImage) {
+						invalidateData();
+					}
+				}
+				
+				@Override
+				public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+					invalidateData();				
+				}
+	
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {				
+				}
+	
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {				
+				}
 
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+		}
+		
+		invalidateData();
+	}
+	
+	
 	public Image getCurrentImage() {
 		return currentImage;
 	}

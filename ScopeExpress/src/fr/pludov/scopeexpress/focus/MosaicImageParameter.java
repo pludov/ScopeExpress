@@ -20,6 +20,9 @@ public class MosaicImageParameter {
 	// Positionnement de l'image (mosaic 3D vers image)
 	private SkyProjection projection;
 	
+	// null : pas encore, false non applicable, true: ok.
+	private Boolean starDetectionStatus;
+	
 	// Etat du positionnement de l'image
 	boolean isCorrelated;
 	
@@ -101,5 +104,13 @@ public class MosaicImageParameter {
 
 	public void setFocal(double focal) {
 		this.focal = focal;
+	}
+
+	public Boolean getStarDetectionStatus() {
+		return starDetectionStatus;
+	}
+
+	public void setStarDetectionStatus(Boolean starDetectionStatus) {
+		this.starDetectionStatus = starDetectionStatus;
 	}
 }

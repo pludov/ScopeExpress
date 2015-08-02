@@ -66,7 +66,7 @@ public final class FindStarTask extends BackgroundTask {
 			{
 				throw new BackgroundTaskCanceledException();
 			}
-			
+			mosaic.getMosaicImageParameter(image).setStarDetectionStatus(null);
 		} finally {
 			SwingThreadMonitor.release();
 		}
@@ -130,6 +130,9 @@ public final class FindStarTask extends BackgroundTask {
 				occurence.initFromStarFinder(sf);
 				mosaic.addStarOccurence(occurence);
 			}
+			
+			mosaic.getMosaicImageParameter(image).setStarDetectionStatus(true);
+			mosaic.listeners.getTarget().starAnalysisDone(image);
 		} finally {
 			SwingThreadMonitor.release();
 		};

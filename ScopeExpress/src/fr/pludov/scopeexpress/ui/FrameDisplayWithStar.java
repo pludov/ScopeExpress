@@ -340,6 +340,12 @@ public class FrameDisplayWithStar extends FrameDisplay {
 				@Override
 				public void exclusionZoneRemoved(ExclusionZone ze) {					
 				}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
 			});
 		}
 		scheduleRepaint(true);

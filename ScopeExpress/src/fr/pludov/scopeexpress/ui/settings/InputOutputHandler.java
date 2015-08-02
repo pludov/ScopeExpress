@@ -11,6 +11,7 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 
 import fr.pludov.scopeexpress.ui.preferences.BooleanConfigItem;
+import fr.pludov.scopeexpress.ui.preferences.ConfigItem;
 import fr.pludov.scopeexpress.ui.preferences.EnumConfigItem;
 import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
 import fr.pludov.scopeexpress.ui.utils.Utils;
@@ -29,6 +30,8 @@ public class InputOutputHandler<TARGET> {
 
     	// Enregistre la valeur courante en configuration
     	void saveConfigValue(InputOutputHandler<TARGET> ioHandler);
+    	
+    	ConfigItem getConfigItem();
     }
     
 	public static abstract class TextConverter<TARGET, CONTENT> implements Converter<TARGET>
@@ -54,6 +57,11 @@ public class InputOutputHandler<TARGET> {
 			this(component, null);
 		}
 
+		@Override
+		public ConfigItem getConfigItem() {
+			return configItem;
+		}
+		
 		@Override
 		public final void addListener(final InputOutputHandler<TARGET> target)
 		{
@@ -180,6 +188,10 @@ public class InputOutputHandler<TARGET> {
 			super(component);
 		}
 		
+		public IntConverter(JTextField component, JLabel errorLabel, StringConfigItem configItem) {
+			super(component, errorLabel, configItem);
+		}
+		
 		String toString(Integer t)
 		{
 			return t.toString();
@@ -302,6 +314,11 @@ public class InputOutputHandler<TARGET> {
 		abstract void setParameter(TARGET parameters, CONTENT content) throws Exception;
 		
 		@Override
+		public ConfigItem getConfigItem() {
+			return configItem;
+		}
+		
+		@Override
 		public void addListener(final InputOutputHandler<TARGET> target) {
 			component.addActionListener(new ActionListener() {
 				@Override
@@ -382,13 +399,18 @@ public class InputOutputHandler<TARGET> {
 			this.component = component;
 		}
 
-		BooleanConverter(JCheckBox component, BooleanConfigItem configItem) {
+		public BooleanConverter(JCheckBox component, BooleanConfigItem configItem) {
 			this.component = component;
 			this.configItem = configItem;
 		}
 		
 		public abstract Boolean getFromParameter(TARGET parameters);
 		public abstract void setParameter(TARGET parameters, Boolean content) throws Exception;
+		
+		@Override
+		public ConfigItem getConfigItem() {
+			return configItem;
+		}
 		
 		@Override
 		public void addListener(final InputOutputHandler<TARGET> target) {
@@ -490,5 +512,9 @@ public class InputOutputHandler<TARGET> {
 			converter.setConfigValue(this);
 			converter.loadParameter(this);
 		}
+	}
+
+	public Converter<TARGET>[] getConverters() {
+		return converters;
 	}
 }

@@ -87,12 +87,12 @@ public class LocateStarParameterPanel extends LocateStarParameterPanelDesign {
 				setWidgetValues();
 			}
 		});
-		
-		// Ajouter toutes les images
-		for(Image image : locateStarParameter.getFocus().getImages())
-		{
-			comboImageRef.addItem(image);
-		}
+//		
+//		// Ajouter toutes les images
+//		for(Image image : locateStarParameter.getFocus().getImages())
+//		{
+//			comboImageRef.addItem(image);
+//		}
 		
 		setWidgetValues();
 	}

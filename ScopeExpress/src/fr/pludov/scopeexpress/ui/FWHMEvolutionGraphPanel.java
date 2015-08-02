@@ -42,98 +42,6 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 	{
 		super(focus, filter, false);
 		
-		focus.listeners.addListener(listenerOwner, new MosaicListener() {
-
-			@Override
-			public void imageAdded(Image image, ImageAddedCause cause) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-				imageSaid.remove(image);
-			}
-
-			@Override
-			public void starAdded(Star star) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void starRemoved(Star star) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void starOccurenceAdded(final StarOccurence sco) {
-				if (imageSaid.put(sco.getImage(), Boolean.TRUE) != null) return;
-				
-				// TODO Auto-generated method stub
-				SwingUtilities.invokeLater(new Runnable() {
-					@Override
-					public void run() {
-						try {
-//							boolean donot = false;
-//							if (donot) return;
-							Speaker speaker = SpeakerProvider.getSpeaker();
-							ensureDataReady();
-							if (moyenne != null) {
-								Double d = moyenne.getValue(sco.getImage());
-								if (d != null) {
-									double dv = d;
-//									int value = (int)Math.floor(dv);
-//									dv -= value;
-//									dv *= 100;
-									String text = String.format("%.2f", dv);// value + " point " + (int)dv;
-									
-									speaker.enqueue(text + " de focus");
-								}
-							}
-							
-							
-						} catch(EndUserException e) {
-							e.report(FWHMEvolutionGraphPanel.this);
-						}
-					}
-				});
-			}
-
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			
-		});
-		
 		addComponentListener(new ComponentListener() {
 			
 			@Override
@@ -155,6 +63,114 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 			public void componentHidden(ComponentEvent e) {
 			}
 		});
+	}
+	
+	public void setMosaic(Mosaic focus)
+	{
+		if (getMosaic() != focus) {
+			if (getMosaic() != null) {
+				getMosaic().listeners.removeListener(listenerOwner);
+			}
+		}
+		if (focus != null) {
+			focus.listeners.addListener(listenerOwner, new MosaicListener() {
+	
+				@Override
+				public void imageAdded(Image image, ImageAddedCause cause) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void imageRemoved(Image image, MosaicImageParameter mip) {
+					imageSaid.remove(image);
+				}
+	
+				@Override
+				public void starAdded(Star star) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void starRemoved(Star star) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void starOccurenceAdded(final StarOccurence sco) {
+					if (imageSaid.put(sco.getImage(), Boolean.TRUE) != null) return;
+					
+					// TODO Auto-generated method stub
+					SwingUtilities.invokeLater(new Runnable() {
+						@Override
+						public void run() {
+							try {
+	//							boolean donot = false;
+	//							if (donot) return;
+								Speaker speaker = SpeakerProvider.getSpeaker();
+								ensureDataReady();
+								if (moyenne != null) {
+									Double d = moyenne.getValue(sco.getImage());
+									if (d != null) {
+										double dv = d;
+	//									int value = (int)Math.floor(dv);
+	//									dv -= value;
+	//									dv *= 100;
+										String text = String.format("%.2f", dv);// value + " point " + (int)dv;
+										
+										speaker.enqueue(text + " de focus");
+									}
+								}
+								
+								
+							} catch(EndUserException e) {
+								e.report(FWHMEvolutionGraphPanel.this);
+							}
+						}
+					});
+				}
+	
+				@Override
+				public void starOccurenceRemoved(StarOccurence sco) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestAdded(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void pointOfInterestRemoved(PointOfInterest poi) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneAdded(ExclusionZone ze) {
+					// TODO Auto-generated method stub
+					
+				}
+	
+				@Override
+				public void exclusionZoneRemoved(ExclusionZone ze) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void starAnalysisDone(Image image) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+		}
+		
+		super.setMosaic(focus);
 	}
 	
 	@Override

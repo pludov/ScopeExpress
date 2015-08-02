@@ -22,4 +22,5 @@ public interface MosaicListener {
 	
 	void exclusionZoneAdded(ExclusionZone ze);
 	void exclusionZoneRemoved(ExclusionZone ze);
+	void starAnalysisDone(Image image);
 }

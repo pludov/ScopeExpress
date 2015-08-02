@@ -1,6 +1,7 @@
 package fr.pludov.scopeexpress.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Window;
 import java.awt.Dialog.ModalityType;
@@ -15,11 +16,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
 
+import javax.swing.BoxLayout;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -46,6 +50,7 @@ import fr.pludov.scopeexpress.focus.SkyProjection;
 import fr.pludov.scopeexpress.focus.Star;
 import fr.pludov.scopeexpress.focus.StarCorrelationPosition;
 import fr.pludov.scopeexpress.focus.StarOccurence;
+import fr.pludov.scopeexpress.http.server.Server;
 import fr.pludov.scopeexpress.scope.Scope;
 import fr.pludov.scopeexpress.ui.LoadImagesScript;
 import fr.pludov.scopeexpress.ui.ScriptTest;
@@ -77,6 +82,16 @@ public class FocusUi extends FocusUiDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	Application application;
+	
+	// Focus : pas d'astrométrie
+	Mosaic focusMosaic;
+	
+	// Surveille juste la prise de vue (pas de positionnement)
+	Mosaic imagingMosaic;
+	
+	// Recherche de la position par astrométrie
+	Mosaic alignMosaic;
+	
 	Mosaic mosaic;
 	MosaicImageListView fd;
 	
@@ -86,6 +101,7 @@ public class FocusUi extends FocusUiDesign {
 	LocateStarParameter currentStarDetectionParameter;
 
 	final FocusUiScopeManager scopeManager;
+	final FocusUiFocuserManager focuserManager;
 	final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
 
@@ -94,12 +110,20 @@ public class FocusUi extends FocusUiDesign {
 	
 	private AbstractIconButton detectBton;
 	private AbstractIconButton btnReset;
+
+	private JComboBox<ActivitySelectorItem> activitySelector;
 	
-	public FocusUi(final Application application, final Mosaic mosaic) {
+	public FocusUi(final Application application) {
 		this.scopeManager = new FocusUiScopeManager(this);
+		this.focuserManager = new FocusUiFocuserManager(this);
 		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
-		this.mosaic = mosaic;
+		
+		this.focusMosaic = new Mosaic(application);
+		this.alignMosaic = new Mosaic(application);
+		this.imagingMosaic = new Mosaic(application);
+		
+		this.mosaic = this.focusMosaic;
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 
 		setupBackgroundTaskQueue();
@@ -123,25 +147,27 @@ public class FocusUi extends FocusUiDesign {
 				occurence.asyncSearch(false);
 			}
 		});
-		final GraphPanelParameters starFocusFilter = new GraphPanelParameters(mosaic);
+		starFocusFilter = new GraphPanelParameters();
+		starFocusFilter.setMosaic(this.mosaic);
 		
-		final StarOccurenceTable sot = new StarOccurenceTable(mosaic, starFocusFilter);
-		JScrollPane sotScrollPane = new JScrollPane(sot);
+		starOccurenceTable = new StarOccurenceTable(starFocusFilter);
+		JScrollPane sotScrollPane = new JScrollPane(starOccurenceTable);
 		this.detailsSplitPane.setTopComponent(sotScrollPane);
 		
-		final FWHMEvolutionGraphPanel graph = new FWHMEvolutionGraphPanel(mosaic, starFocusFilter);
+		graph = new FWHMEvolutionGraphPanel(this.mosaic, starFocusFilter);
 		this.fwhmEvolutionGraphPanel.add(graph);
 		
 		final FWHMEvolutionGraphPanel.HistogramPanel graphHisto = graph.new HistogramPanel();
 		this.fwhmEvolutionHistoPanel.add(graphHisto);
 		
-		final DefectMapGraphPanel defects = new DefectMapGraphPanel(mosaic, starFocusFilter);
+		defects = new DefectMapGraphPanel(this.mosaic, starFocusFilter);
 		this.fwhmRepartitionPanel.add(defects);
 		
-		final ShapeGraphPanel shapePanel = new ShapeGraphPanel(mosaic, starFocusFilter);
+		shapePanel = new ShapeGraphPanel(this.mosaic, starFocusFilter);
 		this.shapeRepartitionPanel.add(shapePanel);
 		
-		final StarDetail starDetail = new StarDetail(mosaic);
+		starDetail = new StarDetail();
+		starDetail.setMosaic(this.mosaic);
 		this.starDetailPanel.add(starDetail);
 		
 		
@@ -151,7 +177,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void starClicked(Image image, Star star) {
-				sot.select(star, image);
+				starOccurenceTable.select(star, image);
 			}
 		});
 		
@@ -159,14 +185,14 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void starClicked(Image image, Star star) {
-				sot.select(star, image);
+				starOccurenceTable.select(star, image);
 			}
 		});
 		
-		sot.listeners.addListener(this.listenerOwner, new StarOccurenceTableListener() {
+		starOccurenceTable.listeners.addListener(this.listenerOwner, new StarOccurenceTableListener() {
 			private void setStarDetail()
 			{
-				List<StarOccurence> sotList = sot.getCurrentSelection();
+				List<StarOccurence> sotList = starOccurenceTable.getCurrentSelection();
 				if (sotList.isEmpty()) {
 					starDetail.setStarOccurence(null);
 				} else {
@@ -176,7 +202,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void currentImageChanged() {
-				Image image = sot.getCurrentImage();
+				Image image = starOccurenceTable.getCurrentImage();
 				graph.setCurrentImage(image);
 				defects.setCurrentImage(image);
 				shapePanel.setCurrentImage(image);
@@ -186,7 +212,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void currentStarChanged() {
-				Star star = sot.getCurrentStar();
+				Star star = starOccurenceTable.getCurrentStar();
 				graph.setCurrentStar(star);
 				defects.setCurrentStar(star);
 				shapePanel.setCurrentStar(star);
@@ -195,6 +221,27 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
+		this.activitySelector = new JComboBox<ActivitySelectorItem>() {
+			@Override
+	        public Dimension getMaximumSize() {
+	            return getPreferredSize();
+	        }
+		};
+		this.activitySelector.addItem(new ActivitySelectorItem(this.focusMosaic, "Mise au point", Activity.Focusing));
+		this.activitySelector.addItem(new ActivitySelectorItem(this.alignMosaic, "Alignement", Activity.Aligning));
+		this.activitySelector.addItem(new ActivitySelectorItem(this.imagingMosaic, "Prise de vue", Activity.Imaging));
+		this.activitySelector.setSelectedItem(0);
+		Utils.addComboChangeListener(this.activitySelector, new Runnable() {
+			@Override
+			public void run() {
+				ActivitySelectorItem item = (ActivitySelectorItem) activitySelector.getSelectedItem();
+				FocusUi.this.setMosaic(item.mosaic);
+			}
+		});
+//		JPanel activitySelectorWrapper = new JPanel();
+//		activitySelectorWrapper.setLayout(new BoxLayout(activitySelectorWrapper, BoxLayout.LINE_AXIS));
+//		activitySelectorWrapper.add(this.activitySelector);
+		this.toolBar.add(activitySelector, 0);
 		
 		this.detectBton = new ToolbarButton("star");
 		this.detectBton.setToolTipText("Trouver les étoiles");
@@ -208,7 +255,7 @@ public class FocusUi extends FocusUiDesign {
 				application.getBackgroundTaskQueue().addTask(detectStar);
 			}
 		});
-		this.toolBar.add(this.detectBton, 0);
+		this.toolBar.add(this.detectBton, 1);
 		
 		this.followDirBton = new ToolbarButton("camera-photo");
 		this.followDirBton.setToolTipText("Connection Caméra/appareil photo");
@@ -227,7 +274,7 @@ public class FocusUi extends FocusUiDesign {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				XmlSerializationContext xmlC = new XmlSerializationContext();
-				Element mosaicElement = mosaic.save(xmlC);
+				Element mosaicElement = FocusUi.this.mosaic.save(xmlC);
 				xmlC.getDocument().appendChild(mosaicElement);
 				try {
 					FileOutputStream fos = new FileOutputStream(new File("c:\\project.xml"));
@@ -248,7 +295,7 @@ public class FocusUi extends FocusUiDesign {
 		this.actionMonitor.addPopupMenu(this.followDirBton);
 		this.actionMonitor.makeShootButton(this.shootButton);
 		
-		this.currentStarDetectionParameter = new LocateStarParameter(mosaic);
+		this.currentStarDetectionParameter = new LocateStarParameter();
 		
 		this.mnChercheEtoiles.addActionListener(new ActionListener() {
 			@Override
@@ -263,102 +310,34 @@ public class FocusUi extends FocusUiDesign {
 		});
 
 		scopeButton = new ToolbarButton("scope", true);
-		scopeButton.setPopupProvider(new ToolbarButton.PopupProvider() {
-			@Override
-			public JPopupMenu popup() {
-				JPopupMenu result = new JPopupMenu();
-				
-				JMenuItem changeStatus = new JMenuItem("switch");
-				result.add(changeStatus);
-				changeStatus.addActionListener(new ActionListener() {
-					
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						if (scopeButton.getStatus() == AbstractIconButton.Status.ACTIVATED)
-							scopeButton.setStatus(AbstractIconButton.Status.DEFAULT);
-						else 
-							scopeButton.setStatus(AbstractIconButton.Status.ACTIVATED);
-					}
-				});
-				
-				return result;
-			}
-		});
-		this.toolBar.add(scopeButton, 0);
+//		scopeButton.setPopupProvider(new ToolbarButton.PopupProvider() {
+//			@Override
+//			public JPopupMenu popup() {
+//				JPopupMenu result = new JPopupMenu();
+//				
+//				JMenuItem changeStatus = new JMenuItem("switch");
+//				result.add(changeStatus);
+//				changeStatus.addActionListener(new ActionListener() {
+//					
+//					@Override
+//					public void actionPerformed(ActionEvent e) {
+//						if (scopeButton.getStatus() == AbstractIconButton.Status.ACTIVATED)
+//							scopeButton.setStatus(AbstractIconButton.Status.DEFAULT);
+//						else 
+//							scopeButton.setStatus(AbstractIconButton.Status.ACTIVATED);
+//					}
+//				});
+//				
+//				return result;
+//			}
+//		});
+		this.toolBar.add(scopeButton, 1);
+		
+		focuserButton = new ToolbarButton("focuser", true);
+		this.toolBar.add(focuserButton, 1);
 		
 //		ToolbarButton otherButton = new ToolbarButton("text-speak", false);
 //		this.toolBar.add(otherButton);
-		
-		this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
-			
-			@Override
-			public void starRemoved(Star star) {
-			}
-			
-			@Override
-			public void starOccurenceRemoved(StarOccurence sco) {
-			}
-			
-			@Override
-			public void starOccurenceAdded(StarOccurence sco) {
-			}
-			
-			@Override
-			public void starAdded(Star star) {
-			}
-			
-			@Override
-			public void imageRemoved(Image image, MosaicImageParameter mip) {
-			}
-			
-			@Override
-			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
-//				
-//				// FIXME: on devrait ajouter une tache qui les cherches toutes les une après les autres
-//				switch(currentStarDetectionParameter.correlationMode)
-//				{
-//				case SamePosition:
-//					Image referenceImage;
-//					referenceImage = currentStarDetectionParameter.getEffectiveReferenceImage(image);
-//					if (referenceImage != null) {
-//						// Ajouter toutes les étoiles, les correler
-//						for(Star star : mosaic.getStars())
-//						{
-//							StarOccurence previous = mosaic.getStarOccurence(star, referenceImage);
-//							if (previous == null) continue;
-//							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
-//							
-//							StarOccurence copy = new StarOccurence(mosaic, image, star);
-//							copy.setPicX(previous.getPicX());
-//							copy.setPicY(previous.getPicY());
-//							mosaic.addStarOccurence(copy);
-//							
-//							copy.asyncSearch(precise);
-//						}
-//					}
-//				}
-			}
-
-			@Override
-			public void pointOfInterestAdded(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void pointOfInterestRemoved(PointOfInterest poi) {
-				// TODO Auto-generated method stub
-				
-			}
-
-			@Override
-			public void exclusionZoneAdded(ExclusionZone ze) {
-			}
-
-			@Override
-			public void exclusionZoneRemoved(ExclusionZone ze) {
-			}
-		});
 		
 		this.mntmConfiguration.addActionListener(new ActionListener() {
 			
@@ -390,7 +369,7 @@ public class FocusUi extends FocusUiDesign {
 						"Confirmer avant de réinitialiser...",
 						JOptionPane.OK_CANCEL_OPTION);
 				if (option != JOptionPane.OK_OPTION) return;
-				mosaic.reset();
+				FocusUi.this.mosaic.reset();
 			}
 		});
 
@@ -428,11 +407,15 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
-		this.fd.setMosaic(mosaic);
+		this.fd.setMosaic(this.mosaic);
+		
+		this.setMosaic(this.mosaic);
 		
 		createTestMenus();
 		
 		scopeManager.addActionListener();
+		
+		focuserManager.addActionListener();
 		
 		getMainWindow().setTransferHandler(new ActionOpen(this).createTransferHandler());
 		
@@ -576,17 +559,18 @@ public class FocusUi extends FocusUiDesign {
 		
 		Utils.addDllLibraryPath();
 		
-		final Application focus = new Application();
-		final Mosaic mosaic = new Mosaic(focus);
-		
+		final Application focus = new Application();		
 		
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					final FocusUi window = new FocusUi(focus, mosaic);
+					final FocusUi window = new FocusUi(focus);
 					window.getFrmFocus().setVisible(true);
 					window.checkConfigAtStartup();
 					focus.getBackgroundTaskQueue().addTask(DarkLibrary.getInstance().getScanTask(focus));
+					Server httpServer = new Server();
+					httpServer.setMosaic(window.getMosaic());
+					httpServer.start(10001);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -644,6 +628,98 @@ public class FocusUi extends FocusUiDesign {
 		}
 	}
 
+	public void setMosaic(Mosaic mosaic) {
+		if (this.mosaic != null) {
+			this.mosaic.listeners.removeListener(this.listenerOwner);
+		}
+		
+		this.mosaic = mosaic;
+		this.starDetail.setMosaic(mosaic);
+		this.fd.setMosaic(mosaic);
+		this.shapePanel.setMosaic(mosaic);
+		this.defects.setMosaic(mosaic);
+		this.starOccurenceTable.setMosaic(mosaic);
+		this.starFocusFilter.setMosaic(mosaic);
+		this.graph.setMosaic(mosaic);
+		
+		this.mosaic.listeners.addListener(this.listenerOwner, new MosaicListener() {
+			
+			@Override
+			public void starRemoved(Star star) {
+			}
+			
+			@Override
+			public void starOccurenceRemoved(StarOccurence sco) {
+			}
+			
+			@Override
+			public void starOccurenceAdded(StarOccurence sco) {
+			}
+			
+			@Override
+			public void starAdded(Star star) {
+			}
+			
+			@Override
+			public void imageRemoved(Image image, MosaicImageParameter mip) {
+			}
+			
+			@Override
+			public void imageAdded(Image image, MosaicListener.ImageAddedCause cause) {
+//				
+//				// FIXME: on devrait ajouter une tache qui les cherches toutes les une après les autres
+//				switch(currentStarDetectionParameter.correlationMode)
+//				{
+//				case SamePosition:
+//					Image referenceImage;
+//					referenceImage = currentStarDetectionParameter.getEffectiveReferenceImage(image);
+//					if (referenceImage != null) {
+//						// Ajouter toutes les étoiles, les correler
+//						for(Star star : mosaic.getStars())
+//						{
+//							StarOccurence previous = mosaic.getStarOccurence(star, referenceImage);
+//							if (previous == null) continue;
+//							boolean precise = previous.isAnalyseDone() && previous.isStarFound();
+//							
+//							StarOccurence copy = new StarOccurence(mosaic, image, star);
+//							copy.setPicX(previous.getPicX());
+//							copy.setPicY(previous.getPicY());
+//							mosaic.addStarOccurence(copy);
+//							
+//							copy.asyncSearch(precise);
+//						}
+//					}
+//				}
+			}
+
+			@Override
+			public void pointOfInterestAdded(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void pointOfInterestRemoved(PointOfInterest poi) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void exclusionZoneAdded(ExclusionZone ze) {
+			}
+
+			@Override
+			public void exclusionZoneRemoved(ExclusionZone ze) {
+			}
+
+			@Override
+			public void starAnalysisDone(Image image) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+	}
+	
 	public Mosaic getMosaic() {
 		return mosaic;
 	}
@@ -751,7 +827,21 @@ public class FocusUi extends FocusUiDesign {
 		
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
+
 		
+		
+		JMenuItem prise_Focuser = new JMenuItem("Focuser auto");
+		mnTests.add(prise_Focuser);
+		prise_Focuser.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				setScript(new LoadImagesScript(actionMonitor, 
+						"C:\\APT_Images\\CameraCCD_1\\2015-02-06", 
+						"ATL_m81_dark_f_Bin1x1_s_2015-02-07_0\\d-\\d\\d-\\d\\d\\.fit"));	
+			}
+		});
+
 		
 		JMenuItem prise_M101_240s = new JMenuItem("M101 240s");
 		mnTests.add(prise_M101_240s);
@@ -912,6 +1002,19 @@ public class FocusUi extends FocusUiDesign {
 	int shootDuration = 1;
 
 	ToolbarButton scopeButton;
+	ToolbarButton focuserButton;
+	
+	private final StarDetail starDetail;
+
+	private ShapeGraphPanel shapePanel;
+
+	private DefectMapGraphPanel defects;
+
+	private StarOccurenceTable starOccurenceTable;
+
+	private GraphPanelParameters starFocusFilter;
+
+	private FWHMEvolutionGraphPanel graph;
 	
 	public void shoot()
 	{
@@ -935,6 +1038,11 @@ public class FocusUi extends FocusUiDesign {
 		this.shootDuration = shootDuration;
 	}
 
+	public Activity getActivity()
+	{
+		return ((ActivitySelectorItem)this.activitySelector.getSelectedItem()).activity;
+	}
+	
 	private ConfigurationEdit showConfigurationEdit() {
 		ConfigurationEdit edit = Utils.openDialog(FocusUi.this.getFrmFocus(), new Utils.WindowBuilder<ConfigurationEdit>() {
 			@Override
