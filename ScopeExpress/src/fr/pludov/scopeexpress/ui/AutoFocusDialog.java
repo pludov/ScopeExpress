@@ -56,15 +56,15 @@ public class AutoFocusDialog extends AutoFocusDialogDesign {
 		super(window);
 		this.focusUi = focusUi;
 
-		focusUi.focuserManager.listeners.addListener(this.listenerOwner, new DeviceManager.Listener() {
+		focusUi.getFocuserManager().listeners.addListener(this.listenerOwner, new DeviceManager.Listener() {
 			@Override
 			public void onDeviceChanged() {
-				setCurrentFocuser(AutoFocusDialog.this.focusUi.focuserManager.getDevice());
+				setCurrentFocuser(AutoFocusDialog.this.focusUi.getFocuserManager().getDevice());
 				loadDefaultParametersForCurrentFocuser();
 				updateFocuserState();
 			}
 		});
-		setCurrentFocuser(focusUi.focuserManager.getDevice());
+		setCurrentFocuser(focusUi.getFocuserManager().getDevice());
 		startPosition = new IntConverter<AutoFocusParameters>(this.startPositionTextField, this.startPositionErrorLabel, 
 				new StringConfigItem(AutoFocusParameters.class, "startPosition#", "5000")) {
 
@@ -321,7 +321,7 @@ public class AutoFocusDialog extends AutoFocusDialogDesign {
 	
 	void loadDefaultParametersForCurrentFocuser()
 	{
-		DeviceIdentifier deviceId = focusUi.focuserManager.getCurrentDeviceIdentifier();
+		DeviceIdentifier deviceId = focusUi.getFocuserManager().getCurrentDeviceIdentifier();
 		if (deviceId == null) {
 			return;
 		}

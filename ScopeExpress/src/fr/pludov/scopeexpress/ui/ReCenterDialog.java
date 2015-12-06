@@ -315,7 +315,7 @@ public class ReCenterDialog extends ReCenterDialogDesign {
 		}
 		
 		if (this.diffRa != null) {
-			this.getLblDiffRa().setText(Utils.formatDegMinSec(Utils.adjustDegDiff(this.diffRa)));
+			this.getLblDiffRa().setText(Utils.formatHourMinSec(Utils.adjustDegDiff(this.diffRa)));
 		} else {
 			this.getLblDiffRa().setText("N/A");
 		}

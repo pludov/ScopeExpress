@@ -86,7 +86,7 @@ public class AutoFocusTask {
 		this.images = new TreeMap<Integer, Map<Integer, List<Image>>>();
 		this.interrupting = false;
 		this.passCenter = new HashMap<>();
-		focusUi.focuserManager.listeners.addListener(this.listenerOwner, new DeviceManager.Listener() {
+		focusUi.getFocuserManager().listeners.addListener(this.listenerOwner, new DeviceManager.Listener() {
 			@Override
 			public void onDeviceChanged() {
 				try {
@@ -163,7 +163,7 @@ public class AutoFocusTask {
 	
 	Focuser getFocuser() throws Exception
 	{
-		Focuser focuser = focusUi.focuserManager.getConnectedDevice();
+		Focuser focuser = focusUi.getFocuserManager().getConnectedDevice();
 		if (focuser == null || !focuser.isConnected()) {
 			setError("Focuser not connected");
 		}

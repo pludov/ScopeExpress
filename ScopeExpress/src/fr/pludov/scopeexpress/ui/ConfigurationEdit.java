@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -14,6 +15,7 @@ import javax.swing.filechooser.FileFilter;
 
 import fr.pludov.astrometry.IndexesFetch;
 import fr.pludov.scopeexpress.catalogs.Tycho2Fetch;
+import fr.pludov.scopeexpress.focus.Application;
 import fr.pludov.scopeexpress.ui.joystick.JoystickConfPanel;
 import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
 import fr.pludov.scopeexpress.ui.utils.SyncTask;
@@ -158,7 +160,9 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			return Double.parseDouble(str);
 		}
 		
+		@Override
 		abstract Double get(Configuration config);
+		@Override
 		abstract void set(Configuration config, Double o);
 		abstract JTextField getInputField(ConfigurationEdit e);
 		abstract JLabel getErrorField(ConfigurationEdit e);
@@ -236,6 +240,66 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 		
 	}
 
+	static abstract class ConfigItemBoolean extends ConfigItem<Boolean> {
+		final StringConfigItem stringConfigItem;
+		final boolean defaultValue;
+		
+		ConfigItemBoolean(String name, boolean defaultValue)
+		{
+			this.defaultValue = defaultValue;
+			this.stringConfigItem = new StringConfigItem(Configuration.class, name, Boolean.toString(defaultValue));
+		}
+		
+		@Override
+		Boolean getSaved()
+		{
+			String str = stringConfigItem.get();
+			if (str == null || "".equals(str)) {
+				return defaultValue;
+			} else {
+				return Boolean.valueOf(str);
+			}
+		}
+		
+		@Override
+		void setSaved(Boolean b)
+		{
+			stringConfigItem.set(b.toString());
+		}
+
+		
+		@Override
+		abstract Boolean get(Configuration config);
+		@Override
+		abstract void set(Configuration config, Boolean o);
+		abstract JCheckBox getInputField(ConfigurationEdit e);
+		
+		@Override
+		final Boolean get(ConfigurationEdit ce) throws EndUserException
+		{
+			return getInputField(ce).isSelected();
+		}
+		
+		@Override
+		final void set(ConfigurationEdit ce, Boolean value)
+		{
+			getInputField(ce).setSelected(value);
+		}
+		
+		@Override
+		void setupEditor(final ConfigurationEdit ce) {
+			JCheckBox field = getInputField(ce);
+			Utils.addCheckboxChangeListener(field, new Runnable() {
+				@Override
+				public void run() {
+					try {
+						get(ce);
+					} catch(EndUserException e) {}
+				}
+			});
+		}
+
+	}
 	static ConfigItem<?> tycho2 = new ConfigItemString("tycho2Path", "") {
 
 		@Override
@@ -372,15 +436,51 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 				return e.fieldFocalErr;
 			}
 		},
+		new ConfigItemBoolean("ircEnabled", false) {
+			@Override
+			Boolean get(Configuration config) {
+				return config.isIrcEnabled();
+			}
+
+			@Override
+			void set(Configuration config, Boolean o) {
+				config.setIrcEnabled(o);
+			}
+
+			@Override
+			JCheckBox getInputField(ConfigurationEdit e) {
+				return e.chckbxIrc;
+			}
+			
+		},
+		new ConfigItemBoolean("httpEnabled", false) {
+			@Override
+			Boolean get(Configuration config) {
+				return config.isHttpEnabled();
+			}
+
+			@Override
+			void set(Configuration config, Boolean o) {
+				config.setHttpEnabled(o);
+			}
+
+			@Override
+			JCheckBox getInputField(ConfigurationEdit e) {
+				return e.chckbxHttp;
+			}			
+		},
 		
 		tycho2,
 		astrometryNetPath
 	};
 	
 	JoystickConfPanel joystickConfPanel;
+	final Application application;
 	
 	public ConfigurationEdit(Window parent, FocusUi focusUi) {
 		super(parent);
+		application = focusUi.getApplication();
+		
 		for(ConfigItem i : configItems)
 		{
 			i.setupEditor(this);
@@ -444,6 +544,7 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					setValuesTo(Configuration.getCurrentConfiguration());
+					application.configurationUpdated();
 					setVisible(false);
 				} catch(EndUserException ex) {
 					ex.report(ConfigurationEdit.this);

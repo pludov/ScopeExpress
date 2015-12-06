@@ -87,7 +87,7 @@ public class AutoFocusDialogDesign extends JDialog {
 	 */
 	public AutoFocusDialogDesign(Window window) {
 		super(window);
-		setBounds(100, 100, 448, 478);
+		setBounds(100, 100, 793, 530);
 		getContentPane().setLayout(new BorderLayout());
 		{
 			this.panel_1 = new JPanel();

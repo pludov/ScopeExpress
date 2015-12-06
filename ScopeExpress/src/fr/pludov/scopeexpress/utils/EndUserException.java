@@ -11,6 +11,8 @@ import javax.swing.SwingUtilities;
 
 import org.apache.log4j.Logger;
 
+import fr.pludov.scopeexpress.focus.Application;
+
 /**
  * Cette exception est propre a être affichée à l'utilisateur, sous forme de message d'erreur.
  */
@@ -32,25 +34,21 @@ public class EndUserException extends Exception {
 		super(message, cause);
 	}
 
-	public void report(Component parentComponent)
-	{
-		Window parent;
-		if (parentComponent == null) {
-			parent = null;
-		} else if (parentComponent instanceof Window) {
-			parent = (Window) parentComponent;
-		} else {
-			parent = SwingUtilities.getWindowAncestor(parentComponent);
-		}
-		reportToContainer(parent);
-	}
-
-	private void reportToContainer(final Container forParentContainer)
+	public void report(final Component parentComponent)
 	{
 		logger.info("Erreur", this);
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				Container parentContainer = forParentContainer;
+				Window parent;
+				if (parentComponent == null) {
+					parent = null;
+				} else if (parentComponent instanceof Window) {
+					parent = (Window) parentComponent;
+				} else {
+					parent = SwingUtilities.getWindowAncestor(parentComponent);
+				}
+						
+				Container parentContainer = parent;
 				if (parentContainer == null) {
 					WeakReference<Container> currentDefault = defaultContainer;
 					
@@ -58,9 +56,13 @@ public class EndUserException extends Exception {
 				}
 				
 				String message = getMessage();
-				if (getCause() != null) {
+				Throwable cause = getCause();
+				int cpt = 0;
+				while(cause != null) {
 					message += "\n";
-					message += getCause().getMessage();
+					message += cause.getMessage();
+					cause = cause.getCause();
+					if (cpt++ > 20) break;
 //					message += "java.library.path = " + System.getProperty("java.library.path");
 				}
 				JOptionPane.showMessageDialog(

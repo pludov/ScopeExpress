@@ -14,6 +14,9 @@ public class Configuration {
 	/** Chemin des indexes */
 	private String astrometryNetPath;
 
+	private boolean httpEnabled;
+	private boolean ircEnabled;
+	
 	private boolean modified;
 	
 	public Configuration() {
@@ -127,5 +130,21 @@ public class Configuration {
 
 	public void setModified(boolean modified) {
 		this.modified = modified;
+	}
+
+	public boolean isHttpEnabled() {
+		return httpEnabled;
+	}
+
+	public void setHttpEnabled(boolean httpEnabled) {
+		this.httpEnabled = httpEnabled;
+	}
+
+	public boolean isIrcEnabled() {
+		return ircEnabled;
+	}
+
+	public void setIrcEnabled(boolean ircEnabled) {
+		this.ircEnabled = ircEnabled;
 	}
 }

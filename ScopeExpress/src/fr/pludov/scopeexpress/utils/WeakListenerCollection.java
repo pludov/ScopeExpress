@@ -12,6 +12,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 
 import fr.pludov.scopeexpress.scope.Scope;
+import fr.pludov.scopeexpress.tasks.TaskInterruptedException;
 
 /**
  * Tant que le owner est en vie vis à vis du gc, garder le listener.
@@ -107,7 +108,11 @@ public class WeakListenerCollection<Interface> implements InvocationHandler, IWe
 							try {
 								method.invoke(target, args);
 							} catch (Throwable e) {
-								e.printStackTrace();
+								if ((e instanceof InvocationTargetException) && (e.getCause() instanceof TaskInterruptedException)) {
+									// Ignorer simplement
+								} else {
+									e.printStackTrace();
+								}
 							}
 						}
 					});

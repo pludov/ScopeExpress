@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Window;
 import java.awt.Dialog.ModalityType;
+import java.awt.Window.Type;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
@@ -35,6 +36,9 @@ import org.w3c.dom.Element;
 
 import fr.pludov.astrometry.IndexesFetch;
 import fr.pludov.external.apt.AptComm;
+import fr.pludov.scopeexpress.camera.Camera;
+import fr.pludov.scopeexpress.camera.CameraException;
+import fr.pludov.scopeexpress.camera.ShootParameters;
 import fr.pludov.scopeexpress.catalogs.StarCollection;
 import fr.pludov.scopeexpress.catalogs.StarProvider;
 import fr.pludov.scopeexpress.focus.AffineTransform3D;
@@ -52,6 +56,12 @@ import fr.pludov.scopeexpress.focus.StarCorrelationPosition;
 import fr.pludov.scopeexpress.focus.StarOccurence;
 import fr.pludov.scopeexpress.http.server.Server;
 import fr.pludov.scopeexpress.scope.Scope;
+import fr.pludov.scopeexpress.tasks.BaseTask;
+import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
+import fr.pludov.scopeexpress.tasks.TaskControl;
+import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
+import fr.pludov.scopeexpress.tasks.javascript.JavascriptTaskDefinitionRepository;
+import fr.pludov.scopeexpress.tasks.javascript.TaskJavascriptDefinition;
 import fr.pludov.scopeexpress.ui.LoadImagesScript;
 import fr.pludov.scopeexpress.ui.ScriptTest;
 import fr.pludov.scopeexpress.ui.ScriptTestListener;
@@ -101,7 +111,9 @@ public class FocusUi extends FocusUiDesign {
 	LocateStarParameter currentStarDetectionParameter;
 
 	final FocusUiScopeManager scopeManager;
-	final FocusUiFocuserManager focuserManager;
+	final FocusUiCameraManager cameraManager;
+	final CameraControlPanel cameraControlPanel;
+	private final FocusUiFocuserManager focuserManager;
 	final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
 
@@ -116,6 +128,7 @@ public class FocusUi extends FocusUiDesign {
 	public FocusUi(final Application application) {
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
+		this.cameraManager = new FocusUiCameraManager(this);
 		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
 		
@@ -127,8 +140,13 @@ public class FocusUi extends FocusUiDesign {
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 
 		setupBackgroundTaskQueue();
-		
 
+		this.cameraControlPanel = new CameraControlPanel(cameraManager);
+		JDialog jf = new JDialog(getMainWindow());
+		jf.setType(Type.UTILITY);
+		jf.add(this.cameraControlPanel);
+		jf.pack();
+		jf.setVisible(true);
 		viewControl = new ViewControler(this.toolBar);
 		
 		fd = new MosaicImageListView(this, viewControl);
@@ -147,6 +165,11 @@ public class FocusUi extends FocusUiDesign {
 				occurence.asyncSearch(false);
 			}
 		});
+		
+		taskManagerView = new TaskManagerView(this, application.getTaskManager());
+		this.taskPanel.add(taskManagerView);		
+
+		
 		starFocusFilter = new GraphPanelParameters();
 		starFocusFilter.setMosaic(this.mosaic);
 		
@@ -333,6 +356,9 @@ public class FocusUi extends FocusUiDesign {
 //		});
 		this.toolBar.add(scopeButton, 1);
 		
+		cameraButton = new ToolbarButton("camera-photo", true);
+		this.toolBar.add(cameraButton, 1);
+		
 		focuserButton = new ToolbarButton("focuser", true);
 		this.toolBar.add(focuserButton, 1);
 		
@@ -413,14 +439,30 @@ public class FocusUi extends FocusUiDesign {
 		
 		createTestMenus();
 		
+		this.mntmShoot.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				Camera cam = cameraManager.getConnectedDevice();
+				try {
+					ShootParameters sp = new ShootParameters();
+					sp.setExp(1.9);
+					cam.startShoot(sp);
+				} catch (CameraException e) {
+					new EndUserException(e).report(FocusUi.this.getFrmFocus());
+				}
+			}
+		});
 		scopeManager.addActionListener();
-		
+		cameraManager.addActionListener();
 		focuserManager.addActionListener();
 		
 		getMainWindow().setTransferHandler(new ActionOpen(this).createTransferHandler());
 		
 		// Donner le focus à chaque activation de la fenêtre
 		this.getFd().getPrincipal().requestFocusInWindow();
+		
+		
 	}
 
 	public JFrame getMainWindow()
@@ -568,7 +610,7 @@ public class FocusUi extends FocusUiDesign {
 					window.getFrmFocus().setVisible(true);
 					window.checkConfigAtStartup();
 					focus.getBackgroundTaskQueue().addTask(DarkLibrary.getInstance().getScanTask(focus));
-					Server httpServer = new Server();
+					Server httpServer = new Server(focus);
 					httpServer.setMosaic(window.getMosaic());
 					httpServer.start(10001);
 				} catch (Exception e) {
@@ -828,7 +870,56 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
+		JMenuItem testTask = new JMenuItem("start autofocus task");
+		mnTests.add(testTask);
+		testTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskAutoFocusDefinition.getInstance());
+				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+			}
+		});
+
+		JMenuItem jsTask = new JMenuItem("start javascript task");
+		mnTests.add(jsTask);
+		jsTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				TaskJavascriptDefinition tjd = new TaskJavascriptDefinition(new JavascriptTaskDefinitionRepository(BuiltinTaskDefinitionRepository.getInstance()));
+				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, tjd);
+				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+			}
+		});
 		
+		JMenuItem configTask = new JMenuItem("Configuration des processus");
+		mnTests.add(configTask);
+		configTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				JavascriptTaskDefinitionRepository repository = new JavascriptTaskDefinitionRepository(BuiltinTaskDefinitionRepository.getInstance());
+				TaskJavascriptDefinition tjd = new TaskJavascriptDefinition(repository);
+				
+				final JDialog jd = new JDialog(FocusUi.this.getFrmFocus());
+				final TaskConfigurationPanel taskConfigurationPanel = new TaskConfigurationPanel(FocusUi.this, repository);
+				jd.getContentPane().add(taskConfigurationPanel);
+				
+
+				Utils.addDialogButton(jd, new Runnable() {
+
+					@Override
+					public void run() {
+						taskConfigurationPanel.save();
+						jd.setVisible(false);
+					}
+				});
+				
+				jd.pack();
+				jd.setVisible(true);
+			}
+		});
 		
 		JMenuItem prise_Focuser = new JMenuItem("Focuser auto");
 		mnTests.add(prise_Focuser);
@@ -969,6 +1060,39 @@ public class FocusUi extends FocusUiDesign {
 		}
 		
 		{
+			JMenuItem focuser_auto = new JMenuItem("focus auto pres de vega (2015-08)");
+			mnTests.add(focuser_auto);
+			focuser_auto.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String [] files = {
+							//"ATL_Bin1x1_s_2015-08-15_23-28-49.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-29-33.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-30-43.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-30-55.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-31-07.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-31-19.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-31-30.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-31-42.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-31-54.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-32-05.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-32-17.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-32-29.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-32-41.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-32-52.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-33-16.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-33-27.fit",
+							"ATL_Bin1x1_s_2015-08-15_23-33-39.fit",
+					};
+					setScript(new LoadImagesScript(actionMonitor, 
+							"C:\\APT_Images\\CameraCCD_1\\2015-08-15", 
+							files));	
+				}
+			});
+		}
+		
+		{
 			JMenuItem prise_focus_polaire = new JMenuItem("Recadrage NGC7331");
 			mnTests.add(prise_focus_polaire);
 			prise_focus_polaire.addActionListener(new ActionListener() {
@@ -1002,6 +1126,7 @@ public class FocusUi extends FocusUiDesign {
 	int shootDuration = 1;
 
 	ToolbarButton scopeButton;
+	ToolbarButton cameraButton;
 	ToolbarButton focuserButton;
 	
 	private final StarDetail starDetail;
@@ -1015,6 +1140,8 @@ public class FocusUi extends FocusUiDesign {
 	private GraphPanelParameters starFocusFilter;
 
 	private FWHMEvolutionGraphPanel graph;
+
+	private TaskManagerView taskManagerView;
 	
 	public void shoot()
 	{
@@ -1058,6 +1185,19 @@ public class FocusUi extends FocusUiDesign {
 		edit.loadValuesFrom(Configuration.getCurrentConfiguration());
 		edit.setVisible(true);
 		return edit;
+	}
+
+	public FocusUiFocuserManager getFocuserManager() {
+		return focuserManager;
+	}
+
+	public FocusUiCameraManager getCameraManager() {
+		return cameraManager;
+	}
+
+	public void selectTask(BaseTask task) {
+		taskManagerView.selectTask(task);
+		tabbedPane.setSelectedComponent(taskPanel);	
 	}
 	
 }

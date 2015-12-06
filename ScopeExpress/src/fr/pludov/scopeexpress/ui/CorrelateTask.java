@@ -109,7 +109,7 @@ public class CorrelateTask extends BackgroundTask {
 		for(Star star : focus.getStars())
 		{
 			StarOccurence so = focus.getStarOccurence(star, image);
-			if (so == null || !so.isAnalyseDone() || !so.isStarFound())
+			if (so == null /*|| !so.isAnalyseDone() || !so.isStarFound()*/)
 			{
 				continue;
 			}

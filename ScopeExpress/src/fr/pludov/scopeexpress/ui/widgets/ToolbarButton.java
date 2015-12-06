@@ -1,36 +1,6 @@
 package fr.pludov.scopeexpress.ui.widgets;
 
-import javax.swing.JButton;
-import javax.swing.JMenuItem;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Insets;
-
-import javax.swing.ImageIcon;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.SoftBevelBorder;
-
-import java.awt.event.ActionEvent;
-import javax.swing.JToggleButton;
-
-import fr.pludov.scopeexpress.ui.resources.IconProvider;
 import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
-
-import javax.swing.BoxLayout;
-
-import net.miginfocom.swing.MigLayout;
-
-import java.awt.GridLayout;
-import java.awt.GridBagLayout;
-import java.awt.GridBagConstraints;
-
-import javax.swing.SpringLayout;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.LayoutStyle.ComponentPlacement;
-
-import java.awt.Dimension;
 
 public class ToolbarButton extends AbstractIconButton {
 

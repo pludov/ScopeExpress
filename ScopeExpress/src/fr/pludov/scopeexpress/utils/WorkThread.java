@@ -11,7 +11,7 @@ import java.util.List;
  */
 public abstract class WorkThread extends Thread {
 
-	boolean terminated;
+	protected boolean terminated;
 	Task periodicTask;
 	long interval;
 	
@@ -127,6 +127,7 @@ public abstract class WorkThread extends Thread {
 			try {
 				result = todo.run();
 			} catch(Throwable t) {
+				t.printStackTrace();
 				error = t;
 			}
 			if (todo instanceof AsyncOrder) {

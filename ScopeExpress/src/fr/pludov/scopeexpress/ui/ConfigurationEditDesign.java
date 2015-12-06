@@ -16,6 +16,7 @@ import java.awt.Font;
 import java.awt.Color;
 import javax.swing.JTextField;
 import java.awt.Insets;
+import javax.swing.JCheckBox;
 
 public class ConfigurationEditDesign extends JDialog {
 
@@ -47,6 +48,9 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JTextField astroNetPathField;
 	protected JButton astroNetBrowse;
 	protected JButton astroNetDownload;
+	protected JPanel communicationPanel;
+	protected JCheckBox chckbxIrc;
+	protected JCheckBox chckbxHttp;
 
 	/**
 	 * Launch the application.
@@ -177,6 +181,16 @@ public class ConfigurationEditDesign extends JDialog {
 		this.joystickPanel = new JPanel();
 		this.tabbedPane.addTab("Joystick", null, this.joystickPanel, null);
 		this.joystickPanel.setLayout(new BorderLayout(0, 0));
+		
+		this.communicationPanel = new JPanel();
+		this.tabbedPane.addTab("Communication", null, this.communicationPanel, null);
+		this.communicationPanel.setLayout(new MigLayout("", "[]", "[][]"));
+		
+		this.chckbxIrc = new JCheckBox("Diffusion IRC");
+		this.communicationPanel.add(this.chckbxIrc, "cell 0 0");
+		
+		this.chckbxHttp = new JCheckBox("Diffusion HTTP");
+		this.communicationPanel.add(this.chckbxHttp, "cell 0 1");
 		{
 			JPanel buttonPane = new JPanel();
 			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));

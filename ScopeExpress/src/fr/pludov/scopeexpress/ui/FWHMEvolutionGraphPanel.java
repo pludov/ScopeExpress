@@ -24,6 +24,7 @@ import fr.pludov.scopeexpress.focus.MosaicListener;
 import fr.pludov.scopeexpress.focus.PointOfInterest;
 import fr.pludov.scopeexpress.focus.Star;
 import fr.pludov.scopeexpress.focus.StarOccurence;
+import fr.pludov.scopeexpress.notifs.NotificationChannel;
 import fr.pludov.scopeexpress.ui.speech.Speaker;
 import fr.pludov.scopeexpress.ui.speech.SpeakerProvider;
 import fr.pludov.scopeexpress.ui.utils.Utils;
@@ -120,6 +121,7 @@ public class FWHMEvolutionGraphPanel extends GraphPanel {
 	//									dv *= 100;
 										String text = String.format("%.2f", dv);// value + " point " + (int)dv;
 										
+										NotificationChannel.Photo.emit(sco.getImage().getPath().getName()+": " + text + " de focus");
 										speaker.enqueue(text + " de focus");
 									}
 								}

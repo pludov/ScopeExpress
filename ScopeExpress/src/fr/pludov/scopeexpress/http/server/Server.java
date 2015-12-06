@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 
+import fr.pludov.scopeexpress.focus.Application;
 import fr.pludov.scopeexpress.focus.Mosaic;
+
 
 
 
@@ -17,6 +19,7 @@ import com.sun.net.httpserver.HttpServer;
 
 public class Server {
 	// Les accès à ça doivent être executé dans le thread swing.
+	final Application application;
 	Mosaic mosaic;
 	HttpServer server;
 	
@@ -27,6 +30,7 @@ public class Server {
 		
 		server.createContext("/", new StaticHandler());
 		server.createContext("/ajax/status.json", new JsonHandler("/ajax/status.json", this));
+		server.createContext("/ajax/events.json", new JsonEventHandler("/ajax/events.json", this));
 	    server.setExecutor(Executors.newCachedThreadPool());
 	    server.start();
 	}
@@ -46,7 +50,8 @@ public class Server {
 	}
 	
 	
-	public Server()
+	public Server(Application application)
 	{
+		this.application = application;
 	}
 }

@@ -1,5 +1,6 @@
 package fr.pludov.scopeexpress.ui.utils;
 
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dialog.ModalityType;
 import java.awt.Window;
@@ -7,6 +8,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -14,11 +17,18 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -222,6 +232,28 @@ public final class Utils {
 		}
 	}
 
+
+	/**
+	 * Présentation d'un angle (degrés) en Heure/Minute/Seconde (pour RA)
+	 * @param deg
+	 * @return
+	 */
+	public static String formatDuration(long time)
+	{
+		long hour = time / 3600000;
+		long min = (time / 60000) % 60;
+		long msec = time % 60000;
+		
+		if (hour > 0) {
+			return String.format(Locale.US, "%dh %02dm %02.2fs", hour, min, msec / 1000.0);
+		} else if (min > 0) {
+			return String.format(Locale.US, "%2dm %02.2fs", min, msec / 1000.0);
+		} else {
+			return String.format(Locale.US, "%02.2fs", msec / 1000.0);
+		}
+	}
+
+	
 	/**
 	 * Présentation d'un angle (degrés) en Degrés/Minute/Seconde (pour Dec)
 	 * @param deg
@@ -471,5 +503,47 @@ public final class Utils {
 		File result = new File(workingDirectory);
 		result = new File(result, ".ScopeExpress");
 		return result;
+	}
+
+	/** Crée un bouton qui annule (setVisible à false), et un autre qui applique */
+	public static void addDialogButton(final JDialog jd, final Runnable okCallback) {
+		JPanel buttonPanel = new JPanel();
+		JButton okButton = new JButton("OK");
+		buttonPanel.add(okButton);
+		
+		okButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				okCallback.run();
+			}
+		});
+		JButton cancelButton = new JButton("Cancel");
+		buttonPanel.add(cancelButton);
+
+		
+		KeyStroke escapeStroke =  KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0); 
+	    String dispatchWindowClosingActionMapKey = "com.spodding.tackline.dispatch:WINDOW_CLOSING";
+	    
+	        Action dispatchClosing = new AbstractAction("Cancel") { 
+	            @Override
+				public void actionPerformed(ActionEvent event) { 
+	                jd.dispatchEvent(new WindowEvent( 
+	                    jd, WindowEvent.WINDOW_CLOSING 
+	                )); 
+	            } 
+	        }; 
+
+        JRootPane root = jd.getRootPane(); 
+        cancelButton.setAction(dispatchClosing);
+        root.setDefaultButton(okButton);
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put( 
+        		escapeStroke, dispatchWindowClosingActionMapKey 
+	        ); 
+        root.getActionMap().put( dispatchWindowClosingActionMapKey, dispatchClosing 
+	        ); 
+	        
+		jd.getContentPane().add(buttonPanel, BorderLayout.PAGE_END);
+		
 	}
 }

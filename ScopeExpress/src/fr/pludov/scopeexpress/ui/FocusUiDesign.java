@@ -65,6 +65,11 @@ public class FocusUiDesign {
 	protected JMenuItem mntmAutofocus;
 	protected JMenuItem mntmFocuserConnecter;
 	protected JMenuItem mntmFocuserDeconnecter;
+	protected JMenu mnCamera;
+	protected JMenuItem mntmConnecterCamera;
+	protected JMenuItem mntmDconnecterCamera;
+	protected JMenuItem mntmShoot;
+	protected JPanel taskPanel;
 
 	/**
 	 * Create the application.
@@ -114,6 +119,18 @@ public class FocusUiDesign {
 		
 		this.mntmDconnecter = new JMenuItem("D\u00E9connecter");
 		this.mnTlscope.add(this.mntmDconnecter);
+		
+		this.mnCamera = new JMenu("Cam\u00E9ra");
+		this.menuBar.add(this.mnCamera);
+		
+		this.mntmConnecterCamera = new JMenuItem("Connecter");
+		this.mnCamera.add(this.mntmConnecterCamera);
+		
+		this.mntmDconnecterCamera = new JMenuItem("D\u00E9connecter");
+		this.mnCamera.add(this.mntmDconnecterCamera);
+		
+		this.mntmShoot = new JMenuItem("Shoot");
+		this.mnCamera.add(this.mntmShoot);
 		
 		this.mnFocuser = new JMenu("Focuser");
 		this.menuBar.add(this.mnFocuser);
@@ -191,6 +208,10 @@ public class FocusUiDesign {
 		this.shapeRepartitionPanel = new JPanel();
 		this.detailsPanel.add(this.shapeRepartitionPanel, "cell 1 1,grow");
 		this.shapeRepartitionPanel.setLayout(new BoxLayout(this.shapeRepartitionPanel, BoxLayout.X_AXIS));
+		
+		this.taskPanel = new JPanel();
+		this.tabbedPane.addTab("Processus", null, this.taskPanel, null);
+		this.taskPanel.setLayout(new BoxLayout(this.taskPanel, BoxLayout.X_AXIS));
 		
 		this.statusPanel = new JPanel();
 		this.frmFocus.getContentPane().add(this.statusPanel, BorderLayout.SOUTH);

@@ -19,10 +19,12 @@ import javax.swing.AbstractButton;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.SwingUtilities;
+
 import org.apache.log4j.Logger;
 
 import fr.pludov.scopeexpress.focus.MosaicImageParameter;
 import fr.pludov.scopeexpress.focus.MosaicListener;
+import fr.pludov.scopeexpress.notifs.NotificationChannel;
 import fr.pludov.scopeexpress.ui.joystick.ButtonAction;
 import fr.pludov.scopeexpress.ui.joystick.JoystickListener;
 import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
@@ -479,7 +481,7 @@ public class ActionMonitor implements ActionListener {
 								return;
 							}
 						}
-						
+						NotificationChannel.Photo.emit("Chargement de " + newItem.getName());
 						addImage(newItem);
 					}
 				});
