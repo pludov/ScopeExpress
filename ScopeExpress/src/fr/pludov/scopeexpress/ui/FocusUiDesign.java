@@ -70,6 +70,9 @@ public class FocusUiDesign {
 	protected JMenuItem mntmDconnecterCamera;
 	protected JMenuItem mntmShoot;
 	protected JPanel taskPanel;
+	protected JMenu mnFilterWheel;
+	protected JMenuItem mntmFilterWheelConnecter;
+	protected JMenuItem mntmFilterWheelDeconnecter;
 
 	/**
 	 * Create the application.
@@ -143,6 +146,15 @@ public class FocusUiDesign {
 		
 		this.mntmAutofocus = new JMenuItem("Autofocus");
 		this.mnFocuser.add(this.mntmAutofocus);
+		
+		this.mnFilterWheel = new JMenu("Roue \u00E0 filtre");
+		this.menuBar.add(this.mnFilterWheel);
+		
+		this.mntmFilterWheelConnecter = new JMenuItem("Connecter");
+		this.mnFilterWheel.add(this.mntmFilterWheelConnecter);
+		
+		this.mntmFilterWheelDeconnecter = new JMenuItem("D\u00E9connecter");
+		this.mnFilterWheel.add(this.mntmFilterWheelDeconnecter);
 		
 		this.mnConfiguration = new JMenu("Configuration");
 		this.menuBar.add(this.mnConfiguration);

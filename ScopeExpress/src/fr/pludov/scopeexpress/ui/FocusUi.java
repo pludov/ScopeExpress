@@ -60,8 +60,11 @@ import fr.pludov.scopeexpress.tasks.BaseTask;
 import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
 import fr.pludov.scopeexpress.tasks.TaskControl;
 import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
+import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheel;
+import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
 import fr.pludov.scopeexpress.tasks.javascript.JavascriptTaskDefinitionRepository;
 import fr.pludov.scopeexpress.tasks.javascript.TaskJavascriptDefinition;
+import fr.pludov.scopeexpress.tasks.sequence.TaskSequenceDefinition;
 import fr.pludov.scopeexpress.ui.LoadImagesScript;
 import fr.pludov.scopeexpress.ui.ScriptTest;
 import fr.pludov.scopeexpress.ui.ScriptTestListener;
@@ -112,6 +115,7 @@ public class FocusUi extends FocusUiDesign {
 
 	final FocusUiScopeManager scopeManager;
 	final FocusUiCameraManager cameraManager;
+	final FocusUiFilterWheelManager filterWheelManager;
 	final CameraControlPanel cameraControlPanel;
 	private final FocusUiFocuserManager focuserManager;
 	final AstrometryParameterPanel astrometryParameter;
@@ -129,6 +133,7 @@ public class FocusUi extends FocusUiDesign {
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
 		this.cameraManager = new FocusUiCameraManager(this);
+		this.filterWheelManager = new FocusUiFilterWheelManager(this);
 		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
 		
@@ -362,6 +367,9 @@ public class FocusUi extends FocusUiDesign {
 		focuserButton = new ToolbarButton("focuser", true);
 		this.toolBar.add(focuserButton, 1);
 		
+		filterWheelButton = new ToolbarButton("filter_wheel", true);
+		this.toolBar.add(filterWheelButton, 1);
+		
 //		ToolbarButton otherButton = new ToolbarButton("text-speak", false);
 //		this.toolBar.add(otherButton);
 		
@@ -456,6 +464,7 @@ public class FocusUi extends FocusUiDesign {
 		scopeManager.addActionListener();
 		cameraManager.addActionListener();
 		focuserManager.addActionListener();
+		filterWheelManager.addActionListener();
 		
 		getMainWindow().setTransferHandler(new ActionOpen(this).createTransferHandler());
 		
@@ -870,6 +879,20 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
+		
+		JMenuItem sequenceTask = new JMenuItem("start sequence task");
+		mnTests.add(sequenceTask);
+		sequenceTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskSequenceDefinition.getInstance());
+				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+			}
+		});
+		
+
+		
 		JMenuItem testTask = new JMenuItem("start autofocus task");
 		mnTests.add(testTask);
 		testTask.addActionListener(new ActionListener() {
@@ -881,6 +904,18 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 
+		{
+		JMenuItem filterTask = new JMenuItem("change filter task");
+		mnTests.add(filterTask);
+		filterTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskFilterWheelDefinition.getInstance());
+				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+			}
+		});
+		}
 		JMenuItem jsTask = new JMenuItem("start javascript task");
 		mnTests.add(jsTask);
 		jsTask.addActionListener(new ActionListener() {
@@ -892,6 +927,7 @@ public class FocusUi extends FocusUiDesign {
 				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
 			}
 		});
+
 		
 		JMenuItem configTask = new JMenuItem("Configuration des processus");
 		mnTests.add(configTask);
@@ -1128,6 +1164,7 @@ public class FocusUi extends FocusUiDesign {
 	ToolbarButton scopeButton;
 	ToolbarButton cameraButton;
 	ToolbarButton focuserButton;
+	ToolbarButton filterWheelButton;
 	
 	private final StarDetail starDetail;
 
@@ -1195,9 +1232,25 @@ public class FocusUi extends FocusUiDesign {
 		return cameraManager;
 	}
 
+	public FocusUiFilterWheelManager getFilterWheelManager() {
+		return filterWheelManager;
+	}
+	
 	public void selectTask(BaseTask task) {
 		taskManagerView.selectTask(task);
 		tabbedPane.setSelectedComponent(taskPanel);	
+	}
+
+	public Mosaic getFocusMosaic() {
+		return focusMosaic;
+	}
+
+	public Mosaic getImagingMosaic() {
+		return imagingMosaic;
+	}
+
+	public Mosaic getAlignMosaic() {
+		return alignMosaic;
 	}
 	
 }
