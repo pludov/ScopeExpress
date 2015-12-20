@@ -29,7 +29,8 @@ public abstract class BaseTask implements ITaskParent {
 	private Long startTime;
 	private Long endTime;
 	
-	private BaseTask previous, next;
+	ITaskParent parent;
+	BaseTask previous, next;
 	private BaseTask first, last;
 	
 	public BaseTask(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, BaseTaskDefinition taskDefinition) {
@@ -41,7 +42,11 @@ public abstract class BaseTask implements ITaskParent {
 		this.startedTasks = new ArrayList<>();
 		this.title = taskDefinition.getTitle();
 		
-		ITaskParent parent = getParent();
+		if (parentLauncher != null) {
+			parent = parentLauncher.from;
+		} else {
+			parent = taskManager;
+		}
 		next = null;
 		previous = parent.getLast();
 		if (previous != null) {
@@ -50,15 +55,13 @@ public abstract class BaseTask implements ITaskParent {
 			parent.setFirst(this);
 		}
 		parent.setLast(this);
+		if (parent instanceof TaskManager)
+			((TaskManager)parent).checkList();
 	}
 	
 	ITaskParent getParent()
 	{
-		if (parentLauncher != null) {
-			return parentLauncher.from;
-		} else {
-			return taskManager;
-		}
+		return parent;
 	}
 	
 	public void setParameters(ITaskParameterView parameters)
@@ -288,7 +291,6 @@ public abstract class BaseTask implements ITaskParent {
 	
 	void dettach()
 	{
-		ITaskParent parent = getParent();
 		if (next != null) {
 			next.previous = previous;
 		} else {
@@ -301,6 +303,7 @@ public abstract class BaseTask implements ITaskParent {
 		}
 		previous = null;
 		next = null;
+		parent = null;
 	}
 	
 	public boolean forget()
@@ -339,5 +342,9 @@ public abstract class BaseTask implements ITaskParent {
 	@Override
 	public void setLast(BaseTask last) {
 		this.last = last;
+	}
+
+	public BaseTask getPrevious() {
+		return previous;
 	}
 }

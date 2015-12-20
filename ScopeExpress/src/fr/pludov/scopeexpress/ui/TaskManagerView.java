@@ -13,6 +13,7 @@ import java.util.*;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -191,17 +192,20 @@ public class TaskManagerView extends JSplitPane {
 		jtree = new JTree(new DefaultTreeModel(new DefaultMutableTreeNode("root")));
 		jtree.setCellRenderer(new TaskCellRenderer());
 //		jtree.setShowsRootHandles(false);
-		jtree.setRootVisible(false);
 		this.root = (DefaultMutableTreeNode) jtree.getModel().getRoot();
 		this.treeModel = (DefaultTreeModel) jtree.getModel();
+
+		jtree.setRootVisible(false);
+		jtree.setTransferHandler(new TaskManagerDragDropHandler(this, this.root, this.tm));
+		jtree.setDragEnabled(true);
+		jtree.setDropMode(DropMode.INSERT);
+
 		
 		JScrollPane scroller = new JScrollPane(jtree, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		leftPanel.add(scroller, BorderLayout.CENTER);
 		
-		BaseTask previous = null;
 		for(BaseTask bt : tm.getRunningTasks()) {
 			taskAdded(root, null, null, bt);
-			previous = bt;
 		}
 		
 		this.tm.statusListeners.addListener(this.listenerOwner, new TaskManagerListener() {
@@ -214,6 +218,16 @@ public class TaskManagerView extends JSplitPane {
 			@Override
 			public void childAdded(BaseTask bt, BaseTask after) {
 				taskAdded(root, null, null, bt);
+			}
+			
+			@Override
+			public void childMoved(BaseTask ref, BaseTask movedAfter) {
+				DefaultMutableTreeNode toMove = getNodeForRootTask(movedAfter);
+				toMove.removeFromParent();
+				
+				root.insert(toMove, getInsertAfterIndex(root, ref));
+				
+				treeModel.nodeStructureChanged(root);
 			}
 		});
 		taskControl = new TaskControl();
@@ -383,7 +397,7 @@ public class TaskManagerView extends JSplitPane {
 				JPanel result = new JPanel();
 				result.setLayout(new BoxLayout(result, BoxLayout.LINE_AXIS));
 				
-				if (!leaf) {
+				if ((!leaf) && ((DefaultMutableTreeNode)value).getParent() == root) {
 					Icon sign;
 					if (expanded) {
 						sign = NodeIcon.icon_minus;
@@ -485,7 +499,9 @@ public class TaskManagerView extends JSplitPane {
 			}
 		});
 //		childNode.setParent(parent);
-		treeModel.insertNodeInto(childNode, parent, 0);
+		
+		
+		treeModel.insertNodeInto(childNode, parent, getInsertAfterIndex(parent, child.getPrevious()));
 		updateStatus(child, childNode);
 		
 		//Make sure the user can see the lovely new node.
@@ -544,15 +560,31 @@ public class TaskManagerView extends JSplitPane {
 	
 	void taskRemoved(DefaultMutableTreeNode parent, final BaseTask child)
 	{
+		DefaultMutableTreeNode nodeForChild = getNodeForTask(parent, child);
+		if (nodeForChild != null) {
+			treeModel.removeNodeFromParent(nodeForChild);
+		} else {
+			System.out.println("bizarre, il n'y est pas");
+		}
+	}
+
+	private DefaultMutableTreeNode getNodeForRootTask(BaseTask child)
+	{
+		return getNodeForTask(root, child);
+		
+	}
+	
+	private DefaultMutableTreeNode getNodeForTask(DefaultMutableTreeNode parent, final BaseTask child) {
+		DefaultMutableTreeNode nodeForChild = null;
 		for(int i = 0; i < parent.getChildCount(); ++i)
 		{
 			DefaultMutableTreeNode childTreeNode = (DefaultMutableTreeNode) parent.getChildAt(i);
 			if (childTreeNode.getUserObject() == child) {
-				treeModel.removeNodeFromParent(childTreeNode);
-				return;
+				nodeForChild = childTreeNode;
+				break;
 			}
 		}
-		System.out.println("bizarre, il n'y est pas");
+		return nodeForChild;
 	}
 
 	private void updateStatus(BaseTask child, DefaultMutableTreeNode childNode) {
@@ -560,7 +592,7 @@ public class TaskManagerView extends JSplitPane {
 		updateBtonStatus();
 	}
 
-	private TreePath findNode(BaseTask bt)
+	TreePath findNode(BaseTask bt)
 	{
 		TreePath parentPath;
 		if (bt.getParentLauncher() != null) {
@@ -586,5 +618,25 @@ public class TaskManagerView extends JSplitPane {
 		if (dmt != null) {
 			jtree.setSelectionPath(dmt);
 		}
+	}
+
+	private int getInsertAfterIndex(DefaultMutableTreeNode parent, BaseTask ref) {
+		int where;
+		if (ref == null) {
+			where = 0;
+		} else {
+			DefaultMutableTreeNode refNode = getNodeForTask(parent, ref);
+			if (refNode == null) {
+				where = parent.getChildCount();
+			} else {
+				where = parent.getIndex(refNode);
+				if (where == -1) {
+					where = parent.getChildCount();
+				} else {
+					where++;
+				}
+			}
+		}
+		return where;
 	}
 }
