@@ -28,6 +28,13 @@ public class TaskShoot extends BaseTask {
 	Camera camera;
 	
 	@Override
+	protected void cleanup()
+	{
+		camera.getListeners().removeListener(this.listenerOwner);
+		camera = null;
+	}
+	
+	@Override
 	public void start() {
 		setStatus(BaseStatus.Processing);
 		try {
@@ -35,6 +42,7 @@ public class TaskShoot extends BaseTask {
 			camera = focusUi.getCameraManager().getConnectedDevice();
 			if (camera == null) {
 				setFinalStatus(BaseStatus.Error, "Pas de camera connectée");
+				return;
 			}
 	
 			camera.getListeners().addListener(this.listenerOwner, new Camera.Listener() {
@@ -55,7 +63,9 @@ public class TaskShoot extends BaseTask {
 				
 				@Override
 				public void onConnectionStateChanged() {
-					
+					if (focusUi.getCameraManager().getConnectedDevice() != camera) {
+						setFinalStatus(BaseStatus.Error, "Perte de connection");
+					}
 				}
 			});
 			ShootParameters sp = new ShootParameters();
