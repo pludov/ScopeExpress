@@ -611,7 +611,7 @@ public class ActionMonitor implements ActionListener {
 		focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 		
 		if (focusUi.getActivity() == Activity.Aligning) {
-			CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), image);
+			CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.getAstrometryParameter().getParameter(), image);
 			focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
 		} else {
 			if (focusUi.getMosaic().getImages().size() > 1) {

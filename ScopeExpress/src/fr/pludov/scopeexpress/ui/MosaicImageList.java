@@ -270,7 +270,7 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 				
 				for(MosaicImageListEntry entry : entries)
 				{
-					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), focusUi.astrometryParameter.getParameter(), entry.getTarget().getImage());
+					CorrelateTask task = new CorrelateTask(focusUi.getMosaic(), focusUi.getAstrometryParameter().getParameter(), entry.getTarget().getImage());
 				
 					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
 				}

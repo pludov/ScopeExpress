@@ -65,6 +65,7 @@ import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
 import fr.pludov.scopeexpress.tasks.guider.TaskGuiderStartDefinition;
 import fr.pludov.scopeexpress.tasks.javascript.JavascriptTaskDefinitionRepository;
 import fr.pludov.scopeexpress.tasks.javascript.TaskJavascriptDefinition;
+import fr.pludov.scopeexpress.tasks.platesolve.PlateSolveTaskDefinition;
 import fr.pludov.scopeexpress.tasks.sequence.TaskSequenceDefinition;
 import fr.pludov.scopeexpress.ui.LoadImagesScript;
 import fr.pludov.scopeexpress.ui.ScriptTest;
@@ -120,7 +121,7 @@ public class FocusUi extends FocusUiDesign {
 	final FocusUiGuiderManager guiderManager;
 	final CameraControlPanel cameraControlPanel;
 	private final FocusUiFocuserManager focuserManager;
-	final AstrometryParameterPanel astrometryParameter;
+	private final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
 
 	private ToolbarButton followDirBton;
@@ -905,6 +906,19 @@ public class FocusUi extends FocusUiDesign {
 		}
 
 		{
+		JMenuItem testTask = new JMenuItem("start plate solver task");
+		mnTests.add(testTask);
+		testTask.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, PlateSolveTaskDefinition.getInstance());
+				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+			}
+		});
+		}
+
+		{
 		JMenuItem filterTask = new JMenuItem("change filter task");
 		mnTests.add(filterTask);
 		filterTask.addActionListener(new ActionListener() {
@@ -1256,6 +1270,10 @@ public class FocusUi extends FocusUiDesign {
 
 	public Mosaic getAlignMosaic() {
 		return alignMosaic;
+	}
+
+	public AstrometryParameterPanel getAstrometryParameter() {
+		return astrometryParameter;
 	}
 	
 }
