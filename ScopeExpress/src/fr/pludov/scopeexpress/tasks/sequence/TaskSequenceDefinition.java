@@ -12,6 +12,7 @@ import fr.pludov.scopeexpress.tasks.TaskManager;
 import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocus;
 import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
 import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
+import fr.pludov.scopeexpress.tasks.guider.TaskGuiderStartDefinition;
 import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
 import fr.pludov.scopeexpress.ui.FocusUi;;
 
@@ -26,6 +27,12 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			};
 
 	final TaskLauncherDefinition autofocus = new TaskLauncherDefinition(this, "autofocus", TaskAutoFocusDefinition.getInstance()) {
+		{
+			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
+		}
+	};
+
+	final TaskLauncherDefinition guiderStart = new TaskLauncherDefinition(this, "guiderStart", TaskGuiderStartDefinition.getInstance()) {
 		{
 			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
 		}
