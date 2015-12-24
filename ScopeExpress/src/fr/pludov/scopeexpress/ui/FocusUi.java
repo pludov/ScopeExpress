@@ -62,6 +62,7 @@ import fr.pludov.scopeexpress.tasks.TaskControl;
 import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
 import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheel;
 import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
+import fr.pludov.scopeexpress.tasks.guider.TaskGuiderStartDefinition;
 import fr.pludov.scopeexpress.tasks.javascript.JavascriptTaskDefinitionRepository;
 import fr.pludov.scopeexpress.tasks.javascript.TaskJavascriptDefinition;
 import fr.pludov.scopeexpress.tasks.sequence.TaskSequenceDefinition;
@@ -116,6 +117,7 @@ public class FocusUi extends FocusUiDesign {
 	final FocusUiScopeManager scopeManager;
 	final FocusUiCameraManager cameraManager;
 	final FocusUiFilterWheelManager filterWheelManager;
+	final FocusUiGuiderManager guiderManager;
 	final CameraControlPanel cameraControlPanel;
 	private final FocusUiFocuserManager focuserManager;
 	final AstrometryParameterPanel astrometryParameter;
@@ -133,6 +135,7 @@ public class FocusUi extends FocusUiDesign {
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
 		this.cameraManager = new FocusUiCameraManager(this);
+		this.guiderManager = new FocusUiGuiderManager(this);
 		this.filterWheelManager = new FocusUiFilterWheelManager(this);
 		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
@@ -338,37 +341,19 @@ public class FocusUi extends FocusUiDesign {
 		});
 
 		scopeButton = new ToolbarButton("scope", true);
-//		scopeButton.setPopupProvider(new ToolbarButton.PopupProvider() {
-//			@Override
-//			public JPopupMenu popup() {
-//				JPopupMenu result = new JPopupMenu();
-//				
-//				JMenuItem changeStatus = new JMenuItem("switch");
-//				result.add(changeStatus);
-//				changeStatus.addActionListener(new ActionListener() {
-//					
-//					@Override
-//					public void actionPerformed(ActionEvent e) {
-//						if (scopeButton.getStatus() == AbstractIconButton.Status.ACTIVATED)
-//							scopeButton.setStatus(AbstractIconButton.Status.DEFAULT);
-//						else 
-//							scopeButton.setStatus(AbstractIconButton.Status.ACTIVATED);
-//					}
-//				});
-//				
-//				return result;
-//			}
-//		});
 		this.toolBar.add(scopeButton, 1);
 		
 		cameraButton = new ToolbarButton("camera-photo", true);
-		this.toolBar.add(cameraButton, 1);
+		this.toolBar.add(cameraButton, 2);
 		
 		focuserButton = new ToolbarButton("focuser", true);
-		this.toolBar.add(focuserButton, 1);
+		this.toolBar.add(focuserButton, 3);
 		
 		filterWheelButton = new ToolbarButton("filter_wheel", true);
-		this.toolBar.add(filterWheelButton, 1);
+		this.toolBar.add(filterWheelButton, 4);
+		
+		guidingButton = new ToolbarButton("openphd2", true);
+		this.toolBar.add(guidingButton, 5);
 		
 //		ToolbarButton otherButton = new ToolbarButton("text-speak", false);
 //		this.toolBar.add(otherButton);
@@ -465,6 +450,7 @@ public class FocusUi extends FocusUiDesign {
 		cameraManager.addActionListener();
 		focuserManager.addActionListener();
 		filterWheelManager.addActionListener();
+		guiderManager.addActionListener();
 		
 		getMainWindow().setTransferHandler(new ActionOpen(this).createTransferHandler());
 		
@@ -891,8 +877,21 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
-
+		{
+			JMenuItem testTask = new JMenuItem("start guider on task");
 		
+			mnTests.add(testTask);
+			testTask.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskGuiderStartDefinition.getInstance());
+					tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				}
+			});
+		}
+
+		{
 		JMenuItem testTask = new JMenuItem("start autofocus task");
 		mnTests.add(testTask);
 		testTask.addActionListener(new ActionListener() {
@@ -903,6 +902,7 @@ public class FocusUi extends FocusUiDesign {
 				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
 			}
 		});
+		}
 
 		{
 		JMenuItem filterTask = new JMenuItem("change filter task");
@@ -1165,6 +1165,7 @@ public class FocusUi extends FocusUiDesign {
 	ToolbarButton cameraButton;
 	ToolbarButton focuserButton;
 	ToolbarButton filterWheelButton;
+	ToolbarButton guidingButton;
 	
 	private final StarDetail starDetail;
 
@@ -1234,6 +1235,10 @@ public class FocusUi extends FocusUiDesign {
 
 	public FocusUiFilterWheelManager getFilterWheelManager() {
 		return filterWheelManager;
+	}
+	
+	public FocusUiGuiderManager getGuiderManager() {
+		return guiderManager;
 	}
 	
 	public void selectTask(BaseTask task) {

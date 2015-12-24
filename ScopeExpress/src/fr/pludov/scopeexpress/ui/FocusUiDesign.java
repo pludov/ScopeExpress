@@ -73,6 +73,9 @@ public class FocusUiDesign {
 	protected JMenu mnFilterWheel;
 	protected JMenuItem mntmFilterWheelConnecter;
 	protected JMenuItem mntmFilterWheelDeconnecter;
+	protected JMenu mnGuideur;
+	protected JMenuItem mntmGuiderConnecter;
+	protected JMenuItem mntmGuiderDeconnecter;
 
 	/**
 	 * Create the application.
@@ -155,6 +158,15 @@ public class FocusUiDesign {
 		
 		this.mntmFilterWheelDeconnecter = new JMenuItem("D\u00E9connecter");
 		this.mnFilterWheel.add(this.mntmFilterWheelDeconnecter);
+		
+		this.mnGuideur = new JMenu("Guideur");
+		this.menuBar.add(this.mnGuideur);
+		
+		this.mntmGuiderConnecter = new JMenuItem("Connecter");
+		this.mnGuideur.add(this.mntmGuiderConnecter);
+		
+		this.mntmGuiderDeconnecter = new JMenuItem("D\u00E9connecter");
+		this.mnGuideur.add(this.mntmGuiderDeconnecter);
 		
 		this.mnConfiguration = new JMenu("Configuration");
 		this.menuBar.add(this.mnConfiguration);
