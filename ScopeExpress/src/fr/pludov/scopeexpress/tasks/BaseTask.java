@@ -10,6 +10,20 @@ import fr.pludov.scopeexpress.utils.IdentityHashSet;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 
+/**
+ * 
+ * Classe de base pour les taches.
+ * 
+ * L'état est représenté par le status + deux variables:
+ *   * pausing
+ *   * interrupting
+ * 
+ * pausing et interrupting sont mutuellement exclusifs.
+ * 
+ * requestPause peut être appelé si !pausing et !interrupting. Il peut être immédiat (changement de status vers Paused), ou positionner la variable pausing
+ * requestCancelation peut être appelé si !pausing et !interrupting. Il peut être immédiat (changement de status vers Interrupted), ou positionner la variable interrupting
+ * 
+ */
 public abstract class BaseTask implements ITaskParent {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	public final WeakListenerCollection<TaskStatusListener> statusListeners = new WeakListenerCollection<>(TaskStatusListener.class, true);
