@@ -222,6 +222,18 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				}
 			}
 		});
+		
+		this.btnInterrupt.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent ev) {
+				try {
+					camera.cancelCurrentShoot();
+				} catch(CameraException e) {
+					new EndUserException(e).report(CameraControlPanel.this);
+				}
+			}
+		});
 	}
 	
 	private String getTemperatureAdjusterTaskTitle(TemperatureAdjusterTask tat)
@@ -515,6 +527,10 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 					
 					loadParameters(parameters);
 					refresh();
+				}
+				
+				@Override
+				public void onShootInterrupted() {
 				}
 				
 				@Override

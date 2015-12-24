@@ -10,19 +10,26 @@ public interface Camera extends IDeviceBase {
 	public static interface Listener {
 		/** Lorsque l'état de la connection change */
 		void onConnectionStateChanged();
-		/** Fin d'un cliché */
-		void onShootDone(RunningShootInfo shootInfo, File generatedFits);
 		
 		void onShootStarted(RunningShootInfo currentShoot);
+
+		/** Interrupted suite à un cancelCurrentShoot */
+		void onShootInterrupted();
+		
+		/** Fin d'un cliché */
+		void onShootDone(RunningShootInfo shootInfo, File generatedFits);
 		
 		void onTempeatureUpdated();
 	}
 
 	WeakListenerCollection<Listener> getListeners();
 	
-	/** Throw une exception si les choses tournent mal, sinon, on va emettre un onShootDone... */
+	/** Throw une exception si les choses tournent mal, sinon, on va emettre un onShootDone/onShootInterrupted... */
 	void startShoot(ShootParameters parameters) throws CameraException;
 
+	/** on va recevoir un onShootInterrupted avec un generatedFits vide */
+	void cancelCurrentShoot() throws CameraException;
+	
 	/** 
 	 * Ceci n'est changé que de manière synchrone avec Swing
 	 * retourne null si pas de shoot en cours

@@ -200,6 +200,11 @@ public abstract class BaseTask implements ITaskParent {
 		return true;
 	}
 	
+	public boolean isPauseRequested()
+	{
+		return pausing;
+	}
+	
 	public boolean requestPause() {
 		if (pausable()) {
 			pausing = true;

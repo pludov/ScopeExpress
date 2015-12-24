@@ -2,6 +2,8 @@ package fr.pludov.scopeexpress.tasks.shoot;
 
 import java.io.File;
 
+import org.apache.log4j.Logger;
+
 import fr.pludov.scopeexpress.camera.Camera;
 import fr.pludov.scopeexpress.camera.CameraException;
 import fr.pludov.scopeexpress.camera.RunningShootInfo;
@@ -14,6 +16,7 @@ import fr.pludov.scopeexpress.tasks.TaskManager;
 import fr.pludov.scopeexpress.ui.FocusUi;
 
 public class TaskShoot extends BaseTask {
+	private static final Logger logger = Logger.getLogger(TaskShoot.class);
 	
 	public TaskShoot(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskShootDefinition taskDefinition) {
 		super(focusUi, tm, parentLauncher, taskDefinition);
@@ -26,13 +29,48 @@ public class TaskShoot extends BaseTask {
 	}
 	
 	Camera camera;
+	boolean shootCanceled; // Pour éviter d'annuler plusieurs fois le même shoot
 	
 	@Override
 	protected void cleanup()
 	{
 		camera.getListeners().removeListener(this.listenerOwner);
 		camera = null;
+		shootCanceled = false;
 	}
+	
+	@Override
+	public boolean requestPause() {
+		if (getStatus() != BaseStatus.Processing) {
+			return false;
+		}
+
+		if (super.requestPause() && camera != null && !shootCanceled) {
+			shootCanceled = true;
+			try {
+				camera.cancelCurrentShoot();
+			} catch (CameraException e) {
+				logger.info("Failed to interrupt", e);
+			}
+			return true;
+		}
+		return false;
+	}
+	
+	@Override
+	public void requestCancelation() {
+		super.requestCancelation();
+		if (hasPendingCancelation() && camera != null && !shootCanceled) {
+			shootCanceled = true;
+			try {
+				camera.cancelCurrentShoot();
+			} catch(CameraException e) {
+				logger.info("Failed to interrupt", e);
+			}
+		}
+	}
+	
+	
 	
 	@Override
 	public void start() {
@@ -62,6 +100,23 @@ public class TaskShoot extends BaseTask {
 				}
 				
 				@Override
+				public void onShootInterrupted() {
+					if (TaskShoot.this.isPauseRequested()) {
+						cleanup();
+						doPause(new Runnable() {
+							@Override
+							public void run() {
+								start();
+							}
+						});
+					} else if (TaskShoot.this.hasPendingCancelation()) {
+						setFinalStatus(BaseStatus.Canceled);
+					} else {
+						setFinalStatus(BaseStatus.Error, "Operation canceled");
+					}
+				}
+				
+				@Override
 				public void onConnectionStateChanged() {
 					if (focusUi.getCameraManager().getConnectedDevice() != camera) {
 						setFinalStatus(BaseStatus.Error, "Perte de connection");
@@ -80,6 +135,7 @@ public class TaskShoot extends BaseTask {
 				ce.printStackTrace();
 				setFinalStatus(BaseStatus.Error, "Erreur de shoot: " + ce.getMessage());
 			}
+			shootCanceled = false;
 		} catch(Throwable t) {
 			reportError(t);
 			throw t;
@@ -105,17 +161,4 @@ public class TaskShoot extends BaseTask {
 		}
 	}
 
-	@Override
-	public void requestCancelation() {
-		if (getStatus() != BaseStatus.Processing) {
-			return;
-		}
-		// FIXME: abort shoot !
-	}
-	
-	@Override
-	public boolean hasPendingCancelation() {
-		return false;
-	}
-	
 }

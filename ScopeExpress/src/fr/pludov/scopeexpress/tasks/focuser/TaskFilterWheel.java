@@ -28,8 +28,10 @@ public class TaskFilterWheel extends BaseTask {
 	@Override
 	protected void cleanup()
 	{
-		camera.getListeners().removeListener(this.listenerOwner);
-		camera = null;
+		if (camera != null) {
+			camera.getListeners().removeListener(this.listenerOwner);
+			camera = null;
+		}
 	}
 	
 	@Override

@@ -198,7 +198,9 @@ public class TemperatureAdjusterTask {
 					@Override
 					public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {						
 					}
-					
+					@Override
+					public void onShootInterrupted() {
+					}
 					@Override
 					public void onConnectionStateChanged() {
 						doProgress();

@@ -67,6 +67,9 @@ public class AscomCamera extends WorkThread implements Camera {
 					public void onShootStarted(RunningShootInfo shootInfo) {
 					}
 					@Override
+					public void onShootInterrupted() {
+					}
+					@Override
 					public void onTempeatureUpdated() {
 					}
 				};
@@ -469,6 +472,30 @@ public class AscomCamera extends WorkThread implements Camera {
 			}
 			throw new CameraException("Erreur de shoot", t);
 		}
+	}
+
+	@Override
+	public void cancelCurrentShoot() throws CameraException {
+		logger.info("Canceling shoot");
+		try {
+			exec(new AsyncOrder() {
+				@Override
+				public Object run() throws Throwable {
+					if (currentShoot == null) {
+						return null;
+					}
+					camera.invoke("StopExposure");
+					currentShoot = null;
+					listeners.getTarget().onShootInterrupted();
+					return null;
+				}
+			});
+		} catch(Throwable t) {
+			if (t instanceof CameraException) {
+				throw (CameraException)t;
+			}
+			throw new CameraException("Erreur de shoot", t);
+		}	
 	}
 	
 	@Override
