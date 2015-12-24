@@ -241,6 +241,9 @@ public class TaskParameterPanel extends JPanel {
 			jd.getContentPane().add(this, BorderLayout.CENTER);
 			jd.pack();
 			jd.setVisible(true);
+		} else {
+			req.saveDefault(view, focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));
+			BaseTask task = focusUi.getApplication().getTaskManager().startTask(focusUi, taskDef, view);			
 		}
 	}
 	
