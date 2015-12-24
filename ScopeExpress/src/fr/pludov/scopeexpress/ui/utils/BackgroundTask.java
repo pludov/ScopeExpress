@@ -4,6 +4,9 @@ import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.SwingUtilities;
 
+import fr.pludov.scopeexpress.utils.WeakListenerCollection;
+import fr.pludov.scopeexpress.utils.WeakListenerCollection.AsyncKind;
+
 public abstract class BackgroundTask {
 	public static enum Status {
 		// En attente
@@ -28,7 +31,7 @@ public abstract class BackgroundTask {
 		}
 	};
 	
-	
+	public final WeakListenerCollection<BackgroundTaskListener> listeners = new WeakListenerCollection<BackgroundTaskListener>(BackgroundTaskListener.class, AsyncKind.SwingQueueIfRequired);
 	private String title;
 	private String runningDetails;
 	private int percent;

@@ -92,6 +92,7 @@ public final class BackgroundTaskQueue {
 		
 		try {
 			task.onDone();
+			task.listeners.getTarget().onDone();
 		} catch(Throwable t) {
 			t.printStackTrace();
 		}
@@ -138,6 +139,7 @@ public final class BackgroundTaskQueue {
 		if (callOnDone) {
 			try {
 				task.onDone();
+				task.listeners.getTarget().onDone();
 			} catch(Throwable t) {
 				t.printStackTrace();
 			}
