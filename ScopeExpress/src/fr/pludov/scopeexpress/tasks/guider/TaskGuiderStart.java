@@ -5,22 +5,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
 
 import fr.pludov.scopeexpress.openphd.IGuiderListener;
 import fr.pludov.scopeexpress.openphd.OpenPhdDevice;
 import fr.pludov.scopeexpress.openphd.OpenPhdQuery;
 import fr.pludov.scopeexpress.tasks.BaseStatus;
 import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
 import fr.pludov.scopeexpress.tasks.ChildLauncher;
 import fr.pludov.scopeexpress.tasks.TaskManager;
 import fr.pludov.scopeexpress.ui.DeviceManager;
 import fr.pludov.scopeexpress.ui.FocusUi;
 
 public class TaskGuiderStart extends BaseTask {
-	public static final Logger logger = Logger.getLogger(TaskGuiderStart.class);
-
 	OpenPhdDevice openPhd;
 	OpenPhdQuery guideQuery;
 	OpenPhdQuery unpauseQuery;

@@ -16,6 +16,7 @@ import javax.swing.BoxLayout;
 import javax.swing.DropMode;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -79,7 +80,7 @@ public class TaskManagerView extends JSplitPane {
 	final TaskControl taskControl;
 	TaskDetailView currentView;
 	
-	JPanel currentViewPanel;
+	JComponent currentViewPanel;
 	
 	public TaskManagerView(FocusUi ui, TaskManager taskManager) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
@@ -223,6 +224,9 @@ public class TaskManagerView extends JSplitPane {
 			@Override
 			public void childMoved(BaseTask ref, BaseTask movedAfter) {
 				DefaultMutableTreeNode toMove = getNodeForRootTask(movedAfter);
+				if (toMove == null) {
+					return;
+				}
 				toMove.removeFromParent();
 				
 				root.insert(toMove, getInsertAfterIndex(root, ref));
@@ -257,6 +261,9 @@ public class TaskManagerView extends JSplitPane {
 					if (rawbt instanceof BaseTask) {
 						BaseTaskDefinition btdef = ((BaseTask)rawbt).getDefinition();
 						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
+						if (currentView == null) {
+							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);
+						}
 						if (currentView != null) {
 							currentView.setTask((BaseTask)rawbt);
 							currentViewPanel = currentView.getMainPanel();

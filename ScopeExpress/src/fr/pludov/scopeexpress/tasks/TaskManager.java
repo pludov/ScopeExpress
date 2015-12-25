@@ -83,7 +83,7 @@ public class TaskManager implements ITaskParent {
 				try {
 					candidate.start();
 				} catch(Throwable t) {
-					logger.error("error", t);
+					candidate.logger.error("Error", t);
 				}
 			}
 		} while(candidate != null);

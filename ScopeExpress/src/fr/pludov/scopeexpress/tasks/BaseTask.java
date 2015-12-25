@@ -1,12 +1,10 @@
 package fr.pludov.scopeexpress.tasks;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 
 import fr.pludov.scopeexpress.ui.FocusUi;
-import fr.pludov.scopeexpress.utils.IdentityHashSet;
+import fr.pludov.scopeexpress.ui.log.UILogger;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection;
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 
@@ -46,6 +44,7 @@ public abstract class BaseTask implements ITaskParent {
 	ITaskParent parent;
 	BaseTask previous, next;
 	private BaseTask first, last;
+	public final UILogger logger;
 	
 	public BaseTask(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, BaseTaskDefinition taskDefinition) {
 		this.taskDefinition = taskDefinition;
@@ -55,6 +54,7 @@ public abstract class BaseTask implements ITaskParent {
 		this.status = BaseStatus.Pending;
 		this.startedTasks = new ArrayList<>();
 		this.title = taskDefinition.getTitle();
+		this.logger = new UILogger();
 		
 		if (parentLauncher != null) {
 			parent = parentLauncher.from;
@@ -107,6 +107,7 @@ public abstract class BaseTask implements ITaskParent {
 
 	protected void setStatus(IStatus status, String details)
 	{
+		logger.debug("Setting status to " + status + (details == null ? "" : " : " + details));
 		updateTimesForStatusChange(status);
 		this.status = status;
 		this.statusDetails = details;
@@ -151,6 +152,7 @@ public abstract class BaseTask implements ITaskParent {
 	
 	protected void setFinalStatus(IStatus status, String details)
 	{
+		logger.info("Setting status to " + status + (details != null ? " - " + details : ""));
 		cleanup();
 		updateTimesForStatusChange(status);
 		this.status = status;

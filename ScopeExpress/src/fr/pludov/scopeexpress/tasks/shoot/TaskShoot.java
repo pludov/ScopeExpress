@@ -2,8 +2,6 @@ package fr.pludov.scopeexpress.tasks.shoot;
 
 import java.io.File;
 
-import org.apache.log4j.Logger;
-
 import fr.pludov.scopeexpress.camera.Camera;
 import fr.pludov.scopeexpress.camera.CameraException;
 import fr.pludov.scopeexpress.camera.RunningShootInfo;
@@ -16,7 +14,6 @@ import fr.pludov.scopeexpress.tasks.TaskManager;
 import fr.pludov.scopeexpress.ui.FocusUi;
 
 public class TaskShoot extends BaseTask {
-	private static final Logger logger = Logger.getLogger(TaskShoot.class);
 	
 	public TaskShoot(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskShootDefinition taskDefinition) {
 		super(focusUi, tm, parentLauncher, taskDefinition);
@@ -91,7 +88,7 @@ public class TaskShoot extends BaseTask {
 				
 				@Override
 				public void onShootStarted(RunningShootInfo currentShoot) {
-					System.out.println("shoot started");
+					logger.debug("Début de la capture");
 				}
 				
 				@Override
@@ -101,6 +98,7 @@ public class TaskShoot extends BaseTask {
 				
 				@Override
 				public void onShootInterrupted() {
+					logger.debug("Capture interrompue");
 					if (TaskShoot.this.isPauseRequested()) {
 						cleanup();
 						doPause(new Runnable() {
@@ -144,6 +142,10 @@ public class TaskShoot extends BaseTask {
 
 	void shootDone(RunningShootInfo shootInfo, File generatedFits)
 	{
+		logger.debug("Capture terminée");
+		if (generatedFits != null) {
+			logger.info("Fichier enregistré : " + generatedFits);
+		}
 		try {
 			if (getStatus() != BaseStatus.Processing) {
 				return;

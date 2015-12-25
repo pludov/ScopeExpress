@@ -177,7 +177,7 @@ public class TaskSequence extends BaseTask {
 					
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						System.out.println("Timer exhausted, something is wrong with tracking");
+						logger.warn("Pas de nouvelles du guidage depuis 20s; le guidage a certainement un problème");
 						
 					}
 				});
@@ -201,7 +201,7 @@ public class TaskSequence extends BaseTask {
 					Number dy = (Number)message.get("dy");
 					if (dx != null && dy != null && arcsecPerPixel != null) {
 						double dst = arcsecPerPixel * Math.sqrt(dx.doubleValue() * dx.doubleValue() + dy.doubleValue() * dy.doubleValue());
-						System.out.println("Evaluated dist: " + dst);
+						logger.debug("Distance du guidage: " + dst);
 						// FIXME: distance en dur ???
 						if (dst < 1.6) {
 							messageIsGood = true; 

@@ -1,9 +1,9 @@
 package fr.pludov.scopeexpress.tasks;
 
-import javax.swing.JPanel;
+import javax.swing.JComponent;
 
 public interface TaskDetailView {
-	JPanel getMainPanel();
+	JComponent getMainPanel();
 	
 	void setTask(BaseTask bt);
 }
