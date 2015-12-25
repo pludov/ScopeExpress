@@ -55,9 +55,10 @@ public class TaskManager implements ITaskParent {
 
 	BaseTask startSomeTask() {
 		BaseTask result = null;
-		BaseTask candidate = null;
+		BaseTask candidate;
 		// Parcourir les taches
 		do {
+			candidate = null;
 			for(BaseTask bt = first; bt != null; bt = bt.next) {
 				if (bt.getStatus().isTerminal()) {
 					continue;
