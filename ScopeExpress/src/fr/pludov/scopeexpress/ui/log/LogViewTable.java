@@ -1,6 +1,11 @@
 package fr.pludov.scopeexpress.ui.log;
 
+import java.awt.Rectangle;
+
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.TableColumn;
 import fr.pludov.scopeexpress.ui.log.LogViewModel.ColumnDef;
 
@@ -25,6 +30,15 @@ public class LogViewTable extends JTable {
 				tc.setMaxWidth(width);
 			}
 		}
+		lvm.addTableModelListener(new TableModelListener() {
+			
+			@Override
+			public void tableChanged(TableModelEvent e) {
+				if (e.getType() == TableModelEvent.INSERT && getSelectedRowCount() == 0) {
+					programScrollDown();
+				}
+			}
+		});
 	}
 	
 	@Override
@@ -34,5 +48,29 @@ public class LogViewTable extends JTable {
 	
 	public void setLogger(UILogger logger) {
 		lvm.setLogger(logger);
+	}
+
+
+	boolean pendingScrollDown;
+	
+	/** Make the table scroll to the last line */
+	void programScrollDown()
+	{
+		if (pendingScrollDown) return;
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				pendingScrollDown = false;
+				
+				if (getRowCount() == 0) {
+					return;
+				}
+				Rectangle rect = 
+						   getCellRect(getRowCount() - 1, 0, true);
+				scrollRectToVisible(rect);
+			}
+			
+		});
+		pendingScrollDown = true;
 	}
 }
