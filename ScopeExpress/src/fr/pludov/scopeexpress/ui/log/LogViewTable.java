@@ -29,6 +29,8 @@ public class LogViewTable extends JTable {
 				tc.setMinWidth(width);
 				tc.setMaxWidth(width);
 			}
+			
+			tc.setCellRenderer(def.getCellRenderer());
 		}
 		lvm.addTableModelListener(new TableModelListener() {
 			

@@ -6,6 +6,9 @@ import java.util.List;
 
 import javax.swing.JLabel;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+
 import fr.pludov.scopeexpress.utils.WeakListenerOwner;
 
 public class LogViewModel extends AbstractTableModel {
@@ -41,6 +44,8 @@ public class LogViewModel extends AbstractTableModel {
 			return max;
 		}
 
+		abstract TableCellRenderer getCellRenderer();
+
 	}
 	
 	static ColumnDef [] columns = new ColumnDef[] {
@@ -58,21 +63,38 @@ public class LogViewModel extends AbstractTableModel {
 							"99:99:99.999",
 					});
 				}
+				@Override
+				TableCellRenderer getCellRenderer() {
+					DefaultTableCellRenderer topRenderer = new DefaultTableCellRenderer();
+					topRenderer.setVerticalAlignment(JLabel.TOP);
+					return topRenderer;
+				}
 			},
 			new ColumnDef("Niveau") {
 				@Override
 				Object get(LogMessage lm) {
 					return lm.level;
 				}
+				@Override
 				Integer getWidth(LogViewTable logViewTable) {
 					return sizeForContent(logViewTable, LogMessage.Level.values());
 				};
+				@Override
+				TableCellRenderer getCellRenderer() {
+					DefaultTableCellRenderer topRenderer = new DefaultTableCellRenderer();
+					topRenderer.setVerticalAlignment(JLabel.TOP);
+					return topRenderer;
+				}
 				
 			},
 			new ColumnDef("Détails") {
 				@Override
 				Object get(LogMessage lm) {
 					return lm.message;
+				}
+				@Override
+				TableCellRenderer getCellRenderer() {
+					return new MultilineTableCell();
 				}
 			},
 			
