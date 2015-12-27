@@ -123,7 +123,7 @@ public class LogViewModel extends AbstractTableModel {
 	}
 	
 	void updateDataSize() {
-		int newDataSize = logger.getMessageCount();
+		int newDataSize = logger != null ? logger.getMessageCount() : 0;
 		int oldLogOfCurrentLevel = logOfCurrentLevel.size();
 		while(lastLoggerCount < newDataSize) {
 			
