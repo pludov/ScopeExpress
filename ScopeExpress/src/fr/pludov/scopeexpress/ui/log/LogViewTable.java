@@ -1,13 +1,7 @@
 package fr.pludov.scopeexpress.ui.log;
 
-import java.util.Vector;
-
-import javax.swing.JList;
 import javax.swing.JTable;
-import javax.swing.ListModel;
-import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
-
 import fr.pludov.scopeexpress.ui.log.LogViewModel.ColumnDef;
 
 public class LogViewTable extends JTable {
@@ -15,7 +9,7 @@ public class LogViewTable extends JTable {
 	
 	public LogViewTable() {
 		super(new LogViewModel());
-		lvm = (LogViewModel) getModel();
+		lvm = getModel();
 		
 		getTableHeader().setReorderingAllowed(false);
 		for(int i = 0; i < LogViewModel.columns.length; ++i)
@@ -31,6 +25,11 @@ public class LogViewTable extends JTable {
 				tc.setMaxWidth(width);
 			}
 		}
+	}
+	
+	@Override
+	public LogViewModel getModel() {
+		return (LogViewModel)super.getModel();
 	}
 	
 	public void setLogger(UILogger logger) {
