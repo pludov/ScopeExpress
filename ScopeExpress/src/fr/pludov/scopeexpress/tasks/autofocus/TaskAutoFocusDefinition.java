@@ -18,6 +18,7 @@ import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
 import fr.pludov.scopeexpress.tasks.TaskManager;
 import fr.pludov.scopeexpress.tasks.TaskParameterId;
 import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
+import fr.pludov.scopeexpress.ui.DefaultTaskView;
 import fr.pludov.scopeexpress.ui.FocusUi;
 
 public final class TaskAutoFocusDefinition extends BaseTaskDefinition
@@ -94,7 +95,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	
 	@Override
 	public TaskDetailView getViewer(FocusUi focusUi) {
-		return new TaskAutoFocusDetails(focusUi);
+		return DefaultTaskView.wrapInTabWithMessages(focusUi, new TaskAutoFocusDetails(focusUi), "Détails");
 	}
 	
 	

@@ -118,10 +118,6 @@ public class TaskJavascriptDefinition extends BaseTaskDefinition {
 		return new TaskJavascript(focusUi, tm, parentLauncher, this);
 	}
 	
-	@Override
-	public TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	}
 	
 	NativeObject evaluate() {
 		return null;

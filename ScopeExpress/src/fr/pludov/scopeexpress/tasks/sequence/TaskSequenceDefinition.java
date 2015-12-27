@@ -54,11 +54,6 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 	}
 
 	@Override
-	public TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	}
-
-	@Override
 	public BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher) {
 		return new TaskSequence(focusUi, tm, parentLauncher, this);
 	}

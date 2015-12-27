@@ -2,6 +2,7 @@ package fr.pludov.scopeexpress.tasks;
 
 import java.util.*;
 
+import fr.pludov.scopeexpress.ui.DefaultTaskView;
 import fr.pludov.scopeexpress.ui.FocusUi;
 
 /** Conserve la définition de chaque paramètre, et comment les présenter à l'utilisateur */
@@ -24,7 +25,10 @@ public abstract class BaseTaskDefinition {
 	
 	public abstract BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher);
 	
-	public abstract TaskDetailView getViewer(FocusUi focusUi);
+	public TaskDetailView getViewer(FocusUi focusUi)
+	{
+		return new DefaultTaskView(focusUi);
+	}
 
 	
 	public List<TaskParameterId<?>> getParameters()

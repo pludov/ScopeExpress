@@ -2,7 +2,6 @@ package fr.pludov.scopeexpress.ui.log;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.LayoutManager;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -10,9 +9,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.border.BevelBorder;
-import javax.swing.border.TitledBorder;
-
 import fr.pludov.scopeexpress.ui.log.LogMessage.Level;
 
 public class LogViewPanel extends JPanel {
@@ -21,7 +17,6 @@ public class LogViewPanel extends JPanel {
 	
 	public LogViewPanel() {
 		setLayout(new BorderLayout());
-		setBorder(new TitledBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null), "Messages", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 
 		JPanel pseudoCommandLine = new JPanel();
 		pseudoCommandLine.setLayout(new FlowLayout(FlowLayout.RIGHT));

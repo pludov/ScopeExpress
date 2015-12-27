@@ -57,9 +57,4 @@ public class TaskGuiderStartDefinition extends BaseTaskDefinition
 		}
 		return instance;
 	}
-
-	@Override
-	public TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	}
 }

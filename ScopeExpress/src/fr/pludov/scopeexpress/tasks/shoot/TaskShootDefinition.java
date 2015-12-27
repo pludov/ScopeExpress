@@ -63,11 +63,6 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		return dialog;
 	}*/
 	
-	@Override
-	public fr.pludov.scopeexpress.tasks.TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	};
-	
 	private static final TaskShootDefinition tsd = new TaskShootDefinition();
 	public static final TaskShootDefinition getInstance() {
 		return tsd;

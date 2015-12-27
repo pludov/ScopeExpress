@@ -65,11 +65,6 @@ public final class PlateSolveTaskDefinition extends BaseTaskDefinition
 		return new PlateSolveTask(focusUi, tm, parentLauncher, this);
 	}
 	
-	@Override
-	public TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	}
-	
 	
 	private static PlateSolveTaskDefinition instance;
 	public static synchronized final PlateSolveTaskDefinition getInstance()

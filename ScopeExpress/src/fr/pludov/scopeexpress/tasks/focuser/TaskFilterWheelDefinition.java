@@ -37,11 +37,6 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 		return dialog;
 	}*/
 	
-	@Override
-	public fr.pludov.scopeexpress.tasks.TaskDetailView getViewer(FocusUi focusUi) {
-		return null;
-	};
-	
 	private static final TaskFilterWheelDefinition tsd = new TaskFilterWheelDefinition();
 	public static final TaskFilterWheelDefinition getInstance() {
 		return tsd;
