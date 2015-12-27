@@ -20,7 +20,7 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 	};
 
 	TaskFilterWheelDefinition() {
-		super(getBuiltinRepository(), "focuser", "Focuser");
+		super(getBuiltinRepository(), "filterwheel", "Roue à filtre");
 	}
 	
 	@Override

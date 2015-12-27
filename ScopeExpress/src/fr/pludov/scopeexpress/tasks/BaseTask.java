@@ -166,7 +166,7 @@ public abstract class BaseTask implements ITaskParent {
 		if (t instanceof TaskInterruptedException) {
 			return;
 		}
-		t.printStackTrace();
+		logger.warn("Erreur", t);
 		if (!getStatus().isTerminal()) {
 			setFinalStatus(BaseStatus.Error, t);
 		}

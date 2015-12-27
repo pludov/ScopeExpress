@@ -22,15 +22,15 @@ public class TaskFilterWheel extends BaseTask {
 		return (TaskFilterWheelDefinition)super.getDefinition();
 	}
 	
-	FilterWheel camera;
+	FilterWheel filterWheel;
 	
 
 	@Override
 	protected void cleanup()
 	{
-		if (camera != null) {
-			camera.getListeners().removeListener(this.listenerOwner);
-			camera = null;
+		if (filterWheel != null) {
+			filterWheel.getListeners().removeListener(this.listenerOwner);
+			filterWheel = null;
 		}
 	}
 	
@@ -39,13 +39,15 @@ public class TaskFilterWheel extends BaseTask {
 		setStatus(BaseStatus.Processing);
 		try {
 			
-			camera = focusUi.getFilterWheelManager().getConnectedDevice();
-			if (camera == null) {
+			filterWheel = focusUi.getFilterWheelManager().getConnectedDevice();
+			if (filterWheel == null) {
 				setFinalStatus(BaseStatus.Error, "Pas de roue à filtre connectée");
 				return;
 			}
-	
-			String [] filters = camera.getFilters();
+			
+			String [] filters = filterWheel.getFilters();
+			
+			logger.info("Roue à filtre trouvée avec les filtres: " + Arrays.toString(filters));
 			if (filters == null || filters.length == 0) {
 				setFinalStatus(BaseStatus.Error, "Pas de filtres définis");
 				return;
@@ -59,18 +61,21 @@ public class TaskFilterWheel extends BaseTask {
 				return;
 			}
 			
-			camera.getListeners().addListener(this.listenerOwner, new FilterWheel.Listener() {
+			logger.info("Filtre " + filter + " trouvé à la position " + filterId);
+			filterWheel.getListeners().addListener(this.listenerOwner, new FilterWheel.Listener() {
 				
 				@Override
 				public void onMoveEnded() {
 					int currentPosition;
 					try {
-						currentPosition = camera.getCurrentPosition();
+						currentPosition = filterWheel.getCurrentPosition();
+						logger.info("Position atteinte: " + currentPosition);
 					} catch (FilterWheelException e) {
 						reportError(e);
 						return;
 					}
 					if (currentPosition != filterId) {
+						logger.warn("La position obtenue n'est pas celle attendue");
 						setFinalStatus(BaseStatus.Error, "Filtre demandé non atteint !");
 					} else {
 						setFinalStatus(BaseStatus.Success);
@@ -79,17 +84,18 @@ public class TaskFilterWheel extends BaseTask {
 				
 				@Override
 				public void onConnectionStateChanged() {
-					if (focusUi.getFilterWheelManager().getConnectedDevice() != camera) {
+					if (focusUi.getFilterWheelManager().getConnectedDevice() != filterWheel) {
 						setFinalStatus(BaseStatus.Error, "Perte de connection");
 					}
 				}
 
 				@Override
 				public void onMoving() {
+					logger.info("Déplacement en cours");
 				}
 			});
 
-			camera.moveTo(filterId);
+			filterWheel.moveTo(filterId);
 		} catch(Throwable t) {
 			reportError(t);
 		}
@@ -101,6 +107,7 @@ public class TaskFilterWheel extends BaseTask {
 			return;
 		}
 		// FIXME: abort move ?
+		logger.warn("L'annulation attendra la fin du déplacement");
 	}
 	
 	@Override
