@@ -84,6 +84,7 @@ public class TaskGuiderStart extends BaseTask {
 		if (openPhd == null) {
 			setFinalStatus(BaseStatus.Error, "Pas connecté à PHD");
 		}
+		logger.info("Connecté à openPhd");
 		setStatus(BaseStatus.Processing);
 
 		focusUi.getGuiderManager().listeners.addListener(this.listenerOwner, new DeviceManager.Listener() {
@@ -174,6 +175,7 @@ public class TaskGuiderStart extends BaseTask {
 			
 			@Override
 			public void onEvent(String event, Map<?, ?> message) {
+				logger.debug("evenement " + event);
 				switch(event) {
 				case OpenPhdQuery.SettleDone:
 					if (OpenPhdQuery.getErrorMessage(message) !=  null) {
