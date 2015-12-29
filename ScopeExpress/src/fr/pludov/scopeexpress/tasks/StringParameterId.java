@@ -4,6 +4,8 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 
+import fr.pludov.scopeexpress.ui.FocusUi;
+
 public class StringParameterId extends TaskParameterId<String> {
 
 	public StringParameterId(BaseTaskDefinition td, String id, ParameterFlag... scope) {
@@ -11,7 +13,7 @@ public class StringParameterId extends TaskParameterId<String> {
 	}
 
 	@Override
-	SimpleFieldDialog<String> buildDialog(IParameterEditionContext ipec) {
+	public SimpleFieldDialog<String> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
 		return new StringFieldDialog(this, ipec);
 	}
 
@@ -32,4 +34,8 @@ public class StringParameterId extends TaskParameterId<String> {
 		return (String)Context.jsToJava(o, String.class);
 	}
 	
+	@Override
+	public String sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, String currentValue) {
+		return currentValue;
+	}
 }

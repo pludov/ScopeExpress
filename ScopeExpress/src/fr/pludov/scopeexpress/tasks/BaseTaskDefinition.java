@@ -2,8 +2,7 @@ package fr.pludov.scopeexpress.tasks;
 
 import java.util.*;
 
-import fr.pludov.scopeexpress.ui.DefaultTaskView;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 /** Conserve la définition de chaque paramètre, et comment les présenter à l'utilisateur */
 public abstract class BaseTaskDefinition {
@@ -56,12 +55,12 @@ public abstract class BaseTaskDefinition {
 		return t;
 	}
 	
-	public IConfigurationDialog parameterUi(List<? extends IParameterEditionContext> required)
+	public IConfigurationDialog parameterUi(FocusUi focusUi, List<? extends IParameterEditionContext> required)
 	{
 		ComposedConfigurationDialog ccd = new ComposedConfigurationDialog();
 		for(IParameterEditionContext paramCtxt : required)
 		{
-			IFieldDialog<?> ifd = paramCtxt.getParameter().buildDialog(paramCtxt);
+			IFieldDialog<?> ifd = paramCtxt.getParameter().buildDialog(focusUi, paramCtxt);
 			if (ifd instanceof SimpleFieldDialog<?>) {
 				ccd.add((SimpleFieldDialog<?>) ifd);
 			}

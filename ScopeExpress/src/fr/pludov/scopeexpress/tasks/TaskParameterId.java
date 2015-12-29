@@ -5,6 +5,8 @@ import java.util.EnumSet;
 
 import org.mozilla.javascript.Scriptable;
 
+import fr.pludov.scopeexpress.ui.FocusUi;
+
 /** Définit un paramètre (une variable) de type TYPE */
 public abstract class TaskParameterId<TYPE> {
 	final BaseTaskDefinition taskDefinition;
@@ -46,7 +48,7 @@ public abstract class TaskParameterId<TYPE> {
 		return flags.contains(pf);
 	}
 	
-	abstract IFieldDialog<TYPE> buildDialog(IParameterEditionContext ctxt);
+	abstract IFieldDialog<TYPE> buildDialog(FocusUi focusUi, IParameterEditionContext ctxt);
 	
 	public TYPE getDefault() {
 		return defaultValue;
@@ -59,4 +61,7 @@ public abstract class TaskParameterId<TYPE> {
 	
 	public abstract Object toJavascript(TYPE value, Scriptable scope);
 	public abstract TYPE fromJavascript(Object o, Scriptable scope);
+
+	/** Choisi une bonne valeur de départ */
+	public abstract TYPE sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, TYPE currentValue);
 }

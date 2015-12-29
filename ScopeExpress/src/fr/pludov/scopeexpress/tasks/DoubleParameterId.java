@@ -4,6 +4,8 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 
+import fr.pludov.scopeexpress.ui.FocusUi;
+
 public class DoubleParameterId extends TaskParameterId<Double> {
 
 	public DoubleParameterId(BaseTaskDefinition td, String id, ParameterFlag... scope) {
@@ -11,7 +13,7 @@ public class DoubleParameterId extends TaskParameterId<Double> {
 	}
 
 	@Override
-	IFieldDialog<Double> buildDialog(IParameterEditionContext ipec) {
+	IFieldDialog<Double> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
 		return new DoubleFieldDialog(this, ipec);
 	}
 	
@@ -30,5 +32,10 @@ public class DoubleParameterId extends TaskParameterId<Double> {
 			return null;
 		}
 		return (Double)Context.jsToJava(o, Double.class);
+	}
+
+	@Override
+	public Double sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Double currentValue) {
+		return currentValue;
 	}
 }

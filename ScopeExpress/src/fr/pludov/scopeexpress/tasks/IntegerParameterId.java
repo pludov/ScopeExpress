@@ -4,6 +4,8 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 
+import fr.pludov.scopeexpress.ui.FocusUi;
+
 public class IntegerParameterId extends TaskParameterId<Integer> {
 
 	public IntegerParameterId(BaseTaskDefinition td, String id, ParameterFlag ... scope) {
@@ -11,7 +13,7 @@ public class IntegerParameterId extends TaskParameterId<Integer> {
 	}
 
 	@Override
-	IFieldDialog<Integer> buildDialog(IParameterEditionContext ipec) {
+	IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
 		return new IntegerFieldDialog(this, ipec);
 	}
 	
@@ -30,5 +32,10 @@ public class IntegerParameterId extends TaskParameterId<Integer> {
 			return null;
 		}
 		return (Integer)Context.jsToJava(o, Integer.class);
+	}
+
+	@Override
+	public Integer sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Integer currentValue) {
+		return currentValue;
 	}
 }

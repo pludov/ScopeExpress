@@ -4,6 +4,8 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 
+import fr.pludov.scopeexpress.ui.FocusUi;
+
 public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskParameterId<EnumClass> {
 	final Class<Enum<EnumClass>> enumClass;
 
@@ -13,7 +15,7 @@ public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskPara
 	}
 
 	@Override
-	IFieldDialog<EnumClass> buildDialog(IParameterEditionContext ipec) {
+	IFieldDialog<EnumClass> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
 		return new EnumFieldDialog<>(this, ipec);
 	}
 	
@@ -36,5 +38,13 @@ public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskPara
 			return null;
 		}
 		return (EnumClass) Enum.valueOf((Class<? extends Enum>)enumClass, name);
+	}
+
+	@Override
+	public EnumClass sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, EnumClass currentValue) {
+		if (currentValue == null) {
+			return (EnumClass) enumClass.getEnumConstants()[0];
+		}
+		return currentValue;
 	}
 }

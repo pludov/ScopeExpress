@@ -2,13 +2,14 @@ package fr.pludov.scopeexpress.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
-import java.awt.FlowLayout;
-import java.awt.LayoutManager;
 import java.awt.Window;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
@@ -86,10 +87,31 @@ public class TaskParameterPanel extends JPanel {
 			return parameters.isEmpty() && childs.isEmpty();
 		}
 		
+		private <A> void sanitizeParameter(ITaskParameterView view, TaskParameterId<A> id,
+				IParameterEditionContext paramCtxt) {
+			A currentValue = view.get(id);
+			A newvalue = id.sanitizeValue(focusUi, paramCtxt, currentValue);
+			if (!Objects.equals(currentValue, newvalue)) {
+				view.set(id, newvalue);
+			}
+		}
+
+		/** Fait en sorte que les valeurs respectent les contraintes en cours */
+		void sanitizeValues(ITaskParameterView view) {
+			for (IParameterEditionContext paramCtxt : parameters) {
+				if (paramCtxt.isEditable()) {
+					sanitizeParameter(view, paramCtxt.getParameter(), paramCtxt);
+				}
+			}
+			for (Map.Entry<String, Requirement> child : childs.entrySet()) {
+				child.getValue().sanitizeValues(view.getSubTaskView(child.getKey()));
+			}
+		}
+
 		void ask(Container parent)
 		{
 			if (!parameters.isEmpty()) {
-				dialog = forTask.parameterUi(parameters);
+				dialog = forTask.parameterUi(focusUi, parameters);
 				parent.add(dialog.getPanel());
 			} else {
 				dialog = null;
@@ -225,6 +247,7 @@ public class TaskParameterPanel extends JPanel {
 			jd.getContentPane().setLayout(new BorderLayout());
 			req.ask(this);
 			// panel.add(Box.createVerticalGlue());
+			req.sanitizeValues(view);
 			req.setDialogValues(view);
 			
 			Utils.addDialogButton(jd, new Runnable() {
