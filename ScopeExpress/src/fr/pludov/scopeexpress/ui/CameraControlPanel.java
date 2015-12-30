@@ -393,10 +393,9 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 					cta.setValue(lastWarmTemp.get(), lastWarmStep.get(), lastWarmTimeout.get());
 				}
 				
-				cta.btnOk.addActionListener(new ActionListener() {
-					
+				Utils.addDialogButton(jd, new Runnable() {
 					@Override
-					public void actionPerformed(ActionEvent e) {
+					public void run() {
 						if (sens == -1) {
 							lastCoolTemp.set(cta.getTargetTemperature());
 							lastCoolStep.set(cta.getTemperatureStep());
@@ -412,13 +411,8 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 						}
 					}
 				});
-				cta.btnAnnuler.addActionListener(new ActionListener() {
-					
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						jd.dispose();
-					}
-				});
+				Utils.autoDisposeDialog(jd);
+
 				if (sens == -1) {
 					jd.setTitle("Refroidissement");
 				} else {
@@ -427,6 +421,9 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				jd.add(cta);
 				jd.pack();
 				jd.setModal(true);
+				if (w != null) {
+					jd.setLocationRelativeTo(w);
+				}
 				jd.setVisible(true);
 				return jd;
 			}
