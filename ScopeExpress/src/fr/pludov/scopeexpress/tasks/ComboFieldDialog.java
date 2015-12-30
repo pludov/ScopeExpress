@@ -1,14 +1,17 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.Dimension;
+import java.awt.*;
 import java.util.List;
 
-import javax.swing.JComboBox;
+import javax.swing.*;
+
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
 //	Enum<EnumClass> previousValue;
 	JComboBox<DATA> combo;
-	
+	DATA previousValue;
+
 	public ComboFieldDialog(TaskParameterId<DATA> ti, IParameterEditionContext ipec) {
 		super(ti, ipec);
 		
@@ -17,6 +20,15 @@ public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
 		this.panel.add(this.combo, "cell 1 0,growx");
 		this.title.setLabelFor(this.combo);
 			
+		Utils.addComboChangeListener(combo, new Runnable() {
+
+			@Override
+			public void run() {
+				get();
+
+			}
+		});
+
 		Dimension max = panel.getMaximumSize();
 		panel.setMaximumSize(new Dimension(max.width, panel.getPreferredSize().height));
 	}
@@ -38,17 +50,32 @@ public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
 	
 	@Override
 	public void set(DATA value) {
+		previousValue = value;
 		this.combo.setSelectedItem(value);
 	}
 
 	@Override
 	public DATA get() {
-		return (DATA)this.combo.getSelectedItem();
+		try {
+			Object current = this.combo.getSelectedItem();
+			;
+			if (current instanceof String) {
+				previousValue = fromString((String) current);
+			} else {
+				previousValue = (DATA) current;
+			}
+			error.setVisible(false);
+		} catch (InvalidValueException e) {
+			error.setToolTipText(e.getMessage());
+			error.setVisible(true);
+		}
+		return previousValue;
+
 	}
 
 	@Override
-	public boolean hasError() {
-		return false;
+	public final boolean hasError() {
+		return error.isVisible();
 	}
 
 }
