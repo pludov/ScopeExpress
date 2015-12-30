@@ -10,7 +10,7 @@ public class CameraProperties {
 	
 	String sensorName;
 	Double pixelSizeX, pixelSizeY;
-	
+	int maxBin;
 	
 	public CameraProperties() {
 	}
@@ -93,6 +93,14 @@ public class CameraProperties {
 
 	public void setPixelSizeY(Double pixelSizeY) {
 		this.pixelSizeY = pixelSizeY;
+	}
+
+	public int getMaxBin() {
+		return maxBin;
+	}
+
+	public void setMaxBin(int maxBin) {
+		this.maxBin = maxBin;
 	}
 
 }

@@ -1,27 +1,23 @@
 package fr.pludov.scopeexpress.tasks.shoot;
 
-import java.util.List;
-
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.ComposedConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.DoubleParameterId;
-import fr.pludov.scopeexpress.tasks.IConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.IntegerFieldDialog;
-import fr.pludov.scopeexpress.tasks.IntegerParameterId;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.StringParameterId;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 /** Prend une photo */
 public class TaskShootDefinition extends BaseTaskDefinition {
 	
 	public final DoubleParameterId exposure = new DoubleParameterId(this, "exposure", ParameterFlag.Input, ParameterFlag.Mandatory); 
 	public final IntegerParameterId bin = new IntegerParameterId(this, "bin", ParameterFlag.Input) {
+		@Override
+		public IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
+			return new CameraBinFieldDialog(focusUi, this, ipec);
+		}
+
+		@Override
+		public Integer sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Integer currentValue) {
+			return CameraBinFieldDialog.sanitizeValue(focusUi, paramCtxt, currentValue);
+		}
+
 		{
 			setDefault(1);
 		}

@@ -1,36 +1,18 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
-import java.lang.reflect.Array;
-import java.util.Arrays;
+import java.io.*;
+import java.lang.reflect.*;
 
-import net.ivoa.fits.Fits;
-import net.ivoa.fits.Header;
-import net.ivoa.fits.hdu.ImageHDU;
+import org.apache.log4j.*;
+import org.jawin.*;
 
-import org.apache.commons.net.telnet.TerminalTypeOptionHandler;
-import org.apache.log4j.Logger;
-import org.jawin.COMException;
-import org.jawin.DispatchPtr;
-
-import fr.pludov.scopeexpress.async.CancelationException;
-import fr.pludov.scopeexpress.camera.Camera;
-import fr.pludov.scopeexpress.camera.CameraException;
-import fr.pludov.scopeexpress.camera.CameraProperties;
-import fr.pludov.scopeexpress.camera.RunningShootInfo;
-import fr.pludov.scopeexpress.camera.ShootParameters;
-import fr.pludov.scopeexpress.camera.TemperatureParameters;
-import fr.pludov.scopeexpress.focuser.Focuser;
-import fr.pludov.scopeexpress.focuser.FocuserException;
-import fr.pludov.scopeexpress.platform.windows.Ole;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WorkThread;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.camera.*;
+import fr.pludov.scopeexpress.platform.windows.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
+import net.ivoa.fits.*;
+import net.ivoa.fits.hdu.*;
 
 public class AscomCamera extends WorkThread implements Camera {
 	private static final Logger logger = Logger.getLogger(AscomCamera.class);
@@ -102,7 +84,7 @@ public class AscomCamera extends WorkThread implements Camera {
 		cp.setPixelSizeX(getCapacity("PixelSizeX", (Double)null));
 		cp.setPixelSizeY(getCapacity("PixelSizeY", (Double)null));
 		cp.setSensorName(getCapacity("SensorName", (String)null));
-		
+		cp.setMaxBin(Math.max(1, Math.min(getCapacity("MaxBinX", (short) 1), getCapacity("MaxBinY", (short) 1))));
 		this.cameraProperties = cp;
 		
 	}
