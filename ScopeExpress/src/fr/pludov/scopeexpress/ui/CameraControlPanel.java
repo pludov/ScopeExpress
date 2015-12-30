@@ -95,18 +95,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 						};
 					});
 					jpopup.add(cool);
-					
-					JMenuItem coolAdvanced = new JMenuItem("Refroidir...");
-					coolAdvanced.addActionListener(new ActionListener() {
-						
-						@Override
-						public void actionPerformed(ActionEvent arg0) {
-							showCameraTemperatureAdjustmentDialog(-1);
-						}
-					});
-					jpopup.add(coolAdvanced);
 				}
-				
 				if (gc.canWarmup()) {
 					JMenuItem warm = new JMenuItem("Réchauffer à " + lastWarmTemp.get() + "°C");
 					warm.addActionListener(new ActionListener() {
@@ -126,6 +115,17 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 						}
 					});
 					jpopup.add(warmAdvanced);
+				}
+				if (gc.canCoolMore()) {
+					JMenuItem coolAdvanced = new JMenuItem("Refroidir...");
+					coolAdvanced.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent arg0) {
+							showCameraTemperatureAdjustmentDialog(-1);
+						}
+					});
+					jpopup.add(coolAdvanced);
 				}
 				
 				if (gc.canInterrupt()) {
@@ -153,7 +153,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			}
 		});
 		
-		double [] exposures = {0, 0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 60, 90, 120, 180, 240, 300, 600, 1200};
+		double [] exposures = {0.001, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0, 20.0, 30.0, 60, 90, 120, 180, 240, 300, 600, 1200};
 		for(double d : exposures) {
 			this.comboExp.addItem(expFormat.format(d));
 		}
@@ -240,6 +240,10 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 		boolean canStartCooler() {
 			return currentTemperatureAdjustment == null && hasCamera && temps != null && !temps.isCoolerOn();
 		}
+
+		boolean canCoolMore() {
+			return currentTemperatureAdjustment == null && hasCamera && temps != null;
+		}
 		
 		public boolean canInterrupt() {
 			return currentTemperatureAdjustment != null && hasCamera;
@@ -267,12 +271,12 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			comboExp.setEnabled(hasCamera && currentShoot == null);
 			
 			lblGain.setEnabled(hasCamera);
-			comboGain.setEditable(hasCamera);
-			comboGain.setEnabled(hasCamera && currentShoot == null);
+			comboGain.setEditable(false && hasCamera);
+			comboGain.setEnabled(false && hasCamera && currentShoot == null);
 			
 			lblMode.setEnabled(hasCamera);
-			comboMode.setEditable(hasCamera);
-			comboMode.setEnabled(hasCamera && currentShoot == null);
+			comboMode.setEditable(false && hasCamera);
+			comboMode.setEnabled(false && hasCamera && currentShoot == null);
 			
 			lblTemp.setEnabled(hasCamera);
 
@@ -367,6 +371,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 	
 	// FIXME: Move to utils
 	public static final NumberFormat tempFormat = new DecimalFormat("0.0°");
+	public static final NumberFormat tempParseFormat = new DecimalFormat(".");
 	public static final NumberFormat expFormat = new DecimalFormat("0.###");
 	
 	void loadParameters(ShootParameters p)

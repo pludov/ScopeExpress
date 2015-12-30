@@ -1,8 +1,8 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.text.ParseException;
+import java.text.*;
 
-import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public class CameraTemperatureAdjustment extends CameraTemperatureAdjustmentDesign {
 
@@ -50,7 +50,7 @@ public class CameraTemperatureAdjustment extends CameraTemperatureAdjustmentDesi
 	public double getTargetTemperature()
 	{
 		try {
-			return CameraControlPanel.tempFormat.parse(this.textFieldTemperature.getText()).doubleValue();
+			return CameraControlPanel.tempParseFormat.parse(this.textFieldTemperature.getText()).doubleValue();
 		} catch (ParseException e) {
 			e.printStackTrace();
 			return targetTemperature;
@@ -60,7 +60,8 @@ public class CameraTemperatureAdjustment extends CameraTemperatureAdjustmentDesi
 	public double getTemperatureStep()
 	{
 		try {
-			double step = CameraControlPanel.tempFormat.parse(this.textFieldTemperatureStep.getText()).doubleValue();
+			double step = CameraControlPanel.tempParseFormat.parse(this.textFieldTemperatureStep.getText())
+					.doubleValue();
 			if (step < 0.1) {
 				step = 0.1;
 			}
