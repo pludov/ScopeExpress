@@ -1,93 +1,40 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.EventQueue;
-import java.awt.Window;
-import java.awt.Dialog.ModalityType;
-import java.awt.Window.Type;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.awt.geom.NoninvertibleTransformException;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.awt.*;
+import java.awt.Dialog.*;
+import java.awt.Window.*;
+import java.awt.event.*;
+import java.io.*;
 import java.util.List;
-import java.util.Properties;
 
-import javax.swing.BoxLayout;
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.WindowConstants;
+import javax.swing.*;
 
-import org.apache.log4j.Logger;
-import org.w3c.dom.Element;
+import org.apache.log4j.*;
+import org.w3c.dom.*;
 
-import fr.pludov.astrometry.IndexesFetch;
-import fr.pludov.external.apt.AptComm;
-import fr.pludov.scopeexpress.camera.Camera;
-import fr.pludov.scopeexpress.camera.CameraException;
-import fr.pludov.scopeexpress.camera.ShootParameters;
-import fr.pludov.scopeexpress.catalogs.StarCollection;
-import fr.pludov.scopeexpress.catalogs.StarProvider;
-import fr.pludov.scopeexpress.focus.AffineTransform3D;
-import fr.pludov.scopeexpress.focus.Application;
-import fr.pludov.scopeexpress.focus.DarkLibrary;
-import fr.pludov.scopeexpress.focus.ExclusionZone;
+import fr.pludov.astrometry.*;
+import fr.pludov.external.apt.*;
+import fr.pludov.scopeexpress.camera.*;
+import fr.pludov.scopeexpress.catalogs.*;
+import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarCorrelationPosition;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.http.server.Server;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.TaskControl;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
-import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheel;
-import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
-import fr.pludov.scopeexpress.tasks.guider.TaskGuiderStartDefinition;
-import fr.pludov.scopeexpress.tasks.javascript.JavascriptTaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.javascript.TaskJavascriptDefinition;
-import fr.pludov.scopeexpress.tasks.platesolve.PlateSolveTaskDefinition;
-import fr.pludov.scopeexpress.tasks.sequence.TaskSequenceDefinition;
-import fr.pludov.scopeexpress.ui.LoadImagesScript;
-import fr.pludov.scopeexpress.ui.ScriptTest;
-import fr.pludov.scopeexpress.ui.ScriptTestListener;
-import fr.pludov.scopeexpress.ui.dialogs.MosaicStarter;
-import fr.pludov.scopeexpress.ui.joystick.JoystickHandler;
-import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
-import fr.pludov.scopeexpress.ui.resources.IconProvider;
-import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
-import fr.pludov.scopeexpress.ui.settings.AstrometryParameterPanel;
-import fr.pludov.scopeexpress.ui.speech.SpeakerProvider;
-import fr.pludov.scopeexpress.ui.utils.AskNowOrLater;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTaskQueueListener;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask.Status;
-import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.utils.EndUserException;
-import fr.pludov.scopeexpress.utils.SkyAlgorithms;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
-import fr.pludov.utils.XmlSerializationContext;
+import fr.pludov.scopeexpress.http.server.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.autofocus.*;
+import fr.pludov.scopeexpress.tasks.focuser.*;
+import fr.pludov.scopeexpress.tasks.guider.*;
+import fr.pludov.scopeexpress.tasks.javascript.*;
+import fr.pludov.scopeexpress.tasks.platesolve.*;
+import fr.pludov.scopeexpress.tasks.sequence.*;
+import fr.pludov.scopeexpress.ui.dialogs.*;
+import fr.pludov.scopeexpress.ui.joystick.*;
+import fr.pludov.scopeexpress.ui.preferences.*;
+import fr.pludov.scopeexpress.ui.settings.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.ui.utils.BackgroundTask.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 public class FocusUi extends FocusUiDesign {
 	private static final Logger logger = Logger.getLogger(FocusUi.class);
@@ -600,6 +547,7 @@ public class FocusUi extends FocusUiDesign {
 		final Application focus = new Application();		
 		
 		EventQueue.invokeLater(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					final FocusUi window = new FocusUi(focus);
@@ -961,8 +909,10 @@ public class FocusUi extends FocusUiDesign {
 
 					@Override
 					public void run() {
-						taskConfigurationPanel.save();
-						jd.setVisible(false);
+						if (!taskConfigurationPanel.dialogHasError()) {
+							taskConfigurationPanel.save();
+							jd.setVisible(false);
+						}
 					}
 				});
 				
@@ -1198,6 +1148,7 @@ public class FocusUi extends FocusUiDesign {
 	public void shoot()
 	{
 		new Thread() {
+			@Override
 			public void run() {
 				try {
 					AptComm.getInstance().shoot(shootDuration);

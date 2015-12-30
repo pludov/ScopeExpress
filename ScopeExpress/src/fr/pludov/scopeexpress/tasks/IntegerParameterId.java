@@ -1,10 +1,8 @@
 package fr.pludov.scopeexpress.tasks;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 public class IntegerParameterId extends TaskParameterId<Integer> {
 
@@ -13,7 +11,7 @@ public class IntegerParameterId extends TaskParameterId<Integer> {
 	}
 
 	@Override
-	IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
+	public IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
 		return new IntegerFieldDialog(this, ipec);
 	}
 	

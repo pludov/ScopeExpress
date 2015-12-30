@@ -1,33 +1,14 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.Window;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.awt.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.border.TitledBorder;
+import javax.swing.*;
+import javax.swing.border.*;
 
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.IConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.IParameterEditionContext;
-import fr.pludov.scopeexpress.tasks.ITaskOptionalParameterView;
-import fr.pludov.scopeexpress.tasks.ITaskParameterView;
-import fr.pludov.scopeexpress.tasks.ParameterEditionContext;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.tasks.TaskParameterView;
-import fr.pludov.scopeexpress.ui.utils.DialogLayout;
-import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public class TaskParameterPanel extends JPanel {
 
@@ -148,6 +129,19 @@ public class TaskParameterPanel extends JPanel {
 			}
 		}
 		
+		boolean dialogHasError() {
+			if (dialog != null && dialog.hasError()) {
+				return true;
+			}
+			for (Map.Entry<String, Requirement> child : childs.entrySet()) {
+
+				if (child.getValue().dialogHasError()) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		void loadDefault(ITaskParameterView itp, ITaskParameterView config, ITaskOptionalParameterView lastUsed)
 		{
 			for(IParameterEditionContext desc : parameters) {
@@ -254,11 +248,14 @@ public class TaskParameterPanel extends JPanel {
 
 				@Override
 				public void run() {
-					req.getDialogValues(view);
-					req.saveDefault(view, focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));
-					jd.setVisible(false);
-					
-					BaseTask task = focusUi.getApplication().getTaskManager().startTask(focusUi, taskDef, view);
+					if (!req.dialogHasError()) {
+						req.getDialogValues(view);
+						req.saveDefault(view,
+								focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));
+						jd.setVisible(false);
+
+						BaseTask task = focusUi.getApplication().getTaskManager().startTask(focusUi, taskDef, view);
+					}
 				}
 			});
 			jd.getContentPane().add(this, BorderLayout.CENTER);
@@ -293,8 +290,10 @@ public class TaskParameterPanel extends JPanel {
 				@Override
 				public void run() {
 					// FIXME: update des paramètres ?
-					req.getDialogValues(currentView);
-					jd.setVisible(false);
+					if (!req.dialogHasError()) {
+						req.getDialogValues(currentView);
+						jd.setVisible(false);
+					}
 				}
 			});
 			

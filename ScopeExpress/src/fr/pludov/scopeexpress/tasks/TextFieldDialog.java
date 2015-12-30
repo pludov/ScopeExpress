@@ -1,11 +1,8 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.Color;
-import java.awt.Dimension;
+import javax.swing.*;
 
-import javax.swing.JTextField;
-
-import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public abstract class TextFieldDialog<DATATYPE> extends SimpleFieldDialog<DATATYPE> {
 	JTextField textField;
@@ -24,15 +21,7 @@ public abstract class TextFieldDialog<DATATYPE> extends SimpleFieldDialog<DATATY
 			
 			@Override
 			public void run() {
-				String str = textField.getText();
-				try {
-					DATATYPE v = fromString(str);
-					previousValue = v;
-					error.setVisible(false);
-				} catch(InvalidValueException e) {
-					error.setToolTipText(e.getMessage());
-					error.setVisible(true);
-				}
+				get();
 			}
 		});
 		

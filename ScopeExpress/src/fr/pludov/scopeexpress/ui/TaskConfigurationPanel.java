@@ -1,27 +1,13 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.awt.*;
+import java.util.*;
 
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTree;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreePath;
+import javax.swing.*;
+import javax.swing.event.*;
+import javax.swing.tree.*;
 
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ITaskParameterView;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.tasks.*;
 
 public class TaskConfigurationPanel extends JPanel {
 	final TaskDefinitionRepository repository;
@@ -112,5 +98,15 @@ public class TaskConfigurationPanel extends JPanel {
 			tpp.req.getDialogValues(subTaskView);
 			
 		}
+	}
+
+	public boolean dialogHasError() {
+		for (Map.Entry<BaseTaskDefinition, TaskParameterPanel> item : parameterPanels.entrySet()) {
+			TaskParameterPanel tpp = item.getValue();
+			if (tpp.req.dialogHasError()) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
