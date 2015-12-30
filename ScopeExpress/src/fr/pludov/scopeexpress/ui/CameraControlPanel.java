@@ -1,42 +1,23 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Color;
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.util.ArrayList;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.text.*;
+import java.util.*;
 import java.util.List;
 
-import javax.swing.JDialog;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
+import javax.swing.*;
 import javax.swing.Timer;
 
-import fr.pludov.scopeexpress.camera.Camera;
-import fr.pludov.scopeexpress.camera.CameraException;
-import fr.pludov.scopeexpress.camera.CameraProperties;
-import fr.pludov.scopeexpress.camera.RunningShootInfo;
-import fr.pludov.scopeexpress.camera.ShootParameters;
-import fr.pludov.scopeexpress.camera.TemperatureAdjusterTask;
+import fr.pludov.scopeexpress.camera.*;
 import fr.pludov.scopeexpress.camera.TemperatureAdjusterTask.Status;
-import fr.pludov.scopeexpress.camera.TemperatureParameters;
-import fr.pludov.scopeexpress.ui.CameraControlPanelDesign;
-import fr.pludov.scopeexpress.ui.dialogs.MosaicStarter;
-import fr.pludov.scopeexpress.ui.preferences.DoubleConfigItem;
-import fr.pludov.scopeexpress.ui.preferences.IntegerConfigItem;
-import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.ui.utils.Utils.WindowBuilder;
-import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton;
-import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton.PopupProvider;
-import fr.pludov.scopeexpress.ui.widgets.IconButton;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.utils.EndUserException;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.ui.preferences.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.ui.utils.Utils.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton.*;
+import fr.pludov.scopeexpress.utils.*;
 
 /**
  * Un bouton avec un popup et le fond:
@@ -80,7 +61,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 		
 
 		this.btnTemp= new ToolbarButton("temperature-control", true);
-		add(this.btnTemp, "cell 2 5");
+		add(this.btnTemp, "cell 2 5 1 2");
 		btnTempDefaultBackground = this.btnTemp.getBackground();
 		this.btnTemp.addActionListener(new ActionListener() {
 			
@@ -94,7 +75,9 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				}
 			}
 		});
-		
+		// Positionne ce label maintenant pour réserver l'espace requis
+		lblTempValue.setText("CCD:-99.99°C EXt:-99.99°C Cooler:off Set:-99.99°C");
+		lblCameraName.setText("Very long long text XXXXXXXXXX");
 		this.btnTemp.setPopupProvider(new PopupProvider() {
 			
 			@Override
@@ -274,28 +257,31 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 		{
 			progressBar.setStringPainted(true);
 			btnConnecter.setVisible(false);
-			btnShoot.setVisible(hasCamera && currentShoot == null);
+			btnShoot.setVisible(!hasCamera || (hasCamera && currentShoot == null));
+			btnShoot.setEnabled(hasCamera);
 			btnInterrupt.setVisible(hasCamera && currentShoot != null);
 			
-			lblExp.setVisible(hasCamera);
-			comboExp.setVisible(hasCamera);
-			comboExp.setEnabled(currentShoot == null);
+			// lblExp.setVisible(hasCamera);
+			lblExp.setEnabled(hasCamera);
+			comboExp.setEditable(hasCamera);
+			comboExp.setEnabled(hasCamera && currentShoot == null);
 			
-			lblGain.setVisible(hasCamera);
-			comboGain.setVisible(hasCamera);
-			comboGain.setEnabled(currentShoot == null);
+			lblGain.setEnabled(hasCamera);
+			comboGain.setEditable(hasCamera);
+			comboGain.setEnabled(hasCamera && currentShoot == null);
 			
-			lblMode.setVisible(hasCamera);
-			comboMode.setVisible(hasCamera);
-			comboMode.setEnabled(currentShoot == null);
+			lblMode.setEnabled(hasCamera);
+			comboMode.setEditable(hasCamera);
+			comboMode.setEnabled(hasCamera && currentShoot == null);
 			
-			lblTemp.setVisible(hasCamera && camProps.isCanSetCCDTemperature());
-			lblTempValue.setVisible(hasCamera && (camProps.isCanSetCCDTemperature() || camProps.isCanGetCoolerPower()));
-			btnTemp.setVisible(hasCamera && camProps.isCanSetCCDTemperature());
+			lblTemp.setEnabled(hasCamera);
 
-			lblCameraName.setText(hasCamera ?
-							camProps.getSensorName()
-						: "");
+			// camProps.isCanSetCCDTemperature());
+			lblTempValue.setVisible(hasCamera && (camProps.isCanSetCCDTemperature() || camProps.isCanGetCoolerPower()));
+			// btnTemp.setVisible(hasCamera &&
+			// camProps.isCanSetCCDTemperature());
+
+			lblCameraName.setText(hasCamera ? "Model:" + camProps.getSensorName() : "");
 			
 			if (!hasCamera) {
 				exposureTimer.stop();

@@ -67,6 +67,8 @@ public class FocusUi extends FocusUiDesign {
 	final FocusUiFilterWheelManager filterWheelManager;
 	final FocusUiGuiderManager guiderManager;
 	final CameraControlPanel cameraControlPanel;
+	final JDialog cameraControlDialog;
+
 	private final FocusUiFocuserManager focuserManager;
 	private final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
@@ -98,11 +100,16 @@ public class FocusUi extends FocusUiDesign {
 		setupBackgroundTaskQueue();
 
 		this.cameraControlPanel = new CameraControlPanel(cameraManager);
-		JDialog jf = new JDialog(getMainWindow());
-		jf.setType(Type.UTILITY);
-		jf.add(this.cameraControlPanel);
-		jf.pack();
-		jf.setVisible(true);
+
+		this.cameraControlDialog = new JDialog(getMainWindow());
+		this.cameraControlDialog.setTitle("CCD Control");
+		this.cameraControlDialog.setType(Type.UTILITY);
+		this.cameraControlDialog.setResizable(false);
+		this.cameraControlDialog.getContentPane().setLayout(new BorderLayout());
+		this.cameraControlDialog.getContentPane().add(this.cameraControlPanel, BorderLayout.CENTER);
+		this.cameraControlDialog.pack();
+		cameraManager.setControlerDialog(this.cameraControlDialog);
+
 		viewControl = new ViewControler(this.toolBar);
 		
 		fd = new MosaicImageListView(this, viewControl);

@@ -1,16 +1,11 @@
 package fr.pludov.scopeexpress.ui;
 
-import javax.swing.JPanel;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import net.miginfocom.swing.MigLayout;
-import javax.swing.JProgressBar;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.SwingConstants;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
-import java.awt.FlowLayout;
+import java.awt.*;
+import java.awt.event.*;
+
+import javax.swing.*;
+
+import net.miginfocom.swing.*;
 
 public class CameraControlPanelDesign extends JPanel {
 	protected JProgressBar progressBar;
@@ -49,6 +44,7 @@ public class CameraControlPanelDesign extends JPanel {
 		
 		this.btnShoot = new JButton("Shoot");
 		this.btnShoot.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
@@ -84,7 +80,7 @@ public class CameraControlPanelDesign extends JPanel {
 		add(this.lblTempValue, "cell 1 5");
 		
 		this.lblCameraName = new JLabel("New label");
-		add(this.lblCameraName, "cell 0 6 3 1");
+		add(this.lblCameraName, "cell 0 6 2 1");
 
 	}
 

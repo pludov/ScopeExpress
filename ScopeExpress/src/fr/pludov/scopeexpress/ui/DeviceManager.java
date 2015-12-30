@@ -1,25 +1,18 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.lang.ref.WeakReference;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.awt.*;
+import java.awt.event.*;
+import java.lang.ref.*;
+import java.util.*;
 import java.util.List;
 
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.scope.DeviceChoosedCallback;
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
-import fr.pludov.scopeexpress.scope.DeviceListedCallback;
-import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton.Status;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.preferences.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
+import fr.pludov.scopeexpress.ui.widgets.AbstractIconButton.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 	static class Labels {
@@ -27,6 +20,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		String CONNECT = "Connecter: ";
 		String REFRESH_LIST = "Raffraichir la liste...";
 		String DISCONNECT = "Déconnecter";
+		String CONTROLER = "Fenêtre de Contrôle";
 		String CHOOSE = "Choisir un périphérique...";
 		String DISCONNECT_TOOLTIP = "Déconnecter le périphérique...";
 		String CONNECT_TOOLTIP = "Connecter au périphérique...";
@@ -101,7 +95,23 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		initDevice();
 	}
 
+	JDialog controlerDialog;
+
+	void setControlerDialog(JDialog jdialog) {
+		controlerDialog = jdialog;
+	}
+
+	private void showDialog()
+	{
+		JDialog jd = controlerDialog;
+		if (jd != null) {
+			jd.setVisible(true);
+			jd.toFront();
+		}
+	}
+
 	protected void initDevice() {
+		showDialog();
 		device.getStatusListener().addListener(this.listenerOwner,  new IDriverStatusListener() {
 			final HARDWARE deviceThatChanged = device;
 			
@@ -222,6 +232,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 				}
 			});
 			register(new StatusControler<ToolbarButton>(getStatusButton()) {
+				@Override
 				void update(ToolbarButton o) {
 					Status status;
 					
@@ -306,10 +317,22 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						}
 					});
 					chooserMnu.addActionListener(new ActionListener() {
+						@Override
 						public void actionPerformed(ActionEvent e) {
 							actionChoose();
 						};
 					});
+					
+					if (controlerDialog != null) {
+						JMenuItem controler = new JMenuItem(labels.CONTROLER);
+						result.add(controler);
+						controler.addActionListener(new ActionListener() {
+							@Override
+							public void actionPerformed(ActionEvent e) {
+								showDialog();
+							}
+						});
+					}
 					
 					// Menu déconnecter
 					JMenuItem disconnect = new JMenuItem(labels.DISCONNECT);
@@ -321,6 +344,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						}
 					});
 					disconnect.addActionListener(new ActionListener() {
+						@Override
 						public void actionPerformed(ActionEvent e) {
 							actionDeconnecter();
 						};
@@ -329,6 +353,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 					
 					JMenuItem reloadPopup = new JMenuItem(labels.REFRESH_LIST);
 					register(new StatusControler<JMenuItem>(reloadPopup) {
+						@Override
 						void update(JMenuItem jmi)
 						{
 							jmi.setEnabled(lister == null);
@@ -352,6 +377,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						}
 					});
 					register(new StatusControler<JMenuItem>(activate) {
+						@Override
 						void update(JMenuItem o) {
 							o.setEnabled(device == null && chooser == null);
 						};
