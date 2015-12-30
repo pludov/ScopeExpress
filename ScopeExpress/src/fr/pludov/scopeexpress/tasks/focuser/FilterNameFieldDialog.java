@@ -55,8 +55,14 @@ public class FilterNameFieldDialog extends ComboFieldDialog<String> {
 			}
 			fw = newFw;
 		}
+		List<String> filterNames = getFilterNames(fw);
+
+		updateValues(filterNames);
+	}
+
+	private static List<String> getFilterNames(FilterWheel fw) {
 		List<String> filterNames;
-		if (fw == null) {
+		if (fw == null || !fw.isConnected()) {
 			filterNames = Collections.emptyList();
 		} else {
 			try {
@@ -70,8 +76,7 @@ public class FilterNameFieldDialog extends ComboFieldDialog<String> {
 				filterNames = Collections.emptyList();
 			}
 		}
-
-		updateValues(filterNames);
+		return filterNames;
 	}
 
 	@Override
@@ -84,4 +89,15 @@ public class FilterNameFieldDialog extends ComboFieldDialog<String> {
 		return str;
 	}
 
+	public static String sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, String currentValue) {
+		List<String> filters = getFilterNames(focusUi.getFilterWheelManager().getConnectedDevice());
+
+		if (filters.size() > 0) {
+			if (currentValue == null || !filters.contains(currentValue)) {
+				currentValue = filters.get(0);
+			}
+		}
+
+		return currentValue;
+	};
 }
