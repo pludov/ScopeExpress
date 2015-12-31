@@ -46,12 +46,13 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 			setTooltip("Sous-répertoire et nom d'enregistrement des fichiers.\nUtilise des substitutions:\n"
 					+ "TARGET: nom de la cible\n"
 					+ "KIND: type d'image\n"
-					+ "SESSIONxxxx: date/heure de debut de la session (xxx = format; AAAAMMDDHHMMSS par défaut)\n"
-					+ "NOWxxxx: date/heure du début du cliché (xxx = format; AAAAMMDDHHMMSS par défaut)\n"
+					+ "SESSIONxxxx: date/heure de debut de la session (xxx = format; yyyy-MM-dd_HHmmss par défaut)\n"
+					+ "NOWxxxx: date/heure du début du cliché (xxx = format; yyyy-MM-dd_HHmmss par défaut)\n"
 					+ "FILTER: nom du filtre\n"
 					+ "EXP: duree d'expo\n" 
 					+ "BIN: bin");
-			setDefault("$SESSIONAAAA$/$SESSIONAAAA-JJ-MM$/$KIND_$$NOWAAAAJJJMM$$TARGET_$$FILTER_$$EXP$");
+			
+			setDefault("$SESSIONyyyy$/$SESSIONyyyyMMdd$/$NOWyyyyMMdd$_$TARGET$_$KIND$_$FILTER$_bin$BIN$_$EXP$");
 		}
 	};
 	
