@@ -23,6 +23,22 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		}
 	};
 
+	public final StringParameterId target = new StringParameterId(this, "target", ParameterFlag.Input, ParameterFlag.Mandatory) {
+		{
+			setTitle("Objet ciblé");
+			setTooltip("Sera utilisé dans le nom de fichier");
+		}
+	};
+
+	public final EnumParameterId<ShootKind> kind = new EnumParameterId<ShootKind>(this, "kind", ShootKind.class, ParameterFlag.Input, ParameterFlag.Mandatory) {
+		{
+			setTitle("Type de cliché");
+			setTooltip("Usage prévu du fichier. Sera enregistré dans les méta données du fichier fits");
+		}
+	};
+	
+	
+	
 	public final StringParameterId path = new StringParameterId(this, "path", ParameterFlag.Input, ParameterFlag.PresentInConfig);
 	public final StringParameterId fileName = new StringParameterId(this, "fileName", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
 		{
@@ -30,10 +46,11 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 			setTooltip("Sous-répertoire et nom d'enregistrement des fichiers.\nUtilise des substitutions:\n"
 					+ "TARGET: nom de la cible\n"
 					+ "KIND: type d'image\n"
-					+ "SESSIONAAAA: date de debut de la session (AAAAJJMM)\n"
-					+ "NOW: date/heure du moment\n"
+					+ "SESSIONxxxx: date/heure de debut de la session (xxx = format; AAAAMMDDHHMMSS par défaut)\n"
+					+ "NOWxxxx: date/heure du début du cliché (xxx = format; AAAAMMDDHHMMSS par défaut)\n"
 					+ "FILTER: nom du filtre\n"
-					+ "EXP: duree d'expo");
+					+ "EXP: duree d'expo\n" 
+					+ "BIN: bin");
 			setDefault("$SESSIONAAAA$/$SESSIONAAAA-JJ-MM$/$KIND_$$NOWAAAAJJJMM$$TARGET_$$FILTER_$$EXP$");
 		}
 	};

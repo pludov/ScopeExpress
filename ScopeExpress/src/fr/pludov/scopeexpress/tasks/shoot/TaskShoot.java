@@ -1,17 +1,10 @@
 package fr.pludov.scopeexpress.tasks.shoot;
 
-import java.io.File;
+import java.io.*;
 
-import fr.pludov.scopeexpress.camera.Camera;
-import fr.pludov.scopeexpress.camera.CameraException;
-import fr.pludov.scopeexpress.camera.RunningShootInfo;
-import fr.pludov.scopeexpress.camera.ShootParameters;
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.camera.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class TaskShoot extends BaseTask {
 	
@@ -125,8 +118,11 @@ public class TaskShoot extends BaseTask {
 			sp.setBinx(get(getDefinition().bin));
 			sp.setBiny(get(getDefinition().bin));
 			sp.setExp(get(getDefinition().exposure));
-			sp.setPath(get(getDefinition().path));
-			sp.setFileName(get(getDefinition().fileName));
+			String path = get(getDefinition().path);
+			sp.setPath(path);
+			// Appliquer les paramètres
+			String fileName = get(getDefinition().fileName);
+			sp.setFileName(new FileNameGenerator(focusUi).performFileNameExpansion(path, fileName, this, getDefinition()));
 			try {
 				camera.startShoot(sp);
 			} catch(CameraException ce) {
@@ -135,8 +131,7 @@ public class TaskShoot extends BaseTask {
 			}
 			shootCanceled = false;
 		} catch(Throwable t) {
-			reportError(t);
-			throw t;
+			setFinalStatus(BaseStatus.Error, t);
 		}
 	}
 
@@ -151,6 +146,7 @@ public class TaskShoot extends BaseTask {
 				return;
 			}
 			if (generatedFits != null ){
+				logger.info("Fichier généré: " + generatedFits.getPath());
 				set(TaskShootDefinition.getInstance().fits, generatedFits.getPath());
 				// On a terminé la photo
 				setFinalStatus(BaseStatus.Success);

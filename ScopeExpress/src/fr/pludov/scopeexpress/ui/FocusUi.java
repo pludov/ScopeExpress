@@ -69,6 +69,7 @@ public class FocusUi extends FocusUiDesign {
 	final CameraControlPanel cameraControlPanel;
 	final JDialog cameraControlDialog;
 
+	private final long sessionStartTime = System.currentTimeMillis();
 	private final FocusUiFocuserManager focuserManager;
 	private final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
@@ -1232,6 +1233,10 @@ public class FocusUi extends FocusUiDesign {
 
 	public AstrometryParameterPanel getAstrometryParameter() {
 		return astrometryParameter;
+	}
+
+	public long getSessionStartTime() {
+		return sessionStartTime;
 	}
 	
 }
