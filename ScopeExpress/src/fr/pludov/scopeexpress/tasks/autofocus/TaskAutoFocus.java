@@ -1,41 +1,16 @@
 package fr.pludov.scopeexpress.tasks.autofocus;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.io.*;
+import java.util.*;
 
-import fr.pludov.external.apt.AptComm;
-import fr.pludov.scopeexpress.focus.Application;
-import fr.pludov.scopeexpress.focus.ExclusionZone;
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
-import fr.pludov.scopeexpress.focuser.Focuser;
-import fr.pludov.scopeexpress.focuser.FocuserException;
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskInterruptedException;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.AutoFocusParameters;
-import fr.pludov.scopeexpress.ui.DeviceManager;
-import fr.pludov.scopeexpress.ui.FindStarTask;
-import fr.pludov.scopeexpress.ui.FocusUi;
-import fr.pludov.scopeexpress.ui.utils.SwingThreadMonitor;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
-import fr.pludov.utils.PolynomialFitter;
-import fr.pludov.utils.PolynomialFitter.Polynomial;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.focus.MosaicListener.*;
+import fr.pludov.scopeexpress.focuser.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.utils.*;
+import fr.pludov.utils.PolynomialFitter.*;
 
 public class TaskAutoFocus extends BaseTask {
 
@@ -324,8 +299,9 @@ public class TaskAutoFocus extends BaseTask {
 		
 		ChildLauncher shoot = new ChildLauncher(this, getDefinition().shoot) {
 			{
-				// FIXME: le temps de pause doit être ajusté
+				// FIXME: le temps de pause doit être ajusté !!!
 				set(TaskAutoFocus.this.getDefinition().shootExposure, 1.0);
+				set(TaskAutoFocus.this.getDefinition().shootKind, ShootKind.TestExposure);
 			}
 			
 			@Override

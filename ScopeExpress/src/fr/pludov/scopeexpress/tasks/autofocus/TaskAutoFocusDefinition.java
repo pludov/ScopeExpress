@@ -1,29 +1,12 @@
 package fr.pludov.scopeexpress.tasks.autofocus;
 
-import java.util.List;
-
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.ComposedConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.IConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.IntegerFieldDialog;
-import fr.pludov.scopeexpress.tasks.IntegerParameterId;
-import fr.pludov.scopeexpress.tasks.ObjectParameterId;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskDetailView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.DefaultTaskView;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 {
-	final IntegerParameterId minStarCount = 
+	public final IntegerParameterId minStarCount = 
 			new IntegerParameterId(this, "minStarCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
 				{
 					setTitle("Nombre d'étoiles");
@@ -31,13 +14,13 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 					setDefault(25);
 				}
 			};
-	final IntegerParameterId initialFocuserPosition = new IntegerParameterId(this, "initialFocuserPosition", ParameterFlag.Input, ParameterFlag.Mandatory) {
+	public final IntegerParameterId initialFocuserPosition = new IntegerParameterId(this, "initialFocuserPosition", ParameterFlag.Input, ParameterFlag.Mandatory) {
 		{
 			setTitle("Position ciblée sur le focuser");
 			setTooltip("La première passe de mise au point est centrée sur cette position");
 		}
 	};
-	final IntegerParameterId initialFocuserRange = new IntegerParameterId(this, "initialFocuserRange", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId initialFocuserRange = new IntegerParameterId(this, "initialFocuserRange", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
 		{
 			setTitle("Largeur de la première passe");
 			setTooltip("Largeur (en pas de focuser) de la première passe de mise au point");
@@ -45,7 +28,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 		}
 	};
 	// Nombre de pas
-	final IntegerParameterId stepCount = new IntegerParameterId(this, "stepCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId stepCount = new IntegerParameterId(this, "stepCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
 		{
 			setTitle("Positions testées");
 			setTooltip("Nombre de positions du focuser testés lors de la première passe de mise au points");
@@ -54,7 +37,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	};
 	
 	// Nombre de photo par step
-	final IntegerParameterId photoCount = new IntegerParameterId(this, "photoCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId photoCount = new IntegerParameterId(this, "photoCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
 		{
 			setTitle("Photo par position");
 			setTooltip("Nombre de pauses effectuées sur chaque position testée");
@@ -64,7 +47,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	
 
 	// Le backlash
-	final IntegerParameterId backlash = new IntegerParameterId(this, "backlash", ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId backlash = new IntegerParameterId(this, "backlash", ParameterFlag.PresentInConfig) {
 		{
 			setTitle("Backlash");
 			setTooltip("Les mouvements demandé au focuseur reviendront toujours en arrière d'au moins ce nombre de pas lors d'un changement de direction");
@@ -74,12 +57,14 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	
 //	final ObjectParameterId<TaskAutoFocusPasses> passes = new ObjectParameterId<>(this, "passes", TaskAutoFocusPasses.class, ParameterFlag.Input, ParameterFlag.Mandatory);
 	
-	final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance()) {
+	public final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance()) {
 		{
 			shootExposure = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().exposure);
+			shootKind = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().kind);
 		}
 	};
 	TaskLauncherOverride<Double> shootExposure;
+	TaskLauncherOverride<ShootKind> shootKind;
 	
 	
 	// final EnumParameterId<Status> status = new EnumParameterId<>(this, "status", Status.class, ParameterFlag.Internal);
