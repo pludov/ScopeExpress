@@ -1,15 +1,13 @@
 package fr.pludov.scopeexpress.tasks;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskParameterId<EnumClass> {
-	final Class<Enum<EnumClass>> enumClass;
+	final Class<EnumClass> enumClass;
 
-	public EnumParameterId(BaseTaskDefinition td, String id, Class<Enum<EnumClass>> enumClass, ParameterFlag ... scope) {
+	public EnumParameterId(BaseTaskDefinition td, String id, Class<EnumClass> enumClass, ParameterFlag ... scope) {
 		super(td, id, scope);
 		this.enumClass = enumClass;
 	}

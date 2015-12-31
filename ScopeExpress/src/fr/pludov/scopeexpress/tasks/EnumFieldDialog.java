@@ -1,19 +1,20 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.Dimension;
+import java.awt.*;
+import java.util.*;
 
-import javax.swing.JComboBox;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.ui.utils.Utils;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public class EnumFieldDialog<EnumClass extends Enum<EnumClass>> extends SimpleFieldDialog<EnumClass> {
-//	Enum<EnumClass> previousValue;
-	JComboBox<Enum<EnumClass>> combo;
+	JComboBox<EnumClass> combo;
 	
 	public EnumFieldDialog(EnumParameterId<EnumClass> ti, IParameterEditionContext ipec) {
 		super(ti, ipec);
 		
 		this.combo = new JComboBox<>(ti.enumClass.getEnumConstants());
+		this.combo.setRenderer(new ToStringListCellRenderer<>(combo.getRenderer(), new UseTitleProperty()));
 		this.panel.add(this.combo, "cell 1 0,growx");
 		this.title.setLabelFor(this.combo);
 			
@@ -37,4 +38,15 @@ public class EnumFieldDialog<EnumClass extends Enum<EnumClass>> extends SimpleFi
 		return false;
 	}
 
+	private static class UseTitleProperty implements ToStringListCellRenderer.ToString
+	{
+		@Override
+		public String toString(Object o) {
+			if (o instanceof EnumWithTitle) {
+				return ((EnumWithTitle)o).getTitle();
+			}
+			return Objects.toString(o);
+		}
+	}
+	
 }
