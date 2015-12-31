@@ -237,6 +237,7 @@ public class TaskParameterPanel extends JPanel {
 		// If req... On crée un dialogue...
 		if (!req.isEmpty()) {
 			final JDialog jd = new JDialog(parent);
+			jd.setTitle(taskDef.getTitle());
 			jd.setModal(false);
 			jd.getContentPane().setLayout(new BorderLayout());
 			req.ask(this);
@@ -260,6 +261,9 @@ public class TaskParameterPanel extends JPanel {
 			});
 			jd.getContentPane().add(this, BorderLayout.CENTER);
 			jd.pack();
+			if (parent != null) {
+				jd.setLocationRelativeTo(parent);
+			}
 			jd.setVisible(true);
 		} else {
 			req.saveDefault(view, focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));

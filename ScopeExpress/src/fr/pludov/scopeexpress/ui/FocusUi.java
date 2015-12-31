@@ -810,7 +810,11 @@ public class FocusUi extends FocusUiDesign {
 	}
 	
 	
-	
+	void startTask(BaseTaskDefinition td)
+	{
+		TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, td);
+		tpp.showStartDialog(FocusUi.this.getFrmFocus());
+	}
 	public void createTestMenus()
 	{
 		refreshTestButton();
@@ -829,8 +833,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskSequenceDefinition.getInstance());
-				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				startTask(TaskSequenceDefinition.getInstance());
 			}
 		});
 		
@@ -842,8 +845,7 @@ public class FocusUi extends FocusUiDesign {
 				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskGuiderStartDefinition.getInstance());
-					tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+					startTask(TaskGuiderStartDefinition.getInstance());
 				}
 			});
 		}
@@ -855,8 +857,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskAutoFocusDefinition.getInstance());
-				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				startTask(TaskAutoFocusDefinition.getInstance());
 			}
 		});
 		}
@@ -868,8 +869,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, PlateSolveTaskDefinition.getInstance());
-				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				startTask(PlateSolveTaskDefinition.getInstance());
 			}
 		});
 		}
@@ -881,8 +881,7 @@ public class FocusUi extends FocusUiDesign {
 			
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, TaskFilterWheelDefinition.getInstance());
-				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				startTask(TaskFilterWheelDefinition.getInstance());
 			}
 		});
 		}
@@ -893,8 +892,7 @@ public class FocusUi extends FocusUiDesign {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				TaskJavascriptDefinition tjd = new TaskJavascriptDefinition(new JavascriptTaskDefinitionRepository(BuiltinTaskDefinitionRepository.getInstance()));
-				TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, tjd);
-				tpp.showStartDialog(SwingUtilities.getWindowAncestor(FocusUi.this.getFrmFocus()));
+				startTask(tjd);
 			}
 		});
 
