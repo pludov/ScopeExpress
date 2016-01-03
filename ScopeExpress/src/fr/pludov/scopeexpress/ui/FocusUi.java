@@ -16,6 +16,8 @@ import fr.pludov.astrometry.*;
 import fr.pludov.external.apt.*;
 import fr.pludov.scopeexpress.camera.*;
 import fr.pludov.scopeexpress.catalogs.*;
+import fr.pludov.scopeexpress.database.*;
+import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.http.server.*;
@@ -81,8 +83,14 @@ public class FocusUi extends FocusUiDesign {
 	private AbstractIconButton btnReset;
 
 	private JComboBox<ActivitySelectorItem> activitySelector;
+	// Contains Target or <new ...>
+	private JComboBox<Object> targetSelector;
+	
+	final Database<Root> database;
+	
 	
 	public FocusUi(final Application application) {
+		database = Database.loadWithDefault(Root.class, new File(Configuration.getApplicationDataFolder(), "database"));	 
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
 		this.cameraManager = new FocusUiCameraManager(this);
@@ -229,6 +237,19 @@ public class FocusUi extends FocusUiDesign {
 //		activitySelectorWrapper.setLayout(new BoxLayout(activitySelectorWrapper, BoxLayout.LINE_AXIS));
 //		activitySelectorWrapper.add(this.activitySelector);
 		this.toolBar.add(activitySelector, 0);
+		
+		this.targetSelector = new JComboBox<Object>() {
+			@Override
+			public Dimension getMaximumSize() {
+				return getPreferredSize();
+			};
+		};
+		this.targetSelector.setModel(new TargetDataModel(this));
+		this.targetSelector.setRenderer(new TargetListRenderer(this));
+		this.toolBar.add(targetSelector, 0);
+		
+				
+		
 		
 		this.detectBton = new ToolbarButton("star");
 		this.detectBton.setToolTipText("Trouver les étoiles");
