@@ -8,12 +8,15 @@ import javax.swing.event.*;
 import fr.pludov.scopeexpress.database.DatabaseItemCollection.*;
 import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.database.content.Root.*;
+import fr.pludov.scopeexpress.ui.utils.*;
 import fr.pludov.scopeexpress.utils.*;
 
 public class TargetDataModel implements ComboBoxModel<Object>{
 	final FocusUi focusUi;
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this); 
 	final List<ListDataListener> listeners;
+	
+	JComboPlaceHolder placeHolder = new JComboPlaceHolder("Cible...");
 	
 	Runnable newItem = new Runnable() {
 		
@@ -71,6 +74,8 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 	};
 	List<Target> currentContent;
 	Target currentTarget;
+	boolean placeHolderVisible = true;
+	
 	
 	public TargetDataModel(FocusUi focusUi) {
 		this.focusUi = focusUi;
@@ -79,12 +84,9 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 
 			@Override
 			public void itemAdded(Target content) {
+				
 				currentContent.add(content);
-				ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.INTERVAL_ADDED, currentContent.size() - 1, currentContent.size() - 1);
-				for(ListDataListener ldl : listeners)
-				{
-					ldl.intervalAdded(lde);
-				}
+				fireEvent(ListDataEvent.INTERVAL_ADDED, (placeHolderVisible ? 1 : 0) + currentContent.size() - 1, (placeHolderVisible ? 1 : 0) + currentContent.size() - 1);
 			}
 
 			@Override
@@ -92,11 +94,7 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 				int pos = currentContent.lastIndexOf(content);
 				if (pos != -1) {
 					currentContent.remove(pos);
-					ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.INTERVAL_REMOVED, pos, pos);
-					for(ListDataListener ldl : listeners)
-					{
-						ldl.intervalRemoved(lde);
-					}
+					fireEvent(ListDataEvent.INTERVAL_REMOVED, (placeHolderVisible ? 1 : 0) + pos, (placeHolderVisible ? 1 : 0) + pos);
 				}
 			}
 		});
@@ -109,17 +107,31 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 				}
 				
 				currentTarget = newValue;
-				ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.CONTENTS_CHANGED, -1, -1);
-
-				for(ListDataListener ldl : listeners)
-				{
-					ldl.contentsChanged(lde);
-				}
+				fireEvent(ListDataEvent.CONTENTS_CHANGED, -1, -1);
 			}
 		});
 		
 		currentContent = focusUi.database.getRoot().getTargets().getContent();
 		listeners = new ArrayList<>();
+	}
+	
+	private void fireEvent(int kind, int min, int max)
+	{
+		ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.INTERVAL_ADDED, currentContent.size() - 1, currentContent.size() - 1);
+		for(ListDataListener ldl : listeners)
+		{
+			switch(kind) {
+			case ListDataEvent.INTERVAL_ADDED:
+				ldl.intervalAdded(lde);
+				break;
+			case ListDataEvent.INTERVAL_REMOVED:
+				ldl.intervalRemoved(lde);
+				break;
+			case ListDataEvent.CONTENTS_CHANGED:
+				ldl.contentsChanged(lde);
+				break;
+			}
+		}
 	}
 
 	@Override
@@ -132,22 +144,43 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 		listeners.remove(arg0);
 	}
 	
+	boolean hasPlaceHolder()
+	{
+		return currentContent.isEmpty();
+	}
+	
 	@Override
 	public Object getElementAt(int i) {
+		if (placeHolderVisible) {
+			if (i == 0) {
+				return placeHolder;
+			}
+			i--;
+		}
+			
+		
 		if (i < currentContent.size()) {
 			return currentContent.get(i);
 		}
-		return additionals[i - currentContent.size()];
+		i -= currentContent.size();
+		
+		return additionals[i];
 	}
 
 	@Override
 	public int getSize() {
-		return currentContent.size() + additionals.length;
+		return currentContent.size() + additionals.length + (placeHolderVisible ? 1 : 0);
 	}
 
 	@Override
 	public Object getSelectedItem() {
-		return currentTarget;
+		if (currentTarget != null) {
+			return currentTarget;
+		} else if (placeHolderVisible) {
+			return placeHolder;
+		} else {
+			return null;
+		}
 	}
 
 	@Override
@@ -161,6 +194,8 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 			});
 		} else if (arg0 instanceof Target) {
 			focusUi.database.getRoot().setCurrentTarget((Target) arg0);
+		} else {
+			focusUi.database.getRoot().setCurrentTarget(null);
 		}
 	}
 }
