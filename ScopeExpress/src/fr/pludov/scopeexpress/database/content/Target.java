@@ -1,5 +1,8 @@
 package fr.pludov.scopeexpress.database.content;
 
+import java.util.*;
+
+import fr.pludov.scopeexpress.catalogs.*;
 import fr.pludov.scopeexpress.database.*;
 
 public class Target extends BaseDatabaseItem<Root> {
@@ -62,6 +65,29 @@ public class Target extends BaseDatabaseItem<Root> {
 
 	public void setTotalExposureMs(long totalExposureMs) {
 		this.totalExposureMs = totalExposureMs;
+	}
+	
+	public List<String> findPossibleNames(double degDistance)
+	{
+		if (ra == null || dec == null) {
+			return Collections.emptyList();
+		}
+		
+		
+		List<String> result = new ArrayList<>();
+		for(NGCIC.ElementWithDistance ewd : NGCIC.getInstance().findByTarget(ra, dec, degDistance))
+		{
+			if (ewd.getElement().getAka() == null) {
+				continue;
+			}
+			if (ewd.getElement().getAka().isEmpty()) {
+				continue;
+			}
+			String item = ewd.getElement().getAka().get(0) + " " + ewd.getElement().getType(); 
+			result.add(item);
+		}
+		
+		return result;
 	}
 	
 }

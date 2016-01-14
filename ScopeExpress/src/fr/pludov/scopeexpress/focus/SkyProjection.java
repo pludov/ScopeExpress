@@ -1,14 +1,13 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.awt.geom.NoninvertibleTransformException;
-import java.util.Arrays;
+import java.awt.geom.*;
+import java.util.*;
 
-import org.w3c.dom.Element;
+import org.w3c.dom.*;
 
-import fr.pludov.scopeexpress.ui.Configuration;
-import fr.pludov.scopeexpress.utils.SkyAlgorithms;
-import fr.pludov.utils.VecUtils;
-import fr.pludov.utils.XmlSerializationContext;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 /**
  * Classe responsable de la projection du ciel sur un plan.

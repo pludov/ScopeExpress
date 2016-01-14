@@ -1,44 +1,23 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Component;
-import java.awt.HeadlessException;
-import java.awt.TrayIcon.MessageType;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
+import java.awt.*;
+import java.awt.TrayIcon.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
 import java.util.List;
 
-import javax.swing.JFrame;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPopupMenu;
-import javax.swing.JTextArea;
+import javax.swing.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.scopeexpress.focus.DarkLibrary;
-import fr.pludov.scopeexpress.focus.ExclusionZone;
+import fr.pludov.scopeexpress.database.content.*;
+import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.ImageDistorsion;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.ui.GuideStarFinder.GuideStarFinderParameters;
-import fr.pludov.scopeexpress.ui.utils.GenericList;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.EndUserException;
-import fr.pludov.scopeexpress.utils.PlaneAxeFindAlgorithm;
-import fr.pludov.scopeexpress.utils.PoleFindAlgorithm;
-import fr.pludov.scopeexpress.utils.SkyAlgorithms;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
-import fr.pludov.utils.VecUtils;
+import fr.pludov.scopeexpress.ui.GuideStarFinder.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicImageListEntry> implements MosaicListener {
 	private static final Logger logger = Logger.getLogger(MosaicImageList.class);
@@ -194,6 +173,19 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		
 	}
 	
+	private int hasCorrelation(List<MosaicImageListEntry> entries)
+	{
+		int result = 0;
+		for(MosaicImageListEntry mile : entries)
+		{
+			if (mile.getTarget().isCorrelated()) {
+				result++;
+			}
+		}
+		return result;
+		
+	}
+	
 	@Override
 	protected JPopupMenu createContextMenu(final List<MosaicImageListEntry> entries) {
 		JPopupMenu contextMenu = new JPopupMenu();
@@ -280,6 +272,83 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		});
 		contextMenu.add(correlateMenu);
 
+		JMenuItem useAsNewTarget = new JMenuItem();
+		useAsNewTarget.setText("Nouvelle cible...");
+		useAsNewTarget.setToolTipText("Créer une nouvelle cible sur les coordonnées de cette images");
+		useAsNewTarget.setEnabled(entries.size() == 1 && hasCorrelation(entries) > 0);
+		useAsNewTarget.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					MosaicImageParameter mip = entries.get(0).getTarget();
+					if (!mip.isCorrelated()) {
+						throw new EndUserException("Position invalide");
+					}
+					double[] center = new double[]{0.5 * mip.getImage().getWidth() / 2, 0.5 * mip.getImage().getHeight() / 2};
+					entries.get(0).getTarget().getProjection().unproject(center);
+					
+					Target t = new Target(focusUi.database);
+					t.setLastUseDate(System.currentTimeMillis());
+					t.setCreationDate(System.currentTimeMillis());
+					
+					t.setRa(center[0]);
+					t.setDec(center[1]);
+					
+					double dist = mip.getProjection().getPixelRad() * (VecUtils.norm(new double[] {mip.getImage().getWidth(), mip.getImage().getHeight()}) / 2) * 180 / Math.PI;
+					List<String> names = t.findPossibleNames(dist);
+					if (!names.isEmpty()) {
+						t.setName(names.get(0));
+					} else {
+						t.setName("Sans nom");
+					}
+					
+					
+					logger.debug("Created target at " + Utils.formatHourMinSec(center[0]) +";" + Utils.formatDegMinSec(center[1]));
+					
+					focusUi.database.getRoot().getTargets().add(t);
+					focusUi.database.getRoot().setCurrentTarget(t);
+					
+					t.getContainer().asyncSave();
+				} catch(EndUserException error) {
+					error.report(MosaicImageList.this);
+				}				
+			}
+		});
+		contextMenu.add(useAsNewTarget);
+		
+		
+		final Target existingTarget = this.focusUi.database.getRoot().getCurrentTarget();
+		
+		JMenuItem updateCurrentTarget = new JMenuItem();
+		updateCurrentTarget.setText("M.A.J de la cible");
+		updateCurrentTarget.setToolTipText("Mettre à jour la cible actuelle avec les coordonnées de cette images");
+		updateCurrentTarget.setEnabled(existingTarget != null && entries.size() == 1 && hasCorrelation(entries) > 0);
+		updateCurrentTarget.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					MosaicImageParameter mip = entries.get(0).getTarget();
+					if (!mip.isCorrelated()) {
+						throw new EndUserException("Position invalide");
+					}
+					double[] center = new double[]{0.5 * mip.getImage().getWidth() / 2, 0.5 * mip.getImage().getHeight() / 2};
+					entries.get(0).getTarget().getProjection().unproject(center);
+					
+					existingTarget.setRa(center[0]);
+					existingTarget.setDec(center[1]);
+					
+					logger.debug("Position updated to " + Utils.formatHourMinSec(center[0]) +";" + Utils.formatDegMinSec(center[1]));
+					
+					existingTarget.getContainer().asyncSave();
+				} catch(EndUserException error) {
+					error.report(MosaicImageList.this);
+				}				
+			}
+		});
+		contextMenu.add(updateCurrentTarget);
+		
+		
+		
 		JMenuItem axeMenu;
 		
 		axeMenu = new JMenuItem();
@@ -287,6 +356,7 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		axeMenu.setToolTipText("A partir d'image prises en bougeant la monture...");
 		axeMenu.setEnabled(entries.size() > 1);
 		axeMenu.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				// On veut trouver le point invariant entre les différentes images
 				// (celui pour le quel imageToMosaic donne la même chose d'une image à l'autre)
@@ -377,6 +447,7 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		poleMenu.setToolTipText("A partir d'image prises sans bouger la monture...");
 		poleMenu.setEnabled(entries.size() > 1);
 		poleMenu.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				// On veut trouver le point invariant entre les différentes images
 				// (celui pour le quel imageToMosaic donne la même chose d'une image à l'autre)
@@ -413,6 +484,7 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 		centerMenu.setToolTipText("Ajuster le cadrage pour correspondre à cette image...");
 		centerMenu.setEnabled(entries.size() == 1);
 		centerMenu.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				ReCenterDialog dialog = Utils.openDialog(MosaicImageList.this, ReCenterDialog.class);
 				dialog.open(focusUi, mosaic, entries.get(entries.size() - 1).getTarget().getImage());
@@ -433,8 +505,8 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 			public void actionPerformed(ActionEvent e) {
 				MosaicImageListEntry mile = entries.get(0);
 				MosaicImageParameter mip = mile.getTarget();
-				Image image = mip.getImage();
 				if (mip == null) return;
+				Image image = mip.getImage();
 				String message;
 				
 				if (!mip.isCorrelated()) {
@@ -537,6 +609,7 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 						entries.get(0).getTarget().isCorrelated());
 
 		guideStarFinderMenu.addActionListener(new ActionListener() {
+			@Override
 			public void actionPerformed(ActionEvent e) {
 				
 				MosaicImageListEntry mile = entries.get(0);
