@@ -14,5 +14,9 @@ public abstract class BaseDatabaseItem<ROOT extends BaseDatabaseItem<ROOT>> impl
         in.defaultReadObject();
         container = ((DatabaseObjectInputStream)in).getContainer();
     }
+
+	public Database<ROOT> getContainer() {
+		return container;
+	}
 	
 }

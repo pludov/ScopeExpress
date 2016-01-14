@@ -24,9 +24,12 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 		public void run() {
 			Target t = new Target(focusUi.database);
 			// FIXME: demander le nom, proposer la position de la photo sélectionnée ?
+			t.setCreationDate(System.currentTimeMillis());
 			t.setName("Cible sans nom");
 			focusUi.database.getRoot().getTargets().add(t);
 			focusUi.database.getRoot().setCurrentTarget(t);
+
+			focusUi.database.asyncSave();
 		};
 		
 		@Override
@@ -59,6 +62,8 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 			}
 			
 			focusUi.database.getRoot().getTargets().remove(toRemove);
+			
+			focusUi.database.asyncSave();
 		};
 		
 		@Override
@@ -110,14 +115,15 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 				fireEvent(ListDataEvent.CONTENTS_CHANGED, -1, -1);
 			}
 		});
-		
+
 		currentContent = focusUi.database.getRoot().getTargets().getContent();
+		currentTarget = focusUi.database.getRoot().getCurrentTarget();
 		listeners = new ArrayList<>();
 	}
 	
 	private void fireEvent(int kind, int min, int max)
 	{
-		ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.INTERVAL_ADDED, currentContent.size() - 1, currentContent.size() - 1);
+		ListDataEvent lde = new ListDataEvent(TargetDataModel.this, ListDataEvent.INTERVAL_ADDED, min, max);
 		for(ListDataListener ldl : listeners)
 		{
 			switch(kind) {

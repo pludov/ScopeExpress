@@ -10,7 +10,7 @@ public class Root extends BaseDatabaseItem<Root> {
 
 	// Peut être null
 	Target currentTarget;
-	public WeakListenerCollection<CurrentTargetListener> currentTargetListeners;
+	public transient WeakListenerCollection<CurrentTargetListener> currentTargetListeners;
 	
 	DatabaseItemCollection<Root, Target> targets;
 	

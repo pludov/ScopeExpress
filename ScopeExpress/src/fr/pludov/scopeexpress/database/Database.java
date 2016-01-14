@@ -83,6 +83,15 @@ public class Database<ROOT extends BaseDatabaseItem<ROOT>> {
 	{
 		save(storage);
 	}
+	
+	public void asyncSave()
+	{
+		try {
+			save();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	public ROOT getRoot() {
 		return root;
