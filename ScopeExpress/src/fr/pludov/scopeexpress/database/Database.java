@@ -2,6 +2,8 @@ package fr.pludov.scopeexpress.database;
 
 import java.io.*;
 
+import javax.swing.*;
+
 import fr.pludov.scopeexpress.utils.*;
 
 /** 
@@ -84,12 +86,23 @@ public class Database<ROOT extends BaseDatabaseItem<ROOT>> {
 		save(storage);
 	}
 	
+	boolean savePending = false;
 	public void asyncSave()
 	{
-		try {
-			save();
-		} catch(Exception e) {
-			e.printStackTrace();
+		if (!savePending) {
+			savePending = true;
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					savePending = false;
+					try {
+						save();
+					} catch(Exception e) {
+						new EndUserException("Erreur de sauvegarde de configuration", e).report(null);
+					}
+				}
+				
+			});
 		}
 	}
 
