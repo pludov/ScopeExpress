@@ -1,6 +1,7 @@
 package fr.pludov.scopeexpress.database;
 
 import java.io.*;
+import java.nio.file.*;
 
 import javax.swing.*;
 
@@ -77,7 +78,8 @@ public class Database<ROOT extends BaseDatabaseItem<ROOT>> {
 			oos.writeObject(root);
 		}
 		
-		tmp.renameTo(into);
+		
+		Files.move(tmp.toPath(), into.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	

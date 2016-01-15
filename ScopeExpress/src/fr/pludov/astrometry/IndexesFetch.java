@@ -1,24 +1,16 @@
 package fr.pludov.astrometry;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.zip.GZIPInputStream;
+import java.io.*;
+import java.net.*;
+import java.nio.channels.*;
+import java.nio.file.*;
+import java.util.*;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.*;
 
-import fr.pludov.scopeexpress.ui.Configuration;
-import fr.pludov.scopeexpress.ui.utils.SyncTask;
-import fr.pludov.scopeexpress.utils.EndUserException;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class IndexesFetch extends SyncTask{
 
@@ -77,7 +69,7 @@ public class IndexesFetch extends SyncTask{
 			fos.close();
 		}
 	
-		tempTarget.renameTo(target);
+		Files.move(tempTarget.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	private void reportProgress(String title) {
