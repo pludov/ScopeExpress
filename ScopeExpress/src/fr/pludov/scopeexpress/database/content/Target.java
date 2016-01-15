@@ -15,6 +15,17 @@ public class Target extends BaseDatabaseItem<Root> {
 	long lastUseDate;
 	long totalExposureMs;
 	
+	public Target(Target copy)
+	{
+		super(copy.getContainer());
+		this.name = copy.name;
+		this.ra = copy.ra;
+		this.dec = copy.dec;
+		this.creationDate = copy.creationDate;
+		this.lastUseDate = copy.lastUseDate;
+		this.totalExposureMs = copy.totalExposureMs;
+	}
+	
 	public Target(Database<Root> container) {
 		super(container);
 	}
@@ -69,7 +80,7 @@ public class Target extends BaseDatabaseItem<Root> {
 	
 	public List<String> findPossibleNames(double degDistance)
 	{
-		if (ra == null || dec == null) {
+		if (ra == null || dec == null || ra.isNaN() || dec.isNaN()) {
 			return Collections.emptyList();
 		}
 		

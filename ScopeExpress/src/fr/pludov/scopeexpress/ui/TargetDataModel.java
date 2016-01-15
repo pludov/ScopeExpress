@@ -16,20 +16,16 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this); 
 	final List<ListDataListener> listeners;
 	
-	JComboPlaceHolder placeHolder = new JComboPlaceHolder("Cible...");
+	JComboPlaceHolder placeHolder = new JComboPlaceHolder("Pas de cible...");
 	
 	Runnable newItem = new Runnable() {
 		
 		@Override
 		public void run() {
 			Target t = new Target(focusUi.database);
-			// FIXME: demander le nom, proposer la position de la photo sélectionnée ?
 			t.setCreationDate(System.currentTimeMillis());
-			t.setName("Cible sans nom");
-			focusUi.database.getRoot().getTargets().add(t);
-			focusUi.database.getRoot().setCurrentTarget(t);
-
-			focusUi.database.asyncSave();
+			
+			TargetPanel.createNewDialog(focusUi, t, 1.0);
 		};
 		
 		@Override
@@ -40,13 +36,16 @@ public class TargetDataModel implements ComboBoxModel<Object>{
 	Runnable modifyItem = new Runnable() {
 		@Override
 		public void run() {
-			// FIXME: regarder si currentTarget est modifiable
+			if (currentTarget == null) {
+				return;
+			}
 			// Créer un dialogue de modification
+			TargetPanel.createModifyDialog(focusUi, currentTarget, 1.0);
 		};
 		
 		@Override
 		public String toString() {
-			return "Modifier...";
+			return "Détails...";
 		};
 	};
 	Runnable deleteItem = new Runnable() {

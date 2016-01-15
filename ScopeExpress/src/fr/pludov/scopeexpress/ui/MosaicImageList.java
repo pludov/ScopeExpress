@@ -291,24 +291,13 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 					t.setLastUseDate(System.currentTimeMillis());
 					t.setCreationDate(System.currentTimeMillis());
 					
+					logger.debug("Creating target at " + Utils.formatHourMinSec(center[0]) +";" + Utils.formatDegMinSec(center[1]));
 					t.setRa(center[0]);
 					t.setDec(center[1]);
 					
 					double dist = mip.getProjection().getPixelRad() * (VecUtils.norm(new double[] {mip.getImage().getWidth(), mip.getImage().getHeight()}) / 2) * 180 / Math.PI;
-					List<String> names = t.findPossibleNames(dist);
-					if (!names.isEmpty()) {
-						t.setName(names.get(0));
-					} else {
-						t.setName("Sans nom");
-					}
 					
-					
-					logger.debug("Created target at " + Utils.formatHourMinSec(center[0]) +";" + Utils.formatDegMinSec(center[1]));
-					
-					focusUi.database.getRoot().getTargets().add(t);
-					focusUi.database.getRoot().setCurrentTarget(t);
-					
-					t.getContainer().asyncSave();
+					TargetPanel.createNewDialog(focusUi, t, dist);
 				} catch(EndUserException error) {
 					error.report(MosaicImageList.this);
 				}				
