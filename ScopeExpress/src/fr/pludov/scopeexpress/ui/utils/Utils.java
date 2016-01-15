@@ -13,6 +13,9 @@ import javax.swing.event.*;
 
 public final class Utils {
 
+	public static final String hourMinSecTooltip = "Format: 10h 2m 3.2s";
+	public static final String degMinSecTooltip = "Format: 10° 2' 3.2\" --ou-- 10.2240°";
+			
 	public static boolean equalsWithNullity(Object a, Object b)
 	{
 		return ((a == null) == (b == null)) && (a == null || a.equals(b)); 
@@ -338,12 +341,9 @@ public final class Utils {
 			return result;
 		}
 			
-		try {
-			return (360 / 24) * Double.parseDouble(input);
-		} catch(NumberFormatException e) {
-		}
 		
-		return null;
+		return (360 / 24) * Double.parseDouble(input);
+		
 	}
 
 	public static Double getDegFromDegMinSec(String input) throws NumberFormatException
@@ -373,12 +373,7 @@ public final class Utils {
 			return result;
 		}
 		
-		try {
-			return Double.parseDouble(input);
-		} catch(NumberFormatException e) {
-		}
-		
-		return null;
+		return Double.parseDouble(input);
 	}
 
 	public static Double getDegFromInput(String input) throws NumberFormatException
@@ -544,7 +539,6 @@ public final class Utils {
 			
 			@Override
 			public void windowDeactivated(WindowEvent e) {
-				jd.dispose();
 			}
 
 			@Override
@@ -553,6 +547,7 @@ public final class Utils {
 
 			@Override
 			public void windowClosed(WindowEvent e) {
+				jd.dispose();
 			}
 
 			@Override
