@@ -9,8 +9,10 @@ public class TaskParameterTestView extends TaskParameterBaseView<TaskParameterTe
 	LinkedHashSet<String> topLevelErrors;
 	final Map<TaskParameterId<?>, String> fieldErrors;
 	
-	public TaskParameterTestView(/*TaskParameterView parent*/)
-	{
+	public TaskParameterTestView(ITaskParameterView rootConfig, ITaskParameterView config,
+			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
+		super(rootConfig, config, rootPreviousValues, previousValues);
+		
 		this.fieldErrors = new HashMap<>();
 		this.globalErrors = new LinkedHashSet<>();
 		this.topLevelErrors = this.globalErrors;
@@ -38,7 +40,9 @@ public class TaskParameterTestView extends TaskParameterBaseView<TaskParameterTe
 	
 	@Override
 	protected TaskParameterTestView buildSubTaskView(String tldId) {
-		TaskParameterTestView result = new TaskParameterTestView();
+		TaskParameterTestView result = new TaskParameterTestView(
+				rootConfig, config != null ? config.getSubTaskView(tldId) : null,
+				rootPreviousValues, previousValues != null ? previousValues.getSubTaskView(tldId) : null);
 		result.topLevelErrors = this.topLevelErrors;
 		return result;
 	}

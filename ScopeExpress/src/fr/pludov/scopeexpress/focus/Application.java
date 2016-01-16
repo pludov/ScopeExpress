@@ -1,23 +1,15 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.io.File;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.lang.ref.*;
+import java.util.*;
 
-import fr.pludov.scopeexpress.async.WorkStepProcessor;
-import fr.pludov.scopeexpress.irc.IRCServer;
-import fr.pludov.scopeexpress.supervision.PhdLogParser;
-import fr.pludov.scopeexpress.supervision.Supervisor;
-import fr.pludov.scopeexpress.tasks.ITaskOptionalParameterView;
-import fr.pludov.scopeexpress.tasks.ITaskParameterView;
-import fr.pludov.scopeexpress.tasks.PreviousTaskValues;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskParameterView;
-import fr.pludov.scopeexpress.ui.Configuration;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTaskQueue;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.irc.*;
+import fr.pludov.scopeexpress.supervision.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 /**
  * Les fonctions fournies:
@@ -45,7 +37,7 @@ public class Application {
 		this.starRay = 25;
 		
 		this.lastUsedTaskValues = new PreviousTaskValues();
-		this.configurationTaskValues = new TaskParameterView();
+		this.configurationTaskValues = new TaskParameterView(null, null, null, null);
 		
 		this.images = new HashMap<File, WeakReference<Image>>();
 		this.mosaics = new ArrayList<Mosaic>();

@@ -156,7 +156,10 @@ public class TaskParameterPanel extends JPanel {
 		
 		
 		boolean hasRootError() {
-			ITaskParameterTestView testView = new TaskParameterTestView();
+			ITaskParameterTestView testView = new TaskParameterTestView(
+					focusUi.getApplication().getConfigurationTaskValues(), focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(forTask.getId()),
+					focusUi.getApplication().getLastUsedTaskValues(), focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(forTask.getId())
+				);
 			getDialogValues(testView);
 			
 			forTask.validateSettings(focusUi, testView);
@@ -195,7 +198,7 @@ public class TaskParameterPanel extends JPanel {
 		/**
 		 * A la fin d'une édition, enregistre les valeurs par défaut
 		 */
-		void saveDefault(ITaskParameterView values, ITaskParameterView defaults)
+		void saveDefault(ITaskParameterView values, ITaskOptionalParameterView defaults)
 		{
 			for(IParameterEditionContext desc : parameters) {
 				TaskParameterId<?> id = desc.getParameter();
@@ -254,11 +257,13 @@ public class TaskParameterPanel extends JPanel {
 	}
 	
 	public void showStartDialog(Window parent) {
-		final ITaskParameterView view = new TaskParameterView();
+		final ITaskParameterView view = new TaskParameterView(
+				focusUi.getApplication().getConfigurationTaskValues(),
+				focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(taskDef.getId()),
+				focusUi.getApplication().getLastUsedTaskValues(),
+				focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId())
+				);
 		req.makeEditable();
-		req.loadDefault(view, 
-				focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(taskDef.getId()), 
-				focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));
 		
 		// If req... On crée un dialogue...
 		if (!req.isEmpty()) {

@@ -67,14 +67,22 @@ public class TaskConfigurationPanel extends JPanel {
 		});
 	}
 	
-	TaskParameterPanel buildPanel(BaseTaskDefinition btd)
+	TaskParameterPanel buildPanel(final BaseTaskDefinition btd)
 	{
 		TaskParameterPanel result = parameterPanels.get(btd);
 		if (result == null) {
 			result = new TaskParameterPanel(focusUi, btd) {
 				@Override
 				public boolean display(TaskParameterId<?> param, TaskLauncherOverride<?> override) {
-					return override == null && param.is(ParameterFlag.PresentInConfig);
+					if (param.is(ParameterFlag.PresentInConfig)) {
+						return param.getTaskDefinition() == btd;
+					}
+					
+					if (param.is(ParameterFlag.PresentInConfigForEachUsage)) {
+						return override == null;
+					}
+					
+					return false;
 				};
 			};
 			result.loadAndEdit(focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(btd.getId()));

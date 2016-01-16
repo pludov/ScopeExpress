@@ -5,6 +5,11 @@ import java.util.*;
 public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> implements ITaskParameterView {
 
 	
+	public TaskParameterView(ITaskParameterView rootConfig, ITaskParameterView config,
+			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
+		super(rootConfig, config, rootPreviousValues, previousValues);
+	}
+
 	@Override
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key) {
 		return super.doGet(key);
@@ -12,7 +17,7 @@ public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> 
 	
 	@Override
 	public TaskParameterView clone() {
-		TaskParameterView result = new TaskParameterView(/*parentTask*/);
+		TaskParameterView result = new TaskParameterView(rootConfig, config, rootPreviousValues, previousValues);
 		result.values.putAll(values);
 		for(Map.Entry<String, TaskParameterView> childEntry : launchers.entrySet())
 		{
@@ -23,7 +28,9 @@ public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> 
 	
 	@Override
 	protected TaskParameterView buildSubTaskView(String tldId) {
-		return new TaskParameterView();
+		return new TaskParameterView(
+				rootConfig, config != null ? config.getSubTaskView(tldId) : null,
+				rootPreviousValues, previousValues != null ? previousValues.getSubTaskView(tldId) : null);
 	}
 	
 	@Override

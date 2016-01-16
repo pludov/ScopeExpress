@@ -8,15 +8,35 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 	final Map<TaskParameterId<?>, Object> values = new HashMap<>();
 	final Map<String, ACTUALVIEWTYPE> launchers = new HashMap<>();
 	
-	public TaskParameterBaseView(/*TaskParameterView parent*/)
+	final ITaskParameterView rootConfig, config;
+	final ITaskOptionalParameterView rootPreviousValues, previousValues;
+	
+	public TaskParameterBaseView(ITaskParameterView rootConfig, ITaskParameterView config, ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues)
 	{
-//		this.parentTask = parent;
+		this.rootConfig = rootConfig;
+		this.config = config;
+		this.rootPreviousValues = rootPreviousValues;
+		this.previousValues = previousValues;
 	}
 	
 	
 	protected <TYPE> TYPE doGet(TaskParameterId<TYPE> key) {
 		if (values.containsKey(key)) {
 			return (TYPE)values.get(key);
+		}
+		
+		if (rootConfig != null && key.flags.contains(ParameterFlag.PresentInConfig)) {
+			// Aller chercher en conf de toute façon
+			ITaskParameterView configForTask = rootConfig.getSubTaskView(key.taskDefinition.getId());
+			return configForTask.get(key);
+		}
+		
+		if (config != null && key.flags.contains(ParameterFlag.PresentInConfigForEachUsage)) {
+			return config.get(key);
+		}
+		
+		if (previousValues != null && !key.flags.contains(ParameterFlag.DoNotPresentLasValue) && previousValues.has(key)) {
+			return previousValues.get(key);
 		}
 		
 		return key.getDefault();

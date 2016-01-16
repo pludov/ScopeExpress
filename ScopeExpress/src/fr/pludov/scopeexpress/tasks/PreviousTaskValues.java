@@ -4,7 +4,13 @@ import java.util.*;
 
 public class PreviousTaskValues extends TaskParameterBaseView<PreviousTaskValues> implements ITaskOptionalParameterView {
 
+	PreviousTaskValues(ITaskParameterView rootConfig, ITaskParameterView config,
+			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
+		super(rootConfig, config, rootPreviousValues, previousValues);
+	}
+
 	public PreviousTaskValues() {
+		this(null, null, null, null);
 	}
 
 	@Override
@@ -31,13 +37,15 @@ public class PreviousTaskValues extends TaskParameterBaseView<PreviousTaskValues
 
 	@Override
 	protected PreviousTaskValues buildSubTaskView(String tldId) {
-		return new PreviousTaskValues();
+		return new PreviousTaskValues(
+				rootConfig, config != null ? config.getSubTaskView(tldId) : null,
+				rootPreviousValues, previousValues != null ? previousValues.getSubTaskView(tldId) : null);
 	};
 	
 	
 	@Override
 	public PreviousTaskValues clone() {
-		PreviousTaskValues result = new PreviousTaskValues();
+		PreviousTaskValues result = new PreviousTaskValues(rootConfig, config, rootPreviousValues, previousValues);
 		result.values.putAll(values);
 		for(Map.Entry<String, PreviousTaskValues> childEntry : launchers.entrySet())
 		{
