@@ -1,5 +1,7 @@
 package fr.pludov.scopeexpress.tasks.shoot;
 
+import java.io.*;
+
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.ui.*;
 
@@ -32,8 +34,8 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 	
 	
 	
-	public final StringParameterId path = new StringParameterId(this, "path", ParameterFlag.Input, ParameterFlag.PresentInConfig);
-	public final StringParameterId fileName = new StringParameterId(this, "fileName", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final StringParameterId path = new StringParameterId(this, "path", ParameterFlag.PresentInConfig);
+	public final StringParameterId fileName = new StringParameterId(this, "fileName", ParameterFlag.PresentInConfig) {
 		{
 			setTitle("Nom des fichiers fits");
 			setTooltip("Sous-répertoire et nom d'enregistrement des fichiers.\nUtilise des substitutions:\n"
@@ -66,7 +68,18 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		if (focusUi.getCameraManager().getConnectedDevice() == null) {
 			view.addTopLevelError("Requiert une caméra connectée");
 		}
-			
+
+		String pathValue;
+		try {
+			pathValue = view.get(path);
+			if (pathValue == null || "".equals(pathValue)) {
+				view.addTopLevelError("Le répertoire de stockage des images n'est pas configuré");
+			} else if (!new File(pathValue).isDirectory()) {
+				view.addTopLevelError("Le répertoire de stockage des images n'existe pas");
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
 		Double exp;
 		try {
 			exp = view.get(exposure);

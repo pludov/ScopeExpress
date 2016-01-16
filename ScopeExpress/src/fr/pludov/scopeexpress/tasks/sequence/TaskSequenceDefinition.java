@@ -1,24 +1,15 @@
 package fr.pludov.scopeexpress.tasks.sequence;
 
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.IntegerParameterId;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskDetailView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocus;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
-import fr.pludov.scopeexpress.tasks.focuser.TaskFilterWheelDefinition;
-import fr.pludov.scopeexpress.tasks.guider.TaskGuiderStartDefinition;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.FocusUi;;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.autofocus.*;
+import fr.pludov.scopeexpress.tasks.focuser.*;
+import fr.pludov.scopeexpress.tasks.guider.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;;
 
 public class TaskSequenceDefinition extends BaseTaskDefinition {
 	final IntegerParameterId shootCount = 
-			new IntegerParameterId(this, "shootCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+			new IntegerParameterId(this, "shootCount", ParameterFlag.Input) {
 				{
 					setTitle("Nombre de prises");
 					setTooltip("Nombre de prises de vues");

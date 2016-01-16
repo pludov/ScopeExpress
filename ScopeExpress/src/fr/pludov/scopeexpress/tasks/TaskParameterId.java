@@ -1,11 +1,10 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.*;
 
-import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 /** Définit un paramètre (une variable) de type TYPE */
 public abstract class TaskParameterId<TYPE> {
@@ -17,12 +16,24 @@ public abstract class TaskParameterId<TYPE> {
 	String title;
 	String tooltip;
 	
+	static EnumSet<ParameterFlag> exclusive = EnumSet.of(ParameterFlag.Input, ParameterFlag.Output, ParameterFlag.PresentInConfig, ParameterFlag.PresentInConfigForEachUsage);
+	
 	public TaskParameterId(BaseTaskDefinition td, String id, ParameterFlag ... scope) {
 		this.id = id;
 		this.taskDefinition = td;
 		this.flags = scope.length > 0 ? EnumSet.copyOf(Arrays.asList(scope)) : EnumSet.noneOf(ParameterFlag.class);
 		
 		taskDefinition.parameters.put(this.id, this);
+	
+		int count = 0;
+		for(ParameterFlag pf : scope) {
+			if (exclusive.contains(pf)) {
+				count++;
+			}
+		}
+		if (count > 1) {
+			throw new RuntimeException("Flags incompatibles sur " + this.id);
+		}
 	}
 
 	public TaskParameterId<TYPE> setTitle(String title)
@@ -64,4 +75,8 @@ public abstract class TaskParameterId<TYPE> {
 
 	/** Choisi une bonne valeur de départ */
 	public abstract TYPE sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, TYPE currentValue);
+
+	public BaseTaskDefinition getTaskDefinition() {
+		return taskDefinition;
+	}
 }

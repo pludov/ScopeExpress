@@ -7,7 +7,7 @@ import fr.pludov.scopeexpress.ui.*;
 public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 {
 	public final IntegerParameterId minStarCount = 
-			new IntegerParameterId(this, "minStarCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+			new IntegerParameterId(this, "minStarCount", ParameterFlag.Input) {
 				{
 					setTitle("Nombre d'étoiles");
 					setTooltip("Ajuster le temps de pause pour avoir au moins ce nombre d'étoiles");
@@ -20,7 +20,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 			setTooltip("La première passe de mise au point est centrée sur cette position");
 		}
 	};
-	public final IntegerParameterId initialFocuserRange = new IntegerParameterId(this, "initialFocuserRange", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId initialFocuserRange = new IntegerParameterId(this, "initialFocuserRange", ParameterFlag.Input) {
 		{
 			setTitle("Largeur de la première passe");
 			setTooltip("Largeur (en pas de focuser) de la première passe de mise au point");
@@ -28,7 +28,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 		}
 	};
 	// Nombre de pas
-	public final IntegerParameterId stepCount = new IntegerParameterId(this, "stepCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId stepCount = new IntegerParameterId(this, "stepCount", ParameterFlag.Input) {
 		{
 			setTitle("Positions testées");
 			setTooltip("Nombre de positions du focuser testés lors de la première passe de mise au points");
@@ -37,7 +37,7 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	};
 	
 	// Nombre de photo par step
-	public final IntegerParameterId photoCount = new IntegerParameterId(this, "photoCount", ParameterFlag.Input, ParameterFlag.PresentInConfig) {
+	public final IntegerParameterId photoCount = new IntegerParameterId(this, "photoCount", ParameterFlag.Input) {
 		{
 			setTitle("Photo par position");
 			setTooltip("Nombre de pauses effectuées sur chaque position testée");
