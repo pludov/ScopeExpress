@@ -12,6 +12,8 @@ import javax.swing.Timer;
 
 import fr.pludov.scopeexpress.camera.*;
 import fr.pludov.scopeexpress.camera.TemperatureAdjusterTask.Status;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.notifs.*;
 import fr.pludov.scopeexpress.ui.preferences.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 import fr.pludov.scopeexpress.ui.utils.Utils.*;
@@ -51,6 +53,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 	
 	final Color btnTempDefaultBackground;
 	
+	boolean saveNextShoot = false;
 	ShootParameters parameters;
 	
 	CameraControlPanel(FocusUiCameraManager cameraManager)
@@ -200,6 +203,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
 					camera.startShoot(parameters);
+					saveNextShoot = true;
 				}catch(CameraException e) {
 					new EndUserException(e).report(CameraControlPanel.this);
 				}
@@ -512,17 +516,22 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				}
 				@Override
 				public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
-					
+					if (saveNextShoot) {
+						NotificationChannel.Photo.emit("Chargement de " + generatedFits.getName());
+						addImage(generatedFits);
+					}
 					loadParameters(parameters);
 					refresh();
 				}
 				
 				@Override
 				public void onShootInterrupted() {
+					saveNextShoot = false;
 				}
 				
 				@Override
 				public void onConnectionStateChanged() {
+					saveNextShoot = false;
 					refresh();
 				}
 				
@@ -536,4 +545,27 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 		refresh();
 	}
 	
+	public void addImage(File newItem)
+	{
+		FocusUi focusUi = cameraManager.focusUi;
+		
+		fr.pludov.scopeexpress.focus.Image image = focusUi.getApplication().getImage(newItem);
+		MosaicImageParameter mip = focusUi.getMosaic().addImage(image, MosaicListener.ImageAddedCause.AutoDetected);
+		
+		LoadMetadataTask loadTask = new LoadMetadataTask(focusUi.getMosaic(), mip);
+		focusUi.getApplication().getBackgroundTaskQueue().addTask(loadTask);
+		
+		FindStarTask task = new FindStarTask(focusUi.getMosaic(), image);
+		focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+		
+		if (focusUi.getActivity() == Activity.Aligning) {
+			CorrelateTask correlate = new CorrelateTask(focusUi.getMosaic(), focusUi.getAstrometryParameter().getParameter(), image);
+			focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
+		} else {
+			if (focusUi.getMosaic().getImages().size() > 1) {
+				StarShiftTask correlate = new StarShiftTask(focusUi.getMosaic(), image);
+				focusUi.getApplication().getBackgroundTaskQueue().addTask(correlate);
+			}
+		}
+	}
 }
