@@ -68,7 +68,7 @@ public class TaskParameterPanel extends JPanel {
 			return parameters.isEmpty() && childs.isEmpty();
 		}
 		
-		private <A> void sanitizeParameter(ITaskParameterView view, TaskParameterId<A> id,
+		private <A> void sanitizeParameter(ISafeTaskParameterView view, TaskParameterId<A> id,
 				IParameterEditionContext paramCtxt) {
 			A currentValue = view.get(id);
 			A newvalue = id.sanitizeValue(focusUi, paramCtxt, currentValue);
@@ -78,7 +78,7 @@ public class TaskParameterPanel extends JPanel {
 		}
 
 		/** Fait en sorte que les valeurs respectent les contraintes en cours */
-		void sanitizeValues(ITaskParameterView view) {
+		void sanitizeValues(ISafeTaskParameterView view) {
 			for (IParameterEditionContext paramCtxt : parameters) {
 				if (paramCtxt.isEditable()) {
 					sanitizeParameter(view, paramCtxt.getParameter(), paramCtxt);
@@ -107,7 +107,7 @@ public class TaskParameterPanel extends JPanel {
 			}
 		}
 
-		void setDialogValues(ITaskParameterView view)
+		void setDialogValues(ISafeTaskParameterView view)
 		{
 			if (dialog != null) {
 				dialog.setWidgetValues(view);
@@ -198,7 +198,7 @@ public class TaskParameterPanel extends JPanel {
 		/**
 		 * A la fin d'une édition, enregistre les valeurs par défaut
 		 */
-		void saveDefault(ITaskParameterView values, ITaskOptionalParameterView defaults)
+		void saveDefault(ISafeTaskParameterView values, ITaskOptionalParameterView defaults)
 		{
 			for(IParameterEditionContext desc : parameters) {
 				TaskParameterId<?> id = desc.getParameter();
@@ -302,7 +302,7 @@ public class TaskParameterPanel extends JPanel {
 		}
 	}
 	
-	public void loadAndEdit(ITaskParameterView view)
+	public void loadAndEdit(ISafeTaskParameterView view)
 	{
 		req.makeEditable();
 		req.ask(this);

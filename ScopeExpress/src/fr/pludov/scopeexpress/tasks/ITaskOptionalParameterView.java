@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.tasks;
 
-public interface ITaskOptionalParameterView extends ITaskParameterBaseView {
+public interface ITaskOptionalParameterView extends ISafeTaskParameterView {
 
 	boolean has(TaskParameterId<?> t);
 	void remove(TaskParameterId<?> t);

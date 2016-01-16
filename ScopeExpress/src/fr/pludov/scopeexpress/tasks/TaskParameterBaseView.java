@@ -8,10 +8,10 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 	final Map<TaskParameterId<?>, Object> values = new HashMap<>();
 	final Map<String, ACTUALVIEWTYPE> launchers = new HashMap<>();
 	
-	final ITaskParameterView rootConfig, config;
+	final ISafeTaskParameterView rootConfig, config;
 	final ITaskOptionalParameterView rootPreviousValues, previousValues;
 	
-	public TaskParameterBaseView(ITaskParameterView rootConfig, ITaskParameterView config, ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues)
+	public TaskParameterBaseView(ISafeTaskParameterView rootConfig, ISafeTaskParameterView config, ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues)
 	{
 		this.rootConfig = rootConfig;
 		this.config = config;
@@ -27,7 +27,7 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 		
 		if (rootConfig != null && key.flags.contains(ParameterFlag.PresentInConfig)) {
 			// Aller chercher en conf de toute façon
-			ITaskParameterView configForTask = rootConfig.getSubTaskView(key.taskDefinition.getId());
+			ISafeTaskParameterView configForTask = rootConfig.getSubTaskView(key.taskDefinition.getId());
 			return configForTask.get(key);
 		}
 		

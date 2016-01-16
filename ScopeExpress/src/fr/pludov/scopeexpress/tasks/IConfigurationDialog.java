@@ -12,7 +12,7 @@ public interface IConfigurationDialog {
 	<T> T get(TaskParameterId<T> parameter);
 	
 	/** Positionne tous les widget d'édition à partir des valeurs données */
-	void setWidgetValues(ITaskParameterView view);
+	void setWidgetValues(ISafeTaskParameterView view);
 
 	/** Reporte la valeur de tous les widget d'édition vers la vue donnée*/
 	void loadWidgetValues(ITaskParameterBaseView view);

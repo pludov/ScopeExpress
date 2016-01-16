@@ -5,6 +5,8 @@ import java.lang.ref.*;
 import java.util.*;
 
 import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.database.*;
+import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.irc.*;
 import fr.pludov.scopeexpress.supervision.*;
 import fr.pludov.scopeexpress.tasks.*;
@@ -28,16 +30,20 @@ public class Application {
 	IRCServer ircServer;
 	Supervisor supervisor;
 	
-	final ITaskParameterView configurationTaskValues;
+	final ISafeTaskParameterView configurationTaskValues;
 	final ITaskOptionalParameterView lastUsedTaskValues; 
+
+	private final Database<Root> database;
 	
 	int starRay;
 	
 	public Application() {
 		this.starRay = 25;
+		database = Database.loadWithDefault(Root.class, new File(Configuration.getApplicationDataFolder(), "database"));	 
+
 		
-		this.lastUsedTaskValues = new PreviousTaskValues();
-		this.configurationTaskValues = new TaskParameterView(null, null, null, null);
+		this.lastUsedTaskValues = new StoredTaskParameter(getDatabase().getRoot().getTaskPrevious(), "");
+		this.configurationTaskValues = new StoredTaskParameter(getDatabase().getRoot().getTaskConfig(), "");
 		
 		this.images = new HashMap<File, WeakReference<Image>>();
 		this.mosaics = new ArrayList<Mosaic>();
@@ -112,12 +118,16 @@ public class Application {
 		return taskManager;
 	}
 
-	public ITaskParameterView getConfigurationTaskValues() {
+	public ISafeTaskParameterView getConfigurationTaskValues() {
 		return configurationTaskValues;
 	}
 
 	public ITaskOptionalParameterView getLastUsedTaskValues() {
 		return lastUsedTaskValues;
+	}
+
+	public Database<Root> getDatabase() {
+		return database;
 	}
 
 }

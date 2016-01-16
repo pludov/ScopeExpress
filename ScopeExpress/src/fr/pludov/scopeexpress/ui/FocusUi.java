@@ -85,12 +85,10 @@ public class FocusUi extends FocusUiDesign {
 	private JComboBox<ActivitySelectorItem> activitySelector;
 	// Contains Target or <new ...>
 	private JComboBox<Object> targetSelector;
-	
 	final Database<Root> database;
 	
-	
 	public FocusUi(final Application application) {
-		database = Database.loadWithDefault(Root.class, new File(Configuration.getApplicationDataFolder(), "database"));	 
+		this.database = application.getDatabase();
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
 		this.cameraManager = new FocusUiCameraManager(this);

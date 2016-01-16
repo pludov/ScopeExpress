@@ -1,7 +1,7 @@
 package fr.pludov.scopeexpress.tasks;
 
-/** Vue de paramètres pour une tache donnée */
-public interface ITaskParameterView extends ITaskParameterBaseView {
+/** Vue de paramètres pour une tache donnée (reellement pour une tache) */
+public interface ITaskParameterView extends ISafeTaskParameterView {
 	@Override
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key);
 	@Override

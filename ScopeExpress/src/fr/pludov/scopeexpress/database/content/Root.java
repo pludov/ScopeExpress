@@ -14,6 +14,11 @@ public class Root extends BaseDatabaseItem<Root> {
 	
 	DatabaseItemCollection<Root, Target> targets;
 	
+	// Valeur en conf pour les taches
+	TaskConfigMap taskConfig;
+	// Dernieres valeurs utilisées pour les taches
+	TaskConfigMap taskPrevious;
+	
 	public Root(Database<Root> db) {
 		super(db);
 		
@@ -24,6 +29,12 @@ public class Root extends BaseDatabaseItem<Root> {
 	{
 		if (targets == null) {
 			targets = new DatabaseItemCollection<>();
+		}
+		if (taskConfig == null) {
+			taskConfig = new TaskConfigMap(this.getContainer());
+		}
+		if (taskPrevious == null) {
+			taskPrevious = new TaskConfigMap(this.getContainer());
 		}
 		currentTargetListeners = new WeakListenerCollection<>(CurrentTargetListener.class);
 	}
@@ -53,6 +64,14 @@ public class Root extends BaseDatabaseItem<Root> {
 	
 	public interface CurrentTargetListener {
 		void currentTargetChanged(Target newValue);
+	}
+
+	public TaskConfigMap getTaskConfig() {
+		return taskConfig;
+	}
+
+	public TaskConfigMap getTaskPrevious() {
+		return taskPrevious;
 	}
 	
 }

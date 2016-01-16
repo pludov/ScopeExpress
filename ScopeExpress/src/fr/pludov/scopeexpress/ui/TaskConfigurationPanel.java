@@ -100,7 +100,7 @@ public class TaskConfigurationPanel extends JPanel {
 			BaseTaskDefinition def = item.getKey();
 			TaskParameterPanel tpp = item.getValue();
 			
-			ITaskParameterView subTaskView = focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(def.getId());
+			ISafeTaskParameterView subTaskView = focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(def.getId());
 			
 			
 			tpp.req.getDialogValues(subTaskView);

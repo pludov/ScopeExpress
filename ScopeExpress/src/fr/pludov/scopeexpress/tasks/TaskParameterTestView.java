@@ -9,7 +9,7 @@ public class TaskParameterTestView extends TaskParameterBaseView<TaskParameterTe
 	LinkedHashSet<String> topLevelErrors;
 	final Map<TaskParameterId<?>, String> fieldErrors;
 	
-	public TaskParameterTestView(ITaskParameterView rootConfig, ITaskParameterView config,
+	public TaskParameterTestView(ISafeTaskParameterView rootConfig, ISafeTaskParameterView config,
 			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
 		super(rootConfig, config, rootPreviousValues, previousValues);
 		

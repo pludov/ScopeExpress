@@ -58,7 +58,7 @@ public class ComposedConfigurationDialog implements IConfigurationDialog {
 	}
 
 	@Override
-	public void setWidgetValues(ITaskParameterView view) {
+	public void setWidgetValues(ISafeTaskParameterView view) {
 		for(Map.Entry<TaskParameterId<?>, IFieldDialog<?>> parameter : parameters.entrySet())
 		{
 			Object value = view.get(parameter.getKey());

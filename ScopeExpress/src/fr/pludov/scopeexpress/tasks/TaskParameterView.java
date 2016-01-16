@@ -5,7 +5,7 @@ import java.util.*;
 public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> implements ITaskParameterView {
 
 	
-	public TaskParameterView(ITaskParameterView rootConfig, ITaskParameterView config,
+	public TaskParameterView(ISafeTaskParameterView rootConfig, ISafeTaskParameterView config,
 			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
 		super(rootConfig, config, rootPreviousValues, previousValues);
 	}
