@@ -2,15 +2,12 @@ package fr.pludov.scopeexpress.tasks;
 
 import java.util.*;
 
-public class TaskParameterTestView implements ITaskParameterTestView {
+public class TaskParameterTestView extends TaskParameterBaseView<TaskParameterTestView> implements ITaskParameterTestView {
 	final static Object undecided = new Object();
 	
 	LinkedHashSet<String> globalErrors;
 	LinkedHashSet<String> topLevelErrors;
 	final Map<TaskParameterId<?>, String> fieldErrors;
-	
-	final Map<TaskParameterId<?>, Object> values = new LinkedHashMap<>();
-	final Map<String, TaskParameterTestView> launchers = new LinkedHashMap<>();
 	
 	public TaskParameterTestView(/*TaskParameterView parent*/)
 	{
@@ -21,22 +18,14 @@ public class TaskParameterTestView implements ITaskParameterTestView {
 	
 	@Override
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key) throws ParameterNotKnownException {
-		if (values.containsKey(key)) {
-			Object v = values.get(key);
-			if (v == undecided) {
-				throw new ParameterNotKnownException("Not known: " + key);
-			}
-			return (TYPE)v;
+		Object result = super.doGet(key);
+		if (result == undecided) {
+			throw new ParameterNotKnownException("Not known: " + key);
 		}
 		
-		return key.getDefault();
+		return (TYPE)result;
 	}
 	
-	@Override
-	public boolean hasValue(TaskParameterId<?> key) {
-		return values.containsKey(key);
-	}
-
 	@Override
 	public void setUndecided(TaskParameterId<?> key) {
 		values.put(key, undecided);		
@@ -48,53 +37,30 @@ public class TaskParameterTestView implements ITaskParameterTestView {
 	}
 	
 	@Override
-	public ITaskParameterTestView getSubTaskView(String tldId) {
-		// On le crée si il n'existe pas
-		TaskParameterTestView  result = launchers.get(tldId);
-		if (result == null) {
-			result = new TaskParameterTestView(/*this*/);
-			result.topLevelErrors = this.topLevelErrors;
-			launchers.put(tldId, result);
-		}
-
+	protected TaskParameterTestView buildSubTaskView(String tldId) {
+		TaskParameterTestView result = new TaskParameterTestView();
+		result.topLevelErrors = this.topLevelErrors;
 		return result;
 	}
 	
 	@Override
-	public String toString() {
-		StringBuilder result = new StringBuilder();
-		toString(result, 0);
-		return result.toString();
-		
+	public boolean hasValue(TaskParameterId<?> key) {
+		return values.containsKey(key);
 	}
+//	
+//	@Override
+//	public ITaskParameterTestView getSubTaskView(String tldId) {
+//		// On le crée si il n'existe pas
+//		TaskParameterTestView  result = launchers.get(tldId);
+//		if (result == null) {
+//			result = new TaskParameterTestView(/*this*/);
+//			result.topLevelErrors = this.topLevelErrors;
+//			launchers.put(tldId, result);
+//		}
+//
+//		return result;
+//	}
 	
-	private void indent(StringBuilder result, int ident)
-	{
-		for(int i = 0; i < ident; ++i) {
-			result.append(' ');
-		}
-	}
-	private void toString(StringBuilder result, int ident) {
-		for(Map.Entry<TaskParameterId<?>, Object> value : values.entrySet())
-		{
-			indent(result, ident);
-			result.append(value.getKey());
-			result.append(" = ");
-			result.append(value.getValue());
-			result.append("\n");
-			
-		}
-		for(Map.Entry<String, TaskParameterTestView> child : launchers.entrySet())
-		{
-			indent(result, ident);
-			result.append(child.getKey());
-			result.append(" = {\n");
-			child.getValue().toString(result, ident + 2);
-			indent(result, ident);
-			result.append("}");
-			result.append("\n");
-		}
-	}
 	
 	@Override
 	public void addTopLevelError(String error) {
