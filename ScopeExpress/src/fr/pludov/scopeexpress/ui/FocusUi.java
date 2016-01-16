@@ -1257,5 +1257,9 @@ public class FocusUi extends FocusUiDesign {
 	public long getSessionStartTime() {
 		return sessionStartTime;
 	}
+
+	public Database<Root> getDatabase() {
+		return database;
+	}
 	
 }

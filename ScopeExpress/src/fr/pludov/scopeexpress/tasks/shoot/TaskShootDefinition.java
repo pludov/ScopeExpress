@@ -22,14 +22,7 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 			setDefault(1);
 		}
 	};
-
-	public final StringParameterId target = new StringParameterId(this, "target", ParameterFlag.Input, ParameterFlag.Mandatory) {
-		{
-			setTitle("Objet ciblé");
-			setTooltip("Sera utilisé dans le nom de fichier");
-		}
-	};
-
+	
 	public final EnumParameterId<ShootKind> kind = new EnumParameterId<ShootKind>(this, "kind", ShootKind.class, ParameterFlag.Input, ParameterFlag.Mandatory) {
 		{
 			setTitle("Type de cliché");

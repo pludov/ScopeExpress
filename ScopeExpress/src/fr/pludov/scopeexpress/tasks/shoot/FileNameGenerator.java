@@ -5,6 +5,7 @@ import java.text.*;
 import java.util.*;
 import java.util.regex.*;
 
+import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.filterwheel.*;
 import fr.pludov.scopeexpress.ui.*;
 
@@ -39,7 +40,11 @@ public class FileNameGenerator {
 		result.add(new Substituer("TARGET") {
 			@Override
 			String proceed(String arg, TaskShoot task, TaskShootDefinition taskDef)  {
-				return task.get(taskDef.target);
+				Target currentTarget = focusUi.getDatabase().getRoot().getCurrentTarget();
+				if (currentTarget != null) {
+					return currentTarget.getName();
+				}
+				return "noname";
 			}
 		});
 		result.add(new Substituer("KIND") {
