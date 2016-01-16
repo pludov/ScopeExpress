@@ -1,18 +1,18 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.FlowLayout;
-import java.awt.LayoutManager;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
-import javax.swing.BoxLayout;
-import javax.swing.JPanel;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.ui.utils.DialogLayout;
-import net.miginfocom.swing.MigLayout;
+import fr.pludov.scopeexpress.ui.utils.*;
+import net.miginfocom.swing.*;
 
 public class ComposedConfigurationDialog implements IConfigurationDialog {
 	Map<TaskParameterId<?>, IFieldDialog<?>> parameters = new HashMap<>();
 	final JPanel panel;
+	final JLabel logicErrorLabel;
 	final MigLayout layout;
 	int childCount = 0;
 	
@@ -20,6 +20,10 @@ public class ComposedConfigurationDialog implements IConfigurationDialog {
 		this.panel = new JPanel();
 		layout =  null;
 		this.panel.setLayout(new DialogLayout());
+		this.logicErrorLabel = new JLabel();
+		this.logicErrorLabel.setForeground(Color.RED);
+		this.logicErrorLabel.setFont(this.logicErrorLabel.getFont().deriveFont(Font.BOLD));
+		this.panel.add(logicErrorLabel);
 	}
 
 	public void add(SimpleFieldDialog<?> dialog)
@@ -63,7 +67,7 @@ public class ComposedConfigurationDialog implements IConfigurationDialog {
 	}
 	
 	@Override
-	public void loadWidgetValues(ITaskParameterView view) {
+	public void loadWidgetValues(ITaskParameterBaseView view) {
 		for(Map.Entry<TaskParameterId<?>, IFieldDialog<?>> parameter : parameters.entrySet())
 		{
 			Object value = ((IFieldDialog)parameter.getValue()).get();
@@ -79,5 +83,21 @@ public class ComposedConfigurationDialog implements IConfigurationDialog {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public void setLogicErrors(ITaskParameterTestView testView) {
+		for(Map.Entry<TaskParameterId<?>, IFieldDialog<?>> parameter : parameters.entrySet())
+		{
+			String error = testView.getFieldError(parameter.getKey());
+			parameter.getValue().setLogicError(error);
+		}
+		List<String> errors = testView.getAllErrors();
+		if (!errors.isEmpty()) {
+			this.logicErrorLabel.setText(errors.get(0));
+		} else {
+			this.logicErrorLabel.setText(null);
+		}
+		
 	}
 }

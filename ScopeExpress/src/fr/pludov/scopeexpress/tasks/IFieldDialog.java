@@ -7,4 +7,6 @@ public interface IFieldDialog<DATATYPE> {
 	boolean hasError();
 	
 	IParameterEditionContext getContext();
+	
+	void setLogicError(String error);
 }

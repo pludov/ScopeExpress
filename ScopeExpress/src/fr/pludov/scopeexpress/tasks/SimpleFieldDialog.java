@@ -1,14 +1,11 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.GridLayout;
+import java.awt.*;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.text.View;
+import javax.swing.*;
+import javax.swing.text.*;
 
-import net.miginfocom.swing.MigLayout;
+import net.miginfocom.swing.*;
 
 /** Base pour les champs qui rentrent dans un layout nom: valeur (erreur) */
 public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATYPE> {
@@ -16,13 +13,14 @@ public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATY
 	final JPanel panel;
 	final JLabel title;
 	final JLabel error;
+	final JLabel logicError;
 	final IParameterEditionContext context;
 	
 	public SimpleFieldDialog(TaskParameterId<DATATYPE> id, IParameterEditionContext ipec) {
 		this.id = id;
 		this.context = ipec;
 		this.panel = new JPanel();
-		this.panel.setLayout(new MigLayout("ins 2", "[120px:120px:120px,trailing][grow,fill][left]", "[]"));
+		this.panel.setLayout(new MigLayout("ins 2", "[120px:120px:120px,trailing][grow,fill][left]", "[][]"));
 		this.title = new JLabel();
 		this.title.setAlignmentX(1);
 		if (id.title != null) {
@@ -57,6 +55,12 @@ public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATY
 		this.error.setForeground(Color.red);
 		this.error.setVisible(false);
 		this.panel.add(this.error, "cell 2 0");
+				
+		this.logicError = new JLabel();
+		this.logicError.setText(null);
+		this.logicError.setForeground(Color.red);
+		this.logicError.setVisible(true);
+		this.panel.add(this.logicError, "cell 0 1 3 1");
 	}
 	
 	
@@ -82,6 +86,10 @@ public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATY
 	public abstract boolean hasError();
 
 
+	@Override
+	public void setLogicError(String error) {
+		this.logicError.setText(error);
+	}
 
 	@Override
 	public IParameterEditionContext getContext() {

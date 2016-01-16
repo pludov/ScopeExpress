@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.tasks;
 
-import javax.swing.JPanel;
+import javax.swing.*;
 
 public interface IConfigurationDialog {
 	public JPanel getPanel();
@@ -15,8 +15,14 @@ public interface IConfigurationDialog {
 	void setWidgetValues(ITaskParameterView view);
 
 	/** Reporte la valeur de tous les widget d'édition vers la vue donnée*/
-	void loadWidgetValues(ITaskParameterView view);
+	void loadWidgetValues(ITaskParameterBaseView view);
 	
 	/** Est-ce que les valeurs sont dispo pour tous les champs ? */
 	boolean hasError();
+	
+	/** Une fois que chaque éditeur est content, on précise des erreurs de logique
+	 * Les erreurs des taches filles doivent aussi être montrées
+	 */
+	public void setLogicErrors(ITaskParameterTestView testView);
 }
+

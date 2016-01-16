@@ -118,7 +118,7 @@ public class TaskParameterPanel extends JPanel {
 			}
 		}
 
-		void getDialogValues(ITaskParameterView view)
+		void getDialogValues(ITaskParameterBaseView view)
 		{
 			if (dialog != null) {
 				dialog.loadWidgetValues(view);
@@ -142,6 +142,32 @@ public class TaskParameterPanel extends JPanel {
 			return false;
 		}
 
+		
+		// Affiche les erreurs (et les retire de testView)
+		void dispatchErrors(ITaskParameterTestView testView)
+		{
+			for(Map.Entry<String, Requirement> child : childs.entrySet())
+			{
+				child.getValue().dispatchErrors(testView.getSubTaskView(child.getKey()));
+			}
+			
+			dialog.setLogicErrors(testView);
+		}
+		
+		
+		boolean hasRootError() {
+			ITaskParameterTestView testView = new TaskParameterTestView();
+			getDialogValues(testView);
+			
+			forTask.validateSettings(focusUi, testView);
+			// Il faut les prendre maintenant car le dispatch va les effacer
+			boolean result = testView.hasError();
+			//dialog.setLogicErrors(testView);
+			dispatchErrors(testView);
+			
+			return result;
+		}
+		
 		void loadDefault(ITaskParameterView itp, ITaskParameterView config, ITaskOptionalParameterView lastUsed)
 		{
 			for(IParameterEditionContext desc : parameters) {
@@ -249,7 +275,7 @@ public class TaskParameterPanel extends JPanel {
 
 				@Override
 				public void run() {
-					if (!req.dialogHasError()) {
+					if ((!req.dialogHasError())&&(!req.hasRootError())) {
 						req.getDialogValues(view);
 						req.saveDefault(view,
 								focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(taskDef.getId()));
@@ -294,7 +320,7 @@ public class TaskParameterPanel extends JPanel {
 				@Override
 				public void run() {
 					// FIXME: update des paramètres ?
-					if (!req.dialogHasError()) {
+					if ((!req.dialogHasError())&&(!req.hasRootError())) {
 						req.getDialogValues(currentView);
 						jd.setVisible(false);
 					}

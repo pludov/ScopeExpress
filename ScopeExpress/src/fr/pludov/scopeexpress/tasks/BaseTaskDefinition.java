@@ -71,6 +71,20 @@ public abstract class BaseTaskDefinition {
 	public String getTitle() {
 		return title;
 	}
+
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView)
+	{
+		for(TaskLauncherDefinition child: this.taskLaunchers.values())
+		{
+			ITaskParameterTestView subTaskView = taskView.getSubTaskView(child.id);
+			for(TaskLauncherOverride<?> tlo : child.overrides) {
+				if (!subTaskView.hasValue(tlo.parameter)) {
+					subTaskView.setUndecided(tlo.parameter);
+				}
+			}
+			child.getStartedTask().validateSettings(focusUi, subTaskView);
+		}
+	}
 	
 	public TaskDefinitionRepository getRepository()
 	{
