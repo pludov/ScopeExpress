@@ -61,6 +61,24 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		return new TaskShoot(focusUi, tm, parentLauncher, this);
 	}
 
+	@Override
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view) {
+		if (focusUi.getCameraManager().getConnectedDevice() == null) {
+			view.addTopLevelError("Requiert une caméra connectée");
+		}
+			
+		Double exp;
+		try {
+			exp = view.get(exposure);
+			if (exp == null || exp.doubleValue()<= 0) {
+				view.addError(exposure, "Valeur invalide");
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
+		super.validateSettings(focusUi, view);
+	}
+	
 /*	@Override
 	public IConfigurationDialog parameterUi(List<TaskParameterId<?>> required) {
 		ComposedConfigurationDialog dialog = new ComposedConfigurationDialog();
