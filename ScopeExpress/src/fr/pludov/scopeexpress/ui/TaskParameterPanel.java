@@ -150,8 +150,9 @@ public class TaskParameterPanel extends JPanel {
 			{
 				child.getValue().dispatchErrors(testView.getSubTaskView(child.getKey()));
 			}
-			
-			dialog.setLogicErrors(testView);
+			if (dialog != null) {
+				dialog.setLogicErrors(testView);
+			}
 		}
 		
 		
