@@ -66,7 +66,7 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 	@Override
 	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view) {
 		if (focusUi.getCameraManager().getConnectedDevice() == null) {
-			view.addTopLevelError("Requiert une caméra connectée");
+			view.addTopLevelError(ITaskParameterTestView.cameraRequired);
 		}
 
 		String pathValue;

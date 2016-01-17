@@ -6,14 +6,6 @@ import fr.pludov.scopeexpress.ui.*;
 
 public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 {
-	public final IntegerParameterId minStarCount = 
-			new IntegerParameterId(this, "minStarCount", ParameterFlag.Input) {
-				{
-					setTitle("Nombre d'étoiles");
-					setTooltip("Ajuster le temps de pause pour avoir au moins ce nombre d'étoiles");
-					setDefault(25);
-				}
-			};
 	public final IntegerParameterId initialFocuserPosition = new IntegerParameterId(this, "initialFocuserPosition", ParameterFlag.Input, ParameterFlag.Mandatory) {
 		{
 			setTitle("Position ciblée sur le focuser");
@@ -59,11 +51,11 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	
 	public final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance()) {
 		{
-			shootExposure = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().exposure);
+//			shootExposure = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().exposure);
 			shootKind = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().kind);
 		}
 	};
-	TaskLauncherOverride<Double> shootExposure;
+//	TaskLauncherOverride<Double> shootExposure;
 	TaskLauncherOverride<ShootKind> shootKind;
 	
 	
@@ -81,6 +73,14 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	@Override
 	public TaskDetailView getViewer(FocusUi focusUi) {
 		return DefaultTaskView.wrapInTabWithMessages(focusUi, new TaskAutoFocusDetails(focusUi), "Détails");
+	}
+	
+	@Override
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
+		if (focusUi.getFocuserManager().getConnectedDevice() == null) {
+			taskView.addTopLevelError(ITaskParameterTestView.focuserRequired);
+		}
+		super.validateSettings(focusUi, taskView);
 	}
 	
 	

@@ -33,14 +33,14 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 		return new TaskFilterWheel(focusUi, tm, parentLauncher, this);
 	}
 
-/*	@Override
-	public IConfigurationDialog parameterUi(List<TaskParameterId<?>> required) {
-		ComposedConfigurationDialog dialog = new ComposedConfigurationDialog();
-		if (required.contains(bin)) {
-			dialog.add(new IntegerFieldDialog(bin).setTitleText("Binning"));
+
+	@Override
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
+		if (focusUi.getFilterWheelManager().getConnectedDevice() == null) {
+			taskView.addTopLevelError(ITaskParameterTestView.filterWheelRequired);
 		}
-		return dialog;
-	}*/
+		super.validateSettings(focusUi, taskView);
+	}
 	
 	private static final TaskFilterWheelDefinition tsd = new TaskFilterWheelDefinition();
 	public static final TaskFilterWheelDefinition getInstance() {

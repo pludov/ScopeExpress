@@ -26,4 +26,7 @@ public interface ITaskParameterTestView extends ITaskParameterBaseView{
 	/** Retourne (efface) toutes les erreurs */
 	public List<String> getAllErrors();
 	
+	public static final String focuserRequired = "Requiert un focuseur connecté";
+	public static final String cameraRequired = "Requiert une caméra connectée";
+	public static final String filterWheelRequired = "Requiert une roue à filtre connectée";
 }
