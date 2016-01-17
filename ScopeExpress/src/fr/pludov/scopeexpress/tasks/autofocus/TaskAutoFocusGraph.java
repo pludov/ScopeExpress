@@ -1,29 +1,14 @@
 package fr.pludov.scopeexpress.tasks.autofocus;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.LayoutManager;
-import java.awt.RenderingHints;
-import java.awt.Shape;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.GeneralPath;
-import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
-import java.util.ArrayList;
+import java.awt.*;
+import java.awt.geom.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.utils.*;
 
 public class TaskAutoFocusGraph extends JPanel {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -96,7 +81,7 @@ public class TaskAutoFocusGraph extends JPanel {
 		{
 			for(Image image : step.getValue())
 			{
-				Double fwhm = runningTask.getFwhm(image);
+				Double fwhm = TaskAutoFocus.getFwhm(runningTask.mosaic, image);
 				
 				if (fwhm == null) {
 					continue;

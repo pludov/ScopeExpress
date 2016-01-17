@@ -48,7 +48,7 @@ public class TaskAutoFocus extends BaseTask {
 	public TaskAutoFocus(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskAutoFocusDefinition tafd) {
 		super(focusUi, tm, parentLauncher, tafd);
 		this.focusUi = focusUi;
-		mosaic = focusUi.getMosaic();
+		mosaic = focusUi.getFocusMosaic();
 		this.images = new TreeMap<Integer, Map<Integer, List<Image>>>();
 		this.passCenter = new HashMap<>();
 	}
@@ -300,7 +300,7 @@ public class TaskAutoFocus extends BaseTask {
 		ChildLauncher shoot = new ChildLauncher(this, getDefinition().shoot) {
 			{
 				// FIXME: le temps de pause doit être ajusté !!!
-				set(TaskAutoFocus.this.getDefinition().shootExposure, 1.0);
+				// set(TaskAutoFocus.this.getDefinition().shootExposure, 1.0);
 				set(TaskAutoFocus.this.getDefinition().shootKind, ShootKind.TestExposure);
 			}
 			
@@ -473,7 +473,7 @@ public class TaskAutoFocus extends BaseTask {
 		}
 	}
 	
-	Double getFwhm(Image image)
+	static Double getFwhm(Mosaic mosaic, Image image)
 	{
 		int starCount = 0;
 		double result = 0;
@@ -533,7 +533,7 @@ public class TaskAutoFocus extends BaseTask {
 				Double min = null;
 				for(Image image : entry.getValue())
 				{
-					Double fwhm = getFwhm(image);
+					Double fwhm = getFwhm(mosaic, image);
 					if (fwhm != null && (min == null || min > fwhm)) {
 						min = fwhm;
 					}

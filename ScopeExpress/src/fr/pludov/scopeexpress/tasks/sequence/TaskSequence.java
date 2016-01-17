@@ -1,30 +1,19 @@
 package fr.pludov.scopeexpress.tasks.sequence;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.Map;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
 
-import javax.swing.JToolTip;
 import javax.swing.Timer;
 
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
-import fr.pludov.scopeexpress.openphd.IGuiderListener;
-import fr.pludov.scopeexpress.openphd.OpenPhdDevice;
-import fr.pludov.scopeexpress.openphd.OpenPhdQuery;
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.DeviceManager.Listener;
-import fr.pludov.scopeexpress.ui.FindStarTask;
-import fr.pludov.scopeexpress.ui.FocusUi;
-import fr.pludov.scopeexpress.ui.LoadMetadataTask;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.focus.MosaicListener.*;
+import fr.pludov.scopeexpress.openphd.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.autofocus.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.DeviceManager.*;
 
 public class TaskSequence extends BaseTask {
 	int imageCount;
@@ -78,6 +67,20 @@ public class TaskSequence extends BaseTask {
 	}
 
 	void doneFilter() {
+		interruptGuiderBeforeAutofocus();
+	}
+	
+	void interruptGuiderBeforeAutofocus()
+	{
+		doInterrupt();
+		doPause(new Runnable() {
+			@Override
+			public void run() {
+				interruptGuiderBeforeAutofocus();
+			}
+		});
+		
+		// FIXME: faire quelque chose !
 		startAutofocus();
 	}
 	
@@ -109,6 +112,7 @@ public class TaskSequence extends BaseTask {
 	void doneAutofocus()
 	{
 		startGuiding();
+		consecutiveCountWithoutChecking = 0;
 	}
 	
 	void startGuiding()
@@ -141,6 +145,7 @@ public class TaskSequence extends BaseTask {
 	}
 	
 	int consecutiveCountWithoutDithering;
+	int consecutiveCountWithoutChecking;
 	
 	void startShoots()
 	{
@@ -266,12 +271,40 @@ public class TaskSequence extends BaseTask {
 		setFinalStatus(BaseStatus.Success);
 	}
 	
+	void startCheckFocus()
+	{
+		ChildLauncher checkFocus = new ChildLauncher(this, getDefinition().focusCheck) {
+			@Override
+			public void onDone(BaseTask bt) {
+				if (bt.getStatus() == BaseStatus.Success) {
+					Integer result = bt.get(TaskCheckFocusDefinition.getInstance().passed);
+					if (result != null && result.intValue() != 0) {
+						consecutiveCountWithoutChecking = 0;
+						nextImage();
+					} else {
+						interruptGuiderBeforeAutofocus();
+					}
+				} else {
+					setFinalStatus(BaseStatus.Error);
+				}
+			};
+		};
+		logger.info("Vérification de la mise au point...");
+		checkFocus.start();
+	}
+	
 	void nextImage()
 	{
 		if (imageCount >= get(getDefinition().shootCount)) {
 			doneShoots();
 			return;
 		}
+		
+		if (consecutiveCountWithoutChecking > 0) {
+			startCheckFocus();
+			return;
+		}
+		
 		// Est-ce qu'on doit faire une vérification de focus ?
 		
 		// Est-ce qu'on doit fair un dithering ?
@@ -286,6 +319,7 @@ public class TaskSequence extends BaseTask {
 		listenPhd();
 
 		imageCount++;
+		consecutiveCountWithoutChecking++;
 		ChildLauncher shoot = new ChildLauncher(this, getDefinition().shoot) {
 			@Override
 			public void onDone(BaseTask bt) {

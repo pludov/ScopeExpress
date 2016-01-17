@@ -17,6 +17,12 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 				}
 			};
 
+	final TaskLauncherDefinition focusCheck = new TaskLauncherDefinition(this, "checkFocus", TaskCheckFocusDefinition.getInstance()) {
+		{
+			
+		}
+	};
+			
 	final TaskLauncherDefinition autofocus = new TaskLauncherDefinition(this, "autofocus", TaskAutoFocusDefinition.getInstance()) {
 		{
 			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
