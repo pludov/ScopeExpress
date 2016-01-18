@@ -67,7 +67,28 @@ public class TaskSequence extends BaseTask {
 	}
 
 	void doneFilter() {
-		interruptGuiderBeforeAutofocus();
+		InitialFocusHandling focusHandling = get(getDefinition().initialFocusHandling);
+		if (focusHandling == null) {
+			setFinalStatus(BaseStatus.Error, "initialFocusHandling not set!");
+		}
+		
+		switch(focusHandling)
+		{
+		case Forced:
+			// On appelle interrupt car on ne connait pas l'état php ici (c'est le dernier état en fait...
+			interruptGuiderBeforeAutofocus();
+			return;
+			
+		case NotVerified:
+			consecutiveCountWithoutChecking = 0;
+			startGuiding();
+			return;
+		case Verified:
+			consecutiveCountWithoutChecking = Integer.MAX_VALUE;
+			startGuiding();
+			return;
+		}
+		setFinalStatus(BaseStatus.Error, "invalid initialFocusHandling");
 	}
 	
 	void interruptGuiderBeforeAutofocus()
@@ -111,8 +132,8 @@ public class TaskSequence extends BaseTask {
 	
 	void doneAutofocus()
 	{
-		startGuiding();
 		consecutiveCountWithoutChecking = 0;
+		startGuiding();
 	}
 	
 	void startGuiding()

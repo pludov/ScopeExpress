@@ -10,17 +10,26 @@ import fr.pludov.scopeexpress.ui.*;;
 public class TaskSequenceDefinition extends BaseTaskDefinition {
 	final IntegerParameterId shootCount = 
 			new IntegerParameterId(this, "shootCount", ParameterFlag.Input) {
-				{
-					setTitle("Nombre de prises");
-					setTooltip("Nombre de prises de vues");
-					setDefault(10);
-				}
-			};
+		{
+			setTitle("Nombre de prises");
+			setTooltip("Nombre de prises de vues");
+			setDefault(10);
+		}
+	};
 
+	final EnumParameterId<InitialFocusHandling> initialFocusHandling = 
+			new EnumParameterId<InitialFocusHandling>(this, "initialFocusHandling", InitialFocusHandling.class, ParameterFlag.Input) {
+		{
+			setTitle("M.A.P initiale");
+			setTooltip("Contrôle la mise au point effectuée en début de séquence");
+			setDefault(InitialFocusHandling.Forced);
+		}
+	};
+	
 	final IntegerParameterId focusCheckInterval = 
 			new IntegerParameterId(this, "checkFocusInterval", ParameterFlag.Input) {
 				{
-					setTitle("Clichés entre chaque vérif de M.A.P:");
+					setTitle("Clichés entre chaque vérif de M.A.P");
 					setTooltip("Vérifier la mise au points toutes les N images (vide pour désactiver)");
 					setDefault(1);
 				}
