@@ -299,13 +299,13 @@ public class TaskSequence extends BaseTask {
 			doneShoots();
 			return;
 		}
-		
-		if (consecutiveCountWithoutChecking > 0) {
+
+		// Est-ce qu'on doit faire une vérification de focus ?
+		Integer focusCheckInterval = get(getDefinition().focusCheckInterval);
+		if (focusCheckInterval != null && consecutiveCountWithoutChecking >= focusCheckInterval) {
 			startCheckFocus();
 			return;
 		}
-		
-		// Est-ce qu'on doit faire une vérification de focus ?
 		
 		// Est-ce qu'on doit fair un dithering ?
 		

@@ -17,6 +17,15 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 				}
 			};
 
+	final IntegerParameterId focusCheckInterval = 
+			new IntegerParameterId(this, "checkFocusInterval", ParameterFlag.Input) {
+				{
+					setTitle("Clichés entre chaque vérif de M.A.P:");
+					setTooltip("Vérifier la mise au points toutes les N images (vide pour désactiver)");
+					setDefault(1);
+				}
+			};
+
 	final TaskLauncherDefinition focusCheck = new TaskLauncherDefinition(this, "checkFocus", TaskCheckFocusDefinition.getInstance()) {
 		{
 			
