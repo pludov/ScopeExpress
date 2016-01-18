@@ -2,6 +2,7 @@ package fr.pludov.scopeexpress.scope.ascom;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 
 import org.apache.log4j.*;
 import org.jawin.*;
@@ -31,6 +32,13 @@ public class AscomCamera extends WorkThread implements Camera {
 	volatile TemperatureParameters temperatures;
 	
 	String connectedPropertyName;
+	
+	/**
+	 *  Liste des propriétés qui ont déclenché une erreur en lecture
+	 *  (pour ne pas boucler sur les erreurs. Réinitialisé à la connection)
+	 */
+	
+	Map<String, Boolean> cameraSupportedProperties = new HashMap<>();
 
 	public AscomCamera(String driver) {
 		super();
@@ -63,10 +71,24 @@ public class AscomCamera extends WorkThread implements Camera {
 	
 	private <T> T getCapacity(String name, T defaultValue)
 	{
+		Boolean supported = cameraSupportedProperties.get(name);
+		if (supported != null && !supported.booleanValue()) {
+			return defaultValue;
+		}
+		
 		try {
-			return (T)camera.get(name);
+			T result = (T)camera.get(name);
+			if (supported == null) {
+				cameraSupportedProperties.put(name, Boolean.TRUE);
+			}
+			return result;
 		} catch(COMException  t) {
-			t.printStackTrace();
+			if (supported == null) {
+				logger.info("Property not supported: " + name, t);
+				cameraSupportedProperties.put(name, Boolean.FALSE);
+			} else {
+				logger.error("Error getting property: " + name, t);
+			}
 			return defaultValue;
 		}
 	}
@@ -117,7 +139,9 @@ public class AscomCamera extends WorkThread implements Camera {
 		File imageFits = null;
 		if (camera != null) {
 			connectStatus = (Boolean)camera.get(connectedPropertyName);
-
+			if (!connectStatus) {
+				cameraSupportedProperties.clear();
+			}
 			if (currentShoot != null) {
 				imageReady = (Boolean)camera.get("ImageReady");
 				if (imageReady) {
@@ -238,7 +262,7 @@ public class AscomCamera extends WorkThread implements Camera {
 								imageFits = targetFile;
 								// On a un tableau de int (à peu près...) 
 								// On veut écrire un fits avec.
-								logger.info("saved: " + imageFits);
+								logger.info("saved: " + imageFits.getAbsolutePath());
 							}
 						}
 					} catch(Throwable e) {
@@ -311,6 +335,7 @@ public class AscomCamera extends WorkThread implements Camera {
 			}
 			connectedPropertyName = "Connected";
 			camera.put(connectedPropertyName, true);
+			this.cameraSupportedProperties.clear();
 			refreshCapacity();
 			refreshParameters();
 			refreshTemperatures();
