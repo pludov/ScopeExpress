@@ -1,12 +1,9 @@
 package fr.pludov.scopeexpress.ui.utils;
 
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.Insets;
-import java.awt.LayoutManager2;
-import java.awt.Rectangle;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.*;
+import java.util.List;
 
 /** 
  * Empile simplement des dialogue de input
@@ -56,7 +53,6 @@ public class DialogLayout implements LayoutManager2 {
 	List<ComponentState> states = new ArrayList<>();
 	IdentityHashMap<Component, ComponentState> childs = new IdentityHashMap<>();
 	
-	
 	public DialogLayout() {
 	}
 
@@ -92,7 +88,9 @@ public class DialogLayout implements LayoutManager2 {
 				w = min.width;
 			}
 			cs.component.setBounds(new Rectangle(x0, y, w, min.height));
-			y += min.height;
+			if (cs.component.isVisible()) {
+				y += min.height;
+			}
 		}
 	}
 	@Override
@@ -128,7 +126,9 @@ public class DialogLayout implements LayoutManager2 {
 		
 		for(ComponentState cs : states) {
 			Dimension d = cs.getMinimumSize();
-			h += d.height;
+			if (cs.component.isVisible()) {
+				h += d.height;
+			}
 			if (w < d.width) {
 				w = d.width;
 			}
@@ -151,8 +151,9 @@ public class DialogLayout implements LayoutManager2 {
 			if (w < d.width) {
 				w = d.width;
 			}
-
-			h += cs.getMinimumSize().height;
+			if (cs.component.isVisible()) {
+				h += cs.getMinimumSize().height;
+			}
 		}
 
         w+= insets.left + insets.right;

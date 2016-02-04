@@ -8,6 +8,7 @@ import javax.swing.event.*;
 import javax.swing.tree.*;
 
 import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
 
 public class TaskConfigurationPanel extends JPanel {
 	final TaskDefinitionRepository repository;
@@ -71,7 +72,15 @@ public class TaskConfigurationPanel extends JPanel {
 	{
 		TaskParameterPanel result = parameterPanels.get(btd);
 		if (result == null) {
-			result = new TaskParameterPanel(focusUi, btd) {
+			ValidationContext configContext = new ValidationContext()
+			{
+				@Override
+				public boolean isConfiguration() {
+					return true;
+				}
+			};
+			
+			result = new TaskParameterPanel(focusUi, btd, configContext) {
 				@Override
 				public boolean display(TaskParameterId<?> param, TaskLauncherOverride<?> override) {
 					if (param.is(ParameterFlag.PresentInConfig)) {
@@ -85,7 +94,7 @@ public class TaskConfigurationPanel extends JPanel {
 					return false;
 				};
 			};
-			result.loadAndEdit(focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(btd.getId()));
+			result.init();
 			
 			parameterPanels.put(btd, result);
 		}
@@ -103,7 +112,7 @@ public class TaskConfigurationPanel extends JPanel {
 			ISafeTaskParameterView subTaskView = focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(def.getId());
 			
 			
-			tpp.req.getDialogValues(subTaskView);
+			tpp.loadDialogValues(subTaskView, false);
 			
 		}
 	}
@@ -111,7 +120,7 @@ public class TaskConfigurationPanel extends JPanel {
 	public boolean dialogHasError() {
 		for (Map.Entry<BaseTaskDefinition, TaskParameterPanel> item : parameterPanels.entrySet()) {
 			TaskParameterPanel tpp = item.getValue();
-			if (tpp.req.dialogHasError()) {
+			if (tpp.hasError) {
 				return true;
 			}
 		}

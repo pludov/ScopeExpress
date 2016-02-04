@@ -11,8 +11,8 @@ public class IntegerParameterId extends TaskParameterId<Integer> {
 	}
 
 	@Override
-	public IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-		return new IntegerFieldDialog(this, ipec);
+	public IFieldDialog<Integer> buildDialog(FocusUi focusUi) {
+		return new IntegerFieldDialog(this);
 	}
 	
 
@@ -33,7 +33,7 @@ public class IntegerParameterId extends TaskParameterId<Integer> {
 	}
 
 	@Override
-	public Integer sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Integer currentValue) {
+	public Integer sanitizeValue(FocusUi focusUi, Integer currentValue) {
 		return currentValue;
 	}
 }

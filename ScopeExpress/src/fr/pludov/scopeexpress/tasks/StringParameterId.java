@@ -1,10 +1,8 @@
 package fr.pludov.scopeexpress.tasks;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 public class StringParameterId extends TaskParameterId<String> {
 
@@ -13,8 +11,8 @@ public class StringParameterId extends TaskParameterId<String> {
 	}
 
 	@Override
-	public SimpleFieldDialog<String> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-		return new StringFieldDialog(this, ipec);
+	public SimpleFieldDialog<String> buildDialog(FocusUi focusUi) {
+		return new StringFieldDialog(this);
 	}
 
 
@@ -35,7 +33,7 @@ public class StringParameterId extends TaskParameterId<String> {
 	}
 	
 	@Override
-	public String sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, String currentValue) {
+	public String sanitizeValue(FocusUi focusUi, String currentValue) {
 		return currentValue;
 	}
 }

@@ -13,8 +13,8 @@ public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskPara
 	}
 
 	@Override
-	IFieldDialog<EnumClass> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-		return new EnumFieldDialog<>(this, ipec);
+	public IFieldDialog<EnumClass> buildDialog(FocusUi focusUi) {
+		return new EnumFieldDialog<>(this);
 	}
 	
 
@@ -39,7 +39,7 @@ public class EnumParameterId<EnumClass extends Enum<EnumClass>> extends TaskPara
 	}
 
 	@Override
-	public EnumClass sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, EnumClass currentValue) {
+	public EnumClass sanitizeValue(FocusUi focusUi, EnumClass currentValue) {
 		if (currentValue == null) {
 			return (EnumClass) enumClass.getEnumConstants()[0];
 		}

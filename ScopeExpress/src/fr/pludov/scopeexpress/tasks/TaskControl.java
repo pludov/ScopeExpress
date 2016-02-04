@@ -1,17 +1,16 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Date;
+import java.awt.event.*;
+import java.util.*;
 
-import javax.swing.JButton;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.ui.TaskParameterPanel;
-import fr.pludov.scopeexpress.ui.resources.IconProvider;
-import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.resources.*;
+import fr.pludov.scopeexpress.ui.resources.IconProvider.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class TaskControl extends TaskControlDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -36,8 +35,15 @@ public class TaskControl extends TaskControlDesign {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (currentTask != null) {
-					TaskParameterPanel tpd = new TaskParameterPanel(currentTask.focusUi, currentTask.getDefinition());
-					tpd.editCurrentParameter(SwingUtilities.getWindowAncestor(TaskControl.this), currentTask);
+					ValidationContext vc = new ValidationContext() {
+						@Override
+						public boolean isConfiguration() {
+							return false;
+						}
+					};
+					TaskParameterPanel tpd = new TaskParameterPanel(currentTask.focusUi, currentTask.getDefinition(), vc);
+					tpd.showEditDialog(SwingUtilities.getWindowAncestor(TaskControl.this), currentTask);
+					// tpd.editCurrentParameter(SwingUtilities.getWindowAncestor(TaskControl.this), currentTask);
 				}
 			}
 		});

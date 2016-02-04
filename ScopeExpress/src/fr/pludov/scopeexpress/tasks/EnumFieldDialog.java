@@ -5,13 +5,14 @@ import java.util.*;
 
 import javax.swing.*;
 
+import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 
 public class EnumFieldDialog<EnumClass extends Enum<EnumClass>> extends SimpleFieldDialog<EnumClass> {
 	JComboBox<EnumClass> combo;
 	
-	public EnumFieldDialog(EnumParameterId<EnumClass> ti, IParameterEditionContext ipec) {
-		super(ti, ipec);
+	public EnumFieldDialog(EnumParameterId<EnumClass> ti) {
+		super(ti);
 		
 		this.combo = new JComboBox<>(ti.enumClass.getEnumConstants());
 		this.combo.setRenderer(new ToStringListCellRenderer<>(combo.getRenderer(), new UseTitleProperty()));
@@ -22,6 +23,17 @@ public class EnumFieldDialog<EnumClass extends Enum<EnumClass>> extends SimpleFi
 		panel.setMaximumSize(new Dimension(max.width, panel.getPreferredSize().height));
 	}
 
+	@Override
+	public void addListener(Runnable onChange) {
+		Utils.addComboChangeListener(combo, onChange);
+	}
+	
+	@Override
+	public void adapt(TaskFieldStatus<EnumClass> tfs) {
+		super.adapt(tfs);
+		this.combo.setEnabled(tfs.isEditable());
+	}
+	
 	@Override
 	public void set(EnumClass value) {
 		this.combo.setSelectedItem(value);

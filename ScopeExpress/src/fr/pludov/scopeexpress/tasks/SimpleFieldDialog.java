@@ -5,6 +5,7 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.text.*;
 
+import fr.pludov.scopeexpress.ui.*;
 import net.miginfocom.swing.*;
 
 /** Base pour les champs qui rentrent dans un layout nom: valeur (erreur) */
@@ -14,11 +15,11 @@ public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATY
 	final JLabel title;
 	final JLabel error;
 	final JLabel logicError;
-	final IParameterEditionContext context;
+	TaskParameterGroup container;
+	Object containerData;
 	
-	public SimpleFieldDialog(TaskParameterId<DATATYPE> id, IParameterEditionContext ipec) {
+	public SimpleFieldDialog(TaskParameterId<DATATYPE> id) {
 		this.id = id;
-		this.context = ipec;
 		this.panel = new JPanel();
 		this.panel.setLayout(new MigLayout("ins 2", "[120px:120px:120px,trailing][grow,fill][left]", "[][]"));
 		this.title = new JLabel();
@@ -92,7 +93,46 @@ public abstract class SimpleFieldDialog<DATATYPE> implements IFieldDialog<DATATY
 	}
 
 	@Override
-	public IParameterEditionContext getContext() {
-		return context;
+	public void adapt(TaskFieldStatus<DATATYPE> tfs) {
+		if (this.panel.isVisible() != tfs.isVisible()) {
+			this.panel.setVisible(tfs.isVisible());
+			JPanel parent = (JPanel)this.panel.getParent();
+			if (parent != null) {
+				parent.revalidate();
+			}
+		}
+	}
+
+	@Override
+	public JPanel getPanel() {
+		return panel;
+	}
+
+
+
+	@Override
+	public TaskParameterGroup getContainer() {
+		return container;
+	}
+
+
+
+	@Override
+	public void setContainer(TaskParameterGroup container) {
+		this.container = container;
+	}
+
+
+
+	@Override
+	public Object getContainerData() {
+		return containerData;
+	}
+
+
+
+	@Override
+	public void setContainerData(Object containerData) {
+		this.containerData = containerData;
 	}
 }

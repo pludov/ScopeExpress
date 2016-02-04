@@ -1,25 +1,9 @@
 package fr.pludov.scopeexpress.tasks.javascript;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContinuationPending;
-import org.mozilla.javascript.NativeArray;
-import org.mozilla.javascript.NativeObject;
-import org.mozilla.javascript.Script;
-import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.IntegerParameterId;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskDetailView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocus;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDetails;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class TaskJavascriptDefinition extends BaseTaskDefinition {
 	

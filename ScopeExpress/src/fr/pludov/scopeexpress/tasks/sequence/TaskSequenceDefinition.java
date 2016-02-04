@@ -5,7 +5,8 @@ import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
 import fr.pludov.scopeexpress.tasks.guider.*;
 import fr.pludov.scopeexpress.tasks.shoot.*;
-import fr.pludov.scopeexpress.ui.*;;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.TaskFieldStatus.*;;
 
 public class TaskSequenceDefinition extends BaseTaskDefinition {
 	final IntegerParameterId shootCount = 
@@ -71,6 +72,26 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 	@Override
 	public BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher) {
 		return new TaskSequence(focusUi, tm, parentLauncher, this);
+	}
+	
+	@Override
+	public void declareControlers(final TaskParameterPanel td, final SubTaskPath path) {
+		td.addControler(path.forParameter(focusCheckInterval), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus() {
+				Integer count;
+				try {
+					count = (Integer)td.getParameterValue(path.forParameter(shootCount));
+					if (count == null || count.intValue() < 2 ) {
+						return new TaskFieldStatus(Status.MeaningLess);
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+				return new TaskFieldStatus(Status.Visible);
+			}
+		});
+		
+		super.declareControlers(td, path);
 	}
 	
 	private static TaskSequenceDefinition instance;

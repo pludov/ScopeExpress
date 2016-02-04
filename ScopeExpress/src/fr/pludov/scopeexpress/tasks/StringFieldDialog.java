@@ -2,8 +2,8 @@ package fr.pludov.scopeexpress.tasks;
 
 public class StringFieldDialog extends TextFieldDialog<String> {
 
-	public StringFieldDialog(TaskParameterId<String> id, IParameterEditionContext ipec) {
-		super(id, ipec);
+	public StringFieldDialog(TaskParameterId<String> id) {
+		super(id);
 		textField.setColumns(32);
 	}
 

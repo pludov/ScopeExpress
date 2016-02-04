@@ -2,8 +2,8 @@ package fr.pludov.scopeexpress.tasks;
 
 public class IntegerFieldDialog extends TextFieldDialog<Integer> {
 
-	public IntegerFieldDialog(TaskParameterId<Integer> id, IParameterEditionContext ipec) {
-		super(id, ipec);
+	public IntegerFieldDialog(TaskParameterId<Integer> id) {
+		super(id);
 		textField.setColumns(10);
 	}
 

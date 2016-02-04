@@ -3,6 +3,7 @@ package fr.pludov.scopeexpress.tasks;
 import java.util.*;
 
 import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.TaskFieldStatus.*;
 
 /** Conserve la définition de chaque paramètre, et comment les présenter à l'utilisateur */
 public abstract class BaseTaskDefinition {
@@ -11,6 +12,10 @@ public abstract class BaseTaskDefinition {
 	final Map<String, TaskParameterId<?>> parameters;
 	final Map<String, TaskLauncherDefinition> taskLaunchers;
 	final TaskDefinitionRepository repository;
+	
+	public interface ValidationContext {
+		boolean isConfiguration();
+	};
 	
 	public BaseTaskDefinition(WritableTaskDefinitionRepository repository, String id, String defaultTitle) {
 		this.repository = repository;
@@ -54,25 +59,12 @@ public abstract class BaseTaskDefinition {
 		t.addAll(taskLaunchers.keySet());
 		return t;
 	}
-	
-	public IConfigurationDialog parameterUi(FocusUi focusUi, List<? extends IParameterEditionContext> required)
-	{
-		ComposedConfigurationDialog ccd = new ComposedConfigurationDialog();
-		for(IParameterEditionContext paramCtxt : required)
-		{
-			IFieldDialog<?> ifd = paramCtxt.getParameter().buildDialog(focusUi, paramCtxt);
-			if (ifd instanceof SimpleFieldDialog<?>) {
-				ccd.add((SimpleFieldDialog<?>) ifd);
-			}
-		}
-		return ccd;
-	}
 
 	public String getTitle() {
 		return title;
 	}
 
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView)
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView, ValidationContext validationContext)
 	{
 		for(TaskLauncherDefinition child: this.taskLaunchers.values())
 		{
@@ -82,7 +74,7 @@ public abstract class BaseTaskDefinition {
 					subTaskView.setUndecided(tlo.parameter);
 				}
 			}
-			child.getStartedTask().validateSettings(focusUi, subTaskView);
+			child.getStartedTask().validateSettings(focusUi, subTaskView, validationContext);
 		}
 	}
 	
@@ -95,6 +87,29 @@ public abstract class BaseTaskDefinition {
 	{
 		return (WritableTaskDefinitionRepository) BuiltinTaskDefinitionRepository.getInstance();
 	}
+	
+	
+	public void declareControlers(TaskParameterPanel td, SubTaskPath path)
+	{
+		for(TaskLauncherDefinition child: this.taskLaunchers.values())
+		{
+			child.startedTask.declareControlers(td, path.forChild(child));
+			for(final TaskLauncherOverride<?> override : child.overrides)
+			{
+				// On en met un qui dit qu'on ne sait pas.
+				td.addControler(path.forChild(child).forParameter(override.parameter), new TaskFieldControler() {
+
+					@Override
+					public TaskFieldStatus getFieldStatus() {
+						return new TaskFieldStatus(Status.MeaningLess);
+					}
+				});
+				
+			}
+		}
+		
+	}
+	
 	
 	@Override
 	public String toString() {

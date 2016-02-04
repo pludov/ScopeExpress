@@ -16,8 +16,8 @@ public final class CameraBinFieldDialog extends ComboFieldDialog<Integer> {
 
 	Camera camera;
 
-	public CameraBinFieldDialog(FocusUi focusUi, TaskParameterId<Integer> ti, IParameterEditionContext ipec) {
-		super(ti, ipec);
+	public CameraBinFieldDialog(FocusUi focusUi, TaskParameterId<Integer> ti) {
+		super(ti);
 		this.focusUi = focusUi;
 		loadDevice();
 		focusUi.getCameraManager().listeners.addListener(this.listenerOwner, new Listener() {
@@ -86,7 +86,7 @@ public final class CameraBinFieldDialog extends ComboFieldDialog<Integer> {
 		return bins;
 	}
 
-	public static Integer sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Integer currentValue) {
+	public static Integer sanitizeValue(FocusUi focusUi, Integer currentValue) {
 		List<Integer> bins = getBinValues(focusUi.getCameraManager().getConnectedDevice());
 		if (currentValue == null || !bins.contains(currentValue)) {
 			return bins.get(0);

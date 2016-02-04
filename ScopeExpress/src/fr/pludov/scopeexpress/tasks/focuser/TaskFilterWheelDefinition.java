@@ -9,13 +9,13 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 
 	public final StringParameterId filter = new StringParameterId(this, "filter", ParameterFlag.Input) {
 		@Override
-		public SimpleFieldDialog<String> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-			return new FilterNameFieldDialog(focusUi, this, ipec);
+		public SimpleFieldDialog<String> buildDialog(FocusUi focusUi) {
+			return new FilterNameFieldDialog(focusUi, this);
 		}
 		
 		@Override
-		public String sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, String currentValue) {
-			return FilterNameFieldDialog.sanitizeValue(focusUi, paramCtxt, currentValue);
+		public String sanitizeValue(FocusUi focusUi, String currentValue) {
+			return FilterNameFieldDialog.sanitizeValue(focusUi, currentValue);
 		}
 
 		{
@@ -35,11 +35,11 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 
 
 	@Override
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
-		if (focusUi.getFilterWheelManager().getConnectedDevice() == null) {
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView, ValidationContext validationContext) {
+		if (validationContext.isConfiguration() == false && focusUi.getFilterWheelManager().getConnectedDevice() == null) {
 			taskView.addTopLevelError(ITaskParameterTestView.filterWheelRequired);
 		}
-		super.validateSettings(focusUi, taskView);
+		super.validateSettings(focusUi, taskView, validationContext);
 	}
 	
 	private static final TaskFilterWheelDefinition tsd = new TaskFilterWheelDefinition();

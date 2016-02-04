@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.swing.*;
 
+import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 
 public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
@@ -12,8 +13,8 @@ public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
 	JComboBox<DATA> combo;
 	DATA previousValue;
 
-	public ComboFieldDialog(TaskParameterId<DATA> ti, IParameterEditionContext ipec) {
-		super(ti, ipec);
+	public ComboFieldDialog(TaskParameterId<DATA> ti) {
+		super(ti);
 		
 		this.combo = new JComboBox<DATA>();
 		this.combo.setEditable(true);
@@ -31,6 +32,17 @@ public abstract class ComboFieldDialog<DATA> extends SimpleFieldDialog<DATA> {
 
 		Dimension max = panel.getMaximumSize();
 		panel.setMaximumSize(new Dimension(max.width, panel.getPreferredSize().height));
+	}
+	
+	@Override
+	public void addListener(Runnable onChange) {
+		Utils.addComboChangeListener(combo, onChange);
+	}
+	
+	@Override
+	public void adapt(TaskFieldStatus<DATA> tfs) {
+		super.adapt(tfs);
+		this.combo.setEnabled(tfs.isEditable());
 	}
 
 	protected abstract String getStringFor(DATA value);

@@ -59,7 +59,7 @@ public abstract class TaskParameterId<TYPE> {
 		return flags.contains(pf);
 	}
 	
-	abstract IFieldDialog<TYPE> buildDialog(FocusUi focusUi, IParameterEditionContext ctxt);
+	public abstract IFieldDialog<TYPE> buildDialog(FocusUi focusUi/*, IParameterEditionContext ctxt*/);
 	
 	public TYPE getDefault() {
 		return defaultValue;
@@ -74,9 +74,37 @@ public abstract class TaskParameterId<TYPE> {
 	public abstract TYPE fromJavascript(Object o, Scriptable scope);
 
 	/** Choisi une bonne valeur de départ */
-	public abstract TYPE sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, TYPE currentValue);
+	public abstract TYPE sanitizeValue(FocusUi focusUi, TYPE currentValue);
 
 	public BaseTaskDefinition getTaskDefinition() {
 		return taskDefinition;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public EnumSet<ParameterFlag> getFlags() {
+		return flags;
+	}
+
+	public TYPE getDefaultValue() {
+		return defaultValue;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public String getTooltip() {
+		return tooltip;
+	}
+
+	public static EnumSet<ParameterFlag> getExclusive() {
+		return exclusive;
+	}
+
+	public boolean requireLastValueSave() {
+		return is(ParameterFlag.Input) && (!is(ParameterFlag.DoNotPresentLasValue)) && (!is(ParameterFlag.PresentInConfig)) && (!is(ParameterFlag.PresentInConfigForEachUsage));
 	}
 }

@@ -1,16 +1,14 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.text.DecimalFormat;
-import java.text.ParseException;
-import java.text.ParsePosition;
+import java.text.*;
 
 public class DoubleFieldDialog extends TextFieldDialog<Double> {
 	DecimalFormat df;
 	
-	public DoubleFieldDialog(TaskParameterId<Double> id, IParameterEditionContext ipec) {
-		super(id, ipec);
+	public DoubleFieldDialog(TaskParameterId<Double> id) {
+		super(id);
 		textField.setColumns(12);
-		df = new DecimalFormat("0.#");
+		df = new DecimalFormat("0.###");
 	}
 
 	public void setNumberFormat(DecimalFormat nf)

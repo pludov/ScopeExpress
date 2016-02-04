@@ -1,25 +1,8 @@
 package fr.pludov.scopeexpress.tasks.platesolve;
 
-import java.util.List;
-
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.BuiltinTaskDefinitionRepository;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.ComposedConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.DoubleParameterId;
-import fr.pludov.scopeexpress.tasks.IConfigurationDialog;
-import fr.pludov.scopeexpress.tasks.IntegerFieldDialog;
-import fr.pludov.scopeexpress.tasks.IntegerParameterId;
-import fr.pludov.scopeexpress.tasks.ObjectParameterId;
-import fr.pludov.scopeexpress.tasks.ParameterFlag;
-import fr.pludov.scopeexpress.tasks.TaskDetailView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskLauncherOverride;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.tasks.shoot.TaskShootDefinition;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;
 
 /** FIXME: on veut changer de filtre peut être ? Dans ce cas, il faut faire un refocus ? */
 public final class PlateSolveTaskDefinition extends BaseTaskDefinition

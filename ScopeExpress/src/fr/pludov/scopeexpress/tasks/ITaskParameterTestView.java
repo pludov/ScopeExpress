@@ -6,8 +6,7 @@ import java.util.*;
 public interface ITaskParameterTestView extends ITaskParameterBaseView{
 	@Override
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key) throws ParameterNotKnownException;
-	@Override
-	public <TYPE> void set(TaskParameterId<TYPE> key, TYPE value);
+	
 	public void setUndecided(TaskParameterId<?> key);
 	/** Est-ce que set (ou setUndecided) a déjà été appellé ? */
 	public boolean hasValue(TaskParameterId<?> key);

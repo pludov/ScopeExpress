@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.tasks;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 public abstract class ObjectParameterId<OBJECT> extends TaskParameterId<OBJECT> {
 	final Class<OBJECT> objectClass;
@@ -11,7 +11,7 @@ public abstract class ObjectParameterId<OBJECT> extends TaskParameterId<OBJECT> 
 	}
 
 	@Override
-	IFieldDialog<OBJECT> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
+	public IFieldDialog<OBJECT> buildDialog(FocusUi focusUi) {
 		return null;
 //		throw new RuntimeException("not implemented");
 	}

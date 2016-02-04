@@ -14,8 +14,8 @@ public class FilterNameFieldDialog extends ComboFieldDialog<String> {
 
 	FilterWheel fw;
 
-	public FilterNameFieldDialog(FocusUi focusUi, TaskParameterId<String> ti, IParameterEditionContext ipec) {
-		super(ti, ipec);
+	public FilterNameFieldDialog(FocusUi focusUi, TaskParameterId<String> ti) {
+		super(ti);
 		this.focusUi = focusUi;
 
 		loadDevice();
@@ -89,7 +89,7 @@ public class FilterNameFieldDialog extends ComboFieldDialog<String> {
 		return str;
 	}
 
-	public static String sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, String currentValue) {
+	public static String sanitizeValue(FocusUi focusUi, String currentValue) {
 		List<String> filters = getFilterNames(focusUi.getFilterWheelManager().getConnectedDevice());
 
 		if (filters.size() > 0) {

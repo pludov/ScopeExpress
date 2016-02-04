@@ -2,18 +2,18 @@ package fr.pludov.scopeexpress.tasks;
 
 import javax.swing.*;
 
+import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 
 public abstract class TextFieldDialog<DATATYPE> extends SimpleFieldDialog<DATATYPE> {
 	JTextField textField;
 	DATATYPE previousValue;
 	
-	public TextFieldDialog(TaskParameterId<DATATYPE> id, IParameterEditionContext ipec) {
-		super(id, ipec);
+	public TextFieldDialog(TaskParameterId<DATATYPE> id) {
+		super(id);
 		
 		this.textField = new JTextField();
 		this.textField.setText("");
-		this.textField.setEnabled(ipec.isEditable());
 		this.panel.add(this.textField, "cell 1 0,growx");
 		this.title.setLabelFor(this.textField);
 		
@@ -29,6 +29,17 @@ public abstract class TextFieldDialog<DATATYPE> extends SimpleFieldDialog<DATATY
 //		panel.setMaximumSize(new Dimension(max.width, panel.getPreferredSize().height);
 	}
 
+	@Override
+	public void addListener(Runnable onChange) {
+		Utils.addTextFieldChangeListener(this.textField, onChange);
+	}
+	
+	@Override
+	public void adapt(TaskFieldStatus<DATATYPE> tfs) {
+		super.adapt(tfs);
+		this.textField.setEnabled(tfs.isEditable());
+	}
+	
 	@Override
 	public void set(DATATYPE value) {
 		previousValue = value;

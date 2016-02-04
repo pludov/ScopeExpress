@@ -479,7 +479,7 @@ public final class Utils {
 	}
 
 	/** Crée un bouton qui annule (setVisible à false), et un autre qui applique */
-	public static void addDialogButton(final JDialog jd, final Runnable okCallback) {
+	public static DialogButtonManager addDialogButton(final JDialog jd, final Runnable okCallback) {
 		JPanel buttonPanel = new JPanel();
 		JButton okButton = new JButton("OK");
 		buttonPanel.add(okButton);
@@ -518,6 +518,7 @@ public final class Utils {
 	        
 		jd.getContentPane().add(buttonPanel, BorderLayout.PAGE_END);
 		
+		return new DialogButtonManager(okButton);
 	}
 	
 	/** Fait en sorte de disposer jd dès qu'il sera caché */

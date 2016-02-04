@@ -1,10 +1,8 @@
 package fr.pludov.scopeexpress.tasks;
 
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.ui.*;
 
 public class DoubleParameterId extends TaskParameterId<Double> {
 
@@ -13,8 +11,8 @@ public class DoubleParameterId extends TaskParameterId<Double> {
 	}
 
 	@Override
-	IFieldDialog<Double> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-		return new DoubleFieldDialog(this, ipec);
+	public IFieldDialog<Double> buildDialog(FocusUi focusUi) {
+		return new DoubleFieldDialog(this);
 	}
 	
 
@@ -35,7 +33,7 @@ public class DoubleParameterId extends TaskParameterId<Double> {
 	}
 
 	@Override
-	public Double sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Double currentValue) {
+	public Double sanitizeValue(FocusUi focusUi, Double currentValue) {
 		return currentValue;
 	}
 }

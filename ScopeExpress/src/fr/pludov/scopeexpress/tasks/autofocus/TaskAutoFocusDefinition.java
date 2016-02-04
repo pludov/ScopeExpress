@@ -76,11 +76,11 @@ public final class TaskAutoFocusDefinition extends BaseTaskDefinition
 	}
 	
 	@Override
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
-		if (focusUi.getFocuserManager().getConnectedDevice() == null) {
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView, ValidationContext validationContext) {
+		if (validationContext.isConfiguration() == false && focusUi.getFocuserManager().getConnectedDevice() == null) {
 			taskView.addTopLevelError(ITaskParameterTestView.focuserRequired);
 		}
-		super.validateSettings(focusUi, taskView);
+		super.validateSettings(focusUi, taskView, validationContext);
 	}
 	
 	

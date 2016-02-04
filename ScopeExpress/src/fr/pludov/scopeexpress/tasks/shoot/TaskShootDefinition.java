@@ -11,13 +11,13 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 	public final DoubleParameterId exposure = new DoubleParameterId(this, "exposure", ParameterFlag.Input, ParameterFlag.Mandatory); 
 	public final IntegerParameterId bin = new IntegerParameterId(this, "bin", ParameterFlag.Input) {
 		@Override
-		public IFieldDialog<Integer> buildDialog(FocusUi focusUi, IParameterEditionContext ipec) {
-			return new CameraBinFieldDialog(focusUi, this, ipec);
+		public IFieldDialog<Integer> buildDialog(FocusUi focusUi) {
+			return new CameraBinFieldDialog(focusUi, this);
 		}
 
 		@Override
-		public Integer sanitizeValue(FocusUi focusUi, IParameterEditionContext paramCtxt, Integer currentValue) {
-			return CameraBinFieldDialog.sanitizeValue(focusUi, paramCtxt, currentValue);
+		public Integer sanitizeValue(FocusUi focusUi, Integer currentValue) {
+			return CameraBinFieldDialog.sanitizeValue(focusUi, currentValue);
 		}
 
 		{
@@ -64,8 +64,8 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 	}
 
 	@Override
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view) {
-		if (focusUi.getCameraManager().getConnectedDevice() == null) {
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view, ValidationContext validationContext) {
+		if (validationContext.isConfiguration() == false && focusUi.getCameraManager().getConnectedDevice() == null) {
 			view.addTopLevelError(ITaskParameterTestView.cameraRequired);
 		}
 
@@ -89,7 +89,7 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		} catch (ParameterNotKnownException e) {
 		}
 		
-		super.validateSettings(focusUi, view);
+		super.validateSettings(focusUi, view, validationContext);
 	}
 	
 /*	@Override
