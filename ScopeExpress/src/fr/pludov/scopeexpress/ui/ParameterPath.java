@@ -55,6 +55,10 @@ public class ParameterPath<TYPE> {
 	public TaskParameterId<TYPE> getParameter() {
 		return parameter;
 	}
+
+	public boolean isChildOf(SubTaskPath wildCard) {
+		return taskPath.isChildOrEquals(wildCard);
+	}
 	
 	
 }

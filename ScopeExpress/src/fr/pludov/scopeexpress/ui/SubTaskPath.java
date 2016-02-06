@@ -18,6 +18,11 @@ public class SubTaskPath {
 		this.path.add(child);
 	}
 
+	private SubTaskPath(List<TaskLauncherDefinition> path)
+	{
+		this.path = new ArrayList<>(path);
+	}
+
 	public SubTaskPath forChild(TaskLauncherDefinition child)
 	{
 		return new SubTaskPath(path, child);
@@ -26,6 +31,14 @@ public class SubTaskPath {
 	public <TYPE> ParameterPath<TYPE> forParameter(TaskParameterId<TYPE> parameter)
 	{
 		return new ParameterPath<>(this, parameter);
+	}
+	
+	public SubTaskPath getParent() {
+		if (path.size() == 0) {
+			return null;
+		}
+		return new SubTaskPath(path.subList(0, path.size() - 1));
+		
 	}
 	
 	public int getLength()
@@ -70,6 +83,18 @@ public class SubTaskPath {
 
 	public BaseTaskDefinition lastElement() {
 		return getElement(getLength() - 1).getStartedTask();
+	}
+
+	public boolean isChildOrEquals(SubTaskPath wildCard) {
+		SubTaskPath thiz = this;
+		while(thiz != null) {
+			if (wildCard.equals(thiz)) {
+				return true;
+			}
+			thiz = thiz.getParent();
+		}
+		
+		return false;
 	}
 
 }

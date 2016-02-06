@@ -66,6 +66,7 @@ public class TaskParameterPanel extends JPanel {
 		// Dernière valeur connue ?
 		boolean hasValue;
 		Object value;
+		boolean isNotKnown;
 		
 		
 		// Ignorer les notifications de change du dialogue
@@ -459,13 +460,14 @@ public class TaskParameterPanel extends JPanel {
 		return getParameterValueFromStatus(ps);
 	}
 	
-	private <T> T getParameterValueFromStatus(ParameterStatus<T> ps)
+	private <T> T getParameterValueFromStatus(ParameterStatus<T> ps) throws ParameterNotKnownException
 	{
 		if (ps.evaluating) {
 			throw new RuntimeException("Recursive dependencie found");
 		}
 		ParameterPath<T> pp = ps.parameter;
 		T result;
+		boolean isNotKnown = false;
 		evaluationStack.add(ps);
 		ps.evaluating = true;
 		try {
@@ -528,16 +530,20 @@ public class TaskParameterPanel extends JPanel {
 				ps.setTorefresh(false);
 			}
 			
+			
 			switch(ps.status.status) {
 			case Forced:
 				result = ps.status.forcedValue;
+				isNotKnown = false;
 				ps.setNeedParsing(false);
 				break;
 			case MeaningLess:
+				isNotKnown = true;
 				result = null;
 				ps.setNeedParsing(false);
 				break;
 			case Visible:
+				isNotKnown = false;
 				if (ps.isNeedParsing()) {
 					// FIXME: et en cas d'erreur ?
 					result = ps.dialog.get();
@@ -551,13 +557,17 @@ public class TaskParameterPanel extends JPanel {
 				throw new RuntimeException("invalid status");
 			}
 
-			if ((!ps.hasValue) || !Objects.equals(ps.value, result)) {
+			if ((!ps.hasValue) || (!Objects.equals(ps.value, result)) || (isNotKnown != ps.isNotKnown)) {
 				System.out.println("Change detected for " + ps.parameter);
 				ps.hasValue = true;
 				ps.value = result;
+				ps.isNotKnown = isNotKnown;
 				triggerControled(ps);
 			}
 			
+			if (isNotKnown) {
+				throw new ParameterNotKnownException();
+			}
 			return result;
 		} finally {
 			ps.evaluating = false;
@@ -570,7 +580,10 @@ public class TaskParameterPanel extends JPanel {
 		// Tous ceux qui ne sont pas done doivent être réévalué.
 		while(!todoList.isEmpty())
 		{
-			getParameterValueFromStatus(todoList.iterator().next());
+			try {
+				getParameterValueFromStatus(todoList.iterator().next());
+			} catch (ParameterNotKnownException e) {
+			}
 		}
 		
 		// Reporter les erreurs...
@@ -799,6 +812,16 @@ public class TaskParameterPanel extends JPanel {
 		}
 	}
 
+
+	public void addControler(SubTaskPath wildCard, TaskFieldControler<?> taskFieldControler) {
+		
+		for(ParameterPath<?> parameter : fields.keySet())
+		{
+			if (parameter.isChildOf(wildCard)) {
+				addControler((ParameterPath)parameter, (TaskFieldControler)taskFieldControler);
+			}
+		}
+	}
 
 	
 }
