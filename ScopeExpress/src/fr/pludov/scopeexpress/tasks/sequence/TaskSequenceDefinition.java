@@ -79,56 +79,84 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		td.addControler(path.forParameter(focusCheckInterval), new TaskFieldControler<Integer>() {
 			@Override
 			public TaskFieldStatus<Integer> getFieldStatus(TaskFieldControler<Integer> parent) {
-				
-				
-				InitialFocusHandling focusHandling;
-				try {
-					focusHandling = (InitialFocusHandling) td.getParameterValue(path.forParameter(initialFocusHandling));
-					if (focusHandling != null && focusHandling == InitialFocusHandling.NotVerified) {
-						return new TaskFieldStatus<>(Status.MeaningLess);
-					}
-				} catch (ParameterNotKnownException e1) {
-				}
-				
 				Integer count;
 				try {
-					count = (Integer)td.getParameterValue(path.forParameter(shootCount));
+					count = td.getParameterValue(path.forParameter(shootCount));
 					if (count == null || count.intValue() < 2 ) {
 						return new TaskFieldStatus<>(Status.MeaningLess);
 					}
 				} catch (ParameterNotKnownException e) {
 				}
 				
-				// FIXME: rendre obligatoire si on est en mode vérifier la MAP?
 				return parent.getFieldStatus(null);
 			}
 		});
 		
 		// Visibilité de la vérif de focus... Uniquement si :
 	    // - vérifier la map 
-	    // - refaire la Map && nb prise de vue > interval entre les verifs 
+	    // - refaire la Map && nb prise de vue > interval entre les verifs
+		// - ne pas faire la map && nb prise de vue >= interval entre les verifs
 		td.addControler(path.forChild(focusCheck), new TaskFieldControler() {
 			@Override
 			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
 				try {
-					InitialFocusHandling focusHandling = (InitialFocusHandling) td.getParameterValue(path.forParameter(initialFocusHandling));
+					InitialFocusHandling focusHandling = td.getParameterValue(path.forParameter(initialFocusHandling));
 					if (focusHandling != null) {
-						if (focusHandling == InitialFocusHandling.NotVerified) {
-							return new TaskFieldStatus(Status.MeaningLess);
-						}
-						if (focusHandling == InitialFocusHandling.Forced) {
+						switch(focusHandling) {
+						case Verified:
+							// Visible dans ce cas
+							return parent.getFieldStatus(null);
+						case Forced:
+						case NotVerified:
+						
 							// Compter les prises de vue
-							Integer currentShootCount = (Integer)td.getParameterValue(path.forParameter(shootCount));
+							Integer currentShootCount = td.getParameterValue(path.forParameter(shootCount));
 							if (currentShootCount != null && currentShootCount.intValue() > 1) {
-								Integer verifCount = (Integer)td.getParameterValue(path.forParameter(focusCheckInterval));
-								if (verifCount != null && verifCount.intValue() >= currentShootCount.intValue()) {
+								Integer verifCount = td.getParameterValue(path.forParameter(focusCheckInterval));
+								if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
 									return new TaskFieldStatus(Status.MeaningLess);
 								}
 							}
+							return parent.getFieldStatus(null);
 						}
 					}
 				} catch (ParameterNotKnownException e) {
 				}
+				
+				return parent.getFieldStatus(null);
+			}
+		});
+		
+		// Visibilité de l'autofocus... Uniquement si:
+		// - vérifier la map est visible
+		// - forcer la map
+		td.addControler(path.forChild(autofocus), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+				try {
+					InitialFocusHandling focusHandling = td.getParameterValue(path.forParameter(initialFocusHandling));
+					if (focusHandling != null) {
+						switch(focusHandling) {
+						case Forced:
+						case Verified:
+							// Visible dans ce cas
+							return parent.getFieldStatus(null);
+
+						case NotVerified:
+							// Compter les prises de vue
+							Integer currentShootCount = td.getParameterValue(path.forParameter(shootCount));
+							if (currentShootCount != null && currentShootCount.intValue() > 1) {
+								Integer verifCount = td.getParameterValue(path.forParameter(focusCheckInterval));
+								if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
+									return new TaskFieldStatus(Status.MeaningLess);
+								}
+							}
+							return parent.getFieldStatus(null);
+						}
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+
 				
 				return parent.getFieldStatus(null);
 			}
