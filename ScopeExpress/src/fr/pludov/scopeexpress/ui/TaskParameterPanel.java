@@ -621,7 +621,7 @@ public class TaskParameterPanel extends JPanel {
 		
 		for(TaskLauncherDefinition child : taskDef.getSubTasks())
 		{
-			TaskParameterGroup childPanel = new TaskParameterGroup(taskPath.forChild(child), child.getId(), false);
+			TaskParameterGroup childPanel = new TaskParameterGroup(taskPath.forChild(child), child.getTitle(), false);
 			ancestor.add(childPanel);
 			layoutFieldsOfTask(taskPath.forChild(child), childPanel);
 		}

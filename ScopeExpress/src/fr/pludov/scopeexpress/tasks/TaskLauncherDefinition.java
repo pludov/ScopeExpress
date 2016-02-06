@@ -4,6 +4,7 @@ import java.util.*;
 
 public class TaskLauncherDefinition {
 	final String id;
+	String title;
 	final BaseTaskDefinition fromTask;
 	final BaseTaskDefinition startedTask;
 	final List<TaskLauncherOverride<?>> overrides;
@@ -11,6 +12,7 @@ public class TaskLauncherDefinition {
 	public TaskLauncherDefinition(BaseTaskDefinition fromTask, String id, BaseTaskDefinition startedTask) {
 		overrides = new ArrayList<>();
 		this.id = id;
+		this.title = startedTask.getTitle();
 		this.fromTask = fromTask;
 		this.startedTask = startedTask;
 		
@@ -27,6 +29,14 @@ public class TaskLauncherDefinition {
 
 	public List<TaskLauncherOverride<?>> getOverrides() {
 		return new ArrayList<>(overrides);
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
 	}
 
 }
