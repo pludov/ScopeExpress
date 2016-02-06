@@ -76,16 +76,16 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 	
 	@Override
 	public void declareControlers(final TaskParameterPanel td, final SubTaskPath path) {
-		td.addControler(path.forParameter(focusCheckInterval), new TaskFieldControler() {
+		td.addControler(path.forParameter(focusCheckInterval), new TaskFieldControler<Integer>() {
 			@Override
-			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+			public TaskFieldStatus<Integer> getFieldStatus(TaskFieldControler<Integer> parent) {
 				
 				
 				InitialFocusHandling focusHandling;
 				try {
 					focusHandling = (InitialFocusHandling) td.getParameterValue(path.forParameter(initialFocusHandling));
 					if (focusHandling != null && focusHandling == InitialFocusHandling.NotVerified) {
-						return new TaskFieldStatus(Status.MeaningLess);
+						return new TaskFieldStatus<>(Status.MeaningLess);
 					}
 				} catch (ParameterNotKnownException e1) {
 				}
@@ -94,7 +94,7 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 				try {
 					count = (Integer)td.getParameterValue(path.forParameter(shootCount));
 					if (count == null || count.intValue() < 2 ) {
-						return new TaskFieldStatus(Status.MeaningLess);
+						return new TaskFieldStatus<>(Status.MeaningLess);
 					}
 				} catch (ParameterNotKnownException e) {
 				}
@@ -104,37 +104,35 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			}
 		});
 		
-		// Visibilité de la vérif de focus... Uniquement 
-		//si :
+		// Visibilité de la vérif de focus... Uniquement si :
 	    // - vérifier la map 
 	    // - refaire la Map && nb prise de vue > interval entre les verifs 
-//		td.addControler(path.forChild(focusCheck), new TaskFieldControler() {
-//			@Override
-//			public TaskFieldStatus getFieldStatus() {
-//				Integer count;
-//				try {
-//					InitialFocusHandling focusHandling = (InitialFocusHandling) td.getParameterValue(path.forParameter(initialFocusHandling));
-//					if (focusHandling != null) {
-//						if (focusHandling == InitialFocusHandling.NotVerified) {
-//							return new TaskFieldStatus(Status.MeaningLess);
-//						}
-//						if (focusHandling == InitialFocusHandling.Forced) {
-//							// Compter les prises de vue
-//							Integer currentShootCount = (Integer)td.getParameterValue(path.forParameter(shootCount));
-//							if (currentShootCount != null && currentShootCount.intValue() > 1) {
-//								Integer verifCount = (Integer)td.getParameterValue(path.forParameter(focusCheckInterval));
-//								if (verifCount != null && verifCount.intValue() >= currentShootCount.intValue()) {
-//									return new TaskFieldStatus(Status.MeaningLess);
-//								}
-//							}
-//						}
-//					}
-//				} catch (ParameterNotKnownException e) {
-//				}
-//				
-//				return null;
-//			}
-//		});
+		td.addControler(path.forChild(focusCheck), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+				try {
+					InitialFocusHandling focusHandling = (InitialFocusHandling) td.getParameterValue(path.forParameter(initialFocusHandling));
+					if (focusHandling != null) {
+						if (focusHandling == InitialFocusHandling.NotVerified) {
+							return new TaskFieldStatus(Status.MeaningLess);
+						}
+						if (focusHandling == InitialFocusHandling.Forced) {
+							// Compter les prises de vue
+							Integer currentShootCount = (Integer)td.getParameterValue(path.forParameter(shootCount));
+							if (currentShootCount != null && currentShootCount.intValue() > 1) {
+								Integer verifCount = (Integer)td.getParameterValue(path.forParameter(focusCheckInterval));
+								if (verifCount != null && verifCount.intValue() >= currentShootCount.intValue()) {
+									return new TaskFieldStatus(Status.MeaningLess);
+								}
+							}
+						}
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+				
+				return parent.getFieldStatus(null);
+			}
+		});
 		
 		super.declareControlers(td, path);
 	}
