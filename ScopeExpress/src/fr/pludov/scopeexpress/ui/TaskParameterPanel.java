@@ -480,11 +480,13 @@ public class TaskParameterPanel extends JPanel {
 				// Effacer les dépendance du champ
 				removeControlersFor(pp);
 				
-				TaskFieldStatus previousStatus = ps.status;
+				TaskFieldStatus<T> previousStatus = ps.status;
 				
 				// Maintenant, en mettre
 				if (ps.dialog != null && !ps.fieldControlers.isEmpty()) {
-					ps.status = (TaskFieldStatus) ps.fieldControlers.get(0).getFieldStatus();
+					TaskFieldControlerChain<T> t = new TaskFieldControlerChain<>(ps.fieldControlers);
+					
+					ps.status = t.getFieldStatus(t);// (TaskFieldStatus) ps.fieldControlers.get(0).getFieldStatus(null);
 				} else {
 					ps.status = new TaskFieldStatus<>(Status.Visible);
 				}

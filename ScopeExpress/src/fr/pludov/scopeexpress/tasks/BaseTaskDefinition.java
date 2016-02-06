@@ -100,7 +100,7 @@ public abstract class BaseTaskDefinition {
 				td.addControler(path.forChild(child).forParameter(override.parameter), new TaskFieldControler() {
 
 					@Override
-					public TaskFieldStatus getFieldStatus() {
+					public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
 						return new TaskFieldStatus(Status.MeaningLess);
 					}
 				});
