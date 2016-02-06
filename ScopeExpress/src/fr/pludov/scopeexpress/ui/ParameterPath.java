@@ -2,11 +2,11 @@ package fr.pludov.scopeexpress.ui;
 
 import fr.pludov.scopeexpress.tasks.*;
 
-public class ParameterPath {
+public class ParameterPath<TYPE> {
 	final SubTaskPath taskPath;
-	final TaskParameterId<?> parameter;
+	final TaskParameterId<TYPE> parameter;
 	
-	ParameterPath(SubTaskPath taskPath, TaskParameterId<?> parameter) {
+	ParameterPath(SubTaskPath taskPath, TaskParameterId<TYPE> parameter) {
 		super();
 		this.taskPath = taskPath;
 		this.parameter = parameter;
@@ -52,7 +52,7 @@ public class ParameterPath {
 		return taskPath;
 	}
 
-	public TaskParameterId<?> getParameter() {
+	public TaskParameterId<TYPE> getParameter() {
 		return parameter;
 	}
 	

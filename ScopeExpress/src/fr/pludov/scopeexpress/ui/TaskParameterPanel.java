@@ -31,7 +31,7 @@ public class TaskParameterPanel extends JPanel {
 	final BaseTaskDefinition root;
 	final FocusUi focusUi;
 
-	final Map<ParameterPath, ParameterStatus<?>> fields;
+	final Map<ParameterPath<?>, ParameterStatus<?>> fields;
 	final ISafeTaskParameterView rootConfig/*, config*/;
 	final ITaskOptionalParameterView rootPreviousValues/*, previousValues*/;
 	
@@ -42,13 +42,13 @@ public class TaskParameterPanel extends JPanel {
 	
 	class ParameterStatus<T>
 	{
-		ParameterPath parameter;
+		ParameterPath<T> parameter;
 		IFieldDialog<T> dialog;
-		Object lastDialogValue;
+		T lastDialogValue;
 		
 		final List<TaskFieldControler<T>> fieldControlers;
 		/** Champs influencé (controlés) */
-		final Set<ParameterPath> controled;
+		final Set<ParameterPath<?>> controled;
 
 		// Est-ce que le status du dialogue doit être raffraichi ?
 		private boolean torefresh;
@@ -258,7 +258,7 @@ public class TaskParameterPanel extends JPanel {
 			return result;
 		}
 
-		public String getFieldError(ParameterPath parameter) {
+		public String getFieldError(ParameterPath<?> parameter) {
 			ITaskParameterTestView current = this;
 			for(int i = 0; i < parameter.taskPath.getLength(); ++i)
 			{
@@ -287,7 +287,7 @@ public class TaskParameterPanel extends JPanel {
 		return override == null && param.is(ParameterFlag.Input);
 	}
 
-	Map<ParameterPath, TaskLauncherOverride<?>> overrides;
+	Map<ParameterPath<?>, TaskLauncherOverride<?>> overrides;
 	
 	private void findOverrides(SubTaskPath from, BaseTaskDefinition btd)
 	{
@@ -308,7 +308,7 @@ public class TaskParameterPanel extends JPanel {
 	
 	private <T> void createOneParameter(SubTaskPath from, TaskParameterId<T> param)
 	{
-		ParameterPath paramPath = from.forParameter(param);
+		ParameterPath<T> paramPath = from.forParameter(param);
 		if (display(param, overrides.get(paramPath))) {
 			// Il faut créer le dialogue.
 			final ParameterStatus<T> paramStatus = new ParameterStatus<>();
@@ -368,9 +368,9 @@ public class TaskParameterPanel extends JPanel {
 		}
 	}
 
-	private void removeControlersFor(ParameterPath pp)
+	private void removeControlersFor(ParameterPath<?> pp)
 	{
-		for(ParameterStatus ps : fields.values())
+		for(ParameterStatus<?> ps : fields.values())
 		{
 			ps.controled.remove(pp);
 		}
@@ -379,7 +379,7 @@ public class TaskParameterPanel extends JPanel {
 	private void triggerControled(ParameterStatus<?> ps)
 	{
 		// Trouver les dépendances à l'envers
-		for(ParameterPath controledPath : ps.controled)
+		for(ParameterPath<?> controledPath : ps.controled)
 		{
 			ParameterStatus<?> controled = fields.get(controledPath);
 			if (controled != null) {
@@ -414,10 +414,10 @@ public class TaskParameterPanel extends JPanel {
 	
 	
 	
-	Object getDefault(ParameterPath pp)
+	<T> T getDefault(ParameterPath<T> pp)
 	{
 		
-		TaskParameterId<?> key = pp.parameter;
+		TaskParameterId<T> key = pp.parameter;
 		
 		if (modification != null) {
 			ISafeTaskParameterView previousView = modification.getSubTaskView(key.getTaskDefinition().getId());
@@ -446,9 +446,9 @@ public class TaskParameterPanel extends JPanel {
 	
 	List<ParameterStatus<?>> evaluationStack = new ArrayList<>();
 	
-	public <T> Object getParameterValue(ParameterPath pp) throws ParameterNotKnownException
+	public <T> T getParameterValue(ParameterPath<T> pp) throws ParameterNotKnownException
 	{
-		ParameterStatus<?> ps = fields.get(pp);
+		ParameterStatus<T> ps = (ParameterStatus<T>) fields.get(pp);
 		if (ps == null) {
 			if (validationContext.isConfiguration()) {
 				throw new ParameterNotKnownException();
@@ -459,18 +459,18 @@ public class TaskParameterPanel extends JPanel {
 		return getParameterValueFromStatus(ps);
 	}
 	
-	private <T> Object getParameterValueFromStatus(ParameterStatus<T> ps)
+	private <T> T getParameterValueFromStatus(ParameterStatus<T> ps)
 	{
 		if (ps.evaluating) {
 			throw new RuntimeException("Recursive dependencie found");
 		}
-		ParameterPath pp = ps.parameter;
-		Object result;
+		ParameterPath<T> pp = ps.parameter;
+		T result;
 		evaluationStack.add(ps);
 		ps.evaluating = true;
 		try {
 			if (evaluationStack.size() > 1) {
-				ParameterStatus controled = evaluationStack.get(evaluationStack.size() - 2);
+				ParameterStatus<?> controled = evaluationStack.get(evaluationStack.size() - 2);
 				ps.controled.add(controled.parameter);
 				//controled.dependencies.add(pp);
 				
@@ -494,28 +494,28 @@ public class TaskParameterPanel extends JPanel {
 				boolean statusChanged = !previousStatus.equals(ps.status);
 				
 				if (statusChanged) {
-					((IFieldDialog)ps.dialog).adapt(ps.status);
+					ps.dialog.adapt(ps.status);
 					
 					// En cas d'apparition, on affiche la valeur
 					if (ps.status.isEditable() && !previousStatus.isEditable()) {
 						// Sanitizer...
-						Object value = getDefault(pp);
+						T value = getDefault(pp);
 						if (modification == null) {
-							value = ((TaskParameterId)pp.getParameter()).sanitizeValue(focusUi, value);
+							value = pp.getParameter().sanitizeValue(focusUi, value);
 						}
 						ps.ignoreChange++;
 						try {
-							((IFieldDialog)ps.dialog).set(value);
+							ps.dialog.set(value);
 						} finally {
 							ps.ignoreChange--;
 						}
 					} else if (ps.status.isVisible() && !previousStatus.isVisible()) {
 						// Forcement pas éditable avant
-						Object value = getDefault(pp);
+						T value = getDefault(pp);
 						if (modification == null && ps.status.isEditable()) {
-							value = ((TaskParameterId)pp.getParameter()).sanitizeValue(focusUi, value);
+							value = pp.getParameter().sanitizeValue(focusUi, value);
 						}
-						((IFieldDialog)ps.dialog).set(value);
+						ps.dialog.set(value);
 					}
 					
 					TaskParameterGroup container = ps.dialog.getContainer();
@@ -597,25 +597,30 @@ public class TaskParameterPanel extends JPanel {
 		}
 	}
 
-	void layoutFieldOfTask(SubTaskPath taskPath, TaskParameterGroup ancestor)
+	void layoutFieldsOfTask(SubTaskPath taskPath, TaskParameterGroup ancestor)
 	{
 		BaseTaskDefinition taskDef = taskPath.getLength() == 0 ? root : taskPath.lastElement();
 		
 		for(TaskParameterId<?> tpi : taskDef.getParameters())
 		{
-			ParameterStatus<?> ps = fields.get(taskPath.forParameter(tpi));
-			if (ps == null) continue;
-			
-			ancestor.add((IFieldDialog)ps.dialog, ps.status);
+			layoutFieldOfTask(taskPath, ancestor, tpi);
 		}
 		
 		for(TaskLauncherDefinition child : taskDef.getSubTasks())
 		{
 			TaskParameterGroup childPanel = new TaskParameterGroup(taskPath.forChild(child), child.getId(), false);
 			ancestor.add(childPanel);
-			layoutFieldOfTask(taskPath.forChild(child), childPanel);
+			layoutFieldsOfTask(taskPath.forChild(child), childPanel);
 		}
 		
+	}
+
+	private <T> void layoutFieldOfTask(SubTaskPath taskPath, TaskParameterGroup ancestor, TaskParameterId<T> tpi) {
+		ParameterStatus<T> ps = (ParameterStatus<T>) fields.get(taskPath.forParameter(tpi));
+		if (ps == null)
+			return;
+		
+		ancestor.add(ps.dialog, ps.status);
 	}
 	
 	TaskParameterGroup rootContainer;
@@ -633,7 +638,7 @@ public class TaskParameterPanel extends JPanel {
 		// Ajouter au niveau racine tous les elements de BaseTask
 		// Il faut qu'une taskDefinition puisse amener une sous-tache dans un parent
 		// Ou un champs dans un fils (et où ?)
-		layoutFieldOfTask(new SubTaskPath(), rootContainer);
+		layoutFieldsOfTask(new SubTaskPath(), rootContainer);
 	}
 	
 	void init()
@@ -787,8 +792,8 @@ public class TaskParameterPanel extends JPanel {
 		}
 	}
 
-	public void addControler(ParameterPath forParameter, TaskFieldControler taskFieldControler) {
-		ParameterStatus<?> pstatus = fields.get(forParameter);
+	public <T> void addControler(ParameterPath<T> forParameter, TaskFieldControler<T> taskFieldControler) {
+		ParameterStatus<T> pstatus = (ParameterStatus<T>) fields.get(forParameter);
 		if (pstatus != null) {
 			pstatus.fieldControlers.add(taskFieldControler);
 		}

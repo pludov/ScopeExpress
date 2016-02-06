@@ -23,9 +23,9 @@ public class SubTaskPath {
 		return new SubTaskPath(path, child);
 	}
 	
-	public ParameterPath forParameter(TaskParameterId<?> parameter)
+	public <TYPE> ParameterPath<TYPE> forParameter(TaskParameterId<TYPE> parameter)
 	{
-		return new ParameterPath(this, parameter);
+		return new ParameterPath<>(this, parameter);
 	}
 	
 	public int getLength()
