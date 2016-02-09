@@ -56,6 +56,24 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			setDefault(GuiderHandling.Activate);
 		}
 	};
+	
+	final DoubleParameterId maxGuiderDriftArcSec = 
+			new DoubleParameterId(this, "maxGuiderDriftArcSec", ParameterFlag.Input) {
+		{
+			setTitle("Seuil d'arrêt");
+			setTooltip("Distance maxi (en arcsec) tolérée pendant un cliché. Au delà, le cliché est abandonné. Vide pour désactiver");
+			setDefault(2.0);
+		}
+	};
+	
+	final DoubleParameterId guiderDriftTolerance = 
+			new DoubleParameterId(this, "maxGuiderDriftDuration", ParameterFlag.Input, ParameterFlag.Mandatory) {
+		{
+			setTitle("Durée avant arrêt");
+			setTooltip("Durée (secondes) pendant laquelle le guider peut rester au delà du seuil d'arrêt, ou rester sans réponse (étoile perdue)");
+			setDefault(10.0);
+		}
+	};
 
 	final TaskLauncherDefinition guiderStart = new TaskLauncherDefinition(this, "guiderStart", TaskGuiderStartDefinition.getInstance()) {
 		{
@@ -232,6 +250,16 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		try {
 			if (!focusCheckIsPossible(taskView)) {
 				taskView.getSubTaskView(this.focusCheck).disableValidation();
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
+		try {
+			if (taskView.get(guiderHandling) == GuiderHandling.Activate)
+			{
+				if (taskView.get(guiderDriftTolerance) == null || taskView.get(guiderDriftTolerance) < 5) {
+					taskView.addError(guiderDriftTolerance, "Doit être superieur à 5 secondes");
+				}
 			}
 		} catch (ParameterNotKnownException e) {
 		}

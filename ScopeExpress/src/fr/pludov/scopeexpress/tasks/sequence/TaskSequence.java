@@ -107,7 +107,6 @@ public class TaskSequence extends BaseTask {
 	
 	void startAutofocus()
 	{
-		// FIXME: only if focus required. depends on previous shoot ?
 		doInterrupt();
 		doPause(new Runnable() {
 			@Override
@@ -207,12 +206,16 @@ public class TaskSequence extends BaseTask {
 		openPhd.getListeners().addListener(this.listenerOwner, new IGuiderListener() {
 			void startTimer()
 			{
-				// FIXME: 20 seconde en dûr
-				openPhdRecoveryTimer = new Timer(20000, new ActionListener() {
+				Double interval = get(getDefinition().guiderDriftTolerance);
+				if (interval == null || interval < 5) {
+					interval = 10.0;
+				}
+				final double itv = interval;
+				openPhdRecoveryTimer = new Timer((int)(1000.0 * itv), new ActionListener() {
 					
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						logger.warn("Pas de nouvelles du guidage depuis 20s; le guidage a certainement un problème");
+						logger.warn("Pas de positions correcte du guidage depuis " + itv + " secondes; le guidage a certainement un problème");
 						// Dans ce cas, il faut annuler le shoot
 					}
 				});
@@ -237,8 +240,9 @@ public class TaskSequence extends BaseTask {
 					if (dx != null && dy != null && arcsecPerPixel != null) {
 						double dst = arcsecPerPixel * Math.sqrt(dx.doubleValue() * dx.doubleValue() + dy.doubleValue() * dy.doubleValue());
 						logger.debug("Distance du guidage: " + dst + " (arcsec)");
-						// FIXME: distance en dur ???
-						if (dst < 1.6) {
+						Double seuil = get(getDefinition().maxGuiderDriftArcSec);
+						
+						if (seuil == null || dst < seuil) {
 							messageIsGood = true; 
 						}
 					}
