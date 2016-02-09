@@ -5,7 +5,6 @@ import java.util.*;
 
 import javax.swing.*;
 
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.resources.*;
 import fr.pludov.scopeexpress.ui.resources.IconProvider.*;
@@ -35,13 +34,7 @@ public class TaskControl extends TaskControlDesign {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (currentTask != null) {
-					ValidationContext vc = new ValidationContext() {
-						@Override
-						public boolean isConfiguration() {
-							return false;
-						}
-					};
-					TaskParameterPanel tpd = new TaskParameterPanel(currentTask.focusUi, currentTask.getDefinition(), vc);
+					TaskParameterPanel tpd = new TaskParameterPanel(currentTask.focusUi, currentTask.getDefinition(), false);
 					tpd.showEditDialog(SwingUtilities.getWindowAncestor(TaskControl.this), currentTask);
 					// tpd.editCurrentParameter(SwingUtilities.getWindowAncestor(TaskControl.this), currentTask);
 				}

@@ -4,5 +4,5 @@ package fr.pludov.scopeexpress.tasks;
 public interface ITaskParameterBaseView {
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key) throws ParameterNotKnownException;
 	
-	public ITaskParameterBaseView getSubTaskView(String taskLauncherDefinitionId);
+	public ITaskParameterBaseView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId);
 }

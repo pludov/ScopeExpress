@@ -22,7 +22,6 @@ import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.http.server.*;
 import fr.pludov.scopeexpress.tasks.*;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
 import fr.pludov.scopeexpress.tasks.guider.*;
@@ -832,14 +831,7 @@ public class FocusUi extends FocusUiDesign {
 	
 	void startTask(BaseTaskDefinition td)
 	{
-		ValidationContext createContext = new ValidationContext()
-		{
-			@Override
-			public boolean isConfiguration() {
-				return false;
-			}
-		};
-		TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, td, createContext);
+		TaskParameterPanel tpp = new TaskParameterPanel(FocusUi.this, td, false);
 		tpp.showStartDialog(FocusUi.this.getFrmFocus());
 	}
 	

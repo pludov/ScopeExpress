@@ -97,4 +97,13 @@ public class SubTaskPath {
 		return false;
 	}
 
+
+	public <TYPE extends ITaskParameterBaseView> TYPE resolve(TYPE start) {
+		for(int i = 0; i < path.size(); ++i) {
+			// FIXME: covariant methods !
+			start = (TYPE) start.getSubTaskView(path.get(i));
+		}
+		return start;
+	}
+	
 }

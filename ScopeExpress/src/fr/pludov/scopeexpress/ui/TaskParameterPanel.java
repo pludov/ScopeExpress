@@ -7,7 +7,6 @@ import java.util.List;
 import javax.swing.*;
 
 import fr.pludov.scopeexpress.tasks.*;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
 import fr.pludov.scopeexpress.ui.TaskFieldStatus.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 
@@ -32,8 +31,8 @@ public class TaskParameterPanel extends JPanel {
 	final FocusUi focusUi;
 
 	final Map<ParameterPath<?>, ParameterStatus<?>> fields;
-	final ISafeTaskParameterView rootConfig/*, config*/;
-	final ITaskOptionalParameterView rootPreviousValues/*, previousValues*/;
+	final IRootParameterView<? extends ISafeTaskParameterView> rootConfig/*, config*/;
+	final IRootParameterView<? extends ITaskOptionalParameterView> rootPreviousValues/*, previousValues*/;
 	
 	final LinkedHashSet<ParameterStatus<?>> todoList = new LinkedHashSet<>();
 
@@ -137,21 +136,37 @@ public class TaskParameterPanel extends JPanel {
 		final Map<TaskParameterId<?>, Object> values;
 		final Map<String, TaskParameterTestView> childs;
 		
-		
+		final boolean configuration;
+		boolean disabled;
+		Set<Object> disabledChecking;
 
 		LinkedHashSet<String> globalErrors;
 		LinkedHashSet<String> topLevelErrors;
 		final Map<TaskParameterId<?>, String> fieldErrors;
 		
+		
+		TaskParameterTestView(boolean configuration)
+		{
+			this(null, null, configuration);
+		}
+		
 		TaskParameterTestView(TaskParameterTestView parent, TaskLauncherDefinition child)
 		{
+			this(parent, child, false);
+		}
+		
+		private TaskParameterTestView(TaskParameterTestView parent, TaskLauncherDefinition child, boolean configuration)
+		{
 			path = parent != null ? parent.path.forChild(child) : new SubTaskPath();
+			this.configuration = parent != null ? parent.configuration : configuration;
 			taskDef = parent == null ? root : child.getStartedTask();
 			values = new HashMap<>();
 			childs = new HashMap<>();
 			globalErrors = new LinkedHashSet<>();
 			topLevelErrors = parent != null ? parent.topLevelErrors : new LinkedHashSet<String>();
 			fieldErrors = new LinkedHashMap<>();
+			disabled = false;
+			disabledChecking = null;
 		}
 		
 		@Override
@@ -184,11 +199,11 @@ public class TaskParameterPanel extends JPanel {
 		}
 
 		@Override
-		public TaskParameterTestView getSubTaskView(String taskLauncherDefinitionId) {
-			TaskParameterTestView  result = childs.get(taskLauncherDefinitionId);
+		public TaskParameterTestView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId) {
+			TaskParameterTestView  result = childs.get(taskLauncherDefinitionId.getId());
 			if (result == null) {
-				result = new TaskParameterTestView(this, (TaskLauncherDefinition) taskDef.getChildById(taskLauncherDefinitionId));
-				childs.put(taskLauncherDefinitionId, result);
+				result = new TaskParameterTestView(this, (TaskLauncherDefinition) taskDef.getChildById(taskLauncherDefinitionId.getId()));
+				childs.put(taskLauncherDefinitionId.getId(), result);
 			}
 			return result;
 		}
@@ -264,7 +279,7 @@ public class TaskParameterPanel extends JPanel {
 			for(int i = 0; i < parameter.taskPath.getLength(); ++i)
 			{
 				TaskLauncherDefinition dir = parameter.taskPath.getElement(i);
-				current = current.getSubTaskView(dir.getId());
+				current = current.getSubTaskView(dir);
 			}
 			return current.getFieldError(parameter.parameter);
 		}
@@ -272,13 +287,50 @@ public class TaskParameterPanel extends JPanel {
 		public List<String> getAllErrors(SubTaskPath path) {
 			TaskParameterTestView current = this;
 			for(int i = 0; i < path.getLength(); ++i) {
-				current = current.getSubTaskView(path.getElement(i).getId());
+				current = current.getSubTaskView(path.getElement(i));
 			}
 			return current.getAllErrors();
 		}
 
 		public boolean hasTopLevelErrors() {
 			return !topLevelErrors.isEmpty();
+		}
+		
+		@Override
+		public void disableValidation() {
+			this.disabled = true;
+			this.disabledChecking = null;
+		}
+		
+		@Override
+		public void disableValidation(Object enumValue) {
+			if (this.disabled) return;
+			if (this.disabledChecking == null) {
+				this.disabledChecking = new HashSet<>();
+			}
+			this.disabledChecking = new HashSet<>();
+		}
+		
+		@Override
+		public boolean needValidation() {
+			return !disabled;
+		}
+		
+		@Override
+		public boolean needValidation(Object enumValue) {
+			if (disabled) {
+				return false;
+			}
+			if (this.disabledChecking != null && this.disabledChecking.contains(enumValue)) {
+				return false;
+			}
+			return true;
+		}
+
+		@Override
+		public boolean isConfiguration() {
+			// TODO Auto-generated method stub
+			return false;
 		}
 	}
 	
@@ -393,10 +445,10 @@ public class TaskParameterPanel extends JPanel {
 	
 	ISafeTaskParameterView getConfigFor(SubTaskPath path)
 	{
-		ISafeTaskParameterView result = rootConfig.getSubTaskView(root.getId());
+		ISafeTaskParameterView result = rootConfig.getTaskView(root);
 		for(int i = 0; i < path.getLength(); ++i) {
 			TaskLauncherDefinition tld = path.getElement(i);
-			result = result.getSubTaskView(tld.getId());
+			result = result.getSubTaskView(tld);
 		}
 		return result;
 	}
@@ -404,10 +456,10 @@ public class TaskParameterPanel extends JPanel {
 
 	ITaskOptionalParameterView getPreviousValuesFor(SubTaskPath path)
 	{
-		ITaskOptionalParameterView result = rootPreviousValues.getSubTaskView(root.getId());
+		ITaskOptionalParameterView result = rootPreviousValues.getTaskView(root);
 		for(int i = 0; i < path.getLength(); ++i) {
 			TaskLauncherDefinition tld = path.getElement(i);
-			result = result.getSubTaskView(tld.getId());
+			result = result.getSubTaskView(tld);
 		}
 		return result;
 	}
@@ -421,12 +473,12 @@ public class TaskParameterPanel extends JPanel {
 		TaskParameterId<T> key = pp.parameter;
 		
 		if (modification != null) {
-			ISafeTaskParameterView previousView = modification.getSubTaskView(key.getTaskDefinition().getId());
+			ITaskParameterView previousView = pp.getTaskPath().resolve(modification);
 			return previousView.get(key);
 		} else {
 			if (rootConfig != null && key.getFlags().contains(ParameterFlag.PresentInConfig)) {
 				// Aller chercher en conf de toute façon
-				ISafeTaskParameterView configForTask = rootConfig.getSubTaskView(key.getTaskDefinition().getId());
+				ISafeTaskParameterView configForTask = rootConfig.getTaskView(key.getTaskDefinition());
 				return configForTask.get(key);
 			}
 	
@@ -451,7 +503,7 @@ public class TaskParameterPanel extends JPanel {
 	{
 		ParameterStatus<T> ps = (ParameterStatus<T>) fields.get(pp);
 		if (ps == null) {
-			if (validationContext.isConfiguration()) {
+			if (isForConfiguration) {
 				throw new ParameterNotKnownException();
 			}
 			return getDefault(pp);
@@ -587,8 +639,8 @@ public class TaskParameterPanel extends JPanel {
 		}
 		
 		// Reporter les erreurs...
-		TaskParameterTestView taskView = new TaskParameterTestView(null, null);
-		this.root.validateSettings(focusUi, taskView, validationContext);
+		TaskParameterTestView taskView = new TaskParameterTestView(isForConfiguration);
+		this.root.validateSettings(focusUi, taskView);
 		hasError = taskView.hasError() || taskView.hasTopLevelErrors();
 		for(ParameterStatus<?> field : fields.values())
 		{
@@ -638,7 +690,7 @@ public class TaskParameterPanel extends JPanel {
 	
 	TaskParameterGroup rootContainer;
 
-	private final ValidationContext validationContext;
+	private final boolean isForConfiguration;
 
 	// Quand on est en modif, vue des paramètres
 	private ITaskParameterView modification;
@@ -663,7 +715,7 @@ public class TaskParameterPanel extends JPanel {
 		update();
 	}
 	
-	public TaskParameterPanel(final FocusUi focusUi, BaseTaskDefinition btd, ValidationContext validationContext) {
+	public TaskParameterPanel(final FocusUi focusUi, BaseTaskDefinition btd, boolean isForConfiguration) {
 		this.root = btd;
 		this.focusUi = focusUi;
 		fields = new HashMap<>();
@@ -671,7 +723,7 @@ public class TaskParameterPanel extends JPanel {
 		this.rootConfig = focusUi.getApplication().getConfigurationTaskValues();
 		this.rootPreviousValues = focusUi.getApplication().getLastUsedTaskValues();
 		// final ITaskOptionalParameterView rootPreviousValues, previousValues;
-		this.validationContext = validationContext;
+		this.isForConfiguration = isForConfiguration;
 		
 		setLayout(new DialogLayout());
 	}
@@ -691,20 +743,15 @@ public class TaskParameterPanel extends JPanel {
 				throw new RuntimeException("data not ready");
 			}
 			Object value = pt.lastDialogValue;
-			IWritableTaskParameterBaseView target = into;
-			for(int i = 0; i < pt.parameter.getTaskPath().getLength(); ++i)
-			{
-				target = target.getSubTaskView(pt.parameter.getTaskPath().getElement(i).getId());
-			}
+			ITaskParameterView itv;
+			ISafeTaskParameterView t;
+			IWritableTaskParameterBaseView target = pt.parameter.getTaskPath().resolve(into);
 			target.set((TaskParameterId)pt.parameter.getParameter(), value);
 			
 			
 			if (saveDefaults && pt.parameter.getParameter().requireLastValueSave()) {
-				IWritableTaskParameterBaseView previousValuesTarget = this.rootPreviousValues.getSubTaskView(root.getId());
-				for(int i = 0; i < pt.parameter.getTaskPath().getLength(); ++i)
-				{
-					previousValuesTarget = previousValuesTarget.getSubTaskView(pt.parameter.getTaskPath().getElement(i).getId());
-				}
+				IWritableTaskParameterBaseView previousValuesTarget = this.rootPreviousValues.getTaskView(root);
+				previousValuesTarget = pt.parameter.getTaskPath().resolve(previousValuesTarget);
 				previousValuesTarget.set((TaskParameterId)pt.parameter.getParameter(), value);
 			}
 		}
@@ -774,9 +821,9 @@ public class TaskParameterPanel extends JPanel {
 					if (!hasError) {
 						final ITaskParameterView view = new TaskParameterView(
 								focusUi.getApplication().getConfigurationTaskValues(),
-								focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(root.getId()),
+								focusUi.getApplication().getConfigurationTaskValues().getTaskView(root),
 								focusUi.getApplication().getLastUsedTaskValues(),
-								focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(root.getId())
+								focusUi.getApplication().getLastUsedTaskValues().getTaskView(root)
 								);
 						
 						// Copier tous les éditables visibles
@@ -797,9 +844,9 @@ public class TaskParameterPanel extends JPanel {
 		} else {
 			final ITaskParameterView view = new TaskParameterView(
 					focusUi.getApplication().getConfigurationTaskValues(),
-					focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(root.getId()),
+					focusUi.getApplication().getConfigurationTaskValues().getTaskView(root),
 					focusUi.getApplication().getLastUsedTaskValues(),
-					focusUi.getApplication().getLastUsedTaskValues().getSubTaskView(root.getId())
+					focusUi.getApplication().getLastUsedTaskValues().getTaskView(root)
 					);
 			BaseTask task = focusUi.getApplication().getTaskManager().startTask(focusUi, root, view);
 		}
@@ -821,6 +868,21 @@ public class TaskParameterPanel extends JPanel {
 				addControler((ParameterPath)parameter, (TaskFieldControler)taskFieldControler);
 			}
 		}
+	}
+
+	public ITaskParameterBaseView getView(final SubTaskPath path) {
+		return new ITaskParameterBaseView() {
+			
+			@Override
+			public ITaskParameterBaseView getSubTaskView(TaskLauncherDefinition child) {
+				return getView(path.forChild(child));
+			}
+			
+			@Override
+			public <TYPE> TYPE get(TaskParameterId<TYPE> key) throws ParameterNotKnownException {
+				return TaskParameterPanel.this.getParameterValue(path.forParameter(key));
+			}
+		};
 	}
 
 	

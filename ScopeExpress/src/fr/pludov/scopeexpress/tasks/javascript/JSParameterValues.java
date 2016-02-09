@@ -1,18 +1,10 @@
 package fr.pludov.scopeexpress.tasks.javascript;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.ScriptableObject;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.ITaskParameterView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
+import fr.pludov.scopeexpress.tasks.*;
 
 public class JSParameterValues extends ScriptableObject {
 
@@ -43,7 +35,7 @@ public class JSParameterValues extends ScriptableObject {
 		}
 		if (defForName instanceof TaskLauncherDefinition) {
 			TaskLauncherDefinition launcher = (TaskLauncherDefinition)defForName;
-			return new JSParameterValues(launcher.getStartedTask(), parameters.getSubTaskView(launcher.getId()));
+			return new JSParameterValues(launcher.getStartedTask(), parameters.getSubTaskView(launcher));
 		}
 		
 		return NOT_FOUND;

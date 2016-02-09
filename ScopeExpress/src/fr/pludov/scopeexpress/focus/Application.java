@@ -118,12 +118,12 @@ public class Application {
 		return taskManager;
 	}
 
-	public ISafeTaskParameterView getConfigurationTaskValues() {
-		return configurationTaskValues;
+	public IRootParameterView<? extends ISafeTaskParameterView> getConfigurationTaskValues() {
+		return ((StoredTaskParameter)configurationTaskValues).getRootParameterView();
 	}
 
-	public ITaskOptionalParameterView getLastUsedTaskValues() {
-		return lastUsedTaskValues;
+	public IRootParameterView<? extends ITaskOptionalParameterView> getLastUsedTaskValues() {
+		return ((StoredTaskParameter)lastUsedTaskValues).getRootParameterView();
 	}
 
 	public Database<Root> getDatabase() {

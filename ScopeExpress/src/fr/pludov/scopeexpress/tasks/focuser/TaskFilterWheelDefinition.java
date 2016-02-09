@@ -35,11 +35,11 @@ public class TaskFilterWheelDefinition extends BaseTaskDefinition {
 
 
 	@Override
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView, ValidationContext validationContext) {
-		if (validationContext.isConfiguration() == false && focusUi.getFilterWheelManager().getConnectedDevice() == null) {
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
+		if (taskView.isConfiguration() == false && focusUi.getFilterWheelManager().getConnectedDevice() == null) {
 			taskView.addTopLevelError(ITaskParameterTestView.filterWheelRequired);
 		}
-		super.validateSettings(focusUi, taskView, validationContext);
+		super.validateSettings(focusUi, taskView);
 	}
 	
 	private static final TaskFilterWheelDefinition tsd = new TaskFilterWheelDefinition();

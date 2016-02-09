@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.tasks;
 
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.utils.*;
 
 public abstract class ChildLauncher {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
@@ -16,7 +16,7 @@ public abstract class ChildLauncher {
 		this.launched = task;
 		started = launched.startedTask.build(from.focusUi, from.taskManager, this);
 		// Récuperer toutes les valeurs depuis la configuration.
-		started.setParameters(from.parameters.getSubTaskView(task.getId()));
+		started.setParameters(from.parameters.getSubTaskView(task));
 	}
 
 	public <T> void set(TaskLauncherOverride<T> key, T value) {

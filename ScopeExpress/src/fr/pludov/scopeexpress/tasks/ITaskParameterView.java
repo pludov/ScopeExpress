@@ -7,7 +7,7 @@ public interface ITaskParameterView extends ISafeTaskParameterView {
 	@Override
 	public <TYPE> void set(TaskParameterId<TYPE> key, TYPE value);
 	@Override
-	public ITaskParameterView getSubTaskView(String taskLauncherDefinitionId);
+	public ITaskParameterView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId);
 
 	/** Duplique la vue (le parent reste lié, pas les fils) */
 	public ITaskParameterView clone();

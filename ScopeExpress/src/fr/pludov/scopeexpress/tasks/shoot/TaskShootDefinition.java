@@ -64,8 +64,8 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 	}
 
 	@Override
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view, ValidationContext validationContext) {
-		if (validationContext.isConfiguration() == false && focusUi.getCameraManager().getConnectedDevice() == null) {
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView view) {
+		if (view.isConfiguration() == false && focusUi.getCameraManager().getConnectedDevice() == null) {
 			view.addTopLevelError(ITaskParameterTestView.cameraRequired);
 		}
 
@@ -89,7 +89,7 @@ public class TaskShootDefinition extends BaseTaskDefinition {
 		} catch (ParameterNotKnownException e) {
 		}
 		
-		super.validateSettings(focusUi, view, validationContext);
+		super.validateSettings(focusUi, view);
 	}
 	
 /*	@Override

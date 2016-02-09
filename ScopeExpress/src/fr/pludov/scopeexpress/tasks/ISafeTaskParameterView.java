@@ -5,5 +5,5 @@ public interface ISafeTaskParameterView extends IWritableTaskParameterBaseView {
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key);
 	
 	@Override
-	public ISafeTaskParameterView getSubTaskView(String taskLauncherDefinitionId);
+	public ISafeTaskParameterView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId);
 }

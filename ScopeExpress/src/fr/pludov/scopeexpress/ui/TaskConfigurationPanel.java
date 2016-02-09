@@ -8,7 +8,6 @@ import javax.swing.event.*;
 import javax.swing.tree.*;
 
 import fr.pludov.scopeexpress.tasks.*;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition.*;
 
 public class TaskConfigurationPanel extends JPanel {
 	final TaskDefinitionRepository repository;
@@ -72,15 +71,7 @@ public class TaskConfigurationPanel extends JPanel {
 	{
 		TaskParameterPanel result = parameterPanels.get(btd);
 		if (result == null) {
-			ValidationContext configContext = new ValidationContext()
-			{
-				@Override
-				public boolean isConfiguration() {
-					return true;
-				}
-			};
-			
-			result = new TaskParameterPanel(focusUi, btd, configContext) {
+			result = new TaskParameterPanel(focusUi, btd, true) {
 				@Override
 				public boolean display(TaskParameterId<?> param, TaskLauncherOverride<?> override) {
 					if (param.is(ParameterFlag.PresentInConfig)) {
@@ -109,7 +100,7 @@ public class TaskConfigurationPanel extends JPanel {
 			BaseTaskDefinition def = item.getKey();
 			TaskParameterPanel tpp = item.getValue();
 			
-			ISafeTaskParameterView subTaskView = focusUi.getApplication().getConfigurationTaskValues().getSubTaskView(def.getId());
+			ISafeTaskParameterView subTaskView = focusUi.getApplication().getConfigurationTaskValues().getTaskView(def);
 			
 			
 			tpp.loadDialogValues(subTaskView, false);

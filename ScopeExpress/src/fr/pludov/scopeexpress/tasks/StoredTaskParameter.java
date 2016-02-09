@@ -47,8 +47,22 @@ public class StoredTaskParameter implements ITaskOptionalParameterView {
 	}
 
 	@Override
-	public ITaskOptionalParameterView getSubTaskView(String taskLauncherDefinitionId) {
-		return new StoredTaskParameter(storage, prefix + taskLauncherDefinitionId + ".");
+	public ITaskOptionalParameterView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId) {
+		return getViewById(taskLauncherDefinitionId.getId());
 	}
 
+	StoredTaskParameter getViewById(String id) {
+		return new StoredTaskParameter(storage, prefix + id + ".");
+	}
+	
+	public IRootParameterView<StoredTaskParameter> getRootParameterView()
+	{
+		return new IRootParameterView<StoredTaskParameter>() {
+			@Override
+			public StoredTaskParameter getTaskView(BaseTaskDefinition btd) {
+				return getViewById(btd.getId());
+			}
+		};
+	}
+	
 }

@@ -13,10 +13,6 @@ public abstract class BaseTaskDefinition {
 	final Map<String, TaskLauncherDefinition> taskLaunchers;
 	final TaskDefinitionRepository repository;
 	
-	public interface ValidationContext {
-		boolean isConfiguration();
-	};
-	
 	public BaseTaskDefinition(WritableTaskDefinitionRepository repository, String id, String defaultTitle) {
 		this.repository = repository;
 		this.id = id;
@@ -64,17 +60,20 @@ public abstract class BaseTaskDefinition {
 		return title;
 	}
 
-	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView, ValidationContext validationContext)
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView)
 	{
 		for(TaskLauncherDefinition child: this.taskLaunchers.values())
 		{
-			ITaskParameterTestView subTaskView = taskView.getSubTaskView(child.id);
+			ITaskParameterTestView subTaskView = taskView.getSubTaskView(child);
+			if (!subTaskView.needValidation()) {
+				continue;
+			}
 			for(TaskLauncherOverride<?> tlo : child.overrides) {
 				if (!subTaskView.hasValue(tlo.parameter)) {
 					subTaskView.setUndecided(tlo.parameter);
 				}
 			}
-			child.getStartedTask().validateSettings(focusUi, subTaskView, validationContext);
+			child.getStartedTask().validateSettings(focusUi, subTaskView);
 		}
 	}
 	

@@ -8,5 +8,5 @@ public interface ITaskOptionalParameterView extends ISafeTaskParameterView {
 	public <TYPE> TYPE get(TaskParameterId<TYPE> key);
 	
 	@Override
-	public ITaskOptionalParameterView getSubTaskView(String taskLauncherDefinitionId);
+	public ITaskOptionalParameterView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId);
 }

@@ -12,7 +12,7 @@ public interface ITaskParameterTestView extends ITaskParameterBaseView{
 	public boolean hasValue(TaskParameterId<?> key);
 	
 	@Override
-	public ITaskParameterTestView getSubTaskView(String taskLauncherDefinitionId);
+	public ITaskParameterTestView getSubTaskView(TaskLauncherDefinition taskLauncherDefinitionId);
 	
 	public boolean hasError();
 	
@@ -25,7 +25,19 @@ public interface ITaskParameterTestView extends ITaskParameterBaseView{
 	/** Retourne (efface) toutes les erreurs */
 	public List<String> getAllErrors();
 	
+	
+	/** Est-ce qu'on valide une vue sur la configuration ? */
+	public boolean isConfiguration();
+	
+	public boolean needValidation();
+	public boolean needValidation(Object enumValue);
+	
+	public void disableValidation();
+	public void disableValidation(Object enumValue);
+	
+	
 	public static final String focuserRequired = "Requiert un focuseur connecté";
 	public static final String cameraRequired = "Requiert une caméra connectée";
 	public static final String filterWheelRequired = "Requiert une roue à filtre connectée";
+	public static final String autoGuiderRequired = "Requiert la connection PHD2";
 }

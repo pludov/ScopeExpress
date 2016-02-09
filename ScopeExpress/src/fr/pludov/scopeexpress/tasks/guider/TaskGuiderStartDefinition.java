@@ -40,6 +40,15 @@ public class TaskGuiderStartDefinition extends BaseTaskDefinition
 	}
 
 	
+	@Override
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
+		if (taskView.isConfiguration() == false && focusUi.getGuiderManager().getConnectedDevice() == null) {
+			taskView.addTopLevelError(ITaskParameterTestView.autoGuiderRequired);
+		}
+
+		super.validateSettings(focusUi, taskView);
+	}
+	
 	private static TaskGuiderStartDefinition instance;
 	public static synchronized final TaskGuiderStartDefinition getInstance()
 	{

@@ -5,8 +5,8 @@ import java.util.*;
 public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> implements ITaskParameterView {
 
 	
-	public TaskParameterView(ISafeTaskParameterView rootConfig, ISafeTaskParameterView config,
-			ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues) {
+	public TaskParameterView(IRootParameterView<? extends ISafeTaskParameterView> rootConfig, ISafeTaskParameterView config, 
+			IRootParameterView<? extends ITaskOptionalParameterView> rootPreviousValues, ITaskOptionalParameterView previousValues) {
 		super(rootConfig, config, rootPreviousValues, previousValues);
 	}
 
@@ -27,7 +27,7 @@ public class TaskParameterView extends TaskParameterBaseView<TaskParameterView> 
 	}
 	
 	@Override
-	protected TaskParameterView buildSubTaskView(String tldId) {
+	protected TaskParameterView buildSubTaskView(TaskLauncherDefinition tldId) {
 		return new TaskParameterView(
 				rootConfig, config != null ? config.getSubTaskView(tldId) : null,
 				rootPreviousValues, previousValues != null ? previousValues.getSubTaskView(tldId) : null);

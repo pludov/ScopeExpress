@@ -8,10 +8,12 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 	final Map<TaskParameterId<?>, Object> values = new HashMap<>();
 	final Map<String, ACTUALVIEWTYPE> launchers = new HashMap<>();
 	
-	final ISafeTaskParameterView rootConfig, config;
-	final ITaskOptionalParameterView rootPreviousValues, previousValues;
+	final IRootParameterView<? extends ISafeTaskParameterView> rootConfig;
+	final ISafeTaskParameterView config;
+	final IRootParameterView<? extends ITaskOptionalParameterView> rootPreviousValues;
+	final ITaskOptionalParameterView previousValues;
 	
-	public TaskParameterBaseView(ISafeTaskParameterView rootConfig, ISafeTaskParameterView config, ITaskOptionalParameterView rootPreviousValues, ITaskOptionalParameterView previousValues)
+	public TaskParameterBaseView(IRootParameterView<? extends ISafeTaskParameterView> rootConfig, ISafeTaskParameterView config, IRootParameterView<? extends ITaskOptionalParameterView> rootPreviousValues, ITaskOptionalParameterView previousValues)
 	{
 		this.rootConfig = rootConfig;
 		this.config = config;
@@ -27,7 +29,7 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 		
 		if (rootConfig != null && key.flags.contains(ParameterFlag.PresentInConfig)) {
 			// Aller chercher en conf de toute façon
-			ISafeTaskParameterView configForTask = rootConfig.getSubTaskView(key.taskDefinition.getId());
+			ISafeTaskParameterView configForTask = rootConfig.getTaskView(key.taskDefinition);
 			return configForTask.get(key);
 		}
 		
@@ -48,14 +50,14 @@ public abstract class TaskParameterBaseView<ACTUALVIEWTYPE extends TaskParameter
 	}
 	
 	
-	protected abstract ACTUALVIEWTYPE buildSubTaskView(String tldId);
+	protected abstract ACTUALVIEWTYPE buildSubTaskView(TaskLauncherDefinition tldId);
 	
-	public ACTUALVIEWTYPE getSubTaskView(String tldId) {
+	public ACTUALVIEWTYPE getSubTaskView(TaskLauncherDefinition tldId) {
 		// On le crée si il n'existe pas
-		ACTUALVIEWTYPE  result = launchers.get(tldId);
+		ACTUALVIEWTYPE  result = launchers.get(tldId.getId());
 		if (result == null) {
 			result = buildSubTaskView(tldId);
-			launchers.put(tldId, result);
+			launchers.put(tldId.getId(), result);
 		}
 
 		return result;
