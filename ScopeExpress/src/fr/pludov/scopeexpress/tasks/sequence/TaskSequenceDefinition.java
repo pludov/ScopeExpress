@@ -47,6 +47,15 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
 		}
 	};
+	
+	final EnumParameterId<GuiderHandling> guiderHandling = 
+			new EnumParameterId<GuiderHandling>(this, "guiderHandling", GuiderHandling.class, ParameterFlag.Input) {
+		{
+			setTitle("Guidage");
+			setTooltip("Contrôle la collaboration avec Phd Guiding");
+			setDefault(GuiderHandling.Activate);
+		}
+	};
 
 	final TaskLauncherDefinition guiderStart = new TaskLauncherDefinition(this, "guiderStart", TaskGuiderStartDefinition.getInstance()) {
 		{
@@ -100,25 +109,8 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			@Override
 			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
 				try {
-					InitialFocusHandling focusHandling = td.getParameterValue(path.forParameter(initialFocusHandling));
-					if (focusHandling != null) {
-						switch(focusHandling) {
-						case Verified:
-							// Visible dans ce cas
-							return parent.getFieldStatus(null);
-						case Forced:
-						case NotVerified:
-						
-							// Compter les prises de vue
-							Integer currentShootCount = td.getParameterValue(path.forParameter(shootCount));
-							if (currentShootCount != null && currentShootCount.intValue() > 1) {
-								Integer verifCount = td.getParameterValue(path.forParameter(focusCheckInterval));
-								if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
-									return new TaskFieldStatus(Status.MeaningLess);
-								}
-							}
-							return parent.getFieldStatus(null);
-						}
+					if (!focusCheckIsPossible(td.getView(path))) {
+						return new TaskFieldStatus(Status.MeaningLess);
 					}
 				} catch (ParameterNotKnownException e) {
 				}
@@ -134,25 +126,8 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			@Override
 			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
 				try {
-					InitialFocusHandling focusHandling = td.getParameterValue(path.forParameter(initialFocusHandling));
-					if (focusHandling != null) {
-						switch(focusHandling) {
-						case Forced:
-						case Verified:
-							// Visible dans ce cas
-							return parent.getFieldStatus(null);
-
-						case NotVerified:
-							// Compter les prises de vue
-							Integer currentShootCount = td.getParameterValue(path.forParameter(shootCount));
-							if (currentShootCount != null && currentShootCount.intValue() > 1) {
-								Integer verifCount = td.getParameterValue(path.forParameter(focusCheckInterval));
-								if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
-									return new TaskFieldStatus(Status.MeaningLess);
-								}
-							}
-							return parent.getFieldStatus(null);
-						}
+					if (!autoFocusIsPossible(td.getView(path))) {
+						return new TaskFieldStatus(Status.MeaningLess);
 					}
 				} catch (ParameterNotKnownException e) {
 				}
@@ -162,7 +137,106 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			}
 		});
 		
+		td.addControler(path.forChild(this.guiderStart), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+				// On ne voit le guider que si guiderHandling == Activate
+				
+				try {
+					GuiderHandling guiderHandlingValue = td.getParameterValue(path.forParameter(guiderHandling));
+					if (guiderHandlingValue != null && guiderHandlingValue != GuiderHandling.Activate)
+					{
+						return new TaskFieldStatus(Status.MeaningLess);
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+				
+				
+				return parent.getFieldStatus(null);
+			}
+		});
+		
+		
 		super.declareControlers(td, path);
+	}
+	
+	boolean focusCheckIsPossible(ITaskParameterBaseView view) throws ParameterNotKnownException
+	{
+		InitialFocusHandling focusHandling = view.get(initialFocusHandling);
+		if (focusHandling != null) {
+			switch(focusHandling) {
+			case Verified:
+				// Visible dans ce cas
+				return true;
+			case Forced:
+			case NotVerified:
+			
+				// Compter les prises de vue
+				Integer currentShootCount = view.get(shootCount);
+				if (currentShootCount != null && currentShootCount.intValue() > 1) {
+					Integer verifCount = view.get(focusCheckInterval);
+					if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		return false; 
+	}
+	
+	
+	boolean autoFocusIsPossible(ITaskParameterBaseView view) throws ParameterNotKnownException
+	{
+		InitialFocusHandling focusHandling = view.get(initialFocusHandling);
+		if (focusHandling != null) {
+			switch(focusHandling) {
+			case Forced:
+			case Verified:
+				// Visible dans ce cas
+				return true;
+
+			case NotVerified:
+				// Compter les prises de vue
+				Integer currentShootCount = view.get(shootCount);
+				if (currentShootCount != null && currentShootCount.intValue() > 1) {
+					Integer verifCount = view.get(focusCheckInterval);
+					if (verifCount == null || verifCount.intValue() >= currentShootCount.intValue()) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
+		// Il n'en a pas ?
+		return false;
+	}
+	
+	@Override
+	public void validateSettings(FocusUi focusUi, ITaskParameterTestView taskView) {
+
+		try {
+			if (taskView.get(this.guiderHandling) != GuiderHandling.Activate) {
+				taskView.getSubTaskView(this.guiderStart).disableValidation();
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
+		try {
+			if (!autoFocusIsPossible(taskView)) {
+				taskView.getSubTaskView(this.autofocus).disableValidation();
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
+		try {
+			if (!focusCheckIsPossible(taskView)) {
+				taskView.getSubTaskView(this.focusCheck).disableValidation();
+			}
+		} catch (ParameterNotKnownException e) {
+		}
+		
+		super.validateSettings(focusUi, taskView);
 	}
 	
 	private static TaskSequenceDefinition instance;

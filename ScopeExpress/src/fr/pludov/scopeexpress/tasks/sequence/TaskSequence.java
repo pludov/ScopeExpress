@@ -145,19 +145,23 @@ public class TaskSequence extends BaseTask {
 				startGuiding();
 			}
 		});
-		ChildLauncher startGuiding = new ChildLauncher(this, getDefinition().guiderStart) {
-			@Override
-			public void onDone(BaseTask bt) {
-				if (bt.getStatus() == BaseStatus.Success) {
-					doneGuiding();
-				} else {
-					// FIXME: en cas d'erreur d'une sous-tache, il faudrait pouvoir redémarrer la sous-tache
-					setFinalStatus(BaseStatus.Error);
+		if (get(getDefinition().guiderHandling) == GuiderHandling.Activate) {
+			ChildLauncher startGuiding = new ChildLauncher(this, getDefinition().guiderStart) {
+				@Override
+				public void onDone(BaseTask bt) {
+					if (bt.getStatus() == BaseStatus.Success) {
+						doneGuiding();
+					} else {
+						// FIXME: en cas d'erreur d'une sous-tache, il faudrait pouvoir redémarrer la sous-tache
+						setFinalStatus(BaseStatus.Error);
+					}
 				}
-			}
-		};
-		startGuiding.getTask().setTitle("start autoguider");
-		startGuiding.start();
+			};
+			startGuiding.getTask().setTitle("start autoguider");
+			startGuiding.start();
+		} else {
+			doneGuiding();
+		}
 	}
 	
 	void doneGuiding()
@@ -181,6 +185,11 @@ public class TaskSequence extends BaseTask {
 
 	void listenPhd()
 	{
+		// On ne supervise que si le guidage est actif.
+		if (get(getDefinition().guiderHandling) != GuiderHandling.Activate) {
+			return;
+		}
+		
 		openPhd = focusUi.getGuiderManager().getConnectedDevice();
 		if (openPhd == null) {
 			setFinalStatus(BaseStatus.Error, "No guider connected");
