@@ -181,6 +181,7 @@ public class TaskSequence extends BaseTask {
 	Timer openPhdRecoveryTimer;
 	// Lancé par la supervision phd
 	OpenPhdQuery openPhdGetPixelArcSecQuery;
+	private ChildLauncher currentShoot;
 
 	void listenPhd()
 	{
@@ -216,7 +217,17 @@ public class TaskSequence extends BaseTask {
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						logger.warn("Pas de positions correcte du guidage depuis " + itv + " secondes; le guidage a certainement un problème");
-						// Dans ce cas, il faut annuler le shoot
+						
+						if (currentShoot == null) {
+							logger.warn("Pas de shoot en cours ??? Erreur interne ?");
+							return;
+						}
+						TaskShoot currentShootTask = (TaskShoot) currentShoot.getTask();
+						if (currentShootTask == null) {
+							logger.warn("Pas de tache de shoot en cours ??? Erreur interne ?");
+							return;
+						}
+						currentShootTask.requestCancelation(BaseStatus.Aborted);
 					}
 				});
 				openPhdRecoveryTimer.start();
@@ -354,9 +365,13 @@ public class TaskSequence extends BaseTask {
 
 		imageCount++;
 		consecutiveCountWithoutChecking++;
-		ChildLauncher shoot = new ChildLauncher(this, getDefinition().shoot) {
+		currentShoot = new ChildLauncher(this, getDefinition().shoot) {
 			@Override
 			public void onDone(BaseTask bt) {
+				if (currentShoot != this) {
+					return;
+				}
+				currentShoot = null;
 				unlistenPhd();
 				if (bt.getStatus() == BaseStatus.Success) {
 					
@@ -376,13 +391,17 @@ public class TaskSequence extends BaseTask {
 					
 					
 					nextImage();
+				} else if (bt.getStatus() == BaseStatus.Aborted) {
+					logger.warn("Image abandonnée. Nouvel essai");
+					imageCount --;
+					nextImage();
 				} else {
 					// FIXME: en cas d'erreur d'une sous-tache, il faudrait pouvoir redémarrer la sous-tache
 					setFinalStatus(BaseStatus.Error);
 				}
 			}
 		};
-		shoot.getTask().setTitle("Shoot " + imageCount);
-		shoot.start();
+		currentShoot.getTask().setTitle("Shoot " + imageCount);
+		currentShoot.start();
 	}
 }
