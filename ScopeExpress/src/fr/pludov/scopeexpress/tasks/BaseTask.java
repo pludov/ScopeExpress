@@ -1,12 +1,10 @@
 package fr.pludov.scopeexpress.tasks;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
-import fr.pludov.scopeexpress.ui.log.UILogger;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.log.*;
+import fr.pludov.scopeexpress.utils.*;
 
 /**
  * 
@@ -235,31 +233,36 @@ public abstract class BaseTask implements ITaskParent {
 	}
 	
 	// Demande d'interruption en cours ?
-	boolean interrupting;
+	BaseStatus interrupting;
 	
-	public void requestCancelation() {
-		if ((!getStatus().isTerminal()) && !interrupting) {
+	public void requestCancelation(BaseStatus statusForInterrupting) {
+		if ((!getStatus().isTerminal()) && interrupting == null) {
 			if (getStatus() == BaseStatus.Paused) {
 				cleanup();
 				// FIXME: attendre les enfants !
-				this.setStatus(BaseStatus.Canceled);
+				this.setStatus(statusForInterrupting);
 			} else {
-				interrupting = true;
+				interrupting = statusForInterrupting;
 				this.statusListeners.getTarget().statusChanged();
 			}
 		}
 	}
 	
 	public boolean hasPendingCancelation() {
-		return interrupting && !getStatus().isTerminal();
+		return (interrupting != null) && !getStatus().isTerminal();
 	}
 
+	public BaseStatus getPendingCancelation() {
+		return interrupting;
+	}
+	
 	/** Depuis le code de la tache, interrompt si la tache est terminée */
 	protected void doInterrupt() {
-		if (interrupting) {
-			interrupting = false;
+		if (interrupting != null) {
+			BaseStatus targetStatus = interrupting;
+			interrupting = null;
 			cleanup();
-			this.setFinalStatus(BaseStatus.Canceled);
+			this.setFinalStatus(targetStatus);
 		}
 	}
 	

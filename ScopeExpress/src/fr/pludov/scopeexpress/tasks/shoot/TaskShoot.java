@@ -48,8 +48,8 @@ public class TaskShoot extends BaseTask {
 	}
 	
 	@Override
-	public void requestCancelation() {
-		super.requestCancelation();
+	public void requestCancelation(BaseStatus targetStatus) {
+		super.requestCancelation(targetStatus);
 		if (hasPendingCancelation() && camera != null && !shootCanceled) {
 			shootCanceled = true;
 			try {
@@ -101,7 +101,7 @@ public class TaskShoot extends BaseTask {
 							}
 						});
 					} else if (TaskShoot.this.hasPendingCancelation()) {
-						setFinalStatus(BaseStatus.Canceled);
+						setFinalStatus(TaskShoot.this.getPendingCancelation());
 					} else {
 						setFinalStatus(BaseStatus.Error, "Operation canceled");
 					}

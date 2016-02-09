@@ -66,7 +66,7 @@ public class TaskControl extends TaskControlDesign {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if (currentTask != null) {
-					currentTask.requestCancelation();
+					currentTask.requestCancelation(BaseStatus.Canceled);
 				}
 			}
 		});

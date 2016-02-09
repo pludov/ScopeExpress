@@ -1,57 +1,21 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.*;
+import java.util.List;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.DropMode;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTable;
-import javax.swing.JToolBar;
-import javax.swing.JTree;
-import javax.swing.UIManager;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellRenderer;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.TreeCellRenderer;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreePath;
+import javax.swing.*;
+import javax.swing.event.*;
+import javax.swing.tree.*;
 
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.BaseTaskDefinition;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskChildListener;
-import fr.pludov.scopeexpress.tasks.TaskControl;
-import fr.pludov.scopeexpress.tasks.TaskDetailView;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskStatusListener;
-import fr.pludov.scopeexpress.tasks.TaskManager.TaskManagerListener;
-import fr.pludov.scopeexpress.ui.resources.IconProvider;
-import fr.pludov.scopeexpress.ui.resources.IconProvider.IconSize;
-import fr.pludov.scopeexpress.ui.utils.NodeIcon;
-import fr.pludov.scopeexpress.ui.widgets.IconButton;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.TaskManager.*;
+import fr.pludov.scopeexpress.ui.resources.*;
+import fr.pludov.scopeexpress.ui.resources.IconProvider.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
+import fr.pludov.scopeexpress.utils.*;
 
 /**
  * Présente un tableau des taches en cours, arborescent
@@ -131,7 +95,7 @@ public class TaskManagerView extends JSplitPane {
 				for(BaseTask bt : getTaskSelection())
 				{
 					if ((!bt.getStatus().isTerminal()) && !bt.hasPendingCancelation()) {
-						bt.requestCancelation();
+						bt.requestCancelation(BaseStatus.Canceled);
 					}
 				}
 			}
@@ -427,6 +391,8 @@ public class TaskManagerView extends JSplitPane {
 				String iconId;
 				if (bt.getStatus() == BaseStatus.Canceled) {
 					iconId = "status-canceled";
+				} else if (bt.getStatus() == BaseStatus.Aborted) {
+					iconId = "status-aborted";
 				} else if (bt.getStatus() == BaseStatus.Error) {
 					iconId = "status-error";
 				} else if (bt.getStatus() == BaseStatus.Pending){

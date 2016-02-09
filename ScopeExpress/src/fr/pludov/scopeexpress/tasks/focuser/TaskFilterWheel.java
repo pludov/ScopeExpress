@@ -1,14 +1,10 @@
 package fr.pludov.scopeexpress.tasks.focuser;
 
-import java.util.Arrays;
+import java.util.*;
 
-import fr.pludov.scopeexpress.filterwheel.FilterWheel;
-import fr.pludov.scopeexpress.filterwheel.FilterWheelException;
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.filterwheel.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class TaskFilterWheel extends BaseTask {
 	
@@ -102,7 +98,7 @@ public class TaskFilterWheel extends BaseTask {
 	}
 
 	@Override
-	public void requestCancelation() {
+	public void requestCancelation(BaseStatus targetStatus) {
 		if (getStatus() != BaseStatus.Processing) {
 			return;
 		}

@@ -1,20 +1,10 @@
 package fr.pludov.scopeexpress.tasks.guider;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-
-import fr.pludov.scopeexpress.openphd.IGuiderListener;
-import fr.pludov.scopeexpress.openphd.OpenPhdDevice;
-import fr.pludov.scopeexpress.openphd.OpenPhdQuery;
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.ui.DeviceManager;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.openphd.*;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class TaskGuiderStart extends BaseTask {
 	OpenPhdDevice openPhd;
@@ -66,14 +56,14 @@ public class TaskGuiderStart extends BaseTask {
 	
 
 	@Override
-	public void requestCancelation() {
+	public void requestCancelation(BaseStatus targetStatus) {
 		if (getStatus() != BaseStatus.Processing) {
 			return;
 		}
 		
 		cleanup();
 		
-		setFinalStatus(BaseStatus.Canceled, "Canceled");
+		setFinalStatus(targetStatus);
 	}
 	
 	@Override
