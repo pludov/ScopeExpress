@@ -329,8 +329,7 @@ public class TaskParameterPanel extends JPanel {
 
 		@Override
 		public boolean isConfiguration() {
-			// TODO Auto-generated method stub
-			return false;
+			return TaskParameterPanel.this.isForConfiguration;
 		}
 	}
 	
