@@ -162,7 +162,7 @@ public class AscomCamera extends WorkThread implements Camera {
 					int maxADU = (int)camera.get("MaxADU");
 					// FIXME: Pour l'instant on fait comme si on avait un maxADU systématiquement à 65535
 					if (maxADU > 65535) {
-						logger.warn("Max ADU is > 65535. 16 bits fits is not possible");
+						logger.warn("Max ADU is > 65535. 32 bits fits is not supported");
 					}
 					
 					double lastExp = (double)camera.get("LastExposureDuration");
