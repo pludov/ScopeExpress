@@ -28,10 +28,13 @@ public final class Utils {
 	public static void addCheckboxChangeListener(JCheckBox box, final Runnable listener)
 	{
 		box.addChangeListener(new ChangeListener() {
-			
+			boolean previousState = box.isSelected();
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				listener.run();
+				if (box.isSelected() != previousState) {
+					previousState = !previousState;
+					listener.run();
+				}
 			}	
 		});
 	}
