@@ -425,7 +425,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 	}
 
 
-	private abstract class StatusControler<WIDGET> {
+	private static abstract class StatusControler<WIDGET> {
 		final WeakReference<WIDGET> reference;
 		
 		StatusControler(WIDGET w)
