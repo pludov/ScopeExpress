@@ -1,16 +1,12 @@
 package fr.pludov.scopeexpress.openphd;
 
-import java.util.Map;
+import org.apache.log4j.*;
 
-import org.apache.log4j.Logger;
+import com.google.gson.*;
 
-import fr.pludov.scopeexpress.filterwheel.FilterWheel;
-import fr.pludov.scopeexpress.ui.IDeviceBase;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection.AsyncKind;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.scopeexpress.utils.WeakListenerCollection.*;
 
 public class OpenPhdDevice extends Thread implements IDeviceBase {
 	public static final Logger logger = Logger.getLogger(OpenPhdDevice.class);
@@ -36,9 +32,9 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 					}
 					
 					@Override
-					public void onEvent(String e, Map<?, ?> message) {
+					public void onEvent(String e, JsonObject message) {
 						if (e.equals("AppState")) {
-							currentState = (String)message.get("State");
+							currentState = message.get("State").getAsString();
 						}
 					}
 				};

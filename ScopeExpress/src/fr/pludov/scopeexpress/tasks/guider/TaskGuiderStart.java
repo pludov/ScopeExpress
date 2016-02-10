@@ -2,6 +2,8 @@ package fr.pludov.scopeexpress.tasks.guider;
 
 import java.util.*;
 
+import com.google.gson.*;
+
 import fr.pludov.scopeexpress.openphd.*;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.ui.*;
@@ -94,7 +96,7 @@ public class TaskGuiderStart extends BaseTask {
 		
 		guideQuery = new OpenPhdQuery() {
 			@Override
-			public void onReply(Map<?, ?> message) {
+			public void onReply(JsonObject message) {
 				guideQuery = null;
 				onGuideReplied(message);
 			}
@@ -119,10 +121,10 @@ public class TaskGuiderStart extends BaseTask {
 
 	}
 	
-	void onGuideReplied(Map<?, ?> message)
+	void onGuideReplied(JsonObject message)
 	{
 		logger.info("Got reply: " + message);
-		if (message.containsKey("error")) {
+		if (message.has("error")) {
 			setFinalStatus(BaseStatus.Error, OpenPhdQuery.getErrorMessage(message));
 			return;
 		}
@@ -132,10 +134,10 @@ public class TaskGuiderStart extends BaseTask {
 	void doUnpause() {
 		unpauseQuery = new OpenPhdQuery() {
 			@Override
-			public void onReply(Map<?, ?> message) {
+			public void onReply(JsonObject message) {
 				unpauseQuery = null;
 				logger.info("Got reply: " + message);
-				if (message.containsKey("error")) {
+				if (message.has("error")) {
 					setFinalStatus(BaseStatus.Error, getErrorMessage(message));
 				}
 			}
@@ -164,7 +166,7 @@ public class TaskGuiderStart extends BaseTask {
 			}
 			
 			@Override
-			public void onEvent(String event, Map<?, ?> message) {
+			public void onEvent(String event, JsonObject message) {
 				logger.debug("evenement " + event);
 				switch(event) {
 				case OpenPhdQuery.SettleDone:

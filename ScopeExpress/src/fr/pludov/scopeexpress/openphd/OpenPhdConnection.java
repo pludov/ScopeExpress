@@ -1,31 +1,15 @@
 package fr.pludov.scopeexpress.openphd;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.*;
+import java.util.*;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import com.google.gson.GsonBuilder;
-
-import fr.pludov.scopeexpress.ui.IDeviceBase;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
+import com.google.gson.*;
 
 public class OpenPhdConnection {
 	public static final Logger logger = Logger.getLogger(OpenPhdConnection.class);
@@ -36,7 +20,7 @@ public class OpenPhdConnection {
 	boolean closed;
 	
 	int nextOrderId;
-	BufferedReader inputReader;
+	JsonStreamParser reader;
 	
 	// Les requetes à envoyer
 	final List<OpenPhdQuery> pendingQueries;
@@ -72,7 +56,7 @@ public class OpenPhdConnection {
 			}
 		}.start();
 		
-		inputReader = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+		reader = new JsonStreamParser(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 		
 		
 		try {
@@ -141,17 +125,15 @@ public class OpenPhdConnection {
 	}
 	
 	boolean read() throws IOException {
-		
-		String l = inputReader.readLine();
-		if (l == null) {
+		JsonElement message = reader.next();	
+		if (message == null) {
 			return false;
 		}
-		Object message = new GsonBuilder().create().fromJson(l, Object.class);	
-		if (!(message instanceof Map)) {
+		logger.info("PHD sent: " + message);
+		if (!(message instanceof JsonObject)) {
 			throw new IOException("Invalid json received:" + message);
 		}
-		
-		final Map messageMap = (Map)message;
+		final JsonObject messageMap = (JsonObject)message;
 		
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
@@ -185,12 +167,12 @@ public class OpenPhdConnection {
 		return false;
 	}
 
-	void syncDispatchEvent(Map messageEvent)
+	void syncDispatchEvent(JsonObject messageEvent)
 	{
-		if (messageEvent.containsKey("jsonrpc")) {
+		if (messageEvent.has("jsonrpc")) {
 			logger.info("Phd response:" + messageEvent);
-
-			int id = ((Number)messageEvent.get("id")).intValue();
+			JsonElement e;
+			int id = (messageEvent.get("id").getAsBigDecimal()).intValue();
 			
 			OpenPhdQuery rq = findUnrepliedQuery(id);
 			if (rq != null) {
@@ -201,11 +183,11 @@ public class OpenPhdConnection {
 			return;
 		} else {
 			logger.info("Phd event:" + messageEvent);
-			Object eventType = messageEvent.get("Event");
-			if (eventType == null || !(eventType instanceof String)) {
+			JsonElement eventType = messageEvent.get("Event");
+			if (eventType == null) {
 				logger.warn("Malformed event (missing event)");
 			}
-			device.listeners.getTarget().onEvent((String)eventType, messageEvent);
+			device.listeners.getTarget().onEvent(eventType.getAsString(), messageEvent);
 		}
 	}
 	

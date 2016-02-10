@@ -1,12 +1,10 @@
 package fr.pludov.scopeexpress.openphd;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import com.google.gson.GsonBuilder;
+import com.google.gson.*;
 
 public abstract class OpenPhdQuery {
 	public static final Logger logger = Logger.getLogger(OpenPhdQuery.class);
@@ -29,7 +27,7 @@ public abstract class OpenPhdQuery {
 	public abstract void onFailure();
 	
 	/** Appellé uniquement dnas le thread swing*/
-	public abstract void onReply(Map<?, ?> message); 
+	public abstract void onReply(JsonObject message); 
 	
 	public void send(OpenPhdDevice phd)
 	{
@@ -64,12 +62,12 @@ public abstract class OpenPhdQuery {
 		content.put(string, object);
 	}
 
-	public static String getErrorMessage(Map<?, ?> object)
+	public static String getErrorMessage(JsonObject  object)
 	{
-		Object o = object.get("Error");
-		if (o == null) {
+		if (!object.has("Error")) {
 			return null;
 		}
-		return Objects.toString(o);
+		
+		return Objects.toString(object.get("Error"));
 	}
 }

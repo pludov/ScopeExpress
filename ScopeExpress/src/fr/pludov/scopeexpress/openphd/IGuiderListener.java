@@ -1,9 +1,9 @@
 package fr.pludov.scopeexpress.openphd;
 
-import java.util.Map;
+import com.google.gson.*;
 
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
+import fr.pludov.scopeexpress.ui.*;
 
 public interface IGuiderListener extends IDriverStatusListener{
-	void onEvent(String event, Map<?, ?> message);
+	void onEvent(String event, JsonObject message);
 }

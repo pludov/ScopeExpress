@@ -2,9 +2,10 @@ package fr.pludov.scopeexpress.tasks.sequence;
 
 import java.awt.event.*;
 import java.io.*;
-import java.util.*;
 
-import javax.swing.Timer;
+import javax.swing.*;
+
+import com.google.gson.*;
 
 import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.MosaicListener.*;
@@ -241,13 +242,13 @@ public class TaskSequence extends BaseTask {
 			}
 			
 			@Override
-			public void onEvent(String event, Map<?, ?> message) {
+			public void onEvent(String event, JsonObject message) {
 				// Si c'est un message de déconnection, donner un timeout avant erreur ?
 				boolean messageIsGood = false;
 				
 				if (event.equals(OpenPhdQuery.GuideStep)) {
-					Number dx = (Number)message.get("dx");
-					Number dy = (Number)message.get("dy");
+					Double dx = message.has("dx") ? message.get("dx").getAsDouble() : null;
+					Double dy = message.has("dy") ? message.get("dy").getAsDouble() : null;
 					if (dx != null && dy != null && arcsecPerPixel != null) {
 						double dst = arcsecPerPixel * Math.sqrt(dx.doubleValue() * dx.doubleValue() + dy.doubleValue() * dy.doubleValue());
 						logger.debug("Distance du guidage: " + dst + " (arcsec)");
@@ -268,9 +269,8 @@ public class TaskSequence extends BaseTask {
 				startTimer();
 				openPhdGetPixelArcSecQuery = new OpenPhdQuery() {
 					@Override
-					public void onReply(java.util.Map<?,?> message) {
-						Number n = (Number)message.get("result");
-						arcsecPerPixel = n.doubleValue();
+					public void onReply(JsonObject message) {
+						arcsecPerPixel = message.get("result").getAsDouble();
 					};
 					
 					@Override
