@@ -514,7 +514,7 @@ public class TaskParameterPanel extends JPanel {
 	private <T> T getParameterValueFromStatus(ParameterStatus<T> ps) throws ParameterNotKnownException
 	{
 		if (ps.evaluating) {
-			throw new RuntimeException("Recursive dependencie found");
+			throw new RuntimeException("Recursive dependencie found for " + ps.parameter);
 		}
 		ParameterPath<T> pp = ps.parameter;
 		T result;
