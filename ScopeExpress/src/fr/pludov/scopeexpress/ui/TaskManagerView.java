@@ -388,20 +388,7 @@ public class TaskManagerView extends JSplitPane {
 
 				}
 				
-				String iconId;
-				if (bt.getStatus() == BaseStatus.Canceled) {
-					iconId = "status-canceled";
-				} else if (bt.getStatus() == BaseStatus.Aborted) {
-					iconId = "status-aborted";
-				} else if (bt.getStatus() == BaseStatus.Error) {
-					iconId = "status-error";
-				} else if (bt.getStatus() == BaseStatus.Pending){
-					iconId = "status-pending";
-				} else if (bt.getStatus().isTerminal()) {
-					iconId = "status-ok";
-				} else {
-					iconId = "status-running";
-				}
+				String iconId = bt.getStatus().getIconId();
 					
 				
 				JButton icon = new JButton("");

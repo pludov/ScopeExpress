@@ -75,24 +75,6 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			setDefault(GuiderHandling.Activate);
 		}
 	};
-	
-	final DoubleParameterId maxGuiderDriftArcSec = 
-			new DoubleParameterId(this, "maxGuiderDriftArcSec", ParameterFlag.Input) {
-		{
-			setTitle("Seuil d'arrêt");
-			setTooltip("Distance maxi (en arcsec) tolérée pendant un cliché. Au delà, le cliché est abandonné. Vide pour désactiver");
-			setDefault(2.0);
-		}
-	};
-	
-	final DoubleParameterId guiderDriftTolerance = 
-			new DoubleParameterId(this, "maxGuiderDriftDuration", ParameterFlag.Input, ParameterFlag.Mandatory) {
-		{
-			setTitle("Durée avant arrêt");
-			setTooltip("Durée (secondes) pendant laquelle le guider peut rester au delà du seuil d'arrêt, ou rester sans réponse (étoile perdue)");
-			setDefault(10.0);
-		}
-	};
 
 	final TaskLauncherDefinition guiderStart = new TaskLauncherDefinition(this, "guiderStart", TaskGuiderStartDefinition.getInstance()) {
 		{
@@ -100,6 +82,11 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		}
 	};
 
+	final TaskLauncherDefinition guiderMonitor = new TaskLauncherDefinition(this, "guiderMonitor", TaskGuiderMonitorDefinition.getInstance()) {
+		{
+			
+		}
+	};
 
 	final TaskLauncherDefinition guiderStop = new TaskLauncherDefinition(this, "guiderStop", TaskGuiderSuspendDefinition.getInstance()) {
 		{
@@ -181,25 +168,28 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 			}
 		});
 		
-		td.addControler(path.forChild(this.guiderStart), new TaskFieldControler() {
-			@Override
-			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
-				// On ne voit le guider que si guiderHandling == Activate
-				
-				try {
-					GuiderHandling guiderHandlingValue = td.getParameterValue(path.forParameter(guiderHandling));
-					if (guiderHandlingValue != null && guiderHandlingValue != GuiderHandling.Activate)
-					{
-						return new TaskFieldStatus(Status.MeaningLess);
+		// Désactiver les taches de guidages
+		for(TaskLauncherDefinition tld : new TaskLauncherDefinition[]{this.guiderStart, this.guiderMonitor, this.guiderStop})
+		{
+			td.addControler(path.forChild(tld), new TaskFieldControler() {
+				@Override
+				public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+					// On ne voit le guider que si guiderHandling == Activate
+
+					try {
+						GuiderHandling guiderHandlingValue = td.getParameterValue(path.forParameter(guiderHandling));
+						if (guiderHandlingValue != null && guiderHandlingValue != GuiderHandling.Activate)
+						{
+							return new TaskFieldStatus(Status.MeaningLess);
+						}
+					} catch (ParameterNotKnownException e) {
 					}
-				} catch (ParameterNotKnownException e) {
+
+
+					return parent.getFieldStatus(null);
 				}
-				
-				
-				return parent.getFieldStatus(null);
-			}
-		});
-		
+			});
+		}
 		
 		super.declareControlers(td, path);
 	}
@@ -281,11 +271,11 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		}
 		
 		try {
-			if (taskView.get(guiderHandling) == GuiderHandling.Activate)
+			if (taskView.get(guiderHandling) != GuiderHandling.Activate)
 			{
-				if (taskView.get(guiderDriftTolerance) == null || taskView.get(guiderDriftTolerance) < 5) {
-					taskView.addError(guiderDriftTolerance, "Doit être superieur à 5 secondes");
-				}
+				taskView.getSubTaskView(this.guiderStart).disableValidation();
+				taskView.getSubTaskView(this.guiderStop).disableValidation();
+				taskView.getSubTaskView(this.guiderMonitor).disableValidation();
 			}
 		} catch (ParameterNotKnownException e) {
 		}

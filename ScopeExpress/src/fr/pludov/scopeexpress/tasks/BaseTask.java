@@ -105,7 +105,7 @@ public abstract class BaseTask implements ITaskParent {
 
 	protected void setStatus(IStatus status, String details)
 	{
-		logger.debug("Setting status to " + status + (details == null ? "" : " : " + details));
+		logger.debug("Passage à l'état : " + status.getTitle() + (details == null ? "" : " : " + details));
 		updateTimesForStatusChange(status);
 		this.status = status;
 		this.statusDetails = details;
@@ -150,7 +150,7 @@ public abstract class BaseTask implements ITaskParent {
 	
 	protected void setFinalStatus(IStatus status, String details)
 	{
-		logger.info("Setting status to " + status + (details != null ? " - " + details : ""));
+		logger.info("Passage à l'état: " + status.getTitle() + (details != null ? " - " + details : ""));
 		cleanup();
 		updateTimesForStatusChange(status);
 		this.status = status;
@@ -233,10 +233,10 @@ public abstract class BaseTask implements ITaskParent {
 	}
 	
 	// Demande d'interruption en cours ?
-	BaseStatus interrupting;
+	private BaseStatus interrupting;
 	
 	public void requestCancelation(BaseStatus statusForInterrupting) {
-		if ((!getStatus().isTerminal()) && interrupting == null) {
+		if ((!getStatus().isTerminal()) && getInterrupting() == null) {
 			if (getStatus() == BaseStatus.Paused) {
 				cleanup();
 				// FIXME: attendre les enfants !
@@ -249,17 +249,17 @@ public abstract class BaseTask implements ITaskParent {
 	}
 	
 	public boolean hasPendingCancelation() {
-		return (interrupting != null) && !getStatus().isTerminal();
+		return (getInterrupting() != null) && !getStatus().isTerminal();
 	}
 
 	public BaseStatus getPendingCancelation() {
-		return interrupting;
+		return getInterrupting();
 	}
 	
 	/** Depuis le code de la tache, interrompt si la tache est terminée */
 	protected void doInterrupt() {
-		if (interrupting != null) {
-			BaseStatus targetStatus = interrupting;
+		if (getInterrupting() != null) {
+			BaseStatus targetStatus = getInterrupting();
 			interrupting = null;
 			cleanup();
 			this.setFinalStatus(targetStatus);
@@ -370,5 +370,9 @@ public abstract class BaseTask implements ITaskParent {
 
 	public BaseTask getPrevious() {
 		return previous;
+	}
+
+	public BaseStatus getInterrupting() {
+		return interrupting;
 	}
 }

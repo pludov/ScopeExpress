@@ -1,28 +1,14 @@
 package fr.pludov.scopeexpress.tasks.javascript;
 
-import java.awt.Color;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 
-import javax.swing.Timer;
+import javax.swing.*;
 
-import org.mozilla.javascript.Callable;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContinuationPending;
-import org.mozilla.javascript.NativeObject;
-import org.mozilla.javascript.Script;
-import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.*;
 
-import fr.pludov.scopeexpress.tasks.BaseStatus;
-import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.ChildLauncher;
-import fr.pludov.scopeexpress.tasks.IStatus;
-import fr.pludov.scopeexpress.tasks.TaskInterruptedException;
-import fr.pludov.scopeexpress.tasks.TaskLauncherDefinition;
-import fr.pludov.scopeexpress.tasks.TaskManager;
-import fr.pludov.scopeexpress.tasks.TaskParameterId;
-import fr.pludov.scopeexpress.tasks.autofocus.TaskAutoFocusDefinition;
-import fr.pludov.scopeexpress.ui.FocusUi;
+import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class TaskJavascript extends BaseTask {
 
@@ -112,6 +98,11 @@ public class TaskJavascript extends BaseTask {
 				@Override
 				public boolean isTerminal() {
 					return false;
+				}
+				
+				@Override
+				public String getIconId() {
+					return BaseStatus.Paused.getIconId();
 				}
 				
 				@Override

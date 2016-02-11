@@ -1,8 +1,8 @@
 package fr.pludov.scopeexpress.tasks.autofocus;
 
-import java.awt.Color;
+import java.awt.*;
 
-import fr.pludov.scopeexpress.tasks.IStatus;
+import fr.pludov.scopeexpress.tasks.*;
 
 public enum TaskAutoFocusStatus implements IStatus {
 	Shoot("Photo", Color.orange), 
@@ -28,6 +28,11 @@ public enum TaskAutoFocusStatus implements IStatus {
 		return color;
 	}
 
+	@Override
+	public String getIconId() {
+		return BaseStatus.Processing.getIconId();
+	}
+	
 	@Override
 	public boolean isTerminal() {
 		return false;
