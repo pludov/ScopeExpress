@@ -27,6 +27,25 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		}
 	};
 	
+	final BooleanParameterId guiderStopForFilterWheel = 
+			new BooleanParameterId(this, "guiderStopForFilterWheel", ParameterFlag.PresentInConfig) {
+				{
+					setTitle("Roue a filtre devant l'auto-guideur");
+					setTooltip("Interrompt l'autoguidage avant les mouvements de roue à filtre");
+					setDefault(false);
+				}
+			};
+	
+	final BooleanParameterId guiderStopForFilterFocuser = 
+			new BooleanParameterId(this, "guiderStopForFilterFocuser", ParameterFlag.PresentInConfig) {
+		{
+			setTitle("Focuseur devant l'auto-guideur");
+			setTooltip("Interrompt l'autoguidage avant les mouvements de mise au point");
+			setDefault(true);
+		}
+	};
+			
+	
 	final IntegerParameterId focusCheckInterval = 
 			new IntegerParameterId(this, "checkFocusInterval", ParameterFlag.Input) {
 				{
@@ -81,6 +100,13 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		}
 	};
 
+
+	final TaskLauncherDefinition guiderStop = new TaskLauncherDefinition(this, "guiderStop", TaskGuiderSuspendDefinition.getInstance()) {
+		{
+			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
+		}
+	};
+
 	final TaskLauncherDefinition filterWheel = new TaskLauncherDefinition(this, "filterWheel", TaskFilterWheelDefinition.getInstance()) {
 		{
 			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
@@ -98,7 +124,7 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 
 	@Override
 	public BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher) {
-		return new TaskSequence(focusUi, tm, parentLauncher, this);
+		return new TaskAbstractSequence(focusUi, tm, parentLauncher, this);
 	}
 	
 	@Override

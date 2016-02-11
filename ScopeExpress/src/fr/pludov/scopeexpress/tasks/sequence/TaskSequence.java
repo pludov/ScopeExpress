@@ -16,6 +16,62 @@ import fr.pludov.scopeexpress.tasks.shoot.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.DeviceManager.*;
 
+/**
+ * 
+ * La tache sequence:
+ *   active le filtre choisi (FIXME: si actif)
+ *   fait un autofocus (FIXME: si actif)
+ * 
+ * if (filter) {
+ * 		if (!autoguider.ignore && autoguider.stopForFilterWheel) {
+ *          stopAutoguider();
+ *      }
+ * 		switchFilter(filter);
+ * }
+ * 
+ * 
+ * if (!autoguider.ignore && !autoguidre.stopForFocus) {
+ *      startAutoGuider();
+ * }
+ * 
+ * if (autofocus == check) {
+ * 		checkFocus();
+ * 		if (checkFocus.result) {
+ * 			if (!autoguider.ignore && autoguidre.stopForFocus) {
+ * 				stopAutoguider();
+ * 			}
+ * 			autofocus();
+ * 		}
+ * } else if (autofocus == force) {
+ * 		autofocus();
+ * }
+ * 
+ * if (!autoguider.ignore && autoguidre.stopForFocus) {
+ *      startAutoGuider();
+ * }
+ * 
+ * loop:
+ * if (timeToCheckFocus()) {
+ * 		checkFocus();
+ * 		if (checkFocus.result) {
+ * 			if (!autoguider.ignore && autoguidre.stopForFocus) {
+ * 				stopAutoguider();
+ * 			}
+ * 			autofocus();
+ * 			if (!autoguider.ignore && autoguidre.stopForFocus) {
+ * 				startAutoguider();
+ * 			}
+ * 		}
+ * }
+ * 
+ * -- démarre la surveillance phd... 
+ * camera.shoot();
+ * 
+ * goto loop;
+ * 
+ * @author utilisateur
+ *
+ */
 public class TaskSequence extends BaseTask {
 	int imageCount;
 
