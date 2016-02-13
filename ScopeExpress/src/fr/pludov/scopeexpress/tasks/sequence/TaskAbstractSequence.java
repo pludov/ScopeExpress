@@ -628,7 +628,8 @@ public class TaskAbstractSequence extends BaseTask {
 		Runnable onResume;
 		Function<Void, String> titleProvider;
 		InterruptType abortRequested;
-
+		boolean paused;
+		
 		private ChildLauncher launcher;
 		
 		SubTask(TaskLauncherDefinition child)
@@ -636,21 +637,43 @@ public class TaskAbstractSequence extends BaseTask {
 			this.child = child;
 		}
 		
+		void wakeup()
+		{
+			IStatus currentStatus = launcher.getTask().getStatus();
+			if (currentStatus == BaseStatus.Paused)
+			{
+				// On part en wakeup
+				launcher.getTask().resume();
+			} else {
+				if (!currentStatus.isTerminal()) {
+					logger.debug("La tache est déjà en cours. Pas de sortie de pause");
+				} else {
+					taskFinished(launcher.getTask());
+				}
+			}
+			
+		}
+		
 		@Override
 		void enter() {
+			paused = false;
 			launcher = new ChildLauncher(TaskAbstractSequence.this, child) {
 				@Override
 				public void onStatusChanged(BaseTask bt) {
 					if (launcher != this) {
 						return;
 					}
+					if (paused) {
+						return;
+					}
 					if ((bt.getStatus() == BaseStatus.Paused) && (abortRequested == InterruptType.Pause))
 					{
 						onResume = () -> {
-							bt.resume();
+							wakeup();
 						};
 						StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
 						abortRequested = null;
+						paused = isPausedMessage(stepError);
 						throwError(stepError);
 					}
 				}
@@ -662,6 +685,9 @@ public class TaskAbstractSequence extends BaseTask {
 					if (launcher != this) {
 						return;
 					}
+					if (paused) {
+						return;
+					}
 					if (abortRequested != null) {
 						onResume = () -> {onDone(bt);};
 						StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
@@ -670,26 +696,7 @@ public class TaskAbstractSequence extends BaseTask {
 						return;
 					}
 					
-					launcher = null;
-	
-					Object todo = onStatus != null ? onStatus.get(bt.getStatus()) : null;
-					
-					if (todo != null) {
-						if (todo instanceof Step) {
-							runningStatus = (Step) todo;
-							runningStatus.enter();
-						} else {
-							// FIXME : propagation d'exception ici
-							((SubTaskStatusChecker)todo).evaluate(bt);
-							leave();
-						}
-					} else {
-						if (bt.getStatus() == BaseStatus.Success) {
-							leave();
-						} else {
-							throwError(new WrongSubTaskStatus(bt));
-						}
-					}
+					taskFinished(bt);
 				}
 			};
 			runningStatus = null;
@@ -768,6 +775,7 @@ public class TaskAbstractSequence extends BaseTask {
 					// On est en train de faire tourner la tache...
 					switch(it) {
 					case Abort:
+						paused = false;
 						launcher.getTask().requestCancelation(BaseStatus.Aborted);
 						return;
 					case Pause:
@@ -778,6 +786,29 @@ public class TaskAbstractSequence extends BaseTask {
 				} else {
 					runningStatus.abortRequest(it);
 				}	
+			}
+		}
+
+		private void taskFinished(BaseTask bt) {
+			launcher = null;
+
+			Object todo = onStatus != null ? onStatus.get(bt.getStatus()) : null;
+			
+			if (todo != null) {
+				if (todo instanceof Step) {
+					runningStatus = (Step) todo;
+					runningStatus.enter();
+				} else {
+					// FIXME : propagation d'exception ici
+					((SubTaskStatusChecker)todo).evaluate(bt);
+					leave();
+				}
+			} else {
+				if (bt.getStatus() == BaseStatus.Success) {
+					leave();
+				} else {
+					throwError(new WrongSubTaskStatus(bt));
+				}
 			}
 		}
 	}
