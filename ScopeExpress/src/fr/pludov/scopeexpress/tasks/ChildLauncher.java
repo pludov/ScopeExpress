@@ -32,6 +32,8 @@ public abstract class ChildLauncher {
 			public void statusChanged() {
 				if (started.getStatus().isTerminal()) {
 					onDone(started);
+				} else {
+					onStatusChanged(started);
 				}
 			}
 		});
@@ -44,6 +46,10 @@ public abstract class ChildLauncher {
 	
 	public abstract void onDone(BaseTask bt);
 
+	/** Appellé sur un changement de status non terminal */
+	public void onStatusChanged(BaseTask bt) {}
+
+	
 	public TaskLauncherDefinition getLaunched() {
 		return launched;
 	}

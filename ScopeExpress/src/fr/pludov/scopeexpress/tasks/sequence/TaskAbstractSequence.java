@@ -48,10 +48,47 @@ public class TaskAbstractSequence extends BaseTask {
 	{
 		
 	}
+
 	
-	static class StepAbortedMessage implements StepMessage
+	/**
+	 * Type d'interruption d'étape
+	 * On peut demander pause puis Abort.
+	 * Par contre une demande de Pause après un Abort sera ignorée
+	 */
+	enum InterruptType {
+		Pause,
+		Abort;
+
+		/** true si a < b */
+		public static boolean lower(InterruptType a, InterruptType b) {
+			if (a == null) {
+				return (b != null);
+			}
+			if (b == null) {
+				return false;
+			}
+			return a.ordinal() < b.ordinal();
+		}
+	}
+	
+	/** 
+	 * Ce message est émit par un step qui s'est interrompu,
+	 * ou alors qui s'est mis en pause.
+	 * 
+	 * Un step en pause peut être redémarré par un appel à resume
+	 */
+	static class StepInterruptedMessage implements StepMessage
 	{
+		InterruptType type;
 		
+		public StepInterruptedMessage(InterruptType requested) {
+			this.type = requested;
+		}
+	}
+	
+	static boolean isPausedMessage(StepMessage sm)
+	{
+		return ((sm instanceof StepInterruptedMessage) && ((StepInterruptedMessage)sm).type == InterruptType.Pause);
 	}
 	
 	static interface StepContainer
@@ -72,7 +109,7 @@ public class TaskAbstractSequence extends BaseTask {
 		abstract void resume();
 		
 		/** Quitte l'étape, et avance au suivant */
-		final void leave()
+		void leave()
 		{
 			if (parent != null) {
 				parent.advance(this);
@@ -81,14 +118,18 @@ public class TaskAbstractSequence extends BaseTask {
 			}
 		}
 		
-		final void throwError(StepMessage stepError)
+		void throwError(StepMessage stepError)
 		{
 			if (parent != null) {
 				parent.handleMessage(this, stepError);
 			} else {
-				if (stepError instanceof StepAbortedMessage && TaskAbstractSequence.this.getInterrupting() != null)
+				if (stepError instanceof StepInterruptedMessage && TaskAbstractSequence.this.getInterrupting() != null)
 				{
 					setFinalStatus(TaskAbstractSequence.this.getInterrupting());
+				} else if (isPausedMessage(stepError) && TaskAbstractSequence.this.isPauseRequested()) {
+					// TaskAbstractSequence.this.onUnpause
+					pausing = false;
+					setStatus(BaseStatus.Paused);
 				} else {
 					setFinalStatus(BaseStatus.Error, stepError.toString());
 				}
@@ -103,25 +144,272 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 
 		/** 
-		 * Demande une terminaison. 
+		 * Demande une terminaison.
+		 * Doit être appellé par un parent (pas déclenché par un fils, sinon race condition) 
 		 * Pas de garantie qu'elle soit honorée (un succès est toujours possible...)
 		 * L'appelant devra alors gérer lui même la condition d'abort.
 		 */
-		abstract void abortRequest();		
+		abstract void abortRequest(InterruptType type);		
 	};
 	
 	public static interface StepCondition {
 		boolean evaluate();
 	}
 	
-	class While extends Step implements StepContainer {
+	/**
+	 * Logique de traitement des interruptions qui prend en compte l'arret et la relance des fils
+	 * 
+	 * Elle repose sur getActiveChilds() qui doit retourner les fils en cours
+	 * 
+	 * 
+	 */
+	abstract class StepInterruptionHandler
+	{
+		class InterruptionStatus
+		{
+			boolean done;
+			InterruptType requested;
+		}
+		
+		final Step step;
+		
+		InterruptType requested;
+		Object requestIdentifier;
+		Object resumeIdentifier;
+		Runnable restart;
+		IdentityHashMap<Step, InterruptionStatus> childStatus;
+		
+		StepInterruptionHandler(Step parent)
+		{
+			this.step = parent;
+		}
+		
+		abstract Collection<Step> getActiveSteps();
+		
+		
+		void reset()
+		{
+			requested = null;
+			requestIdentifier = null;
+			resumeIdentifier = null;
+			childStatus = null;
+			restart = null;
+		}
+		
+		/**
+		 * Traite une demande d'interruption.
+		 * Elle est forwardée au fils
+		 * @param it
+		 */
+		void interruptRequest(InterruptType it)
+		{
+			if (requested == null || requested.ordinal() < it.ordinal()) {
+				requested = it;
+				requestIdentifier = new Object();
+				finish();
+			}
+		}
+		
+		InterruptionStatus getChildStatus(Step child)
+		{
+			if (childStatus == null) {
+				childStatus = new IdentityHashMap<>();
+			}
+			InterruptionStatus result = childStatus.get(child);
+			if (result == null) {
+				result = new InterruptionStatus();
+				childStatus.put(child, result);
+			}
+			return result;
+		}
+
+		void finish()
+		{
+			Object requestToStop = requestIdentifier;
+			boolean restart = true;
+		CheckActiveLoop:
+			while(requestIdentifier == requestToStop) {
+				restart = false;
+				// Faire passer la demande à tous les fils actifs (non terminés vu du parents, mais peut être en pause...)
+				Collection<Step> activeSteps = getActiveSteps();
+				boolean somethingNotDone = false;
+				for(Step s : activeSteps)
+				{
+					InterruptionStatus status = getChildStatus(s);
+					if (status.done) {
+						continue;
+					}
+					somethingNotDone = true;
+					if (InterruptType.lower(status.requested, requested))
+					{
+						status.requested = requested;
+						s.abortRequest(requested);
+						continue CheckActiveLoop;
+					}
+				}
+				
+				if (somethingNotDone) {
+					return;
+				}
+				
+				// On arrive là quand tout le monde est terminé.
+				// Dans ce cas, on peut emetrre une message comme quoi on peut redémarrer.
+				
+				if (requested == InterruptType.Pause) {
+					this.restart = ()->{
+						Object resumeIdentifierValue = new Object();
+						resumeIdentifier = resumeIdentifierValue;
+						// Comment on fait pour savoir que les restart doivent continuer en cas d'interruption ?
+						for(Step step : activeSteps) {
+							if (resumeIdentifier != resumeIdentifierValue) {
+								return;
+							}
+							step.resume();
+						}
+						if (resumeIdentifier != resumeIdentifierValue) {
+							return;
+						}
+						// Tous le monde a redémarré ?
+						resumeIdentifier = null;
+					};
+				}
+				StepInterruptedMessage stepError = new StepInterruptedMessage(requested);
+				requested = null;
+				requestIdentifier = null;
+				step.throwError(stepError);
+				return;
+			}
+		}
+		
+		/** Interrompt l'action de resume éventuellement en cours */
+		void leave()
+		{
+			resumeIdentifier = null;
+			childStatus = null;
+		}
+		
+		void resume()
+		{
+			Runnable todo = this.restart;
+			this.restart = null;
+			todo.run();
+		}
+		
+		/** 
+		 * Filtres les messages relatifs aux fils
+		 * On suppose qu'on ne reçoit que des messages pour des fils actifs 
+		 */
+		boolean handleChildMessage(Step step, StepMessage msg)
+		{
+			if ((requested != null) && (msg instanceof StepInterruptedMessage))
+			{
+				StepInterruptedMessage smi = (StepInterruptedMessage) msg;
+				if (smi.type == requested) {
+					// Il est dans le bon type... On prend le message et on l'ignore
+					getChildStatus(step).done = true;
+					finish();
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/** 
+		 * Traite une interruption en attente. Celà suppose qu'il n'y a plus de fils actifs 
+		 * Si retourne true, la tache est arrété (il ne doit pas y avoir de code après) 
+		 */
+		public boolean doInterrupt(Runnable onRestart) {
+			if (requested != null) {
+				StepInterruptedMessage sim = new StepInterruptedMessage(requested);
+				if (requested == InterruptType.Pause) {
+					restart = onRestart;
+				} else {
+					restart = null;
+				}
+				requested = null;
+				
+				step.throwError(sim);
+				return true;
+			}
+			return false;
+		}
+	}
+	
+	/**
+	 * Pour l'utiliser, il faut:
+	 *   surcharger handleMessage pour faire passer par l'interruptionHandler
+	 */
+	abstract class StepWithSimpleInterruptionHandler extends Step {
+		protected final StepInterruptionHandler interruptionHandler;
+
+		StepWithSimpleInterruptionHandler()
+		{
+			this.interruptionHandler = new StepInterruptionHandler(this) {
+				@Override
+				Collection<Step> getActiveSteps() {
+					Collection<Step> rslt = StepWithSimpleInterruptionHandler.this.getActiveSteps();
+					if (rslt == null) {
+						return Collections.emptyList();
+					}
+					return rslt;
+				}
+			};
+		}
+		
+		protected abstract Collection<Step> getActiveSteps();
+		
+		@Override
+		void enter() {
+			interruptionHandler.reset();
+		}
+		
+		@Override
+		void abortRequest(InterruptType type) {
+			interruptionHandler.interruptRequest(type);
+		}
+
+		@Override
+		public void resume() {
+			interruptionHandler.resume();
+		}
+		
+		@Override
+		void leave()
+		{
+			interruptionHandler.leave();
+			super.leave();
+		}
+		
+		@Override
+		void throwError(StepMessage stepError) {
+			interruptionHandler.leave();
+			super.throwError(stepError);
+		}
+		
+
+		/** Implementation de base */
+		public void handleMessage(Step child, StepMessage err) {
+			if (interruptionHandler.handleChildMessage(child, err)) {
+				return;
+			}
+			throwError(err);
+		}
+		
+	}
+	
+	class While extends StepWithSimpleInterruptionHandler implements StepContainer {
+		
 		StepCondition condition;
 		Step block;
-		boolean abortRequested;
 		
 		public While(StepCondition condition)
 		{
 			this.condition = condition;
+		}
+		
+		@Override
+		protected Collection<Step> getActiveSteps() {
+			return block != null ? Collections.singletonList(block) : null;
 		}
 
 		public Step Do(Step stepSequence) {
@@ -136,7 +424,7 @@ public class TaskAbstractSequence extends BaseTask {
 
 		@Override
 		public void enter() {
-			abortRequested = false;
+			super.enter();
 			if (condition.evaluate() && this.block != null) {
 				this.block.enter();
 			} else {
@@ -147,39 +435,29 @@ public class TaskAbstractSequence extends BaseTask {
 		@Override
 		public void advance(Step child) {
 			assert(child == block);
+			if (interruptionHandler.doInterrupt(() -> {advance(child);})) {
+				return;
+			}
 			enter();
 		}
 		
-		@Override
-		public void resume() {
-			this.block.resume();
-		}
-		
-		@Override
-		public void handleMessage(Step child, StepMessage err) {
-			throwError(err);
-		}
-		
-		@Override
-		void abortRequest() {
-			abortRequested = true;
-			if (block == null) {
-				throwError(new StepAbortedMessage());
-			} else {
-				block.abortRequest();
-			}
-		}
 	}
 	
-	class If extends Step implements StepContainer {
+	class If extends StepWithSimpleInterruptionHandler implements StepContainer {
 		StepCondition condition;
 		Step onTrue, onFalse;
 		Boolean where;
-		boolean abortRequested;
 		
 		public If(StepCondition condition)
 		{
 			this.condition = condition;
+		}
+		
+		@Override
+		protected Collection<Step> getActiveSteps() {
+			Step result = getActiveStep();
+			if (result == null) return null;
+			return Collections.singletonList(result);
 		}
 		
 		public If Then(Step step)
@@ -213,7 +491,7 @@ public class TaskAbstractSequence extends BaseTask {
 		
 		@Override
 		public void enter() {
-			abortRequested = false;
+			super.enter();
 			where = null;
 			where = condition.evaluate();
 			Step currentStep = getActiveStep();
@@ -227,40 +505,17 @@ public class TaskAbstractSequence extends BaseTask {
 		@Override
 		public void advance(Step child) {
 			assert(child == onTrue || child == onFalse);
-			if (abortRequested) {
-				throwError(new StepAbortedMessage());
-			} else {
-				leave();
+			if (interruptionHandler.doInterrupt(()->{advance(child);})) {
+				return;
 			}
-		}
-		
-		@Override
-		public void resume() {
-			Step currentStep = getActiveStep();
-			currentStep.resume();
-		}
-
-		@Override
-		public void handleMessage(Step child, StepMessage err) {
-			throwError(err);
-		}
-		
-		@Override
-		void abortRequest() {
-			abortRequested = true;
-			if (getActiveStep() != null) {
-				getActiveStep().abortRequest();
-			} else {
-				throwError(new StepAbortedMessage());
-			}
+			leave();
 		}
 	}
 	
-	class StepSequence extends Step implements StepContainer
+	class StepSequence extends StepWithSimpleInterruptionHandler implements StepContainer
 	{
 		Step [] steps;
 		int currentPosition;
-		boolean abortRequested;
 		
 		
 		StepSequence(Step ...steps) {
@@ -271,11 +526,19 @@ public class TaskAbstractSequence extends BaseTask {
 			}
 		}
 		
+		@Override
+		protected Collection<Step> getActiveSteps() {
+			if (currentPosition >= steps.length) {
+				return null;
+			}
+			return Collections.singleton(steps[currentPosition]);
+		}
+		
 		
 		@Override
 		void enter() {
+			super.enter();
 			currentPosition = 0;
-			abortRequested = false;
 			if (currentPosition >= steps.length) {
 				leave();
 			} else {
@@ -284,16 +547,10 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		void resume() {
-			steps[currentPosition].resume();
-		}
-		
-		@Override
 		public void advance(Step child) {
 			assert(child == steps[currentPosition]);
 			
-			if (abortRequested) {
-				throwError(new StepAbortedMessage());
+			if (interruptionHandler.doInterrupt(()->{advance(child);})) {
 				return;
 			}
 			
@@ -303,17 +560,6 @@ public class TaskAbstractSequence extends BaseTask {
 			} else {
 				steps[currentPosition].enter();
 			}
-		}
-		
-		@Override
-		public void handleMessage(Step child, StepMessage err) {
-			throwError(err);
-		}
-		
-		@Override
-		void abortRequest() {
-			abortRequested = true;
-			steps[currentPosition].abortRequest();	
 		}
 	}
 	
@@ -342,7 +588,7 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		void abortRequest() {
+		void abortRequest(InterruptType type) {
 			// Rien...
 		}
 	}
@@ -379,8 +625,9 @@ public class TaskAbstractSequence extends BaseTask {
 		
 		Map<IStatus, Object> onStatus;
 		Step runningStatus;
+		Runnable onResume;
 		Function<Void, String> titleProvider;
-		boolean abortRequested;
+		InterruptType abortRequested;
 
 		private ChildLauncher launcher;
 		
@@ -393,39 +640,60 @@ public class TaskAbstractSequence extends BaseTask {
 		void enter() {
 			launcher = new ChildLauncher(TaskAbstractSequence.this, child) {
 				@Override
-				public void onDone(BaseTask bt) {
+				public void onStatusChanged(BaseTask bt) {
 					if (launcher != this) {
 						return;
 					}
-					launcher = null;
+					if ((bt.getStatus() == BaseStatus.Paused) && (abortRequested == InterruptType.Pause))
+					{
+						onResume = () -> {
+							bt.resume();
+						};
+						StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
+						abortRequested = null;
+						throwError(stepError);
+					}
+				}
+				
+				@Override
+				public void onDone(BaseTask bt) {
+					// FIXME: ceci peut arriver pendant que l'étape est mise en pause... 
+					// ça peut tout simplement redémarrer le processus !
+					if (launcher != this) {
+						return;
+					}
+					if (abortRequested != null) {
+						onResume = () -> {onDone(bt);};
+						StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
+						abortRequested = null;
+						throwError(stepError);
+						return;
+					}
 					
-					if (abortRequested) {
-						throwError(new StepAbortedMessage());
-					} else {
-						
-						Object todo = onStatus != null ? onStatus.get(bt.getStatus()) : null;
-						
-						if (todo != null) {
-							if (todo instanceof Step) {
-								runningStatus = (Step) todo;
-								runningStatus.enter();
-							} else {
-								// FIXME : propagation d'exception ici
-								((SubTaskStatusChecker)todo).evaluate(bt);
-								leave();
-							}
+					launcher = null;
+	
+					Object todo = onStatus != null ? onStatus.get(bt.getStatus()) : null;
+					
+					if (todo != null) {
+						if (todo instanceof Step) {
+							runningStatus = (Step) todo;
+							runningStatus.enter();
 						} else {
-							if (bt.getStatus() == BaseStatus.Success) {
-								leave();
-							} else {
-								throwError(new WrongSubTaskStatus(bt));
-							}
+							// FIXME : propagation d'exception ici
+							((SubTaskStatusChecker)todo).evaluate(bt);
+							leave();
+						}
+					} else {
+						if (bt.getStatus() == BaseStatus.Success) {
+							leave();
+						} else {
+							throwError(new WrongSubTaskStatus(bt));
 						}
 					}
 				}
 			};
 			runningStatus = null;
-			abortRequested = false;
+			abortRequested = null;
 			if (titleProvider != null)
 			{
 				launcher.getTask().setTitle(titleProvider.apply(null));
@@ -468,8 +736,11 @@ public class TaskAbstractSequence extends BaseTask {
 		@Override
 		public void advance(Step child) {
 			assert(child == runningStatus);
-			if (abortRequested) {
-				throwError(new StepAbortedMessage());
+			if (abortRequested != null) {
+				onResume = () -> { advance(child); };
+				StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
+				abortRequested = null;
+				throwError(stepError);
 			} else {
 				leave();
 			}
@@ -477,35 +748,49 @@ public class TaskAbstractSequence extends BaseTask {
 		
 		@Override
 		void resume() {
-			// FIXME: et en cas de pause pendant la tache fille ???
-			runningStatus.resume();
+			onResume.run();
 		}
 		
 		@Override
 		public void handleMessage(Step child, StepMessage err) {
+			if (isPausedMessage(err)) {
+				onResume = () -> { child.resume(); };
+			}
 			throwError(err);
 		}
 		
 		@Override
-		void abortRequest() {
-			abortRequested = true;
-			if (runningStatus == null) {
-				// On est en train de faire tourner la tache...
-				assert(launcher != null);
-				launcher.getTask().requestCancelation(BaseStatus.Aborted);
-			} else {
-				runningStatus.abortRequest();
+		void abortRequest(InterruptType it) {
+			if (InterruptType.lower(abortRequested, it))
+			{
+				abortRequested = it;
+				if (launcher != null) {
+					// On est en train de faire tourner la tache...
+					switch(it) {
+					case Abort:
+						launcher.getTask().requestCancelation(BaseStatus.Aborted);
+						return;
+					case Pause:
+						launcher.getTask().requestPause();
+						return;
+					}
+					throw new RuntimeException("internal error");
+				} else {
+					runningStatus.abortRequest(it);
+				}	
 			}
 		}
 	}
 	
+	/** Les bloques catch ne sont pas interruptibles */
 	class Try extends Step implements StepContainer
 	{
 		final Step main;
 		final List<Couple<Function<StepMessage, Boolean>, Step>> catches = new ArrayList<>();
 		
+		InterruptType pendingInterruption;
+		Runnable onResume;
 		Step current;
-		boolean abortRequested;
 		
 		Try(Step main)
 		{
@@ -522,8 +807,7 @@ public class TaskAbstractSequence extends BaseTask {
 		@Override
 		void enter() {
 			current = null;
-			abortRequested = false;
-			
+			pendingInterruption = null;
 			current = main;
 			main.enter();
 		}
@@ -531,12 +815,16 @@ public class TaskAbstractSequence extends BaseTask {
 		@Override
 		public void advance(Step from) {
 			assert(current == from);
-			current = null;
-			if (abortRequested) {
-				throwError(new StepAbortedMessage());
-			} else {
-				leave();
+
+			if (pendingInterruption != null) {
+				onResume = () -> {advance(from);};
+				StepInterruptedMessage stepError = new StepInterruptedMessage(pendingInterruption);
+				pendingInterruption = null;
+				throwError(stepError);
+				return;
 			}
+			current = null;
+			leave();
 		}
 		
 		@Override
@@ -545,6 +833,12 @@ public class TaskAbstractSequence extends BaseTask {
 			if (child != main) {
 				throwError(err);
 			} else {
+				if (isPausedMessage(err) && pendingInterruption == InterruptType.Pause) {
+					pendingInterruption = null;
+					onResume = ()->{main.resume();};
+					throwError(err);
+					return;
+				}
 				// Le catch
 				for(Couple<Function<StepMessage, Boolean>, Step> catchItem : catches)
 				{
@@ -560,27 +854,52 @@ public class TaskAbstractSequence extends BaseTask {
 		
 		@Override
 		void resume() {
-			// FIXME: ça ne marche pas
+			onResume.run();
 		}
 		
 		@Override
-		void abortRequest() {
-			abortRequested = true;
-			current.abortRequest();
+		void abortRequest(InterruptType pendingInterruption) {
+			if (this.pendingInterruption == null || this.pendingInterruption.ordinal() < pendingInterruption.ordinal())
+			{
+				this.pendingInterruption = pendingInterruption;
+				if (current == main) {
+					current.abortRequest(pendingInterruption);
+				}
+			}
 		}
 		
 	}
 	
-	/** Lance plusieurs tache en //, remonte le premier message reçu (les autres taches sont interrompues) */
+	/** 
+	 * Lance plusieurs tache en //, remonte le premier message reçu (les autres taches sont interrompues)
+	 * En cas de demande d'interruption, on fait simplmenet suivre au taches filles, et on remonte l'interruption quand toutes les filles sont terminées
+	 * 
+	 * En cas de demande de pause ???
+	 * Si la demande arrive avant que toutes les filles soient démarrées => la reprise (nextStartId)
+	 * Sinon, on se contente de la faire suivre
+	 * 
+	 * Ou alors, on simplifie: toutes les filles sont lancées, et le lancement est ininterruptible.
+	 * A la fin du lancement, on controle l'état
+	 * 
+	 */
 	class Fork extends Step implements StepContainer
 	{
 		class Status {
-			int nextStartId;
 			boolean [] runnings = new boolean[childs.size()];
-			boolean [] abortRequested = new boolean[childs.size()];
-			StepMessage message;
+			boolean [] paused = new boolean[childs.size()];
+			InterruptType [] abortRequested = new InterruptType[childs.size()];
+			
+			boolean starting = true;
+			
+			InterruptType pendingInterruption;
+			// Est-ce qu'il y en a un qui s'est terminé ?
 			boolean done = false;
+			// C'est quoi le résultat global ?
+			StepMessage message;
+			Runnable onResume;
 		};
+		
+		
 		List<Step> childs = new ArrayList<>();
 		
 		Status status;
@@ -596,30 +915,26 @@ public class TaskAbstractSequence extends BaseTask {
 		void enter()
 		{
 			Status thisStatus = new Status();
-			if (status != null) {
-				throw new RuntimeException("not reentrant");
-			}
 			status = thisStatus;
 			// Démarre tout, mais arrête en cas d'interruption
-			while(status == thisStatus && status.nextStartId < childs.size())
+			for(int i = 0; i < childs.size(); ++i)
 			{
-				status.runnings[status.nextStartId] = true;
-				status.nextStartId++;
-				childs.get(status.nextStartId - 1).enter();
+				status.runnings[i] = true;
+				childs.get(i).enter();
 			}
+			status.starting = false;
+			checkGlobalCondition();
 		}
 		
 		@Override
-		void resume() {
-			// On fait quoi ???
-		}
-		
-		@Override
-		void abortRequest() {
-			status.done = true;
-			status.message = new StepAbortedMessage();
-			
-			finish();
+		void abortRequest(InterruptType wtf) {
+			logger.debug("Fork.abortRequest:" + wtf);
+			if (status.pendingInterruption == null || status.pendingInterruption.ordinal() < wtf.ordinal()) {
+				status.pendingInterruption = wtf;
+				if (!status.starting) {
+					checkGlobalCondition();
+				}
+			}
 		}
 		
 		void finished(Step from, StepMessage sm)
@@ -634,40 +949,94 @@ public class TaskAbstractSequence extends BaseTask {
 				throw new RuntimeException("Not a child");
 			}
 			status.runnings[i] = false;
+			status.paused[i] = isPausedMessage(sm);
 			
 			if (!status.done) {
 				// C'est le premier !
 				status.done = true;
 				status.message = sm;
 			} else {
-				logger.info("Le message est ignoré : " + sm);
+				logger.debug("Le message est ignoré : " + sm);
 			}
 			
-			finish();
+			checkGlobalCondition();
 		}
 		
-		void finish() {
-			Status currentStatus = status;
-			
-			// Maintenant, si c'était le dernier, on quitte !
-			for(int j = 0; j < childs.size() && status == currentStatus; ++j) {
-				if (status.runnings[j] && !status.abortRequested[j])
-				{
-					status.abortRequested[j] = true;
-					childs.get(j).abortRequest();
-				}
+		void checkGlobalCondition() {
+			if (status.starting) {
+				logger.debug("Ignore checkGlobalCondition (starting");
+				return;
 			}
-			// Et si tout le monde est terminé, on arrête !
-			if (status == currentStatus) {
+			
+			Status currentStatus = status;
+
+			Restart: while(status == currentStatus)
+			{
+				// Lancer des demandes d'interruption si nécessaire
+				InterruptType wantedInterrupt;
+				if (status.done && !isPausedMessage(status.message)) {
+					wantedInterrupt = InterruptType.Abort;
+				} else {
+					wantedInterrupt = status.pendingInterruption;
+				}
+				if (wantedInterrupt != null) {
+					for(int j = 0; j < childs.size() && status == currentStatus; ++j) {
+						if (status.runnings[j] && InterruptType.lower(status.abortRequested[j], wantedInterrupt))
+						{
+							logger.debug("Asking " + wantedInterrupt + " to " + j);
+							status.abortRequested[j] = wantedInterrupt;
+							childs.get(j).abortRequest(wantedInterrupt);
+							continue Restart;
+						}
+					}
+				}
+				
+			
+				// Et si tout le monde est terminé, on arrête !
 				for(int j = 0; j < childs.size(); ++j) {
 					if (status.runnings[j]) {
 						return;
 					}
 				}
-				logger.info("Toutes les filles sont maintenant arrétées");
-				StepMessage msg = status.message;
-				status = null;
+				logger.debug("Toutes les filles sont maintenant arrétées");
+				StepMessage msg = status.message;				
+				status.pendingInterruption = null;
+				status.done = false;
+				status.message = null;
 				
+				// la mise en pause n'est possible que si toutes les taches sont paused
+				if (isPausedMessage(msg)) {
+					// On verifie que tout le monde est arreté en pause.
+					// Si ce n'est pas le cas, on se rabat sur le aborted
+					
+					for(int j = 0; j < childs.size(); ++j) {
+						if (!status.paused[j]) {
+							logger.debug("Mise en pause en echec");
+							msg = new StepInterruptedMessage(InterruptType.Abort);
+							break;
+						}
+					}
+					if (isPausedMessage(msg)) {
+						Status newStatus = new Status();
+						newStatus.starting = false;
+						for(int i = 0; i < childs.size(); ++i) {
+							newStatus.paused[i] = true;
+						}
+						newStatus.onResume = () -> {
+							status.starting = true;
+							for(int i = 0; i < childs.size(); ++i) {
+								status.runnings[i] = true;
+								status.abortRequested[i] = null;
+								status.paused[i] = false;
+								childs.get(i).resume();
+							}
+							status.starting = false;
+							checkGlobalCondition();
+						};
+						
+						status = newStatus;
+					}
+				}
 				if (msg == null) {
 					leave();
 				} else {
@@ -677,12 +1046,19 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
+		void resume() {
+			status.onResume.run();
+		}
+		
+		@Override
 		public void advance(Step from) {
+			logger.debug("Advance: " + from);
 			finished(from, null);
 		}
 		
 		@Override
 		public void handleMessage(Step child, StepMessage err) {
+			logger.debug("message: " + child + " = " + err);
 			finished(child, err);
 		}
 	}
@@ -807,7 +1183,20 @@ public class TaskAbstractSequence extends BaseTask {
 		super.requestCancelation(statusForInterrupting);
 		
 		if (getStatus() == BaseStatus.Processing) {
-			start.abortRequest();
+			start.abortRequest(InterruptType.Abort);
 		}
+	}
+	
+	@Override
+	public boolean requestPause() {
+		if (super.requestPause()) {
+			onUnpause = ()->{
+				setStatus(BaseStatus.Processing);
+				start.resume(); 
+			};
+			start.abortRequest(InterruptType.Pause);
+			return true;
+		}
+		return false;
 	}
 }

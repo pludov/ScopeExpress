@@ -187,8 +187,8 @@ public abstract class BaseTask implements ITaskParent {
 	public abstract void start();
 
 	/** Y-a-t-il une demande de pause en cours ? */
-	private boolean pausing;
-	private Runnable onUnpause;
+	protected boolean pausing;
+	protected Runnable onUnpause;
 	
 	/** Est-ce que la tache peut être mise en pause (peut dépendre de son état actuel) */
 	public boolean pausable()
