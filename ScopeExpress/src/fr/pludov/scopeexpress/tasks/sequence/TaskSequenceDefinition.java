@@ -111,7 +111,7 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 
 	@Override
 	public BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher) {
-		return new TaskAbstractSequence(focusUi, tm, parentLauncher, this);
+		return new TaskSequence(focusUi, tm, parentLauncher, this);
 	}
 	
 	@Override
