@@ -1,7 +1,7 @@
 package fr.pludov.scopeexpress.tasks.steps;
 
 /** 
- * Execute du code immédiatement. 
+ * Execute du code immédiatement (donc du code non bloquant!).
  * Ne peut être interrompu ou mis en pause.
  */
 public class Immediate extends Step
@@ -16,7 +16,7 @@ public class Immediate extends Step
 	@Override
 	public void enter() {
 		runnable.run();
-		leave();
+		terminate(EndMessage.success());
 	}
 
 	@Override

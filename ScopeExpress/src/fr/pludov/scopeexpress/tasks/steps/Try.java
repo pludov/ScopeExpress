@@ -5,11 +5,14 @@ import java.util.function.*;
 
 import fr.pludov.scopeexpress.utils.*;
 
-/** Les bloques catch ne sont pas interruptibles */
+/** 
+ * Execute un bloc en réagissant au message d'erreur éventuels 
+ * Les bloques catch ne sont pas interruptibles 
+ */
 public class Try extends Step implements StepContainer
 {
 	final Step main;
-	final List<Couple<Function<StepMessage, Boolean>, Step>> catches = new ArrayList<>();
+	final List<Couple<Function<EndMessage, Boolean>, Step>> catches = new ArrayList<>();
 	
 	InterruptType pendingInterruption;
 	Runnable onResume;
@@ -21,7 +24,7 @@ public class Try extends Step implements StepContainer
 		this.main.setParent(this);
 	}
 
-	public Step Catch(Function<StepMessage, Boolean> filter, Step immediate) {
+	public Step Catch(Function<EndMessage, Boolean> filter, Step immediate) {
 		catches.add(new Couple<>(filter, immediate));
 		immediate.setParent(this);
 		return this;
@@ -36,30 +39,30 @@ public class Try extends Step implements StepContainer
 	}
 	
 	@Override
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		assert(current == child);
 		if (err == null) {
 			if (pendingInterruption != null) {
 				onResume = () -> {handleMessage(child, null);};
 				StepInterruptedMessage stepError = new StepInterruptedMessage(pendingInterruption);
 				pendingInterruption = null;
-				throwError(stepError);
+				terminate(stepError);
 				return;
 			}
 			current = null;
-			leave();
+			terminate(EndMessage.success());
 		} else {
 			if (child != main) {
-				throwError(err);
+				terminate(err);
 			} else {
-				if (StepMessage.isPausedMessage(err) && pendingInterruption == InterruptType.Pause) {
+				if (EndMessage.isPausedMessage(err) && pendingInterruption == InterruptType.Pause) {
 					pendingInterruption = null;
 					onResume = ()->{main.resume();};
-					throwError(err);
+					terminate(err);
 					return;
 				}
 				// Le catch
-				for(Couple<Function<StepMessage, Boolean>, Step> catchItem : catches)
+				for(Couple<Function<EndMessage, Boolean>, Step> catchItem : catches)
 				{
 					if (catchItem.getA().apply(err)) {
 						current = catchItem.getB();
@@ -67,7 +70,7 @@ public class Try extends Step implements StepContainer
 						return;
 					}
 				}
-				throwError(err);
+				terminate(err);
 			}
 		}
 	}

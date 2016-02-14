@@ -55,7 +55,7 @@ public class If extends StepWithSimpleInterruptionHandler implements StepContain
 		where = condition.evaluate();
 		Step currentStep = getActiveStep();
 		if (currentStep == null) {
-			leave();
+			terminate(EndMessage.success());
 		} else {
 			currentStep.enter();
 		}

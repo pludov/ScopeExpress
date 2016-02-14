@@ -2,6 +2,10 @@ package fr.pludov.scopeexpress.tasks.steps;
 
 import java.util.*;
 
+/**
+ * Implementation d'un "while"...
+ *
+ */
 public class While extends StepWithSimpleInterruptionHandler implements StepContainer {
 	
 	StepCondition condition;
@@ -33,12 +37,12 @@ public class While extends StepWithSimpleInterruptionHandler implements StepCont
 		if (condition.evaluate() && this.block != null) {
 			this.block.enter();
 		} else {
-			leave();
+			terminate(EndMessage.success());
 		}
 	}
 	
 	@Override
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		if (err == null) {
 			// Dans ce cas, on boucle !
 			if (interruptionHandler.doInterrupt(() -> {handleMessage(child, null);})) {

@@ -56,13 +56,13 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 
 		@Override
-		public void handleMessage(Step child, StepMessage stepError) {
+		public void handleMessage(Step child, EndMessage stepError) {
 			if (stepError == null) {
 				setFinalStatus(BaseStatus.Success);
 			} else if (stepError instanceof StepInterruptedMessage && TaskAbstractSequence.this.getInterrupting() != null)
 			{
 				setFinalStatus(TaskAbstractSequence.this.getInterrupting());
-			} else if (StepMessage.isPausedMessage(stepError) && TaskAbstractSequence.this.isPauseRequested()) {
+			} else if (EndMessage.isPausedMessage(stepError) && TaskAbstractSequence.this.isPauseRequested()) {
 				// TaskAbstractSequence.this.onUnpause
 				pausing = false;
 				setStatus(BaseStatus.Paused);
@@ -84,7 +84,7 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 	}
 	
-	TaskRootStep start = new TaskRootStep(new StepSequence(
+	TaskRootStep start = new TaskRootStep(new Block(
 		new SubTask(this, getDefinition().filterWheel),
 		
 		// Si possible démarre l'auto guidage avant la MEP...
@@ -92,7 +92,7 @@ public class TaskAbstractSequence extends BaseTask {
 			.Then(new SubTask(this, getDefinition().guiderStart)),
 		
 		new If(()->(get(getDefinition().initialFocusHandling) == InitialFocusHandling.Forced))
-			.Then(new StepSequence(
+			.Then(new Block(
 					new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate
 								&& get(getDefinition().guiderStopForFilterFocuser)))
 						.Then(new SubTask(this, getDefinition().guiderStop)),
@@ -101,14 +101,14 @@ public class TaskAbstractSequence extends BaseTask {
 			))
 			.Else(
 				new If(()->(get(getDefinition().initialFocusHandling) == InitialFocusHandling.Verified))
-					.Then(new StepSequence(
+					.Then(new Block(
 							new SubTask(this, getDefinition().focusCheck)
 								.On(BaseStatus.Success, (BaseTask bt)->{ 
 										Integer r = bt.get(TaskCheckFocusDefinition.getInstance().passed);
 										needFocus = r != null && r.intValue() != 0;
 								}),
 							new If(()->needFocus)
-								.Then(new StepSequence(
+								.Then(new Block(
 										new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate
 												&& get(getDefinition().guiderStopForFilterFocuser)))
 											.Then(new SubTask(this, getDefinition().guiderStop)),
@@ -123,17 +123,17 @@ public class TaskAbstractSequence extends BaseTask {
 			.Then(new SubTask(this, getDefinition().guiderStart)),
 		
 		new While(()->(imageCount < get(getDefinition().shootCount)))
-			.Do(new StepSequence(
+			.Do(new Block(
 					new If(()->(get(getDefinition().focusCheckInterval) != null 
 								&& consecutiveCountWithoutChecking >= get(getDefinition().focusCheckInterval)))
-						.Then(new StepSequence(
+						.Then(new Block(
 							new SubTask(this, getDefinition().focusCheck)
 								.On(BaseStatus.Success, (BaseTask bt)->{ 
 										Integer r = bt.get(TaskCheckFocusDefinition.getInstance().passed);
 										needFocus = r != null && r.intValue() != 0;
 								}),
 							new If(()->needFocus)
-								.Then(new StepSequence(
+								.Then(new Block(
 										// Arreter l'autoguidage si il est incompatible avec le focuseur
 										new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate
 												&& get(getDefinition().guiderStopForFilterFocuser)))
@@ -150,7 +150,7 @@ public class TaskAbstractSequence extends BaseTask {
 					)),
 					
 					new Try(new Fork()
-							.Spawn(new StepSequence(
+							.Spawn(new Block(
 									new SubTask(this, getDefinition().shoot)
 										.SetTitle((Void v) -> ("Exposition " + (imageCount + 1) + " / " + get(getDefinition().shootCount)))
 										.On(BaseStatus.Success, (BaseTask bt)->{
@@ -179,7 +179,7 @@ public class TaskAbstractSequence extends BaseTask {
 							.Spawn(new SubTask(this, getDefinition().guiderMonitor)
 									.SetTitle((Void v) -> ("Supervision du guidage"))
 							))
-						.Catch((StepMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
+						.Catch((EndMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
 													&& ((WrongSubTaskStatus)sm).getStatus() == TaskGuiderMonitor.GuiderOutOfRange),
 								new Immediate(() -> {})
 							)

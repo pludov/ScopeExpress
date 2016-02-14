@@ -6,11 +6,16 @@ package fr.pludov.scopeexpress.tasks.steps;
  * 
  * Un step en pause peut être redémarré par un appel à resume
  */
-public class StepInterruptedMessage implements StepMessage
+public class StepInterruptedMessage implements EndMessage
 {
 	InterruptType type;
 	
 	public StepInterruptedMessage(InterruptType requested) {
 		this.type = requested;
+	}
+	
+	@Override
+	public String toString() {
+		return type.name();
 	}
 }

@@ -41,28 +41,21 @@ abstract class StepWithSimpleInterruptionHandler extends Step {
 	}
 	
 	@Override
-	void leave()
-	{
+	void terminate(EndMessage stepError) {
 		interruptionHandler.leave();
-		super.leave();
-	}
-	
-	@Override
-	void throwError(StepMessage stepError) {
-		interruptionHandler.leave();
-		super.throwError(stepError);
+		super.terminate(stepError);
 	}
 	
 
 	/** Implementation de base */
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		if (interruptionHandler.handleChildMessage(child, err)) {
 			return;
 		}
 		if (err == null && interruptionHandler.doInterrupt(()->{handleMessage(child, null);})) {
 			return;
 		}
-		throwError(err);
+		terminate(err);
 	}
 	
 }

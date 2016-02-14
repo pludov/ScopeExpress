@@ -2,7 +2,7 @@ package fr.pludov.scopeexpress.tasks.steps;
 
 import fr.pludov.scopeexpress.tasks.*;
 
-public class WrongSubTaskStatus implements StepMessage
+public class WrongSubTaskStatus implements EndMessage
 {
 	final String message;
 	final IStatus status;

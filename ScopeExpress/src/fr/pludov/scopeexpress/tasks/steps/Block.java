@@ -2,13 +2,17 @@ package fr.pludov.scopeexpress.tasks.steps;
 
 import java.util.*;
 
-public class StepSequence extends StepWithSimpleInterruptionHandler implements StepContainer
+
+/**
+ * Un Block execute séquentiellement les Steps qui le constitue
+ */
+public class Block extends StepWithSimpleInterruptionHandler implements StepContainer
 {
 	Step [] steps;
 	int currentPosition;
 	
 	
-	public StepSequence(Step ...steps) {
+	public Block(Step ...steps) {
 		this.steps = steps;
 		for(int i = 0; i < steps.length; ++i)
 		{
@@ -30,14 +34,14 @@ public class StepSequence extends StepWithSimpleInterruptionHandler implements S
 		super.enter();
 		currentPosition = 0;
 		if (currentPosition >= steps.length) {
-			leave();
+			terminate(EndMessage.success());
 		} else {
 			steps[currentPosition].enter();
 		}
 	}
 	
 	@Override
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		if (interruptionHandler.handleChildMessage(child, err)) {
 			return;
 		}
@@ -48,12 +52,12 @@ public class StepSequence extends StepWithSimpleInterruptionHandler implements S
 		
 			currentPosition++;
 			if (currentPosition >= steps.length) {
-				leave();
+				terminate(EndMessage.success());
 			} else {
 				steps[currentPosition].enter();
 			}
 		} else {
-			throwError(err);
+			terminate(err);
 		}
 	}
 }

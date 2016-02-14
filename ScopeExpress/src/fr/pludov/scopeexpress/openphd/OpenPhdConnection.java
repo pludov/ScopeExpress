@@ -62,6 +62,7 @@ public class OpenPhdConnection {
 		try {
 			while(read()) {}
 		} catch(Throwable e) {
+			logger.warn("Phd closed", e);
 			if (!device.normalClose) {
 				logger.warn("Reader shutdown", e);
 			}

@@ -3,16 +3,10 @@ package fr.pludov.scopeexpress.tasks.steps;
 import java.util.*;
 
 /** 
- * Lance plusieurs tache en //, remonte le premier message reçu (les autres taches sont interrompues)
- * En cas de demande d'interruption, on fait simplmenet suivre au taches filles, et on remonte l'interruption quand toutes les filles sont terminées
+ * Lance plusieurs tache en parallèle, et remonte le premier message reçu (les autres taches sont interrompues)
  * 
- * En cas de demande de pause ???
- * Si la demande arrive avant que toutes les filles soient démarrées => la reprise (nextStartId)
- * Sinon, on se contente de la faire suivre
- * 
- * Ou alors, on simplifie: toutes les filles sont lancées, et le lancement est ininterruptible.
- * A la fin du lancement, on controle l'état
- * 
+ * Lors du démarrage/sortie de pause: toutes les filles sont lancées, et le lancement est ininterruptible.
+ * A la fin du lancement seulement, on controle l'état
  */
 public class Fork extends Step implements StepContainer
 {
@@ -27,7 +21,7 @@ public class Fork extends Step implements StepContainer
 		// Est-ce qu'il y en a un qui s'est terminé ?
 		boolean done = false;
 		// C'est quoi le résultat global ?
-		StepMessage message;
+		EndMessage message;
 		Runnable onResume;
 	};
 
@@ -68,7 +62,7 @@ public class Fork extends Step implements StepContainer
 		}
 	}
 
-	void finished(Step from, StepMessage sm)
+	void finished(Step from, EndMessage sm)
 	{
 		int i;
 		for(i = 0; i < childs.size(); ++i) {
@@ -80,7 +74,7 @@ public class Fork extends Step implements StepContainer
 			throw new RuntimeException("Not a child");
 		}
 		status.runnings[i] = false;
-		status.paused[i] = StepMessage.isPausedMessage(sm);
+		status.paused[i] = EndMessage.isPausedMessage(sm);
 
 		if (!status.done) {
 			// C'est le premier !
@@ -102,7 +96,7 @@ public class Fork extends Step implements StepContainer
 		{
 			// Lancer des demandes d'interruption si nécessaire
 			InterruptType wantedInterrupt;
-			if (status.done && !StepMessage.isPausedMessage(status.message)) {
+			if (status.done && !EndMessage.isPausedMessage(status.message)) {
 				wantedInterrupt = InterruptType.Abort;
 			} else {
 				wantedInterrupt = status.pendingInterruption;
@@ -125,13 +119,13 @@ public class Fork extends Step implements StepContainer
 					return;
 				}
 			}
-			StepMessage msg = status.message;				
+			EndMessage msg = status.message;				
 			status.pendingInterruption = null;
 			status.done = false;
 			status.message = null;
 
 			// la mise en pause n'est possible que si toutes les taches sont paused
-			if (StepMessage.isPausedMessage(msg)) {
+			if (EndMessage.isPausedMessage(msg)) {
 				// On verifie que tout le monde est arreté en pause.
 				// Si ce n'est pas le cas, on se rabat sur le aborted
 
@@ -141,7 +135,7 @@ public class Fork extends Step implements StepContainer
 						break;
 					}
 				}
-				if (StepMessage.isPausedMessage(msg)) {
+				if (EndMessage.isPausedMessage(msg)) {
 					Status newStatus = new Status();
 					newStatus.starting = false;
 					for(int i = 0; i < childs.size(); ++i) {
@@ -163,9 +157,9 @@ public class Fork extends Step implements StepContainer
 				}
 			}
 			if (msg == null) {
-				leave();
+				terminate(EndMessage.success());
 			} else {
-				throwError(msg);
+				terminate(msg);
 			}
 		}
 	}
@@ -174,15 +168,9 @@ public class Fork extends Step implements StepContainer
 	public void resume() {
 		status.onResume.run();
 	}
-	//		
-	//		@Override
-	//		public void advance(Step from) {
-	//			logger.debug("Advance: " + from);
-	//			finished(from, null);
-	//		}
 
 	@Override
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		finished(child, err);
 	}
 }

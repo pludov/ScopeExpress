@@ -5,6 +5,9 @@ import java.util.function.*;
 
 import fr.pludov.scopeexpress.tasks.*;
 
+/**
+ * Lancement une sous-tache
+ */
 public class SubTask extends Step implements StepContainer
 {
 	final TaskLauncherDefinition child;
@@ -59,8 +62,8 @@ public class SubTask extends Step implements StepContainer
 					};
 					StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
 					abortRequested = null;
-					paused = StepMessage.isPausedMessage(stepError);
-					throwError(stepError);
+					paused = EndMessage.isPausedMessage(stepError);
+					terminate(stepError);
 				}
 			}
 			
@@ -78,7 +81,7 @@ public class SubTask extends Step implements StepContainer
 					onResume = () -> {onDone(bt);};
 					StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
 					abortRequested = null;
-					throwError(stepError);
+					terminate(stepError);
 					return;
 				}
 				
@@ -133,12 +136,12 @@ public class SubTask extends Step implements StepContainer
 	
 	
 	@Override
-	public void handleMessage(Step child, StepMessage err) {
+	public void handleMessage(Step child, EndMessage err) {
 		if (err != null) {
-			if (StepMessage.isPausedMessage(err)) {
+			if (EndMessage.isPausedMessage(err)) {
 				onResume = () -> { child.resume(); };
 			}
-			throwError(err);
+			terminate(err);
 		} else {
 			// Succès...
 			assert(child == runningStatus);
@@ -146,9 +149,9 @@ public class SubTask extends Step implements StepContainer
 				onResume = () -> { handleMessage(child, null); };
 				StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
 				abortRequested = null;
-				throwError(stepError);
+				terminate(stepError);
 			} else {
-				leave();
+				terminate(EndMessage.success());
 			}
 		}
 	}
@@ -188,13 +191,13 @@ public class SubTask extends Step implements StepContainer
 			} else {
 				// FIXME : propagation d'exception ici
 				((SubTaskStatusChecker)todo).evaluate(bt);
-				leave();
+				terminate(EndMessage.success());
 			}
 		} else {
 			if (bt.getStatus() == BaseStatus.Success) {
-				leave();
+				terminate(EndMessage.success());
 			} else {
-				throwError(new WrongSubTaskStatus(bt));
+				terminate(new WrongSubTaskStatus(bt));
 			}
 		}
 	}

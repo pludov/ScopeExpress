@@ -122,7 +122,7 @@ abstract class StepInterruptionHandler
 			StepInterruptedMessage stepError = new StepInterruptedMessage(requested);
 			requested = null;
 			requestIdentifier = null;
-			step.throwError(stepError);
+			step.terminate(stepError);
 			return;
 		}
 	}
@@ -145,7 +145,7 @@ abstract class StepInterruptionHandler
 	 * Filtres les messages relatifs aux fils
 	 * On suppose qu'on ne reçoit que des messages pour des fils actifs 
 	 */
-	boolean handleChildMessage(Step step, StepMessage msg)
+	boolean handleChildMessage(Step step, EndMessage msg)
 	{
 		if ((requested != null) && (msg instanceof StepInterruptedMessage))
 		{
@@ -174,7 +174,7 @@ abstract class StepInterruptionHandler
 			}
 			requested = null;
 			
-			step.throwError(sim);
+			step.terminate(sim);
 			return true;
 		}
 		return false;
