@@ -60,4 +60,13 @@ public class If extends StepWithSimpleInterruptionHandler implements StepContain
 			currentStep.enter();
 		}
 	}
+	
+	@Override
+	public String toString() {
+		if (onFalse == null) {
+			return "If " + Utils.lambdaToString(condition) + "\n" + Utils.indent(onTrue.toString()) + "\nEnd If\n";
+		} else {
+			return "If " + Utils.lambdaToString(condition) + "\n" + Utils.indent(onTrue.toString()) + "\nElse\n" + Utils.indent(onFalse.toString()) + "\nEnd If\n";
+		}
+	}
 }

@@ -10,7 +10,7 @@ public class WrongSubTaskStatus implements EndMessage
 	public WrongSubTaskStatus(BaseTask bt)
 	{
 		this.status = bt.getStatus();
-		message = "Tache " + bt.getTitle() + " : " + bt.getTitle();
+		message = "Tache " + bt.getTitle() + " : " + bt.getStatus().getTitle() + (bt.getStatusDetails() != null ? " - " + bt.getStatusDetails() : "");
 	}
 	
 	@Override

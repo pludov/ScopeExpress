@@ -60,4 +60,9 @@ public class Block extends StepWithSimpleInterruptionHandler implements StepCont
 			terminate(err);
 		}
 	}
+	
+	@Override
+	public String toString() {
+		return Utils.toBlockString("", Arrays.asList(steps));
+	}
 }

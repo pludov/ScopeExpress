@@ -64,10 +64,10 @@ public abstract class OpenPhdQuery {
 
 	public static String getErrorMessage(JsonObject  object)
 	{
-		if (!object.has("Error")) {
+		if (!object.has("error")) {
 			return null;
 		}
 		
-		return Objects.toString(object.get("Error"));
+		return Objects.toString(object.get("error"));
 	}
 }

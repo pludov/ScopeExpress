@@ -173,4 +173,9 @@ public class Fork extends Step implements StepContainer
 	public void handleMessage(Step child, EndMessage err) {
 		finished(child, err);
 	}
+		
+	@Override
+	public String toString() {
+		return Utils.toBlockString("Fork", childs);
+	}
 }

@@ -28,4 +28,9 @@ public class Immediate extends Step
 	public void abortRequest(InterruptType type) {
 		// Rien...
 	}
+	
+	@Override
+	public String toString() {
+		return "<Immediate:" + runnable +">";
+	}
 }

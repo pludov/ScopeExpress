@@ -54,4 +54,9 @@ public class While extends StepWithSimpleInterruptionHandler implements StepCont
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return Utils.toBlockString("While " + Utils.lambdaToString(this.condition), Collections.singletonList(block));
+	}
+	
 }

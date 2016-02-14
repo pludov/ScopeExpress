@@ -39,4 +39,8 @@ public class TaskLauncherDefinition {
 		this.title = title;
 	}
 
+	@Override
+	public String toString() {
+		return "TaskLauncherDefinition:" + getId();
+	}
 }

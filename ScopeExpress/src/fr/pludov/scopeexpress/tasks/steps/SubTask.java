@@ -12,8 +12,8 @@ public class SubTask extends Step implements StepContainer
 {
 	final TaskLauncherDefinition child;
 	private final BaseTask baseTask;
-	
 	Map<IStatus, Object> onStatus;
+	
 	Step runningStatus;
 	Runnable onResume;
 	Function<Void, String> titleProvider;
@@ -69,8 +69,7 @@ public class SubTask extends Step implements StepContainer
 			
 			@Override
 			public void onDone(BaseTask bt) {
-				// FIXME: ceci peut arriver pendant que l'étape est mise en pause... 
-				// ça peut tout simplement redémarrer le processus !
+				// Attention, ceci peut arriver pendant que l'étape est mise en pause... 
 				if (launcher != this) {
 					return;
 				}
@@ -107,7 +106,7 @@ public class SubTask extends Step implements StepContainer
 	public SubTask On(IStatus status, SubTaskStatusChecker checker)
 	{
 		if (onStatus == null) {
-			onStatus = new HashMap<>();
+			onStatus = new LinkedHashMap<>();
 		}
 		if (onStatus.containsKey(status)) {
 			throw new RuntimeException("Multiple path for status: " + status);
@@ -119,7 +118,7 @@ public class SubTask extends Step implements StepContainer
 	public SubTask On(IStatus status, Step child)
 	{
 		if (onStatus == null) {
-			onStatus = new HashMap<>();
+			onStatus = new LinkedHashMap<>();
 		}
 		if (onStatus.containsKey(status)) {
 			throw new RuntimeException("Multiple path for status: " + status);
@@ -200,5 +199,24 @@ public class SubTask extends Step implements StepContainer
 				terminate(new WrongSubTaskStatus(bt));
 			}
 		}
+	}
+	
+	@Override
+	public String toString() {
+		String result = "SubTask:" + this.child.getId();
+		if (onStatus != null && !onStatus.isEmpty()) {
+			result = result + "\n";
+			for(Map.Entry<IStatus, Object> entry : onStatus.entrySet()) {
+				result = result + "    " + entry.getKey() + ":\n";
+				Object todo = entry.getValue();
+				if (todo instanceof Step) {
+					result = result + Utils.indent(Utils.indent(todo.toString())) + "\n";
+				} else {
+					result = result + Utils.indent(Utils.indent(Utils.lambdaToString((SubTaskStatusChecker)todo))) + "\n";
+				}
+			}
+		}
+		
+		return result;
 	}
 }

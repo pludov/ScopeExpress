@@ -90,5 +90,24 @@ public class Try extends Step implements StepContainer
 			}
 		}
 	}
+
 	
+	@Override
+	public String toString() {
+		StringBuffer result = new StringBuffer();
+		result.append("Try\n");
+		result.append(Utils.indent(main.toString()));
+		
+		for(Couple<Function<EndMessage, Boolean>, Step> item : this.catches)
+		{
+			result.append("Catch ");
+			result.append(Utils.lambdaToString(item.getA()));
+			result.append("\n");
+			result.append(Utils.indent(item.getB().toString()));
+			result.append("\n");
+		}
+		result.append("End Try\n");
+		
+		return result.toString();
+	}
 }
