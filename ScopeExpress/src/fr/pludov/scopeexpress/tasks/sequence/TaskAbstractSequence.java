@@ -91,49 +91,35 @@ public class TaskAbstractSequence extends BaseTask {
 		return ((sm instanceof StepInterruptedMessage) && ((StepInterruptedMessage)sm).type == InterruptType.Pause);
 	}
 	
-	static interface StepContainer
-	{
-		/** Selection du prochain noeud */
-		public void advance(Step from);
-		
-		public void handleMessage(Step child, StepMessage err);
-	}
-	
-	/** Les étapes sont sans état. */
+	/**
+	 * Une étape démarre par un appel à .enter et se termine en emettant un message final (StepMessage)
+	 * Le parent peut controler le déroulement de l'étape en utilisant abortRequest.
+	 * Lorsqu'une étape emet un message de Pause, le parent peut utiliser "Resume" pour la relancer
+	 * 
+	 * enter ne peut pas être appellé une deuxième fois sans que l'étape n'ait émis un message de fin.
+	 */
 	abstract class Step {
-		StepContainer parent;
+		private StepContainer parent;
 		
+		/** 
+		 * Démarrage de l'étape
+		 * Doit réinitialiser tout état de l'instance
+		 */
 		abstract void enter();
 
-		// Appellé après pause ?
+		/** Ne sera appellé que si le dernier message emis est un message de pause */
 		abstract void resume();
 		
 		/** Quitte l'étape, et avance au suivant */
 		void leave()
 		{
-			if (parent != null) {
-				parent.advance(this);
-			} else {
-				setFinalStatus(BaseStatus.Success);
-			}
+			parent.handleMessage(this, null);
 		}
 		
+		/** Met fin à l'étape en cours avec un message de fin passé au parent */
 		void throwError(StepMessage stepError)
 		{
-			if (parent != null) {
-				parent.handleMessage(this, stepError);
-			} else {
-				if (stepError instanceof StepInterruptedMessage && TaskAbstractSequence.this.getInterrupting() != null)
-				{
-					setFinalStatus(TaskAbstractSequence.this.getInterrupting());
-				} else if (isPausedMessage(stepError) && TaskAbstractSequence.this.isPauseRequested()) {
-					// TaskAbstractSequence.this.onUnpause
-					pausing = false;
-					setStatus(BaseStatus.Paused);
-				} else {
-					setFinalStatus(BaseStatus.Error, stepError.toString());
-				}
-			}
+			parent.handleMessage(this, stepError);
 		}
 
 		final void setParent(StepContainer stepSequence) {
@@ -151,6 +137,49 @@ public class TaskAbstractSequence extends BaseTask {
 		 */
 		abstract void abortRequest(InterruptType type);		
 	};
+
+	/** 
+	 * Container pour gérer l'executions d'étape dans la TaskAbstractSequence
+	 * Fait correspondre l'état de la tache avec celui de l'étape
+	 */
+	class TaskRootStep implements StepContainer
+	{
+		final Step main;
+		
+		TaskRootStep(Step main)
+		{
+			this.main = main;
+			this.main.setParent(this);
+		}
+
+		@Override
+		public void handleMessage(Step child, StepMessage stepError) {
+			if (stepError == null) {
+				setFinalStatus(BaseStatus.Success);
+			} else if (stepError instanceof StepInterruptedMessage && TaskAbstractSequence.this.getInterrupting() != null)
+			{
+				setFinalStatus(TaskAbstractSequence.this.getInterrupting());
+			} else if (isPausedMessage(stepError) && TaskAbstractSequence.this.isPauseRequested()) {
+				// TaskAbstractSequence.this.onUnpause
+				pausing = false;
+				setStatus(BaseStatus.Paused);
+			} else {
+				setFinalStatus(BaseStatus.Error, stepError.toString());
+			}			
+		}
+
+		void enter() {
+			main.enter();
+		}
+
+		void resume() {
+			main.resume();
+		}
+
+		void abortRequest(InterruptType type) {
+			main.abortRequest(type);
+		}
+	}
 	
 	public static interface StepCondition {
 		boolean evaluate();
@@ -392,6 +421,9 @@ public class TaskAbstractSequence extends BaseTask {
 			if (interruptionHandler.handleChildMessage(child, err)) {
 				return;
 			}
+			if (err == null && interruptionHandler.doInterrupt(()->{handleMessage(child, null);})) {
+				return;
+			}
 			throwError(err);
 		}
 		
@@ -433,12 +465,16 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		public void advance(Step child) {
-			assert(child == block);
-			if (interruptionHandler.doInterrupt(() -> {advance(child);})) {
-				return;
+		public void handleMessage(Step child, StepMessage err) {
+			if (err == null) {
+				// Dans ce cas, on boucle !
+				if (interruptionHandler.doInterrupt(() -> {handleMessage(child, null);})) {
+					return;
+				}
+				enter();	
+			} else {
+				super.handleMessage(child, err);
 			}
-			enter();
 		}
 		
 	}
@@ -502,14 +538,14 @@ public class TaskAbstractSequence extends BaseTask {
 			}
 		}
 		
-		@Override
-		public void advance(Step child) {
-			assert(child == onTrue || child == onFalse);
-			if (interruptionHandler.doInterrupt(()->{advance(child);})) {
-				return;
-			}
-			leave();
-		}
+//		@Override
+//		public void advance(Step child) {
+//			assert(child == onTrue || child == onFalse);
+//			if (interruptionHandler.doInterrupt(()->{advance(child);})) {
+//				return;
+//			}
+//			leave();
+//		}
 	}
 	
 	class StepSequence extends StepWithSimpleInterruptionHandler implements StepContainer
@@ -547,18 +583,23 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		public void advance(Step child) {
-			assert(child == steps[currentPosition]);
-			
-			if (interruptionHandler.doInterrupt(()->{advance(child);})) {
+		public void handleMessage(Step child, StepMessage err) {
+			if (interruptionHandler.handleChildMessage(child, err)) {
 				return;
 			}
+			if (err == null) {
+				if (interruptionHandler.doInterrupt(()->{handleMessage(child, err);})) {
+					return;
+				}
 			
-			currentPosition++;
-			if (currentPosition >= steps.length) {
-				leave();
+				currentPosition++;
+				if (currentPosition >= steps.length) {
+					leave();
+				} else {
+					steps[currentPosition].enter();
+				}
 			} else {
-				steps[currentPosition].enter();
+				throwError(err);
 			}
 		}
 	}
@@ -639,6 +680,7 @@ public class TaskAbstractSequence extends BaseTask {
 		
 		void wakeup()
 		{
+			paused = false;
 			IStatus currentStatus = launcher.getTask().getStatus();
 			if (currentStatus == BaseStatus.Paused)
 			{
@@ -741,29 +783,30 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		public void advance(Step child) {
-			assert(child == runningStatus);
-			if (abortRequested != null) {
-				onResume = () -> { advance(child); };
-				StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
-				abortRequested = null;
-				throwError(stepError);
-			} else {
-				leave();
-			}
-		}
-		
-		@Override
 		void resume() {
 			onResume.run();
 		}
 		
+		
 		@Override
 		public void handleMessage(Step child, StepMessage err) {
-			if (isPausedMessage(err)) {
-				onResume = () -> { child.resume(); };
+			if (err != null) {
+				if (isPausedMessage(err)) {
+					onResume = () -> { child.resume(); };
+				}
+				throwError(err);
+			} else {
+				// Succès...
+				assert(child == runningStatus);
+				if (abortRequested != null) {
+					onResume = () -> { handleMessage(child, null); };
+					StepInterruptedMessage stepError = new StepInterruptedMessage(abortRequested);
+					abortRequested = null;
+					throwError(stepError);
+				} else {
+					leave();
+				}
 			}
-			throwError(err);
 		}
 		
 		@Override
@@ -844,42 +887,39 @@ public class TaskAbstractSequence extends BaseTask {
 		}
 		
 		@Override
-		public void advance(Step from) {
-			assert(current == from);
-
-			if (pendingInterruption != null) {
-				onResume = () -> {advance(from);};
-				StepInterruptedMessage stepError = new StepInterruptedMessage(pendingInterruption);
-				pendingInterruption = null;
-				throwError(stepError);
-				return;
-			}
-			current = null;
-			leave();
-		}
-		
-		@Override
 		public void handleMessage(Step child, StepMessage err) {
 			assert(current == child);
-			if (child != main) {
-				throwError(err);
-			} else {
-				if (isPausedMessage(err) && pendingInterruption == InterruptType.Pause) {
+			if (err == null) {
+				if (pendingInterruption != null) {
+					onResume = () -> {handleMessage(child, null);};
+					StepInterruptedMessage stepError = new StepInterruptedMessage(pendingInterruption);
 					pendingInterruption = null;
-					onResume = ()->{main.resume();};
-					throwError(err);
+					throwError(stepError);
 					return;
 				}
-				// Le catch
-				for(Couple<Function<StepMessage, Boolean>, Step> catchItem : catches)
-				{
-					if (catchItem.getA().apply(err)) {
-						current = catchItem.getB();
-						current.enter();
+				current = null;
+				leave();
+			} else {
+				if (child != main) {
+					throwError(err);
+				} else {
+					if (isPausedMessage(err) && pendingInterruption == InterruptType.Pause) {
+						pendingInterruption = null;
+						onResume = ()->{main.resume();};
+						throwError(err);
 						return;
 					}
+					// Le catch
+					for(Couple<Function<StepMessage, Boolean>, Step> catchItem : catches)
+					{
+						if (catchItem.getA().apply(err)) {
+							current = catchItem.getB();
+							current.enter();
+							return;
+						}
+					}
+					throwError(err);
 				}
-				throwError(err);
 			}
 		}
 		
@@ -1080,12 +1120,12 @@ public class TaskAbstractSequence extends BaseTask {
 		void resume() {
 			status.onResume.run();
 		}
-		
-		@Override
-		public void advance(Step from) {
-			logger.debug("Advance: " + from);
-			finished(from, null);
-		}
+//		
+//		@Override
+//		public void advance(Step from) {
+//			logger.debug("Advance: " + from);
+//			finished(from, null);
+//		}
 		
 		@Override
 		public void handleMessage(Step child, StepMessage err) {
@@ -1101,7 +1141,7 @@ public class TaskAbstractSequence extends BaseTask {
 	
 	Step stopAutoGuider = null;
 	
-	Step start = new StepSequence(
+	TaskRootStep start = new TaskRootStep(new StepSequence(
 		new SubTask(getDefinition().filterWheel),
 		
 		// Si possible démarre l'auto guidage avant la MEP...
@@ -1201,7 +1241,7 @@ public class TaskAbstractSequence extends BaseTask {
 								new Immediate(() -> {})
 							)
 			))
-	);
+	));
 
 	@Override
 	public void start() {
