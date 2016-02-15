@@ -35,6 +35,37 @@ public class TaskSequence extends TaskMadeOfSteps {
 	}
 	
 	
+	final Step shootStep()
+	{
+		return new Block(
+				new SubTask(this, getDefinition().shoot)
+					.SetTitle((Void v) -> ("Exposition " + (imageCount + 1) + " / " + get(getDefinition().shootCount)))
+					.On(BaseStatus.Success, (BaseTask bt)->{
+						String path = bt.get(TaskShootDefinition.getInstance().fits);
+						Image image = focusUi.getApplication().getImage(new File(path));
+						
+						Mosaic targetMosaic = focusUi.getImagingMosaic();
+						
+						MosaicImageParameter mip = targetMosaic.addImage(image, ImageAddedCause.AutoDetected);
+						
+
+						LoadMetadataTask loadTask = new LoadMetadataTask(targetMosaic, mip);
+						focusUi.getApplication().getBackgroundTaskQueue().addTask(loadTask);
+						
+						FindStarTask task = new FindStarTask(targetMosaic, image);
+						focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+						
+						
+						imageCount++; 
+					})
+					.On(BaseStatus.Aborted, (BaseTask bt)-> {
+						logger.warn("Image abandonnée. Nouvel essai");
+					}),
+				new Immediate(() -> {consecutiveCountWithoutChecking++;})
+			);
+		
+	}
+	
 	final Step start = new Block(
 		new SubTask(this, getDefinition().filterWheel),
 		
@@ -99,41 +130,23 @@ public class TaskSequence extends TaskMadeOfSteps {
 								)),
 							new Immediate(() -> {consecutiveCountWithoutChecking = 0;})
 					)),
-					
-					new Try(new Fork()
-							.Spawn(new Block(
-									new SubTask(this, getDefinition().shoot)
-										.SetTitle((Void v) -> ("Exposition " + (imageCount + 1) + " / " + get(getDefinition().shootCount)))
-										.On(BaseStatus.Success, (BaseTask bt)->{
-											String path = bt.get(TaskShootDefinition.getInstance().fits);
-											Image image = focusUi.getApplication().getImage(new File(path));
-											
-											Mosaic targetMosaic = focusUi.getImagingMosaic();
-											
-											MosaicImageParameter mip = targetMosaic.addImage(image, ImageAddedCause.AutoDetected);
-											
-		
-											LoadMetadataTask loadTask = new LoadMetadataTask(targetMosaic, mip);
-											focusUi.getApplication().getBackgroundTaskQueue().addTask(loadTask);
-											
-											FindStarTask task = new FindStarTask(targetMosaic, image);
-											focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
-											
-											
-											imageCount++; 
-										})
-										.On(BaseStatus.Aborted, (BaseTask bt)-> {
-											logger.warn("Image abandonnée. Nouvel essai");
-										}),
-									new Immediate(() -> {consecutiveCountWithoutChecking++;})
-								))
-							.Spawn(new SubTask(this, getDefinition().guiderMonitor)
-									.SetTitle((Void v) -> ("Supervision du guidage"))
-							))
-						.Catch((EndMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
-													&& ((WrongSubTaskStatus)sm).getStatus() == TaskGuiderMonitor.GuiderOutOfRange),
-								new Immediate(() -> {})
-							)
+					new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate))
+						.Then(
+							// Version avec supervision du guidage
+							new Try(new Fork()
+									.Spawn(shootStep())
+									.Spawn(new SubTask(this, getDefinition().guiderMonitor)
+											.SetTitle((Void v) -> ("Supervision du guidage"))
+									))
+								.Catch((EndMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
+															&& ((WrongSubTaskStatus)sm).getStatus() == TaskGuiderMonitor.GuiderOutOfRange),
+										new Immediate(() -> {})
+									)
+						)
+						.Else(
+							// Version sans supervision du guidage
+							shootStep()
+						)
 			))
 	);
 }
