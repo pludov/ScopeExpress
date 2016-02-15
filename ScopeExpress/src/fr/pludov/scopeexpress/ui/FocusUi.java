@@ -1232,8 +1232,8 @@ public class FocusUi extends FocusUiDesign {
 		return guiderManager;
 	}
 	
-	public void selectTask(BaseTask task) {
-		taskManagerView.selectTask(task);
+	public void displayNewTask(BaseTask task) {
+		taskManagerView.displayNewTask(task);
 		tabbedPane.setSelectedComponent(taskPanel);	
 	}
 

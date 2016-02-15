@@ -2,11 +2,10 @@ package fr.pludov.scopeexpress.tasks;
 
 import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.scopeexpress.ui.FocusUi;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 /** Pas de synchro, tout est géré dans le thread swing */
 public class TaskManager implements ITaskParent {
@@ -46,9 +45,8 @@ public class TaskManager implements ITaskParent {
 		checkList();
 		statusListeners.getTarget().childAdded(task, previous);
 		
-		if (startSomeTask() == task) {
-			focusUi.selectTask(task);
-		}
+		startSomeTask();
+		focusUi.displayNewTask(task);
 		
 		return task;
 	}
@@ -112,21 +110,25 @@ public class TaskManager implements ITaskParent {
 	}
 
 
+	@Override
 	public BaseTask getFirst() {
 		return first;
 	}
 
 
+	@Override
 	public void setFirst(BaseTask first) {
 		this.first = first;
 	}
 
 
+	@Override
 	public BaseTask getLast() {
 		return last;
 	}
 
 
+	@Override
 	public void setLast(BaseTask last) {
 		this.last = last;
 	}

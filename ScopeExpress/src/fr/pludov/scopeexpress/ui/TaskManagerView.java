@@ -573,10 +573,13 @@ public class TaskManagerView extends JSplitPane {
 		return null;
 	}
 	
-	public void selectTask(BaseTask task) {
+	public void displayNewTask(BaseTask task) {
 		TreePath dmt = findNode(task);
 		if (dmt != null) {
-			jtree.setSelectionPath(dmt);
+			if (task.getStatus() != BaseStatus.Pending) {
+				jtree.setSelectionPath(dmt);
+			}
+			scrollPathToVisible(dmt);
 		}
 	}
 
