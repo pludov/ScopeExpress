@@ -135,6 +135,10 @@ public class TaskGuiderMonitor extends BaseTask {
 			}
 			
 			@Override
+			public void onConnectionError(Throwable message) {
+			}
+			
+			@Override
 			public void onEvent(String event, JsonObject message) {
 				// Si c'est un message de déconnection, donner un timeout avant erreur ?
 				boolean messageIsGood = false;

@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.List;
 
 import javax.swing.*;
+import javax.swing.Timer;
 
 import fr.pludov.scopeexpress.scope.*;
 import fr.pludov.scopeexpress.ui.preferences.*;
@@ -114,6 +115,11 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		showDialog();
 		device.getStatusListener().addListener(this.listenerOwner,  new IDriverStatusListener() {
 			final HARDWARE deviceThatChanged = device;
+			
+			@Override
+			public void onConnectionError(Throwable t) {
+				dispatchError(t);
+			}
 			
 			@Override
 			public void onConnectionStateChanged() {
@@ -232,6 +238,29 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 				}
 			});
 			register(new StatusControler<ToolbarButton>(getStatusButton()) {
+				String errorToDisplay;
+				final Timer jtimer = new Timer(4000, new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						cancelErrorDisplay();
+					}
+					
+				}) ;
+				
+				void cancelErrorDisplay()
+				{
+					errorToDisplay = null;
+					update(getStatusButton());
+				}
+				
+				@Override
+				void reportError(Throwable t) {
+					errorToDisplay = t.getMessage();
+					jtimer.start();
+					update(getStatusButton());
+				}
+				
 				@Override
 				void update(ToolbarButton o) {
 					Status status;
@@ -254,6 +283,14 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						}
 					}
 					
+					if (errorToDisplay != null) {
+						if (status == Status.OK) {
+							errorToDisplay = null;
+						} else if (status != Status.PENDING) {
+							status = Status.ERROR;
+						}
+					}
+					
 					o.setStatus(status);
 					
 					o.setEnabled(chooser == null);
@@ -264,8 +301,13 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 					} else {
 						tt = labels.DISCONNECT_TOOLTIP;
 					}
+					if (errorToDisplay != null) {
+						tt = errorToDisplay;
+					}
 					o.setToolTipText(tt);
 				};
+				
+				{ jtimer.setRepeats(false); }
 			});
 //			scopeButton.setPopupProvider(new ToolbarButton.PopupProvider() {
 //				@Override
@@ -315,6 +357,10 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						void update(JMenuItem o) {
 							o.setEnabled(device == null && chooser == null);
 						}
+						
+						@Override
+						void reportError(Throwable t) {
+						}
 					});
 					chooserMnu.addActionListener(new ActionListener() {
 						@Override
@@ -342,6 +388,10 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						void update(JMenuItem o) {
 							o.setEnabled(device != null && chooser == null);
 						}
+						
+						@Override
+						void reportError(Throwable t) {
+						}
 					});
 					disconnect.addActionListener(new ActionListener() {
 						@Override
@@ -357,6 +407,10 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						void update(JMenuItem jmi)
 						{
 							jmi.setEnabled(lister == null);
+						}
+						
+						@Override
+						void reportError(Throwable t) {
 						}
 					});
 					
@@ -381,6 +435,10 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 						void update(JMenuItem o) {
 							o.setEnabled(device == null && chooser == null);
 						};
+						
+						@Override
+						void reportError(Throwable t) {
+						}
 					});
 					return activate;
 				}
@@ -404,7 +462,25 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 			updateOrDropStatusControler(it, it.next());
 		}
 	}
+	
+	void dispatchError(Throwable t) {
+		for(Iterator<StatusControler<?>> it = this.statusControlers.iterator(); it.hasNext(); )
+		{
+			dispatchErrorOrDropStatusControler(it, it.next(), t);
+		}
+		
+	}
 
+	private <X> void dispatchErrorOrDropStatusControler(Iterator<StatusControler<?>> it, StatusControler<X> sc, Throwable thr)
+	{
+		X t = sc.reference.get();
+		if (t == null) {
+			it.remove();
+		} else {
+			sc.reportError(thr);
+		}
+	}
+	
 	private <X> void updateOrDropStatusControler(Iterator<StatusControler<?>> it, StatusControler<X> sc)
 	{
 		X t = sc.reference.get();
@@ -433,7 +509,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 			this.reference = new WeakReference<WIDGET>(w);
 		}
 		
-		
+		abstract void reportError(Throwable t);
 		abstract void update(WIDGET o);
 	}
 	

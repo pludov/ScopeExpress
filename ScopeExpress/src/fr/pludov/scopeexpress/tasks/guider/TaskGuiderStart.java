@@ -166,6 +166,11 @@ public class TaskGuiderStart extends BaseTask {
 			}
 			
 			@Override
+			public void onConnectionError(Throwable message) {
+				logger.info("Guider error", message);
+			}
+			
+			@Override
 			public void onEvent(String event, JsonObject message) {
 				logger.debug("evenement " + event);
 				switch(event) {

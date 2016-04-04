@@ -1,14 +1,10 @@
 package fr.pludov.scopeexpress.scope.dummy;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.ScopeException;
-import fr.pludov.scopeexpress.scope.Scope.Listener;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class DummyScope implements Scope{
 	boolean connectionStatus;
@@ -28,6 +24,9 @@ public class DummyScope implements Scope{
 					@Override
 					public void onConnectionStateChanged() {
 						i.onConnectionStateChanged();
+					}
+					@Override
+					public void onConnectionError(Throwable message) {
 					}
 					@Override
 					public void onCoordinateChanged() {
@@ -74,6 +73,7 @@ public class DummyScope implements Scope{
 		
 		new Thread() {
 			
+			@Override
 			public void run() {
 				boolean doRa = true;
 				boolean doDec = true;
@@ -183,28 +183,34 @@ public class DummyScope implements Scope{
 		
 	}
 
+	@Override
 	public double getRaBias() {
 		return raBias;
 	}
 
+	@Override
 	public void setRaBias(double raBias) {
 		this.raBias = raBias;
 		fireCoordChanged();
 	}
 
+	@Override
 	public double getDecBias() {
 		return decBias;
 	}
 
+	@Override
 	public void setDecBias(double decBias) {
 		this.decBias = decBias;
 		fireCoordChanged();
 	}
 
+	@Override
 	public double getRightAscension() {
 		return rightAscension + raBias;
 	}
 
+	@Override
 	public double getDeclination() {
 		return declination + decBias;
 	}

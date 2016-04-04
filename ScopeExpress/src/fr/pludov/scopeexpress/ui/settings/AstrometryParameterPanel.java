@@ -1,33 +1,18 @@
 package fr.pludov.scopeexpress.ui.settings;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.scopeexpress.focus.ExclusionZone;
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicImageParameterListener;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.ui.FocusUiScopeManager;
-import fr.pludov.scopeexpress.ui.settings.InputOutputHandler.DegConverter;
-import fr.pludov.scopeexpress.ui.settings.InputOutputHandler.EnumConverter;
-import fr.pludov.scopeexpress.ui.settings.InputOutputHandler.HourMinSecConverter;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
-import fr.pludov.utils.VecUtils;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.settings.InputOutputHandler.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 
 public class AstrometryParameterPanel extends AstrometryParameterDesign {
@@ -362,6 +347,10 @@ public class AstrometryParameterPanel extends AstrometryParameterDesign {
 						}
 					});
 					
+				}
+				
+				@Override
+				public void onConnectionError(Throwable message) {
 				}
 			});
 		} else {

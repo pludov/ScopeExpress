@@ -1,26 +1,14 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import org.apache.log4j.*;
+import org.jawin.*;
 
-import javax.swing.SwingUtilities;
-
-import org.apache.log4j.Logger;
-import org.jawin.COMException;
-import org.jawin.DispatchPtr;
-import org.jawin.win32.Ole32;
-
-import fr.pludov.scopeexpress.async.CancelationException;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.platform.windows.Ole;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.ScopeException;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WorkThread;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.platform.windows.*;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class AscomScope extends WorkThread implements Scope {
 	private static final Logger logger = Logger.getLogger(AscomScope.class);
@@ -45,6 +33,9 @@ public class AscomScope extends WorkThread implements Scope {
 					@Override
 					public void onConnectionStateChanged() {
 						i.onConnectionStateChanged();
+					}
+					@Override
+					public void onConnectionError(Throwable message) {
 					}
 					@Override
 					public void onCoordinateChanged() {
@@ -77,16 +68,19 @@ public class AscomScope extends WorkThread implements Scope {
 	double lastDec;
 	boolean lastConnected;
 	
+	@Override
 	public boolean isConnected()
 	{
 		return lastConnected;
 	}
 	
+	@Override
 	public double getRightAscension()
 	{
 		return lastRa + raBias;
 	}
 	
+	@Override
 	public double getDeclination()
 	{
 		return lastDec + decBias;
@@ -112,6 +106,7 @@ public class AscomScope extends WorkThread implements Scope {
 	}
 	
 	// Bloque l'appelant
+	@Override
 	public void slew(final double ra, final double dec) throws ScopeException
 	{
 		logger.info("Slew to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
@@ -129,6 +124,7 @@ public class AscomScope extends WorkThread implements Scope {
 		}
 	}
 	
+	@Override
 	public void close()
 	{
 		setTerminated();
@@ -286,18 +282,22 @@ public class AscomScope extends WorkThread implements Scope {
 		return driver;
 	}
 
+	@Override
 	public double getDecBias() {
 		return decBias;
 	}
 
+	@Override
 	public void setDecBias(double decBias) {
 		this.decBias = decBias;
 	}
 
+	@Override
 	public double getRaBias() {
 		return raBias;
 	}
 
+	@Override
 	public void setRaBias(double raBias) {
 		this.raBias = raBias;
 	}

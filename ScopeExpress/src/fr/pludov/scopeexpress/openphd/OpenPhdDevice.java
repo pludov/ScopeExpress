@@ -30,6 +30,11 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 					public void onConnectionStateChanged() {
 						i.onConnectionStateChanged();
 					}
+
+					@Override
+					public void onConnectionError(Throwable message) {
+						i.onConnectionError(message);
+					}
 					
 					@Override
 					public void onEvent(String e, JsonObject message) {
@@ -55,6 +60,7 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 
 	@Override
 	public void run() {
+		Throwable reportError = null;
 		try {
 			OpenPhdConnection connection = new OpenPhdConnection(this);
 			connection.connect();
@@ -66,8 +72,13 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 			if (!normalClose) {
 				logger.warn("Exception in phd device", t);
 			}
+			reportError = t;
 		} finally {
 			close();
+			if (reportError != null) {
+				listeners.getTarget().onConnectionStateChanged();
+				listeners.getTarget().onConnectionError(reportError);
+			}
 		}
 	
 	}
