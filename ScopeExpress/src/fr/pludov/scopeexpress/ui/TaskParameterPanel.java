@@ -769,6 +769,7 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 
 	/** Edition d'une tache en cours/finie */
 	public void showEditDialog(Window parent, final BaseTask currentTask) {
+		modification = currentTask.getParameters();
 		init();
 		
 		final JDialog jd = new JDialog(parent);
@@ -777,7 +778,6 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 		jd.getContentPane().setLayout(new BorderLayout());
 
 		
-		modification = currentTask.getParameters();
 		
 		currentDialog = Utils.addDialogButton(jd, new Runnable() {
 
