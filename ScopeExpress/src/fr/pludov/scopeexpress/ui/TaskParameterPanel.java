@@ -24,7 +24,7 @@ import fr.pludov.scopeexpress.ui.utils.*;
  *   Si le status est invisible, on utilise la valeur par défaut 
  */
 
-public class TaskParameterPanel extends JPanel {
+public class TaskParameterPanel extends JPanel implements Scrollable {
 	final static Object undecided = new Object();
 
 	final BaseTaskDefinition root;
@@ -812,7 +812,7 @@ public class TaskParameterPanel extends JPanel {
 			jd.setModal(false);
 			jd.getContentPane().setLayout(new BorderLayout());
 			jd.add(this);
-			
+//			jd.setMaximumSize(maximumSize);
 			currentDialog = Utils.addDialogButton(jd, new Runnable() {
 
 				@Override
@@ -834,7 +834,12 @@ public class TaskParameterPanel extends JPanel {
 				}
 			});
 			currentDialog.getOkButton().setEnabled(!hasError);
-			jd.getContentPane().add(this, BorderLayout.CENTER);
+			JScrollPane scrollPane = new JScrollPane(this);
+			scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+			scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+			scrollPane.setBorder(null);
+			jd.getContentPane().add(scrollPane, BorderLayout.CENTER);
+
 			jd.pack();
 			if (parent != null) {
 				jd.setLocationRelativeTo(parent);
@@ -884,5 +889,39 @@ public class TaskParameterPanel extends JPanel {
 		};
 	}
 
-	
+	@Override
+	public Dimension getPreferredScrollableViewportSize() {
+		
+		Dimension d = getLayout().preferredLayoutSize(this);
+		int maxHeight = focusUi.getMainWindow().getHeight();
+		maxHeight -= 120;
+		if (maxHeight < 120) {
+			maxHeight = 120;
+		}
+			
+		if (d.getHeight() > maxHeight) {
+			d = new Dimension(d.width, maxHeight);
+		}
+		return d;
+	}
+
+	@Override
+	public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+		return 1;
+	}
+
+	@Override
+	public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+		return 10;
+	}
+
+	@Override
+	public boolean getScrollableTracksViewportWidth() {
+		return false;
+	}
+
+	@Override
+	public boolean getScrollableTracksViewportHeight() {
+		return false;
+	}
 }
