@@ -37,7 +37,7 @@ public class OpenPhdConnection {
 	{
 		socket = new Socket();
 		socket.setReuseAddress(true);
-		socket.connect(new InetSocketAddress("127.0.0.1", 4400), 30);
+		socket.connect(new InetSocketAddress("127.0.0.1", 4400), 30000);
 	}
 	
 	void proceed() throws UnsupportedEncodingException, IOException
