@@ -1,5 +1,7 @@
 package fr.pludov.scopeexpress.tasks.steps;
 
+import fr.pludov.scopeexpress.ui.log.*;
+
 /**
  * Une étape démarre par un appel à .enter et se termine en emettant un message final (EndMessage)
  * Le parent peut controler le déroulement de l'étape en utilisant abortRequest.
@@ -41,5 +43,10 @@ public abstract class Step {
 	 * Pas de garantie qu'elle soit honorée (un succès est toujours possible...)
 	 * L'appelant devra alors gérer lui même la condition d'abort.
 	 */
-	public abstract void abortRequest(InterruptType type);		
+	public abstract void abortRequest(InterruptType type);
+	
+	public UILogger getUILogger()
+	{
+		return parent.getUILogger();
+	}
 }

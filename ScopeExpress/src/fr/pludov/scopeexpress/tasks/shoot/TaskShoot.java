@@ -24,7 +24,9 @@ public class TaskShoot extends BaseTask {
 	@Override
 	protected void cleanup()
 	{
-		camera.getListeners().removeListener(this.listenerOwner);
+		if (camera != null) {
+			camera.getListeners().removeListener(this.listenerOwner);
+		}
 		camera = null;
 		shootCanceled = false;
 	}

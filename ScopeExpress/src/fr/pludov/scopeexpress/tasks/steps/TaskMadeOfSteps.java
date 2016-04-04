@@ -1,6 +1,7 @@
 package fr.pludov.scopeexpress.tasks.steps;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.log.*;
 
 /**
  * 
@@ -35,6 +36,11 @@ public class TaskMadeOfSteps extends BaseTask {
 			this.main.setParent(this);
 		}
 
+		@Override
+		public UILogger getUILogger() {
+			return TaskMadeOfSteps.this.logger;
+		}
+		
 		@Override
 		public void handleMessage(Step child, EndMessage stepError) {
 			if (stepError == null) {

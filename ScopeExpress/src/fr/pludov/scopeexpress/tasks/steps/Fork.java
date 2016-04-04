@@ -155,10 +155,14 @@ public class Fork extends Step implements StepContainer
 
 					status = newStatus;
 				}
+			} else {
+				status = new Status();
 			}
 			if (msg == null) {
+				getUILogger().debug("Fork finished with success");
 				terminate(EndMessage.success());
 			} else {
+				getUILogger().debug("Fork finished with message: " + msg);
 				terminate(msg);
 			}
 		}

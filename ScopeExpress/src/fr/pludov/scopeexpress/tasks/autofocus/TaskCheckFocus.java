@@ -144,15 +144,19 @@ public class TaskCheckFocus extends BaseTask {
 			@Override
 			public void onDone(BaseTask bt) {
 				if (bt.getStatus() == BaseStatus.Success) {
-					
-					String path = bt.get(TaskShootDefinition.getInstance().fits);
-					Image image = focusUi.getApplication().getImage(new File(path));
-					mosaic.addImage(image, ImageAddedCause.AutoDetected);
-					
-					shooted = image;
-					logger.info("Analyse des étoiles...");
-					FindStarTask task = new FindStarTask(mosaic, image);
-					focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+					try {
+						String path = bt.get(TaskShootDefinition.getInstance().fits);
+						Image image = focusUi.getApplication().getImage(new File(path));
+						mosaic.addImage(image, ImageAddedCause.AutoDetected);
+						
+						shooted = image;
+						logger.info("Analyse des étoiles...");
+						FindStarTask task = new FindStarTask(mosaic, image);
+						focusUi.getApplication().getBackgroundTaskQueue().addTask(task);
+					} catch(Throwable t) {
+						setFinalStatus(BaseStatus.Error, t);
+						
+					}
 				} else {
 					// FIXME: en cas d'erreur d'une sous-tache, il faudrait pouvoir redémarrer la sous-tache
 					setFinalStatus(BaseStatus.Error);
