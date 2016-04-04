@@ -775,7 +775,7 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 		jd.setTitle(root.getTitle() +" (modifier)");
 		jd.setModal(false);
 		jd.getContentPane().setLayout(new BorderLayout());
-		jd.add(this);
+
 		
 		modification = currentTask.getParameters();
 		
@@ -793,7 +793,13 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 			}
 		});
 		currentDialog.getOkButton().setEnabled(!hasError);
-		jd.getContentPane().add(this, BorderLayout.CENTER);
+
+		JScrollPane scrollPane = new JScrollPane(this);
+		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollPane.setBorder(null);
+		jd.getContentPane().add(scrollPane, BorderLayout.CENTER);
+
 		jd.pack();
 		if (parent != null) {
 			jd.setLocationRelativeTo(parent);
