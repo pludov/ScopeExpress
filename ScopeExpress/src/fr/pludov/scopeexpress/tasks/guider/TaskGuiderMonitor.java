@@ -148,8 +148,8 @@ public class TaskGuiderMonitor extends BaseTask {
 					Double dy = message.has("dy") ? message.get("dy").getAsDouble() : null;
 					if (dx != null && dy != null && arcsecPerPixel != null) {
 						double dst = arcsecPerPixel * Math.sqrt(dx.doubleValue() * dx.doubleValue() + dy.doubleValue() * dy.doubleValue());
-						logger.debug("Distance du guidage: " + dst + " (arcsec)");
 						Double seuil = get(getDefinition().maxGuiderDriftArcSec);
+						logger.debug("Distance du guidage: " + dst + " (arcsec)" + (seuil == null ? "" :  (dst < seuil ? " < " : " >= ") + seuil));
 						
 						if (seuil == null || dst < seuil) {
 							messageIsGood = true; 

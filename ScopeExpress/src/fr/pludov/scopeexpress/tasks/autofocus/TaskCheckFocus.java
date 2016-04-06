@@ -170,10 +170,12 @@ public class TaskCheckFocus extends BaseTask {
 	void checkResult()
 	{
 		Double fwhm = TaskAutoFocus.getFwhm(mosaic, shooted);
-		logger.info("FWHM: " + fwhm);
+		logger.info("FWHM: " + fwhm + (fwhm != null && fwhm <= get(getDefinition().fwhmSeuil) ? " <= " : ">") + get(getDefinition().fwhmSeuil));
 		
 		if (fwhm != null) {
-			set(getDefinition().passed, fwhm <= get(getDefinition().fwhmSeuil) ? 1 : 0);
+			int result = fwhm <= get(getDefinition().fwhmSeuil) ? 1 : 0;
+			logger.debug("Result: " + result);
+			set(getDefinition().passed, result);
 		}
 		
 		setFinalStatus(fwhm != null ? BaseStatus.Success : BaseStatus.Error);
