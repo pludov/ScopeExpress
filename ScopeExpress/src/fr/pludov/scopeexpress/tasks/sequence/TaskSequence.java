@@ -20,6 +20,8 @@ public class TaskSequence extends TaskMadeOfSteps {
 	int imageCount;
 	// Nombre d'image prises depuis la dernière vérification de mise au point
 	int consecutiveCountWithoutChecking;
+	// Nombre d'image prises depuis le dernier dither/redémarrage du guidage
+	int consecutiveCountWithoutDither;
 	// Positionné à la suite d'une vérif de focus
 	boolean needFocus;
 	
@@ -61,7 +63,7 @@ public class TaskSequence extends TaskMadeOfSteps {
 					.On(BaseStatus.Aborted, (BaseTask bt)-> {
 						logger.warn("Image abandonnée. Nouvel essai");
 					}),
-				new Immediate(() -> {consecutiveCountWithoutChecking++;})
+				new Immediate(() -> {consecutiveCountWithoutChecking++; consecutiveCountWithoutDither++;})
 			);
 		
 	}
@@ -71,7 +73,9 @@ public class TaskSequence extends TaskMadeOfSteps {
 		
 		// Si possible démarre l'auto guidage avant la MEP...
 		new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate && !get(getDefinition().guiderStopForFilterFocuser)))
-			.Then(new SubTask(this, getDefinition().guiderStart)),
+			.Then(new Block(
+					new SubTask(this, getDefinition().guiderStart),
+					new Immediate(() -> {consecutiveCountWithoutDither = 0; }))),
 		
 		new If(()->(get(getDefinition().initialFocusHandling) == InitialFocusHandling.Forced))
 			.Then(new Block(
@@ -87,7 +91,7 @@ public class TaskSequence extends TaskMadeOfSteps {
 							new SubTask(this, getDefinition().focusCheck)
 								.On(BaseStatus.Success, (BaseTask bt)->{ 
 										Integer r = bt.get(TaskCheckFocusDefinition.getInstance().passed);
-										needFocus = r != null && r.intValue() != 0;
+										needFocus = r != null && r.intValue() == 0;
 								}),
 							new If(()->needFocus)
 								.Then(new Block(
@@ -102,7 +106,9 @@ public class TaskSequence extends TaskMadeOfSteps {
 		
 		// Si l'auto guidage est incompatible avec la MEP, démarre l'autoguidage que maintenant
 		new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate && get(getDefinition().guiderStopForFilterFocuser)))
-			.Then(new SubTask(this, getDefinition().guiderStart)),
+			.Then(new Block(
+					new SubTask(this, getDefinition().guiderStart),
+					new Immediate(() -> {consecutiveCountWithoutDither = 0; }))),
 		
 		new While(()->(imageCount < get(getDefinition().shootCount)))
 			.Do(new Block(
@@ -112,7 +118,7 @@ public class TaskSequence extends TaskMadeOfSteps {
 							new SubTask(this, getDefinition().focusCheck)
 								.On(BaseStatus.Success, (BaseTask bt)->{ 
 										Integer r = bt.get(TaskCheckFocusDefinition.getInstance().passed);
-										needFocus = r != null && r.intValue() != 0;
+										needFocus = r != null && r.intValue() == 0;
 								}),
 							new If(()->needFocus)
 								.Then(new Block(
@@ -126,13 +132,33 @@ public class TaskSequence extends TaskMadeOfSteps {
 										// Redémarrer l'autoguidage si il était incompatible avec le focuseur
 										new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate
 												&& get(getDefinition().guiderStopForFilterFocuser)))
-											.Then(new SubTask(this, getDefinition().guiderStart))
+											.Then(new Block(new SubTask(this, getDefinition().guiderStart),
+													new Immediate(() -> {consecutiveCountWithoutDither = 0; })))
 								)),
 							new Immediate(() -> {consecutiveCountWithoutChecking = 0;})
 					)),
 					new If(()->(get(getDefinition().guiderHandling) == GuiderHandling.Activate))
-						.Then(
+						.Then(new Block(
 							// Version avec supervision du guidage
+
+							// Faire un dither si ça fait longtemps
+							new If(()->(get(getDefinition().ditherInterval) != null && get(getDefinition().ditherInterval) < consecutiveCountWithoutDither))
+								.Then(new Block(
+										new SubTask(this, getDefinition().dither) {
+											@Override
+											protected void completeLauncherParameters(ChildLauncher launcher) {
+												
+												ITaskParameterView guiderStartView = getParameters().getSubTaskView(getDefinition().guiderStart);
+												launcher.set(getDefinition().ditherPixels, guiderStartView.get(TaskGuiderStartDefinition.getInstance().pixels));
+												launcher.set(getDefinition().ditherTime, guiderStartView.get(TaskGuiderStartDefinition.getInstance().time));
+												launcher.set(getDefinition().ditherTimeout, guiderStartView.get(TaskGuiderStartDefinition.getInstance().timeout));
+												
+											};
+										},
+										new Immediate(() -> { consecutiveCountWithoutDither = 0; })
+										)),
+								
+							// Prendre une photo avec supervision du guidage
 							new Try(new Fork()
 									.Spawn(shootStep())
 									.Spawn(new SubTask(this, getDefinition().guiderMonitor)
@@ -140,9 +166,10 @@ public class TaskSequence extends TaskMadeOfSteps {
 									))
 								.Catch((EndMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
 															&& ((WrongSubTaskStatus)sm).getStatus() == TaskGuiderMonitor.GuiderOutOfRange),
+										// Si l'erreur c'est guidage out of range, ignorer (dans ce cas, le nombre d'image n'est pas incrémenté)
 										new Immediate(() -> {})
 									)
-						)
+						))
 						.Else(
 							// Version sans supervision du guidage
 							shootStep()

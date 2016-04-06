@@ -76,11 +76,32 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		}
 	};
 
+	final IntegerParameterId ditherInterval = 
+			new IntegerParameterId(this, "checkFocusInterval", ParameterFlag.Input) {
+				{
+					setTitle("Clichés entre chaque dithering de l'autoguider");
+					setTooltip("Faire un dithering toutes les N images (vide pour désactiver)");
+					setDefault(1);
+				}
+			};
+
+	
 	final TaskLauncherDefinition guiderStart = new TaskLauncherDefinition(this, "guiderStart", TaskGuiderStartDefinition.getInstance()) {
 		{
 			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
 		}
 	};
+
+	final TaskLauncherDefinition dither = new TaskLauncherDefinition(this, "dither", TaskGuiderDitherDefinition.getInstance()) {
+		{
+			// autofocusShootExposure = new TaskLauncherOverride<>(this, TaskAutoFocusDefinition.getInstance());
+			setTitle("dithering");
+		}
+	};
+
+	final TaskLauncherOverride<Double> ditherPixels = new TaskLauncherOverride<>(dither, TaskGuiderDitherDefinition.getInstance().pixels);;
+	final TaskLauncherOverride<Integer> ditherTime = new TaskLauncherOverride<>(dither, TaskGuiderDitherDefinition.getInstance().time);
+	final TaskLauncherOverride<Integer> ditherTimeout = new TaskLauncherOverride<>(dither, TaskGuiderDitherDefinition.getInstance().timeout);
 
 	final TaskLauncherDefinition guiderMonitor = new TaskLauncherDefinition(this, "guiderMonitor", TaskGuiderMonitorDefinition.getInstance()) {
 		{
@@ -103,7 +124,6 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 
 
 	final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance());
-	
 	
 	TaskSequenceDefinition() {
 		super(getBuiltinRepository(), "sequence", "Sequence");
@@ -169,7 +189,7 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		});
 		
 		// Désactiver les taches de guidages
-		for(TaskLauncherDefinition tld : new TaskLauncherDefinition[]{this.guiderStart, this.guiderMonitor, this.guiderStop})
+		for(TaskLauncherDefinition tld : new TaskLauncherDefinition[]{this.guiderStart, this.guiderMonitor, this.guiderStop, this.dither})
 		{
 			td.addControler(path.forChild(tld), new TaskFieldControler() {
 				@Override
@@ -190,6 +210,45 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 				}
 			});
 		}
+		
+		td.addControler(path.forParameter(ditherInterval), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+				// On ne voit le guider que si guiderHandling == Activate
+
+				try {
+					GuiderHandling guiderHandlingValue = td.getParameterValue(path.forParameter(guiderHandling));
+					if (guiderHandlingValue != null && guiderHandlingValue != GuiderHandling.Activate)
+					{
+						return new TaskFieldStatus(Status.MeaningLess);
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+
+				return parent.getFieldStatus(null);
+			}
+		});
+		
+		// Le dither, on ne le voit jamais. Il y a un renvoi vers le guiderStart
+		td.addControler(path.forChild(dither), new TaskFieldControler() {
+			@Override
+			public TaskFieldStatus getFieldStatus(TaskFieldControler parent) {
+				try {
+					GuiderHandling guiderHandlingValue = td.getParameterValue(path.forParameter(guiderHandling));
+					if (guiderHandlingValue != null && guiderHandlingValue != GuiderHandling.Activate)
+					{
+						Integer ditherIntervalValue = td.getParameterValue(path.forParameter(ditherInterval));
+						if (ditherIntervalValue == null || ditherIntervalValue.intValue() < 1) {
+							return new TaskFieldStatus(Status.MeaningLess);
+						}
+					}
+				} catch (ParameterNotKnownException e) {
+				}
+
+				return parent.getFieldStatus(null);
+
+			}
+		});
 		
 		super.declareControlers(td, path);
 	}
@@ -276,6 +335,13 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 				taskView.getSubTaskView(this.guiderStart).disableValidation();
 				taskView.getSubTaskView(this.guiderStop).disableValidation();
 				taskView.getSubTaskView(this.guiderMonitor).disableValidation();
+				taskView.getSubTaskView(this.dither).disableValidation();
+			} else {
+				// On désactive le dithering si l'interval est null
+				Integer ditherValue = taskView.get(ditherInterval);
+				if (ditherValue == null || ditherValue.intValue() < 0) {
+					taskView.getSubTaskView(this.dither).disableValidation();
+				}
 			}
 		} catch (ParameterNotKnownException e) {
 		}

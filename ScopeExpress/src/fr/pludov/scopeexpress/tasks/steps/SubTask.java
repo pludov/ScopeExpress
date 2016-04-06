@@ -93,8 +93,12 @@ public class SubTask extends Step implements StepContainer
 		{
 			launcher.getTask().setTitle(titleProvider.apply(null));
 		}
+		completeLauncherParameters(launcher);
 		launcher.start();
 	}
+	
+	protected void completeLauncherParameters(ChildLauncher launcher)
+	{}
 	
 	public SubTask SetTitle(Function<Void, String> titleProvider)
 	{

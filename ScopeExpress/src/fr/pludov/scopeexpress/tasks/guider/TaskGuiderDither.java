@@ -5,29 +5,29 @@ import java.util.*;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.ui.*;
 
-public class TaskGuiderStart extends TaskGuiderAbstractControl {
+public class TaskGuiderDither extends TaskGuiderAbstractControl {
 	
-	public TaskGuiderStart(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskGuiderStartDefinition tafd) {
+	public TaskGuiderDither(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskGuiderDitherDefinition tafd) {
 		super(focusUi, tm, parentLauncher, tafd);
 	}
 	
 	@Override
-	public TaskGuiderStartDefinition getDefinition() {
-		return (TaskGuiderStartDefinition) super.getDefinition();
+	public TaskGuiderDitherDefinition getDefinition() {
+		return (TaskGuiderDitherDefinition) super.getDefinition();
 	}
-
 
 	@Override
 	void prepareGuideQuery() {
-		guideQuery.put("method", "guide");
+		guideQuery.put("method", "dither");
 		List<Object> params = new ArrayList<>();
-		
+
+		params.add(get(getDefinition().ammount));
+		params.add(get(getDefinition().raOnly));
 		Map<String, Object> settle = new HashMap<>();
 		settle.put("pixels", get(getDefinition().pixels));
 		settle.put("time", get(getDefinition().time));
 		settle.put("timeout", get(getDefinition().timeout));
 		params.add(settle);
-		params.add(false);
 		guideQuery.put("params", params);
 	}
 }
