@@ -1,19 +1,11 @@
 package fr.pludov.scopeexpress.ui.log;
 
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.font.FontRenderContext;
-import java.awt.font.LineBreakMeasurer;
-import java.awt.font.TextLayout;
-import java.text.AttributedCharacterIterator;
-import java.text.AttributedString;
-import java.text.BreakIterator;
+import java.awt.*;
+import java.awt.font.*;
+import java.text.*;
 
-import javax.swing.JTable;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableCellRenderer;
+import javax.swing.*;
+import javax.swing.table.*;
 
 
 public class MultilineTableCell implements TableCellRenderer {
@@ -85,10 +77,15 @@ public class MultilineTableCell implements TableCellRenderer {
 					// Move y-coordinate in preparation for next layout.
 					drawPosY += layout.getDescent() + layout.getLeading();
 				}
-				table.setRowHeight(rowIndex,(int) drawPosY);
+				
+				int iDrawPosY = (int) drawPosY;
+				if (table.getRowHeight(rowIndex) != iDrawPosY) {
+					table.setRowHeight(rowIndex, iDrawPosY);
+				}
 			}
 		}
 	}
+	@Override
 	public Component getTableCellRendererComponent(
 			JTable table, Object value,boolean isSelected, boolean hasFocus, int row,int column
 			)
