@@ -25,6 +25,7 @@ import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
 import fr.pludov.scopeexpress.tasks.guider.*;
+import fr.pludov.scopeexpress.tasks.interaction.*;
 import fr.pludov.scopeexpress.tasks.javascript.*;
 import fr.pludov.scopeexpress.tasks.platesolve.*;
 import fr.pludov.scopeexpress.tasks.sequence.*;
@@ -857,6 +858,19 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
+		{
+			JMenuItem testTask = new JMenuItem("start user interaction task");
+		
+			mnTests.add(testTask);
+			testTask.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					startTask(TaskUserRequestDefinition.getInstance());
+				}
+			});
+		}
+
 		{
 			JMenuItem testTask = new JMenuItem("start guider on task");
 		
