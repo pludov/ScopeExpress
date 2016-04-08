@@ -30,11 +30,11 @@ public class TaskParameterGroup {
 	List<TaskParameterGroup> containers;
 	TaskParameterGroup parent;
 
-	final SubTaskPath path;
+	final Set<SubTaskPath> pathForErrorDisplay;
 	
-	TaskParameterGroup(SubTaskPath path, String title, boolean forceVisible)
+	TaskParameterGroup(Set<SubTaskPath> pathForErrorDisplay, String title, boolean forceVisible)
 	{
-		this.path = path;
+		this.pathForErrorDisplay = pathForErrorDisplay;
 		panel = new JPanel();
 		
 		panel.setLayout(new DialogLayout());
@@ -163,8 +163,9 @@ public class TaskParameterGroup {
 		if (parent == null) {
 			errors.addAll(rootTaskView.getTopLevelErrors());
 		}
-		if (path != null) {
-			errors.addAll(rootTaskView.getAllErrors(path));
+		for(SubTaskPath stp : pathForErrorDisplay)
+		{
+			errors.addAll(rootTaskView.getAllErrors(stp));
 		}
 		setLogicError(errors);
 	};

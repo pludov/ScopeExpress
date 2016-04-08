@@ -24,16 +24,14 @@ public class TaskParameterPanelLayoutBuilder {
 		GroupDescription(ArrayList<String> uid)
 		{
 			this.uid = uid;
-			this.paths = new HashSet<>();
+			this.paths = new LinkedHashSet<>();
 			this.childs = new ArrayList<>();
 		}
 		
 		TaskParameterGroup getGroup()
 		{
 			if (taskParameterGroup == null) {
-				// FIXME: passer tous les paths !
-				SubTaskPath stt = paths.isEmpty() ? null : paths.iterator().next();
-				taskParameterGroup = new TaskParameterGroup(stt, title, forceVisible);
+				taskParameterGroup = new TaskParameterGroup(paths, title, forceVisible);
 			}
 			
 			return taskParameterGroup;
