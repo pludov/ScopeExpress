@@ -38,6 +38,7 @@ public class TaskGuiderMonitor extends BaseTask {
 	
 	private OpenPhdDevice openPhd;
 	private OpenPhdQuery openPhdGetPixelArcSecQuery;
+	private OpenPhdQuery openPhdGetAppStateQuery;
 	private Timer openPhdRecoveryTimer;
 
 	public TaskGuiderMonitor(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher, TaskGuiderMonitorDefinition tafd) {
@@ -164,6 +165,24 @@ public class TaskGuiderMonitor extends BaseTask {
 			
 			{
 				startTimer();
+				openPhdGetAppStateQuery = new OpenPhdQuery() {
+					@Override
+					public void onReply(JsonObject message) {
+						String appState = message.get("result").getAsString();
+						if (appState == null || !appState.equals("Guiding")) {
+							TaskGuiderMonitor.this.logger.info("Etat phd invalide: " + appState);
+							setFinalStatus(BaseStatus.Error, "Le guidage PHD n'est pas actif");
+						}
+					};
+					
+					@Override
+					public void onFailure() {
+						setFinalStatus(BaseStatus.Error, "Failed to get app state from phd");
+					};
+				};
+				openPhdGetAppStateQuery.put("method", "get_app_state");
+				openPhdGetAppStateQuery.send(openPhd);
+				
 				openPhdGetPixelArcSecQuery = new OpenPhdQuery() {
 					@Override
 					public void onReply(JsonObject message) {
