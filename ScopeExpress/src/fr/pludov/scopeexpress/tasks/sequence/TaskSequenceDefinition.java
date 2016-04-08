@@ -1,5 +1,7 @@
 package fr.pludov.scopeexpress.tasks.sequence;
 
+import java.util.*;
+
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
@@ -77,7 +79,7 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 	};
 
 	final IntegerParameterId ditherInterval = 
-			new IntegerParameterId(this, "checkFocusInterval", ParameterFlag.Input) {
+			new IntegerParameterId(this, "ditherInterval", ParameterFlag.Input) {
 				{
 					setTitle("Clichés entre chaque dithering de l'autoguider");
 					setTooltip("Faire un dithering toutes les N images (vide pour désactiver)");
@@ -129,6 +131,49 @@ public class TaskSequenceDefinition extends BaseTaskDefinition {
 		super(getBuiltinRepository(), "sequence", "Sequence");
 	}
 
+	@Override
+	public ArrayList<DisplayOrderConstraint> buildDisplayOrderConstraints()
+	{
+		ArrayList<DisplayOrderConstraint> result = super.buildDisplayOrderConstraints();
+
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.initialFocusHandling.getId(), "focuser"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.focusCheckInterval.getId(), "focuser"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.focusCheck.getId(), "focuser"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.autofocus.getId(), "focuser"));
+		result.add(DisplayOrderConstraint.groupDetails("focuser")
+				.setTitle("Mise au point")
+				.setFirstFields(
+						this.initialFocusHandling.getId(),
+						this.focusCheckInterval.getId(),
+						this.focusCheck.getId(),
+						this.autofocus.getId()
+				));
+		
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.guiderHandling.getId(), "autoguider/"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.ditherInterval.getId(), "autoguider/" + this.dither.getId()));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.guiderStart.getId(),"autoguider"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.guiderStop.getId(),"autoguider"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.guiderMonitor.getId(),"autoguider"));
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.dither.getId(),"autoguider"));
+		result.add(DisplayOrderConstraint.groupDetails("autoguider")
+				.setTitle("Auto guider")
+				.setFirstFields(this.guiderHandling.getId(),
+								this.ditherInterval.getId(),
+								this.guiderStart.getId(),
+								this.guiderStop.getId(),
+								this.guiderMonitor.getId(),
+								this.dither.getId()
+								));
+		
+		result.add(DisplayOrderConstraint.moveFieldToGroup(this.shootCount.getId(), "main"));
+		result.add(DisplayOrderConstraint.moveGroupToGroup(this.shoot.getId(), "main"));
+		result.add(DisplayOrderConstraint.moveGroupToGroup(this.filterWheel.getId(), "main"));
+		result.add(DisplayOrderConstraint.groupDetails("main")
+				.setTitle(null)
+				);
+		return result;
+	}
+	
 	@Override
 	public BaseTask build(FocusUi focusUi, TaskManager tm, ChildLauncher parentLauncher) {
 		return new TaskSequence(focusUi, tm, parentLauncher, this);

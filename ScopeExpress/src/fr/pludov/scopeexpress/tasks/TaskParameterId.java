@@ -23,7 +23,7 @@ public abstract class TaskParameterId<TYPE> {
 		this.taskDefinition = td;
 		this.flags = scope.length > 0 ? EnumSet.copyOf(Arrays.asList(scope)) : EnumSet.noneOf(ParameterFlag.class);
 		
-		taskDefinition.parameters.put(this.id, this);
+		taskDefinition.declareParameter(this);
 	
 		int count = 0;
 		for(ParameterFlag pf : scope) {

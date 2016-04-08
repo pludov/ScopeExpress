@@ -16,7 +16,7 @@ public class TaskLauncherDefinition {
 		this.fromTask = fromTask;
 		this.startedTask = startedTask;
 		
-		fromTask.taskLaunchers.put(this.id, this);
+		fromTask.declareLauncher(this);
 	}
 
 	public String getId() {

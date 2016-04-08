@@ -163,7 +163,9 @@ public class TaskParameterGroup {
 		if (parent == null) {
 			errors.addAll(rootTaskView.getTopLevelErrors());
 		}
-		errors.addAll(rootTaskView.getAllErrors(path));
+		if (path != null) {
+			errors.addAll(rootTaskView.getAllErrors(path));
+		}
 		setLogicError(errors);
 	};
 }

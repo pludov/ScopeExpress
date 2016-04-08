@@ -661,31 +661,6 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 		}
 	}
 
-	void layoutFieldsOfTask(SubTaskPath taskPath, TaskParameterGroup ancestor)
-	{
-		BaseTaskDefinition taskDef = taskPath.getLength() == 0 ? root : taskPath.lastElement();
-		
-		for(TaskParameterId<?> tpi : taskDef.getParameters())
-		{
-			layoutFieldOfTask(taskPath, ancestor, tpi);
-		}
-		
-		for(TaskLauncherDefinition child : taskDef.getSubTasks())
-		{
-			TaskParameterGroup childPanel = new TaskParameterGroup(taskPath.forChild(child), child.getTitle(), false);
-			ancestor.add(childPanel);
-			layoutFieldsOfTask(taskPath.forChild(child), childPanel);
-		}
-		
-	}
-
-	private <T> void layoutFieldOfTask(SubTaskPath taskPath, TaskParameterGroup ancestor, TaskParameterId<T> tpi) {
-		ParameterStatus<T> ps = (ParameterStatus<T>) fields.get(taskPath.forParameter(tpi));
-		if (ps == null)
-			return;
-		
-		ancestor.add(ps.dialog, ps.status);
-	}
 	
 	TaskParameterGroup rootContainer;
 
@@ -696,13 +671,8 @@ public class TaskParameterPanel extends JPanel implements Scrollable {
 	
 	void layoutFields()
 	{
-		rootContainer = new TaskParameterGroup(new SubTaskPath(), null, true);
+		rootContainer = new TaskParameterPanelLayoutBuilder(this).doLayout();
 		add(rootContainer.panel);
-		
-		// Ajouter au niveau racine tous les elements de BaseTask
-		// Il faut qu'une taskDefinition puisse amener une sous-tache dans un parent
-		// Ou un champs dans un fils (et où ?)
-		layoutFieldsOfTask(new SubTaskPath(), rootContainer);
 	}
 	
 	void init()

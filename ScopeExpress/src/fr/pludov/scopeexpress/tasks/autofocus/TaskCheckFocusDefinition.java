@@ -6,13 +6,6 @@ import fr.pludov.scopeexpress.ui.*;
 
 public class TaskCheckFocusDefinition extends BaseTaskDefinition {
 	
-	public final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance()) {
-		{
-//			shootExposure = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().exposure);
-			shootKind = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().kind);
-		}
-	};
-	
 	public final DoubleParameterId fwhmSeuil = new DoubleParameterId(this, "fwhmSeuil", ParameterFlag.Input) {
 		{
 			setTitle("FWHM maxi");
@@ -21,6 +14,13 @@ public class TaskCheckFocusDefinition extends BaseTaskDefinition {
 		}
 	};
 
+	public final TaskLauncherDefinition shoot = new TaskLauncherDefinition(this, "shoot", TaskShootDefinition.getInstance()) {
+		{
+//			shootExposure = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().exposure);
+			shootKind = new TaskLauncherOverride<>(this, TaskShootDefinition.getInstance().kind);
+		}
+	};
+	
 	public final IntegerParameterId passed = new IntegerParameterId(this, "passed") {
 		{
 			setTitle("Résultat 0/1");

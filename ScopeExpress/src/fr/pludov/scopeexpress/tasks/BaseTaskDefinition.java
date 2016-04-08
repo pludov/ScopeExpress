@@ -9,8 +9,10 @@ import fr.pludov.scopeexpress.ui.TaskFieldStatus.*;
 public abstract class BaseTaskDefinition {
 	private final String id;
 	final String title;
-	final Map<String, TaskParameterId<?>> parameters;
-	final Map<String, TaskLauncherDefinition> taskLaunchers;
+	private final Map<String, TaskParameterId<?>> parameters;
+	private final Map<String, TaskLauncherDefinition> taskLaunchers;
+	final List<String> childsById;
+	
 	final TaskDefinitionRepository repository;
 	
 	public BaseTaskDefinition(WritableTaskDefinitionRepository repository, String id, String defaultTitle) {
@@ -19,7 +21,7 @@ public abstract class BaseTaskDefinition {
 		this.title = defaultTitle;
 		this.taskLaunchers = new LinkedHashMap<>();
 		this.parameters = new LinkedHashMap<>();
-		
+		this.childsById = new ArrayList<>();
 		repository.declare(this);
 	}
 	
@@ -49,13 +51,6 @@ public abstract class BaseTaskDefinition {
 		return null;
 	}
 	
-	public Collection<String> getChildIds()
-	{
-		List<String> t = new ArrayList<>(parameters.keySet());
-		t.addAll(taskLaunchers.keySet());
-		return t;
-	}
-
 	public String getTitle() {
 		return title;
 	}
@@ -117,5 +112,44 @@ public abstract class BaseTaskDefinition {
 
 	public String getId() {
 		return id;
+	}
+
+	<TYPE> void declareParameter(TaskParameterId<TYPE> taskParameterId) {
+		parameters.put(taskParameterId.id, taskParameterId);
+		childsById.add(taskParameterId.id);
+	}
+
+	public void declareLauncher(TaskLauncherDefinition taskLauncherDefinition) {
+		taskLaunchers.put(taskLauncherDefinition.id, taskLauncherDefinition);
+		childsById.add(taskLauncherDefinition.id);
+	}
+	
+	public TaskParameterId<?> getTaskParameterById(String id)
+	{
+		return parameters.get(id);
+	}
+	
+	public TaskLauncherDefinition getLauncherById(String id)
+	{
+		return taskLaunchers.get(id);
+	}
+	
+	public List<String> getChildIds()
+	{
+		return new ArrayList<>(childsById);
+	}
+
+	
+	List<DisplayOrderConstraint> displayOrderConstraints;
+	
+	public final List<DisplayOrderConstraint> getDisplayOrderConstraints() {
+//		if (displayOrderConstraints == null) {
+			displayOrderConstraints = buildDisplayOrderConstraints();
+//		}
+		return displayOrderConstraints;
+	}
+
+	public ArrayList<DisplayOrderConstraint> buildDisplayOrderConstraints() {
+		return new ArrayList<>();
 	}
 }
