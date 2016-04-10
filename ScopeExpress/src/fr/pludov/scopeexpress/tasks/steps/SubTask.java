@@ -16,15 +16,36 @@ public class SubTask extends Step implements StepContainer
 	
 	Step runningStatus;
 	Runnable onResume;
-	Function<Void, String> titleProvider;
+	Supplier<String> titleProvider;
 	InterruptType abortRequested;
 	boolean paused;
 	private ChildLauncher launcher;
+	
+	
+	
+	private final List<Initializer<?>> initializers; 
+	
+	private class Initializer<T> {
+		Initializer(TaskLauncherOverride<T> variable, Supplier<T> value) {
+			super();
+			this.variable = variable;
+			this.value = value;
+		}
+		
+		final TaskLauncherOverride<T> variable;
+		final Supplier<T> value;
+		
+		
+		private void applyTo(ChildLauncher launcher) {
+			launcher.set(variable, value.get());
+		}
+	}
 	
 	public SubTask(BaseTask task, TaskLauncherDefinition child)
 	{
 		this.baseTask = task;
 		this.child = child;
+		this.initializers = new ArrayList<>();
 	}
 	
 	void wakeup()
@@ -91,16 +112,27 @@ public class SubTask extends Step implements StepContainer
 		abortRequested = null;
 		if (titleProvider != null)
 		{
-			launcher.getTask().setTitle(titleProvider.apply(null));
+			launcher.getTask().setTitle(titleProvider.get());
 		}
 		completeLauncherParameters(launcher);
 		launcher.start();
 	}
 	
-	protected void completeLauncherParameters(ChildLauncher launcher)
-	{}
+	public <T> SubTask With(TaskLauncherOverride<T> t, Supplier<T> supplier)
+	{
+		initializers.add(new Initializer<>(t, supplier));
+		return this;
+	}
 	
-	public SubTask SetTitle(Function<Void, String> titleProvider)
+	protected void completeLauncherParameters(ChildLauncher launcher)
+	{
+		for(Initializer<?> i : initializers)
+		{
+			i.applyTo(launcher);
+		}
+	}
+	
+	public SubTask SetTitle(Supplier<String> titleProvider)
 	{
 		this.titleProvider = titleProvider;
 		return this;
@@ -192,9 +224,13 @@ public class SubTask extends Step implements StepContainer
 				runningStatus = (Step) todo;
 				runningStatus.enter();
 			} else {
-				// FIXME : propagation d'exception ici
-				((SubTaskStatusChecker)todo).evaluate(bt);
-				terminate(EndMessage.success());
+				try {
+					((SubTaskStatusChecker)todo).evaluate(bt);
+					terminate(EndMessage.success());
+				} catch(Throwable t) {
+					baseTask.logger.warn("Erreur", t);
+					terminate(new StepError(t.getMessage()));
+				}
 			}
 		} else {
 			if (bt.getStatus() == BaseStatus.Success) {

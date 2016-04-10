@@ -41,7 +41,7 @@ public class TaskSequence extends TaskMadeOfSteps {
 	{
 		return new Block(
 				new SubTask(this, getDefinition().shoot)
-					.SetTitle((Void v) -> ("Exposition " + (imageCount + 1) + " / " + get(getDefinition().shootCount)))
+					.SetTitle(() -> ("Exposition " + (imageCount + 1) + " / " + get(getDefinition().shootCount)))
 					.On(BaseStatus.Success, (BaseTask bt)->{
 						String path = bt.get(TaskShootDefinition.getInstance().fits);
 						Image image = focusUi.getApplication().getImage(new File(path));
@@ -162,7 +162,7 @@ public class TaskSequence extends TaskMadeOfSteps {
 							new Try(new Fork()
 									.Spawn(shootStep())
 									.Spawn(new SubTask(this, getDefinition().guiderMonitor)
-											.SetTitle((Void v) -> ("Supervision du guidage"))
+											.SetTitle(() -> ("Supervision du guidage"))
 									))
 								.Catch((EndMessage sm) -> ((sm instanceof WrongSubTaskStatus) 
 															&& ((WrongSubTaskStatus)sm).getStatus() == TaskGuiderMonitor.GuiderOutOfRange),

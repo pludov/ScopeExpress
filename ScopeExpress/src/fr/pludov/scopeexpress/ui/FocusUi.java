@@ -23,6 +23,7 @@ import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.http.server.*;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
+import fr.pludov.scopeexpress.tasks.flat.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
 import fr.pludov.scopeexpress.tasks.guider.*;
 import fr.pludov.scopeexpress.tasks.interaction.*;
@@ -857,6 +858,20 @@ public class FocusUi extends FocusUiDesign {
 				startTask(TaskSequenceDefinition.getInstance());
 			}
 		});
+		
+
+		{
+			JMenuItem testTask = new JMenuItem("start flat task");
+		
+			mnTests.add(testTask);
+			testTask.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					startTask(TaskFlatDefinition.getInstance());
+				}
+			});
+		}
 		
 		{
 			JMenuItem testTask = new JMenuItem("start user interaction task");

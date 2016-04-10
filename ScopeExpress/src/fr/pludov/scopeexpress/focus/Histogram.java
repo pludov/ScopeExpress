@@ -1,9 +1,9 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.util.Arrays;
+import java.util.*;
 
-import fr.pludov.io.CameraFrame;
-import fr.pludov.utils.ChannelMode;
+import fr.pludov.io.*;
+import fr.pludov.utils.*;
 
 public class Histogram {
 	final int [] count;
@@ -43,6 +43,11 @@ public class Histogram {
 		return result * 1.0 / aduSum;
 	}
 	
+	public double getMoy()
+	{
+		return getMoy(0, this.count.length);
+	}
+	
 	public double getStdDev(int minAdu, int maxAdu)
 	{
 		double moy = getMoy(minAdu, maxAdu);
@@ -57,6 +62,7 @@ public class Histogram {
 		return Math.sqrt(avgdst / adusum);
 	}
 	
+	/** Retourne le premier adu ayant au moins le pourcentage donné de pixel en dessus */
 	public int getBlackLevel(double percent)
 	{
 		int blackLevel = 0;
