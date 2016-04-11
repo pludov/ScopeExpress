@@ -8,6 +8,7 @@ import fr.pludov.scopeexpress.tasks.focuser.*;
 import fr.pludov.scopeexpress.tasks.shoot.*;
 import fr.pludov.scopeexpress.tasks.steps.*;
 import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.utils.*;
 
 public class TaskFlat extends TaskMadeOfSteps {
@@ -104,7 +105,7 @@ public class TaskFlat extends TaskMadeOfSteps {
 					new While(()->(!calibrationOk))
 						.Do(
 							new Block(
-								new Immediate(() -> {logger.info("Image de calibration " + (testShootId + 1));}),
+								new Immediate(() -> {logger.info("Image de calibration " + (testShootId + 1) + " " + Utils.formatDuration((Math.round(currentExposure * 1000.0))));}),
 								new SubTask(this, getDefinition().shoot)
 									.With(getDefinition().shootExposure, ()->(currentExposure))
 									.With(getDefinition().shootKind, ()->(ShootKind.TestExposure))
@@ -117,26 +118,27 @@ public class TaskFlat extends TaskMadeOfSteps {
 										
 										Histogram hg = image.getHistogram(null, ChannelMode.Bayer);
 										double moy = hg.getMoy();
-										int targetAdu = get(getDefinition().targetAdu);
+										
+										int targetAduMin = get(getDefinition().targetAduMin);
+										int targetAduMax = get(getDefinition().targetAduMax);
 										logger.debug("adu moyen: " + moy);
 										
-										double adjustment = targetAdu / moy;
-										if (adjustment >= 0.75 && adjustment <= 1.25) {
+										if (moy >= targetAduMin && moy <= targetAduMax) {
 											calibrationOk = true;
 										} else {
 											if (testShootId >= get(getDefinition().maxCalibrationShoot)) {
 												throw new RuntimeException("La calibration a échoué");
 											}
 											
+											double adjustment = (targetAduMin + targetAduMax) / (2 * moy);
+											double previousExposure = currentExposure;
 											currentExposure *= adjustment;
 											currentExposure = roundExposition(currentExposure);
-											roundExposition(47.4343);
-											for(double d : new double[] { 0.001221213, 0.23, 1.2, 47.4343, 125.839 }) {
-												logger.debug("arrondi de " + d + " => " + roundExposition(d));
+											if (previousExposure == currentExposure) {
+												logger.debug("Le range ne peut pas être atteind. On considere que c'est suffisant");
+												calibrationOk = true;
 											}
 										}
-										
-										
 									})
 							)
 						),

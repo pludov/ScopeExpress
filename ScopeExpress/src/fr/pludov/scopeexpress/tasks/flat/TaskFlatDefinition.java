@@ -40,15 +40,34 @@ public class TaskFlatDefinition extends BaseTaskDefinition {
 		}
 	};
 	
-	final IntegerParameterId targetAdu =
-			new IntegerParameterId(this, "targetAdu", ParameterFlag.Input) {
+	final IntegerParameterId targetAduMin =
+			new IntegerParameterId(this, "targetAduMin", ParameterFlag.Input) {
 		{
-			setTitle("Valeur ADU");
-			setTooltip("Le temps de pause sera ajusté sur le premier filtre pour avoir ce niveau d'ADU (valeur moyenne)");
+			setTitle("Valeur ADU min");
+			setTooltip("Le temps de pause sera ajusté sur le premier filtre pour avoir un niveau d'ADU entre min et max (valeur moyenne)");
 			setDefault(16000);
 		}
 	};
 
+	final IntegerParameterId targetAduMax =
+			new IntegerParameterId(this, "targetAduMax", ParameterFlag.Input) {
+		{
+			setTitle("Valeur ADU max");
+			setTooltip("Le temps de pause sera ajusté sur le premier filtre pour avoir un niveau d'ADU entre min et max (valeur moyenne)");
+			setDefault(20000);
+		}
+	};
+	
+
+	final DoubleParameterId initialExpoDuration =
+			new DoubleParameterId(this, "initialExpoDuration", ParameterFlag.Input) {
+		{
+			setTitle("Exposition de départ");
+			setTooltip("Le temps de pause de la premiere prise (il sera ajusté en fonction du niveau d'adu obtenu)");
+			setDefault(1.0);
+		}
+	};
+	
 	final IntegerParameterId maxCalibrationShoot = 
 			new IntegerParameterId(this, "maxCalibrationShoot", ParameterFlag.Input) {
 		{
@@ -106,7 +125,9 @@ public class TaskFlatDefinition extends BaseTaskDefinition {
 		
 		td.addControler(path.forParameter(this.forcedExposure), onlyForView(td, path, ExposureMethod.FixedExposure));
 		td.addControler(path.forParameter(this.maxCalibrationShoot), onlyForView(td, path, ExposureMethod.TargetAdu));
-		td.addControler(path.forParameter(this.targetAdu), onlyForView(td, path, ExposureMethod.TargetAdu));
+		td.addControler(path.forParameter(this.targetAduMin), onlyForView(td, path, ExposureMethod.TargetAdu));
+		td.addControler(path.forParameter(this.targetAduMax), onlyForView(td, path, ExposureMethod.TargetAdu));
+		td.addControler(path.forParameter(this.initialExpoDuration), onlyForView(td, path, ExposureMethod.TargetAdu));
 		
 		super.declareControlers(td, path);
 	}
