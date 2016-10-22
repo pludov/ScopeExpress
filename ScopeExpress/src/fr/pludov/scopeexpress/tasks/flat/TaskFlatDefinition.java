@@ -10,7 +10,8 @@ import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.ui.TaskFieldStatus.*;
 
 public class TaskFlatDefinition extends BaseTaskDefinition {
-	
+
+	final ExpositionProgramParameterId program = new ExpositionProgramParameterId(this, "program", ParameterFlag.Input);
 	
 	final IntegerParameterId shootCount = 
 			new IntegerParameterId(this, "shootCount", ParameterFlag.Input) {
