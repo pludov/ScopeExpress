@@ -67,15 +67,29 @@ public class API {
 		return child;
 	}
 	
-	public Object joinCoroutine(final Task childTask)
+	public ConditionMeet joinCoroutine(final Task childTask)
 	{
 		ResumeCondition resumeCondition = new ResumeCondition() {
 			@Override
-			Object check() {
+			ConditionMeet check() {
 				if (childTask.getStatus() == Status.Done) {
-					return childTask.getResult();
+					if (childTask.error != null) {
+						Object error;
+						if (childTask.error instanceof JavaScriptException) {
+							error = ((JavaScriptException)childTask.error).getValue();
+							if (error == null) {
+								error = childTask.error;
+							}
+						} else {
+							error = childTask.error;
+						}
+						
+						return ConditionMeet.error(error);
+					} else {
+						return ConditionMeet.success(childTask.getResult());
+					}
 				}
-				return Pending;
+				return null;
 			}
 		};
 		

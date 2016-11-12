@@ -1,5 +1,5 @@
-var child1 = require('Includes_child1.js');
-var child2 = require('Includes_child2.js');
+var child1 = require('TestIncludes_child1.js');
+var child2 = require('TestIncludes_child2.js');
 
 
 var child1Rslt = child1.funcA();

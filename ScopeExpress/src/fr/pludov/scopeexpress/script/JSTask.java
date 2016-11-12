@@ -50,9 +50,9 @@ public abstract class JSTask extends Task{
 
 	static ThreadLocal<JSTask> currentTask = new ThreadLocal<>();
 	
-	Object blockWithCondition(ResumeCondition resumeCondition) {
-		Object result = resumeCondition.check();
-		if (result != ResumeCondition.Pending) {
+	ConditionMeet blockWithCondition(ResumeCondition resumeCondition) {
+		ConditionMeet result = resumeCondition.check();
+		if (result != null) {
 			return result;
 		}
 		assert(getStatus() == Status.Runnable);
