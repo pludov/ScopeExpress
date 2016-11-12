@@ -11,7 +11,7 @@ public class Includes {
 	@Test
 	public void test() {
 		TaskGroup tg = new TaskGroup();
-		RootJsTask example = new RootJsTask(new Modules(tg, Utils.getPath(Includes.class)), "Includes.js");
+		RootJsTask example = new RootJsTask(new Modules(tg, Utils.getClassFilePath(Includes.class)), "Includes.js");
 
 		while(example.getStatus() != Status.Done) {
 			tg.advance();

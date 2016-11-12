@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.tasks.javascript;
 
-import org.mozilla.javascript.Context;
+import org.mozilla.javascript.*;
 
 public class JSContext implements AutoCloseable {
 
@@ -27,6 +27,14 @@ public class JSContext implements AutoCloseable {
 
 	public Context getContext() {
 		return cx;
+	}
+
+	public Scriptable newChildScope(Scriptable sharedScope)
+	{
+		Scriptable newScope = getContext().newObject(sharedScope);
+		newScope.setPrototype(sharedScope);
+		newScope.setParentScope(null);
+		return newScope;
 	}
 	
 }

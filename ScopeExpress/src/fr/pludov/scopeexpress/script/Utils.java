@@ -5,7 +5,7 @@ import java.net.*;
 
 public class Utils {
 
-	public static String getPath(Class<?> path)
+	public static String getClassFilePath(Class<?> path)
 	{
 		ClassLoader classLoader = path.getClassLoader();
 		

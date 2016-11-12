@@ -23,9 +23,7 @@ public class IncludeTask extends JSTask {
 			@Override
 			public Object start(JSContext jsc) throws FileNotFoundException, IOException {
 				Scriptable sharedScope = modules.getGlobalScope(jsc);
-				Scriptable newScope = jsc.getContext().newObject(sharedScope);
-				newScope.setPrototype(sharedScope);
-				newScope.setParentScope(null);
+				Scriptable newScope = jsc.newChildScope(sharedScope);
 				
 				IncludeTask.this.scope = newScope;
 
