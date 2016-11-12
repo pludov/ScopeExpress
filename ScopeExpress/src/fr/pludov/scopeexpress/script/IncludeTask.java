@@ -8,13 +8,11 @@ import org.mozilla.javascript.*;
 
 import fr.pludov.scopeexpress.tasks.javascript.*;
 
-public class RootJsTask extends JSTask {
-	
+public class IncludeTask extends JSTask {
 	final String script;
-
 	
-	public RootJsTask(Modules modules, String script) {
-		super(modules);
+	public IncludeTask(Modules parent, String script) {
+		super(parent);
 		this.script = script;
 	}
 
@@ -24,14 +22,18 @@ public class RootJsTask extends JSTask {
 			
 			@Override
 			public Object start(JSContext jsc) throws FileNotFoundException, IOException {
-				// FIXME: on veut un scope fils ?
-				RootJsTask.this.scope = modules.getGlobalScope(jsc);
+				Scriptable sharedScope = modules.getGlobalScope(jsc);
+				Scriptable newScope = jsc.getContext().newObject(sharedScope);
+				newScope.setPrototype(sharedScope);
+				newScope.setParentScope(null);
+				
+				IncludeTask.this.scope = newScope;
 
 
 				String content = FileUtils.readFileToString(new File(modules.basePath, script), StandardCharsets.UTF_8);
 				
 				Script sc = jsc.getContext().compileString(content, script, 1, null);
-				return jsc.getContext().executeScriptWithContinuations(sc, RootJsTask.this.scope);
+				return jsc.getContext().executeScriptWithContinuations(sc, IncludeTask.this.scope);
 			}
 		};
 	}

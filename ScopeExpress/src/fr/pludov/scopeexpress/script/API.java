@@ -24,26 +24,32 @@ public class API {
 		
 	}
 	
-//	public Object include(String file)
-//	{
-//		JSTask jsTask = JSTask.currentTask.get();
-//		jsTask.pushStartable( new Runnable() {
-//			@Override
-//			public void run() {
-//				
-//			}
-//			
-//		});
-//		
-//		
-//	}
+	public Object include(String file)
+	{
+		JSTask jsTask = JSTask.currentTask.get();
+		
+		Object result = jsTask.modules.moduleByAbsolutePath.get(file);
+		if (result != null) {
+			return result;
+		}
+		
+		JSTask waitFor;
+		waitFor = jsTask.modules.loadingModules.get(file);
+		if (waitFor == null) {
+			waitFor = new IncludeTask(jsTask.modules, file);
+			jsTask.modules.loadingModules.put(file, waitFor);
+		}
+		
+		return joinCoroutine(waitFor);
+		
+	}
 	
 	public Task startCoroutine(NativeFunction nf)
 	{
 		JSTask jsTask = JSTask.currentTask.get();
 		final Scriptable parentScope = jsTask.scope;
 		
-		JSTask child = new JSTask(jsTask.taskGroup) {
+		JSTask child = new JSTask(jsTask) {
 			@Override
 			StackEntry buildRootEntry() {
 				return new StackEntry() {

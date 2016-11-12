@@ -6,12 +6,12 @@ import org.junit.*;
 
 import fr.pludov.scopeexpress.script.Task.*;
 
-public class BasicCoroutine {
+public class Includes {
 
 	@Test
 	public void test() {
 		TaskGroup tg = new TaskGroup();
-		RootJsTask example = new RootJsTask(new Modules(tg, Utils.getPath(BasicCoroutine.class)), "BasicCoroutine.js");
+		RootJsTask example = new RootJsTask(new Modules(tg, Utils.getPath(Includes.class)), "Includes.js");
 
 		while(example.getStatus() != Status.Done) {
 			tg.advance();

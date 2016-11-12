@@ -26,19 +26,27 @@ public abstract class JSTask extends Task{
 		public abstract Object start(JSContext jsc) throws FileNotFoundException, IOException;
 	}
 	
-	JSTask parent;
-	
+	final JSTask parent;
+	final Modules modules;
 	StackEntry currentStackEntry;
 	List<StackEntry> stack;
-
 	
 	Scriptable scope;
 	
 	boolean started;
 	
-	public JSTask(TaskGroup tg) {
-		super(tg);
+	public JSTask(JSTask parent) {
+		super(parent.modules.taskGroup);
+		this.parent = parent;
+		this.modules = parent.modules;
 	}
+
+	public JSTask(Modules modules) {
+		super(modules.taskGroup);
+		this.parent = null;
+		this.modules = modules;
+	}
+
 
 	static ThreadLocal<JSTask> currentTask = new ThreadLocal<>();
 	
@@ -86,6 +94,7 @@ public abstract class JSTask extends Task{
 			if (getStatus() == Status.Pending) {
 				setStatus(Status.Runnable);
 				currentStackEntry = buildRootEntry();
+				assert(currentStackEntry != null);
 			}
 			
 			
@@ -134,7 +143,7 @@ public abstract class JSTask extends Task{
 	
 	public static void main(String[] args) {
 		TaskGroup tg = new TaskGroup();
-		RootJsTask example = new RootJsTask(tg, "test.js");
+		RootJsTask example = new RootJsTask(new Modules(tg), "test.js");
 		try {
 			while(example.getStatus() != Status.Done) {
 				tg.advance();
