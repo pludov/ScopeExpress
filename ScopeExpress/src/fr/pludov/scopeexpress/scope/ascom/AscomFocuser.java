@@ -1,23 +1,15 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import java.util.Objects;
+import java.util.*;
 
-import org.apache.log4j.Logger;
-import org.jawin.COMException;
-import org.jawin.DispatchPtr;
+import org.apache.log4j.*;
+import org.jawin.*;
 
-import fr.pludov.scopeexpress.async.CancelationException;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focuser.Focuser;
-import fr.pludov.scopeexpress.focuser.FocuserException;
-import fr.pludov.scopeexpress.platform.windows.Ole;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.Scope.Listener;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WorkThread;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.focuser.*;
+import fr.pludov.scopeexpress.platform.windows.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class AscomFocuser extends WorkThread implements Focuser {
 	private static final Logger logger = Logger.getLogger(AscomFocuser.class);
@@ -74,6 +66,7 @@ public class AscomFocuser extends WorkThread implements Focuser {
 	@Override
 	public void close()
 	{
+		logger.info("Closing focuser");
 		setTerminated();
 		
 		boolean retry;
@@ -86,6 +79,8 @@ public class AscomFocuser extends WorkThread implements Focuser {
 				retry = true;
 			}
 		} while(retry);
+		
+		releaseFocuser();
 	}
 
 	private void notifyFinalDisconnection()
@@ -97,6 +92,20 @@ public class AscomFocuser extends WorkThread implements Focuser {
 		this.listeners.getTarget().onConnectionStateChanged();
 	}
 	
+	private void releaseFocuser()
+	{
+		logger.debug("Releasing focuser");
+		synchronized(this) {
+			if (focuser == null) return;
+			try {
+				focuser.close();
+			} catch(Throwable t) {
+				logger.warn("Failed to release focuser", t);
+			} finally {
+				focuser = null;
+			}
+		}
+	}
 
 	private void refreshParameters() throws Throwable
 	{
@@ -104,19 +113,31 @@ public class AscomFocuser extends WorkThread implements Focuser {
 		boolean connectStatus;
 		boolean moving;
 		if (focuser != null) {
-			connectStatus = (Boolean)focuser.get(connectedPropertyName);
-			if (connectStatus) {
-				position = (Integer)focuser.get("Position");
-				moving = (Boolean)focuser.get("IsMoving");
-				if (this.maxPosition == null) {
-					maxPosition = (Integer)focuser.get("MaxStep");
+			try {
+				connectStatus = (Boolean)focuser.get(connectedPropertyName);
+				if (connectStatus) {
+					position = (Integer)focuser.get("Position");
+					moving = (Boolean)focuser.get("IsMoving");
+					if (this.maxPosition == null) {
+						maxPosition = (Integer)focuser.get("MaxStep");
+					} else {
+						maxPosition = this.maxPosition;
+					}
 				} else {
-					maxPosition = this.maxPosition;
+					position = null;
+					maxPosition = null;
+					moving = false;
 				}
-			} else {
-				position = null;
-				maxPosition = null;
-				moving = false;
+			} catch(Throwable t) {
+				logger.error("Communication with focuser failed", t);
+
+				StatusUpdater su;
+				synchronized(this) {
+					releaseFocuser();
+					su = new StatusUpdater(false, false, null, null);
+				}
+				su.sendNotifications();
+				return;
 			}
 		} else {
 			connectStatus = false;
@@ -125,49 +146,61 @@ public class AscomFocuser extends WorkThread implements Focuser {
 			moving = false;
 		}
 		
+		new StatusUpdater(connectStatus, moving, position, maxPosition).sendNotifications();
+	}
+
+	private class StatusUpdater {
 		boolean fireConnectionChanged = false;
 		boolean fireCoordinateChanged = false;
 		boolean fireMoveEnded = false;
 		
-		synchronized(this)
-		{
-			if ((!Objects.equals(position, this.lastPosition))
-					|| (!Objects.equals(maxPosition, this.maxPosition))
-					|| (!Objects.equals(moving, this.lastMoving)))
+		
+		
+		private StatusUpdater(boolean connectStatus, boolean moving, Integer position, Integer maxPosition) {
+			
+			synchronized(AscomFocuser.this)
 			{
-				this.lastPosition = position;
-				this.maxPosition = maxPosition;
-				this.lastMoving = moving;
-
-				fireCoordinateChanged = true;
-			}
-			if (this.lastConnected != connectStatus) {
-				this.lastConnected = connectStatus;
-				fireConnectionChanged = true;
-				if (connectStatus) {
+				if ((!Objects.equals(position, AscomFocuser.this.lastPosition))
+						|| (!Objects.equals(maxPosition, AscomFocuser.this.maxPosition))
+						|| (!Objects.equals(moving, AscomFocuser.this.lastMoving)))
+				{
+					AscomFocuser.this.lastPosition = position;
+					AscomFocuser.this.maxPosition = maxPosition;
+					AscomFocuser.this.lastMoving = moving;
+					
 					fireCoordinateChanged = true;
 				}
+				if (AscomFocuser.this.lastConnected != connectStatus) {
+					AscomFocuser.this.lastConnected = connectStatus;
+					fireConnectionChanged = true;
+					if (connectStatus) {
+						fireCoordinateChanged = true;
+					}
+				}
+				
+				if (waitingMoveEnd && 
+						((!AscomFocuser.this.lastConnected)
+								|| (!AscomFocuser.this.lastMoving)))
+				{
+					waitingMoveEnd = false;
+					fireMoveEnded = true;
+				}
+			}
+		}
+		
+		void sendNotifications() {
+			if (fireConnectionChanged) {
+				AscomFocuser.this.listeners.getTarget().onConnectionStateChanged();
 			}
 			
-			if (waitingMoveEnd && 
-					((!this.lastConnected)
-							|| (!this.lastMoving)))
-			{
-				waitingMoveEnd = false;
-				fireMoveEnded = true;
+			if (fireCoordinateChanged) {
+				AscomFocuser.this.listeners.getTarget().onMoving();
 			}
-		}
-		
-		if (fireConnectionChanged) {
-			this.listeners.getTarget().onConnectionStateChanged();
-		}
-		
-		if (fireCoordinateChanged) {
-			this.listeners.getTarget().onMoving();
-		}
-		
-		if (fireMoveEnded) {
-			this.listeners.getTarget().onMoveEnded();
+			
+			if (fireMoveEnded) {
+				AscomFocuser.this.listeners.getTarget().onMoveEnded();
+			}
+			
 		}
 	}
 	
@@ -197,7 +230,16 @@ public class AscomFocuser extends WorkThread implements Focuser {
 			refreshParameters();
 			
 		} catch (Throwable e) {
-			focuser = null;
+			if (focuser != null) {
+				try {
+					focuser.close();
+				} catch(Throwable t) {
+					logger.warn("Failed to close focuser", t);
+				}
+				
+				focuser = null;
+			}
+			
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
 			return;
