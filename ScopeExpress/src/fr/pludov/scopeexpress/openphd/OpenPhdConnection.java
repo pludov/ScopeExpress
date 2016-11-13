@@ -23,9 +23,9 @@ public class OpenPhdConnection {
 	JsonStreamParser reader;
 	
 	// Les requetes à envoyer
-	final List<OpenPhdQuery> pendingQueries;
+	final List<OpenPhdRawQuery> pendingQueries;
 	// Les requetes en attente de réponse
-	final List<OpenPhdQuery> unrepliedQueries;
+	final List<OpenPhdRawQuery> unrepliedQueries;
 	
 	public OpenPhdConnection(OpenPhdDevice device) {
 		this.device = device;
@@ -73,7 +73,7 @@ public class OpenPhdConnection {
 	
 	void close()
 	{
-		final List<OpenPhdQuery> toAbort = new ArrayList<>();
+		final List<OpenPhdRawQuery> toAbort = new ArrayList<>();
 		synchronized(this) {
 			if (closed) {
 				return;
@@ -92,7 +92,7 @@ public class OpenPhdConnection {
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					for(OpenPhdQuery rq : toAbort) {
+					for(OpenPhdRawQuery rq : toAbort) {
 						try {
 							rq.onFailure();
 						} catch(Throwable t) {
@@ -107,7 +107,7 @@ public class OpenPhdConnection {
 	void write() throws IOException, InterruptedException {
 		OutputStream os = socket.getOutputStream();
 		
-		OpenPhdQuery toSend;
+		OpenPhdRawQuery toSend;
 		synchronized(this)
 		{
 			while(pendingQueries.isEmpty()) {
@@ -146,11 +146,11 @@ public class OpenPhdConnection {
 	}
 	
 	/** Trouve et retire une requete en attnte de reponse */
-	synchronized OpenPhdQuery findUnrepliedQuery(int id)
+	synchronized OpenPhdRawQuery findUnrepliedQuery(int id)
 	{
-		for(Iterator<OpenPhdQuery> it = unrepliedQueries.iterator(); it.hasNext();)
+		for(Iterator<OpenPhdRawQuery> it = unrepliedQueries.iterator(); it.hasNext();)
 		{
-			OpenPhdQuery rp = it.next();
+			OpenPhdRawQuery rp = it.next();
 			if (rp.uid == id) {
 				it.remove();
 				return rp;
@@ -160,7 +160,7 @@ public class OpenPhdConnection {
 	}
 	
 
-	synchronized boolean cancelQuery(OpenPhdQuery query) {
+	synchronized boolean cancelQuery(OpenPhdRawQuery query) {
 		if (pendingQueries.remove(query)) {
 			return true;
 		}
@@ -175,7 +175,7 @@ public class OpenPhdConnection {
 			JsonElement e;
 			int id = (messageEvent.get("id").getAsBigDecimal()).intValue();
 			
-			OpenPhdQuery rq = findUnrepliedQuery(id);
+			OpenPhdRawQuery rq = findUnrepliedQuery(id);
 			if (rq != null) {
 				rq.onReply(messageEvent);
 			} else {
@@ -192,7 +192,7 @@ public class OpenPhdConnection {
 		}
 	}
 	
-	void sendQuery(OpenPhdQuery query)
+	void sendQuery(OpenPhdRawQuery query)
 	{
 		boolean failed;
 		synchronized(this) {

@@ -1,9 +1,12 @@
 package fr.pludov.scopeexpress.openphd;
 
+import java.util.*;
+
 import org.apache.log4j.*;
 
 import com.google.gson.*;
 
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.utils.*;
 import fr.pludov.scopeexpress.utils.WeakListenerCollection.*;
@@ -100,6 +103,39 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 		}
 	}
 
+	public NativeTask coSendRequest(final String jsonRqt)
+	{
+		return new NativeTask() {
+			
+			@Override
+			protected void init() throws Throwable {
+				OpenPhdRawQuery query = new OpenPhdRawQuery() {
+					
+					@Override
+					protected String buildContent(int uid) {
+						Map<String, Object> rqt = new GsonBuilder().create().fromJson(jsonRqt, Map.class);
+						rqt.put("id", uid);
+						String result = new GsonBuilder().create().toJson(rqt);
+						
+						return result;
+
+					}
+					
+					@Override
+					public void onReply(JsonObject message) {
+						done(new GsonBuilder().create().toJson(message));
+					}
+					
+					@Override
+					public void onFailure() {
+						failed("generic failure");
+					}
+				};
+				query.send(OpenPhdDevice.this);
+			}
+		};
+	}
+	
 	public WeakListenerCollection<IGuiderListener> getListeners() {
 		return listeners;
 	}

@@ -1,28 +1,32 @@
+// Active le guidage et prend une photo
 
-function cor1()
-{
-	api.print('in coroutine...');
-	
-	return "corot1";
+
+
+var guider = scopeExpress.getGuiderManager().getDevice();
+if (guider == null) {
+	throw "No guider connected";
 }
 
-api.print('coucou!');
+api.print('Turning guider on');
 
-var c1 = coroutine.start(cor1);
+var rqt = JSON.stringify({
+	method: 'guide',
+	params:[
+		{
+			// maximum guide distance (pixels) for guiding to be considered stable or 'in-range'
+			pixels: 1.0,
+			// Settle time
+			time: 10,
+			
+			timeout: 60
+		},
+		false
+	]
+});
+api.print("request = " + rqt);
+coroutine.join(guider.coSendRequest(rqt));
+
+api.print('Done guider on');
 
 
-var focuser = scopeExpress.getFocuserManager().getDevice();
 
-api.print('Got focuser : ' + focuser);
-
-api.print('Max position : ' + focuser.maxStep());
-api.print('Current position : ' + focuser.position());
-
-coroutine.join(c1);
-
-var child = focuser.coMove(focuser.position() - 10);
-api.print('now moving...');
-
-coroutine.join(child);
-api.print('Done moving');
-api.print('Current position : ' + focuser.position());

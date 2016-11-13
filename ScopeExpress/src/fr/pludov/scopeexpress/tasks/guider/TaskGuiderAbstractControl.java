@@ -133,7 +133,7 @@ public abstract class TaskGuiderAbstractControl extends BaseTask {
 	{
 		logger.info("Got reply: " + message);
 		if (message.has("error")) {
-			setFinalStatus(BaseStatus.Error, OpenPhdQuery.getErrorMessage(message));
+			setFinalStatus(BaseStatus.Error, OpenPhdRawQuery.getErrorMessage(message));
 			return;
 		}
 		doUnpause();
@@ -182,15 +182,15 @@ public abstract class TaskGuiderAbstractControl extends BaseTask {
 			public void onEvent(String event, JsonObject message) {
 				logger.debug("evenement " + event);
 				switch(event) {
-				case OpenPhdQuery.SettleDone:
-					if (OpenPhdQuery.getErrorMessage(message) !=  null) {
+				case OpenPhdRawQuery.SettleDone:
+					if (OpenPhdRawQuery.getErrorMessage(message) !=  null) {
 						logger.info("Settle failed");
-						setFinalStatus(BaseStatus.Error, "Failed to guide: " + OpenPhdQuery.getErrorMessage(message));
+						setFinalStatus(BaseStatus.Error, "Failed to guide: " + OpenPhdRawQuery.getErrorMessage(message));
 					} else {
 						setFinalStatus(BaseStatus.Success);
 					}
 					return;
-				case OpenPhdQuery.CalibrationFailed:
+				case OpenPhdRawQuery.CalibrationFailed:
 					setFinalStatus(BaseStatus.Error, "Calibration failed: " + message.get("Reason"));
 					return;
 				}
