@@ -1,7 +1,8 @@
 package fr.pludov.scopeexpress.focuser;
 
-import fr.pludov.scopeexpress.ui.IDeviceBase;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
+import fr.pludov.scopeexpress.script.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public interface Focuser extends IDeviceBase {
 	
@@ -29,4 +30,41 @@ public interface Focuser extends IDeviceBase {
 	void start();
 	@Override
 	void close();
+	
+	
+	public default Task coMove(final int newPosition) {
+		return new NativeTask() {
+			
+			@Override
+			public void init() throws Throwable {
+				if (!isConnected()) {
+					failed("Not connected");
+					return;
+				}
+				
+				getListeners().addListener(this.listenerOwner, new Listener() {
+					@Override
+					public void onMoving() {
+					}
+					
+					@Override
+					public void onMoveEnded() {
+						if (getStatus() == Status.Blocked) {
+							done(null);
+						}
+					}
+					
+					@Override
+					public void onConnectionStateChanged() {
+						if (getStatus() == Status.Blocked) {
+							failed("Disconnected");
+						}
+					}
+
+				});
+				moveTo(newPosition);
+				setStatus(Status.Blocked);
+			}
+		};
+	}
 }

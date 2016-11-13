@@ -28,10 +28,10 @@ public class Modules {
 		this.taskGroup = tg;
 	}
 
-	static Scriptable buildGlobalScope(JSContext jsc)
+	protected Scriptable buildGlobalScope(JSContext jsc)
 	{
-		Scriptable globalScope = jsc.getContext().initStandardObjects();
-		ScriptableObject.putProperty(globalScope, "api", new API());
+		Scriptable scope = jsc.getContext().initStandardObjects();
+		ScriptableObject.putProperty(scope, "api", new API());
 		
 		String content;
 		try {
@@ -41,12 +41,12 @@ public class Modules {
 		}
 		
 		// Creer un scope fils
-		Scriptable APIscope = jsc.newChildScope(globalScope);
-		ScriptableObject.putProperty(APIscope, "global", globalScope);
+		Scriptable APIscope = jsc.newChildScope(scope);
+		ScriptableObject.putProperty(APIscope, "global", scope);
 		
 		Script sc = jsc.getContext().compileString(content, "API.js", 1, null);
 		sc.exec(jsc.getContext(), APIscope);
-		return globalScope;
+		return scope;
 	}
 	
 	

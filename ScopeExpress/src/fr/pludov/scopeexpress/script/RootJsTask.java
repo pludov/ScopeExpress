@@ -24,8 +24,7 @@ public class RootJsTask extends JSTask {
 			
 			@Override
 			public Object start(JSContext jsc) throws FileNotFoundException, IOException {
-				// FIXME: on veut un scope fils ?
-				RootJsTask.this.scope = modules.getGlobalScope(jsc);
+				RootJsTask.this.scope = jsc.newChildScope(modules.getGlobalScope(jsc));
 
 
 				String content = FileUtils.readFileToString(new File(modules.basePath, script), StandardCharsets.UTF_8);

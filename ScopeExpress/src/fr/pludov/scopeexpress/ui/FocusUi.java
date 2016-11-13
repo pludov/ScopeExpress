@@ -10,6 +10,7 @@ import java.util.List;
 import javax.swing.*;
 
 import org.apache.log4j.*;
+import org.mozilla.javascript.*;
 import org.w3c.dom.*;
 
 import fr.pludov.astrometry.*;
@@ -21,6 +22,7 @@ import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.http.server.*;
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.flat.*;
@@ -36,6 +38,7 @@ import fr.pludov.scopeexpress.ui.preferences.*;
 import fr.pludov.scopeexpress.ui.settings.*;
 import fr.pludov.scopeexpress.ui.utils.*;
 import fr.pludov.scopeexpress.ui.utils.BackgroundTask.*;
+import fr.pludov.scopeexpress.ui.utils.Utils;
 import fr.pludov.scopeexpress.ui.widgets.*;
 import fr.pludov.scopeexpress.utils.*;
 import fr.pludov.utils.*;
@@ -71,10 +74,12 @@ public class FocusUi extends FocusUiDesign {
 	final FocusUiFilterWheelManager filterWheelManager;
 	final FocusUiGuiderManager guiderManager;
 	final CameraControlPanel cameraControlPanel;
+	private final FocusUiFocuserManager focuserManager;
 	final JDialog cameraControlDialog;
 
+	final ApplicationTaskGroup applicationTaskGroup;
+	
 	private final long sessionStartTime = System.currentTimeMillis();
-	private final FocusUiFocuserManager focuserManager;
 	private final AstrometryParameterPanel astrometryParameter;
 	final JoystickHandler joystickHandler;
 
@@ -104,6 +109,7 @@ public class FocusUi extends FocusUiDesign {
 		this.imagingMosaic = new Mosaic(application);
 		
 		this.mosaic = this.focusMosaic;
+		this.applicationTaskGroup = new ApplicationTaskGroup();
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 
 		setupBackgroundTaskQueue();
@@ -849,6 +855,31 @@ public class FocusUi extends FocusUiDesign {
 		this.menuBar.add(mnTests);
 
 		
+		{
+			JMenuItem testTask = new JMenuItem("start test.js script");
+		
+			mnTests.add(testTask);
+			testTask.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					Modules m = new Modules(applicationTaskGroup) {
+					
+						@Override
+						protected org.mozilla.javascript.Scriptable buildGlobalScope(JSContext jsc) {
+							org.mozilla.javascript.Scriptable result = super.buildGlobalScope(jsc);
+							ScriptableObject.putProperty(result, "scopeExpress", FocusUi.this);
+							return result;
+						};
+						
+					};
+					
+					new RootJsTask(m, "test.js");
+				}
+			});
+		}
+
+		
 		JMenuItem sequenceTask = new JMenuItem("start sequence task");
 		mnTests.add(sequenceTask);
 		sequenceTask.addActionListener(new ActionListener() {
@@ -1288,6 +1319,10 @@ public class FocusUi extends FocusUiDesign {
 
 	public Database<Root> getDatabase() {
 		return database;
+	}
+
+	public FocusUiScopeManager getScopeManager() {
+		return scopeManager;
 	}
 	
 }

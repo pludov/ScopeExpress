@@ -103,14 +103,21 @@ public abstract class JSTask extends Task{
 					try {
 						if (!currentStackEntry.started) {
 							currentStackEntry.started = true;
+							setStatus(Status.Running);
 							result = currentStackEntry.start(jsc);
+							if (getStatus() == Status.Running) {
+								setStatus(Status.Runnable);
+							}
 						} else {
 							Object previousResumePoint = currentStackEntry.resumePoint;
 							Object previousResumeResult = currentStackEntry.resumeResult;
 							currentStackEntry.resumePoint = null;
 							currentStackEntry.resumeResult = null;
-							setStatus(Status.Runnable);
+							setStatus(Status.Running);
 							result = jsc.getContext().resumeContinuation(previousResumePoint, scope, previousResumeResult);
+							if (getStatus() == Status.Running) {
+								setStatus(Status.Runnable);
+							}
 						}
 					
 						currentStackEntry.resumePoint = null;
@@ -119,11 +126,12 @@ public abstract class JSTask extends Task{
 						done(currentStackEntry);
 
 					} catch (ContinuationPending interruption) {
-						assert(getStatus() == Status.Runnable || getStatus() == Status.Blocked);
+						assert(getStatus() == Status.Running || getStatus() == Status.Blocked);
 						currentStackEntry.resumePoint = interruption.getContinuation();
 						currentStackEntry.resumeResult = null;
 						currentStackEntry.error = null;
 					} catch(Throwable t) {
+						t.printStackTrace();
 						currentStackEntry.resumePoint = null;
 						currentStackEntry.resumeResult = null;
 						currentStackEntry.error = t;

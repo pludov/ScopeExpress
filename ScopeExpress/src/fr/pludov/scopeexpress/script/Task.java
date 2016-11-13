@@ -6,12 +6,14 @@ import java.util.*;
 /** Tout est executé en synchrone dans le thread swing */
 public abstract class Task {
 
-	enum Status {
+	public enum Status {
 		/** En attente d'initialisation */
 		Pending,
 		Blocked,
 		/** Réservé aux JSTask... */
 		Runnable,
+		/** Permet de garder des taches "en cours d'execution" (deboggage) */
+		Running,
 		Done
 	}
 	
@@ -42,7 +44,7 @@ public abstract class Task {
 		return status;
 	}
 	
-	void setStatus(Status newStatus)
+	protected void setStatus(Status newStatus)
 	{
 		if (status == newStatus) return;
 		
@@ -65,9 +67,9 @@ public abstract class Task {
 		
 		if (wasRunnable != isRunnable) {
 			if (isRunnable) {
-				taskGroup.runnableTasks.add((JSTask)this);
+				taskGroup.addRunnableTask(this);
 			} else {
-				taskGroup.runnableTasks.remove((JSTask)this);
+				taskGroup.removeRunnableTask(this);
 			}
 		}
 		
