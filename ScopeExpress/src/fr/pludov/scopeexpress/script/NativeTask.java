@@ -35,7 +35,7 @@ public abstract class NativeTask extends Task {
 				init();
 			} catch(Throwable t) {
 				error = t;
-				result = t;
+				result = null;
 				setStatus(Status.Done);
 			}
 			assert(getStatus() != Status.Runnable);

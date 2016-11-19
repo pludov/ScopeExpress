@@ -140,7 +140,7 @@ public abstract class JSTask extends Task{
 			}
 			
 			
-			try(JSContext jsc = JSContext.open()) {
+			try(JSContext jsc = JSContext.open(modules.getContextFactory())) {
 				while(currentStackEntry != null && getStatus() != Status.Blocked) { 
 					try {
 						if (!currentStackEntry.started) {
@@ -193,7 +193,7 @@ public abstract class JSTask extends Task{
 	
 	public static void main(String[] args) {
 		TaskGroup tg = new TaskGroup();
-		RootJsTask example = new RootJsTask(new Modules(tg), "test.js");
+		RootJsTask example = new RootJsTask(new Modules(tg, ContextFactory.getGlobal()), "test.js");
 		try {
 			while(example.getStatus() != Status.Done) {
 				tg.advance();

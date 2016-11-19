@@ -21,26 +21,26 @@ public class JSContext implements AutoCloseable {
 		}
 	}
 
-	private static ContextFactory cf;
+	private static ContextFactory debuggingContextFactory;
 	
-	private synchronized static ContextFactory getFactory()
+	public synchronized static ContextFactory getDebuggingContextFactory()
 	{
-		if (cf == null) {
-			cf = new ContextFactory();
+		if (debuggingContextFactory == null) {
+			debuggingContextFactory = new ContextFactory();
 			JSDebugger dbg = new JSDebugger("Debugger");
-			dbg.attachTo(cf);
+			dbg.attachTo(debuggingContextFactory);
 			dbg.setBreakOnExceptions(true);
 			dbg.setBreakOnEnter(false);
 			dbg.pack();
 			dbg.setSize(600, 460);
 			dbg.getDebugFrame().setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		}
-		return cf;
+		return debuggingContextFactory;
 	}
 	
-	public static JSContext open()
+	public static JSContext open(ContextFactory cf)
 	{
-		Context cx = getFactory().enterContext();
+		Context cx = cf.enterContext();
 		cx.setOptimizationLevel(-1);
 		return new JSContext(cx);
 	}

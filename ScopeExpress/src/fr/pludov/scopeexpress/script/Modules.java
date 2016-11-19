@@ -11,18 +11,20 @@ import fr.pludov.scopeexpress.tasks.javascript.*;
 
 public class Modules {
 
-	final Map<String, Scriptable> moduleByAbsolutePath;
+	final Map<String, Object> moduleByAbsolutePath;
 	final Map<String, JSTask> loadingModules;
 	final String basePath;
 	final TaskGroup taskGroup;
+	final ContextFactory contextFactory;
 	Scriptable globalScope = null;
 	
-	public Modules(TaskGroup tg) {
-		this(tg, "C:\\Documents and Settings\\utilisateur\\git\\ScopeExpress\\ScopeExpress\\scripts");
+	public Modules(TaskGroup tg, ContextFactory cf) {
+		this(tg, cf, "C:\\Documents and Settings\\utilisateur\\git\\ScopeExpress\\ScopeExpress\\scripts");
 	}
 		
-	public Modules(TaskGroup tg, String basePath) {
+	public Modules(TaskGroup tg, ContextFactory cf, String basePath) {
 		this.moduleByAbsolutePath = new HashMap<>();
+		this.contextFactory = cf;
 		this.loadingModules = new HashMap<>();
 		this.basePath = basePath;
 		this.taskGroup = tg;
@@ -57,6 +59,10 @@ public class Modules {
 		}
 		
 		return globalScope;
+	}
+
+	public ContextFactory getContextFactory() {
+		return contextFactory;
 	}
 	
 }

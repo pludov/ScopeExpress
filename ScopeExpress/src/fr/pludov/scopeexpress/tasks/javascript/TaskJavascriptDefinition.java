@@ -41,7 +41,7 @@ public class TaskJavascriptDefinition extends BaseTaskDefinition {
 //				 }
 //				})
 
-		try(JSContext jsc = JSContext.open())
+		try(JSContext jsc = JSContext.open(ContextFactory.getGlobal()))
 		{
 			Scriptable globalScope = jsc.getContext().initStandardObjects();
 			NativeObject no = loadJavascriptDescription(jsc, globalScope);

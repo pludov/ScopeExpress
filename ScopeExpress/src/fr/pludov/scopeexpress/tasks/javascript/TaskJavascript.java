@@ -38,7 +38,7 @@ public class TaskJavascript extends BaseTask {
 				return;
 			}
 			resumeCondition = null;
-			try(JSContext jsc = JSContext.open()) {
+			try(JSContext jsc = JSContext.open(ContextFactory.getGlobal())) {
 				jsc.getContext().resumeContinuation(continuation, globalScope, resultCode);
 				setFinalStatus(BaseStatus.Success);
 			} catch(ContinuationPending pending) {
@@ -58,7 +58,7 @@ public class TaskJavascript extends BaseTask {
 	public void start() {
 		setStatus(BaseStatus.Processing);
 
-		try(JSContext jsc = JSContext.open())
+		try(JSContext jsc = JSContext.open(ContextFactory.getGlobal()))
 		{
 			globalScope = jsc.getContext().initStandardObjects();
 			globalScope.put("api", globalScope, new JavascriptApi());

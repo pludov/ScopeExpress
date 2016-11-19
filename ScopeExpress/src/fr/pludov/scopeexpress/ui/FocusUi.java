@@ -863,7 +863,7 @@ public class FocusUi extends FocusUiDesign {
 				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					Modules m = new Modules(applicationTaskGroup) {
+					Modules m = new Modules(applicationTaskGroup, JSContext.getDebuggingContextFactory()) {
 					
 						@Override
 						protected org.mozilla.javascript.Scriptable buildGlobalScope(JSContext jsc) {

@@ -2,6 +2,8 @@ package fr.pludov.scopeexpress.script;
 
 import static org.junit.Assert.assertEquals;
 
+import org.mozilla.javascript.*;
+
 import fr.pludov.scopeexpress.script.Task.*;
 
 /**
@@ -16,7 +18,7 @@ public class BaseJsTestCase {
 	{
 		TaskGroup tg = new TaskGroup();
 		String script = getClass().getSimpleName() + ".js";
-		RootJsTask example = new RootJsTask(new Modules(tg, Utils.getClassFilePath(getClass())), script);
+		RootJsTask example = new RootJsTask(new Modules(tg, ContextFactory.getGlobal(), Utils.getClassFilePath(getClass())), script);
 
 		while(example.getStatus() != Status.Done) {
 			tg.advance();
