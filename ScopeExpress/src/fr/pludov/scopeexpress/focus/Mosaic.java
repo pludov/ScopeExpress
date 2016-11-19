@@ -1,21 +1,14 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
-import org.apache.log4j.Logger;
-import org.w3c.dom.Element;
+import org.apache.log4j.*;
+import org.w3c.dom.*;
 
-import fr.pludov.scopeexpress.ui.Configuration;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.utils.VecUtils;
-import fr.pludov.utils.XmlSerializationContext;
-import fr.pludov.utils.XmlSerializationContext.NodeDictionary;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
+import fr.pludov.utils.XmlSerializationContext.*;
 
 public class Mosaic {
 	private static final Logger logger = Logger.getLogger(Mosaic.class);
@@ -537,5 +530,34 @@ public class Mosaic {
 
 	public void setDistorsion(ImageDistorsion distorsion) {
 		this.distorsion = distorsion;
+	}
+
+	/** Les StarOccurence valide pour le calcul FWHM */
+	public List<StarOccurence> getFwhmStarOccurences(Image image)
+	{
+		List<StarOccurence> result = new ArrayList<>();
+		for(StarOccurence so : getStarOccurences(image))
+		{
+			if (so.isSaturationDetected()) continue;
+			if (!so.isStarFound()) continue;
+			if (!so.isAnalyseDone()) continue;
+			result.add(so);
+		}
+		return result;
+	}
+	
+	public Double getFwhm(Image image)
+	{
+		int starCount = 0;
+		double result = 0;
+		for(StarOccurence so : getFwhmStarOccurences(image))
+		{
+			result += so.getFwhm();
+			starCount++;
+		}
+		if (starCount == 0) {
+			return null;
+		}
+		return result / starCount;
 	}
 }

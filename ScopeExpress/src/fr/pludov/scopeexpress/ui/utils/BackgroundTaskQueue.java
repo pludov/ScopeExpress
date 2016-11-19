@@ -1,16 +1,14 @@
 package fr.pludov.scopeexpress.ui.utils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask.BackgroundTaskCanceledException;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask.Status;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
+import fr.pludov.scopeexpress.script.*;
+import fr.pludov.scopeexpress.ui.utils.BackgroundTask.*;
+import fr.pludov.scopeexpress.utils.*;
 
 /**
  * Les ajouts/suppressions sont fait dans le thread swing
@@ -37,6 +35,57 @@ public final class BackgroundTaskQueue {
 		task.queue = this;
 		tasks.add(task);
 		somethingChanged();
+	}
+	
+	public NativeTask coWork(BackgroundTask task)
+	{
+		addTask(task);
+		return new NativeTask() {
+			
+			boolean tryToFinish() {
+				switch(task.getStatus()) {
+				case Aborted:
+					failed("aborted");
+					return true;
+				case Canceled:
+					failed("canceled");
+					return true;
+				case Done:
+					done(null);
+					return true;
+				default:
+					return false;
+				}
+			}
+			
+			@Override
+			protected void cancel() {
+				super.cancel();
+				try {
+					switch(task.getStatus()) {
+					case Pending:
+					case Running:
+						task.abort();
+					}
+				} catch(Throwable t) {
+					logger.warn("Failed to abort task", t);
+				}
+			}
+			
+			@Override
+			protected void init() throws Throwable {
+				
+				if (!tryToFinish()) {
+					listeners.addListener(this.listenerOwner, new BackgroundTaskQueueListener() {
+						
+						@Override
+						public void stateChanged() {
+							tryToFinish();
+						}
+					});
+				}
+			}
+		};
 	}
 
 	

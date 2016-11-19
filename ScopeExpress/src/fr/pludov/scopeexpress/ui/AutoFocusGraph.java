@@ -96,7 +96,7 @@ public class AutoFocusGraph extends JPanel {
 		{
 			for(Image image : step.getValue())
 			{
-				Double fwhm = runningTask.getFwhm(image);
+				Double fwhm = runningTask.listenedMosaic.getFwhm(image);
 				
 				if (fwhm == null) {
 					continue;

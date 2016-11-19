@@ -1,30 +1,18 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.awt.*;
+import java.io.*;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-import fr.pludov.external.apt.AptComm;
-import fr.pludov.scopeexpress.focus.ExclusionZone;
+import fr.pludov.external.apt.*;
+import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.focus.MosaicListener.ImageAddedCause;
-import fr.pludov.scopeexpress.focuser.Focuser;
-import fr.pludov.scopeexpress.ui.utils.SwingThreadMonitor;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
-import fr.pludov.utils.PolynomialFitter;
-import fr.pludov.utils.PolynomialFitter.Polynomial;
+import fr.pludov.scopeexpress.focuser.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
+import fr.pludov.utils.PolynomialFitter.*;
 
 /** FIXME: il faudrait pouvoir faire un pause / resume ? */
 public class AutoFocusTask {
@@ -59,7 +47,7 @@ public class AutoFocusTask {
 	
 	Status status;
 	final FocusUi focusUi;
-	final Mosaic mosaic;
+	public final Mosaic mosaic;
 	
 	int passId;
 	private int currentCenter;
@@ -479,24 +467,6 @@ public class AutoFocusTask {
 		}
 	}
 	
-	Double getFwhm(Image image)
-	{
-		int starCount = 0;
-		double result = 0;
-		for(StarOccurence so : mosaic.getStarOccurences(image))
-		{
-			if (so.isSaturationDetected()) continue;
-			if (!so.isStarFound()) continue;
-			if (!so.isAnalyseDone()) continue;
-			result += so.getFwhm();
-			starCount++;
-		}
-		if (starCount == 0) {
-			return null;
-		}
-		return result / starCount;
-	}
-	
 	class Interpolation
 	{
 		Integer minKey, maxKey;
@@ -546,7 +516,7 @@ public class AutoFocusTask {
 				Double min = null;
 				for(Image image : entry.getValue())
 				{
-					Double fwhm = getFwhm(image);
+					Double fwhm = listenedMosaic.getFwhm(image);
 					if (fwhm != null && (min == null || min > fwhm)) {
 						min = fwhm;
 					}
