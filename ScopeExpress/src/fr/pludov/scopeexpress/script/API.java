@@ -40,7 +40,18 @@ public class API {
 		waitFor = jsTask.modules.loadingModules.get(file);
 		if (waitFor == null) {
 			waitFor = new IncludeTask(jsTask.modules, file);
+			JSTask toWait = waitFor;
 			jsTask.modules.loadingModules.put(file, waitFor);
+			waitFor.onDone(() -> {
+				ConditionMeet loaderResult;
+				if (toWait.error != null) {
+					loaderResult = ConditionMeet.error(toWait.error);
+				} else {
+					loaderResult = ConditionMeet.success(toWait.result);
+				}
+				toWait.modules.loadingModules.remove(file);
+				toWait.modules.moduleByAbsolutePath.put(file, loaderResult);
+			});
 		}
 		
 		return joinCoroutine(waitFor);

@@ -16,5 +16,12 @@ if (child2.getUsageCount() != 2) {
 	throw "shared files failed";
 }
 
+var child2 = require('TestIncludes_child2.js');
+
+if (child2.getUsageCount() != 2) {
+	throw "Re loading failed";
+}
+
+
 1
 

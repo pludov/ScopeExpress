@@ -8,7 +8,6 @@ function unwind(rslt)
 }
 
 global.require = function(path) {
-	api.print("requiring " + path);
 	return unwind(api.include(path));
 }
 
