@@ -26,24 +26,22 @@ public abstract class JSTask extends Task{
 		public abstract Object start(JSContext jsc) throws FileNotFoundException, IOException;
 	}
 	
-	final JSTask parent;
 	final Modules modules;
 	StackEntry currentStackEntry;
 	List<StackEntry> stack;
-	
+	int runningKillCount = 0;
 	Scriptable scope;
 	
 	boolean started;
 	
 	public JSTask(JSTask parent) {
-		super(parent.modules.taskGroup);
-		this.parent = parent;
+		super(parent);
 		this.modules = parent.modules;
+		onDone(() -> {scope = null; stack = null; currentStackEntry = null;});
 	}
 
 	public JSTask(Modules modules) {
 		super(modules.taskGroup);
-		this.parent = null;
 		this.modules = modules;
 	}
 
@@ -64,6 +62,50 @@ public abstract class JSTask extends Task{
 		throw pending;
 	}
 	
+	
+	@Override
+	void cancel() {
+		// Les taches filles...
+		
+		for(Task child : getChilds()) {
+			child.cancel();
+		}
+		
+		// Si le status est running, throw directement l'exception ?
+		switch(getStatus()) {
+		case Pending:
+				this.error = new InterruptedException();
+				this.result = null;
+				setStatus(Status.Done);
+				break;
+		case Blocked:
+		case Runnable:
+
+				if (currentStackEntry.resumePoint == null) {
+					this.error = new InterruptedException();
+					this.result = null;
+					
+					// Pas initialisé... On est forcement pending. Alors on annule simplement la tache
+					done(currentStackEntry);
+				
+				} else {
+					// Ajoute une exception en haut de la pile
+					currentStackEntry.resumeResult = ConditionMeet.error(new InterruptedException());
+					
+					setStatus(Status.Runnable);
+				}
+				break;
+		case Running:
+				runningKillCount++;
+				break;
+		case Done:
+				break;
+		default:
+				throw new RuntimeException("internal error");
+		}
+		
+		
+	}
 	
 	private void done(StackEntry lastStackEntry)
 	{

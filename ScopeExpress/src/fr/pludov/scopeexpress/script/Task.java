@@ -17,16 +17,26 @@ public abstract class Task {
 		Done
 	}
 	
-	final TaskGroup taskGroup;
+	protected final TaskGroup taskGroup;
 	private Status status;
+	// La tache parent ne peut pas être done (on le vide/passe au parent eventuellement)
+	Task parent;
 	Throwable error;
 	Object result;
 	
 	List<Runnable> onDone;
-	
+	List<Runnable> onProduced;
+
 	
 	public Task(TaskGroup tg) {
 		this.taskGroup = tg;
+		this.parent = null;
+		setStatus(Status.Pending);
+	}
+
+	public Task(Task parent) {
+		this.parent = parent;
+		this.taskGroup = parent.taskGroup;
 		setStatus(Status.Pending);
 	}
 
@@ -62,6 +72,7 @@ public abstract class Task {
 				taskGroup.allTasks.add(this);
 			} else {
 				taskGroup.allTasks.remove(this);
+				taskGroup.reparent(this);
 			}
 		}
 		
@@ -92,6 +103,36 @@ public abstract class Task {
 		onDone.add(callback);
 	}
 
+	public void onProduced(Runnable callback) {
+		if (onProduced == null) {
+			onProduced = new ArrayList<>();
+		}
+		onProduced.add(callback);
+	}
+	
+	public void removeOnProduced(Runnable callback) {
+		if (onProduced != null) {
+			onProduced.remove(callback);
+		}
+	}
+	
+	List<Task> getChilds()
+	{
+		List<Task> result = new ArrayList<>();
+		for(Task child : this.taskGroup.allTasks) {
+			if (child.parent == this) {
+				result.add(child);
+			}
+		}
+		return result;
+	}
+	
+	public Object readProduced() { return null; }
+	
 	abstract void advance();
+	
+	// Pas de garantie que la tache s'arrete tout de suite.
+	// Doit propager aux taches filles.
+	abstract void cancel();
 
 }

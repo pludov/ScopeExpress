@@ -48,6 +48,16 @@ public class TaskGroup {
 		
 	}
 
+	/** Un parent vient d'etre retiré... Reporte la modif chez ses fils */
+	void reparent(Task removedTask)
+	{
+		for(Task t : this.allTasks) {
+			if (t.parent == removedTask) {
+				t.parent = removedTask.parent;
+			}
+		}
+		
+	}
 
 	public static TaskGroup getCurrent() {
 		TaskGroup result = current.get();

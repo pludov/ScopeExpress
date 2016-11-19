@@ -1,18 +1,12 @@
 package fr.pludov.scopeexpress.utils;
 
-import java.lang.ref.WeakReference;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.lang.ref.*;
+import java.lang.reflect.*;
+import java.util.*;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.tasks.TaskInterruptedException;
+import fr.pludov.scopeexpress.tasks.*;
 
 /**
  * Tant que le owner est en vie vis à vis du gc, garder le listener.
@@ -186,13 +180,19 @@ public class WeakListenerCollection<Interface> implements InvocationHandler, IWe
 				if (target == null) {
 					it.remove();
 				} else {
-					objectToNotify.add(ref);
+					WeakListenerOwner owner = ref.getOwner();
+					if (owner == null || owner.dead) {
+						it.remove();
+					} else {
+						objectToNotify.add(ref);
+					}
 				}
 			}
 			return objectToNotify;
 		}
 	}
 	
+	@Override
 	public void addListener(WeakListenerOwner owner, Interface i)
 	{
 		synchronized(listeners) {
@@ -202,6 +202,7 @@ public class WeakListenerCollection<Interface> implements InvocationHandler, IWe
 		}
 	}
 	
+	@Override
 	public void removeListener(WeakListenerOwner owner)
 	{
 		synchronized(listeners) {

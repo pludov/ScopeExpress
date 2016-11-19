@@ -1,6 +1,9 @@
 package fr.pludov.scopeexpress.script;
 
+import java.awt.event.*;
 import java.io.*;
+
+import javax.swing.*;
 
 import org.mozilla.javascript.*;
 
@@ -67,6 +70,48 @@ public class API {
 		return child;
 	}
 	
+	public void cancel(Task t) throws InterruptedException
+	{
+		JSTask jsTask = JSTask.currentTask.get();
+		int currentCount = jsTask.runningKillCount;
+		t.cancel();
+		if (jsTask.runningKillCount != currentCount) {
+			throw new InterruptedException();
+		}
+	}
+	
+	public Task sleep(final double duration) {
+		
+		return new NativeTask() {
+			Timer t;
+			
+			
+			@Override
+			protected void init() throws Throwable {
+				int durationMs = (int)Math.floor(duration * 1000);
+				t = new Timer(durationMs, new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if (getStatus() == Status.Blocked) {
+							done(null);
+						}
+					}
+				});
+				t.setRepeats(false);
+				t.start();
+				
+				onDone(()->{
+					if (t != null) {
+						t.stop();
+						t = null;
+					}
+				});
+				setStatus(Status.Blocked);
+			}
+		};
+		
+	}
+	
 	public ConditionMeet joinCoroutine(final Task childTask)
 	{
 		ResumeCondition resumeCondition = new ResumeCondition() {
@@ -94,6 +139,34 @@ public class API {
 		};
 		
 		childTask.onDone(() -> { resumeCondition.refresh(); });
+		return JSTask.currentTask.get().blockWithCondition(resumeCondition);
+	}
+	
+	public ConditionMeet readCoroutine(final Task childTask)
+	{
+		ResumeCondition resumeCondition = new ResumeCondition() {
+			final Runnable signal;
+			
+			@Override
+			ConditionMeet check() {
+				Object o = childTask.readProduced();
+				if (o != null) {
+					childTask.removeOnProduced(signal);
+					return ConditionMeet.success(o);
+				}
+				
+				if (childTask.getStatus() == Status.Done) {
+					childTask.removeOnProduced(signal);
+					return ConditionMeet.success(null);
+				}
+				return null;
+			}
+			{
+				signal = () -> {refresh(); };
+				childTask.onProduced(signal);		
+			}
+		};
+		
 		return JSTask.currentTask.get().blockWithCondition(resumeCondition);
 	}
 	

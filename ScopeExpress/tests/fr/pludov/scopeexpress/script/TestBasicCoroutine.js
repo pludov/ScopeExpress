@@ -58,10 +58,49 @@ if (!gotExpectedError) {
 }
 
 
+////////Now: cancel after start
+var canceled=true;
+child = coroutine.start(function() {
+	coroutine.sleep(1);
+	canceled = false;
+});
+
+coroutine.sleep(0.1);
+coroutine.cancel(child);
+
+try {
+	coroutine.join(child);
+} catch(e) {
+	if (!(e instanceof coroutine.CanceledException)) {
+		throw e;
+	}
+	api.print("catched expected interruption: " + e.getClass());
+}
+	
+if (!canceled) {
+	throw "Coroutine was not canceled as expected";
+}
 
 
+////////Now: cancel before start
+var canceled=true;
+child = coroutine.start(function() {
+	canceled = false;
+});
+coroutine.cancel(child);
+coroutine.sleep(0.1);
 
-		
-		
-		
+try {
+	coroutine.join(child);
+} catch(e) {
+	if (!(e instanceof coroutine.CanceledException)) {
+		throw e;
+	}
+	api.print("catched expected interruption: " + e.getClass());
+}
+
+if (!canceled) {
+	throw "Coroutine was not canceled as expected";
+}
+
 1
