@@ -103,6 +103,36 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 		}
 	}
 
+	public NativeTask coReadEvents()
+	{
+		return new NativeTask() {
+			
+			@Override
+			protected void init() throws Throwable {
+				if (establishedConnection == null) {
+					throw new Exception("PHD not connected");
+				}
+				listeners.addListener(this.listenerOwner, new IGuiderListener() {
+					
+					@Override
+					public void onConnectionStateChanged() {
+						failed("disconnected");
+					}
+					
+					@Override
+					public void onConnectionError(Throwable message) {
+						failed("disconnected: " + message.getMessage());
+					}
+					
+					@Override
+					public void onEvent(String event, JsonObject message) {
+						produce(new GsonBuilder().create().toJson(message));
+					}
+				});
+			}
+		};
+	}
+	
 	public NativeTask coSendRequest(final String jsonRqt)
 	{
 		return new NativeTask() {
