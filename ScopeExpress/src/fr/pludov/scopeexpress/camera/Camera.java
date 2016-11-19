@@ -1,25 +1,31 @@
 package fr.pludov.scopeexpress.camera;
 
-import java.io.File;
+import java.io.*;
 
-import fr.pludov.scopeexpress.focuser.Focuser.Listener;
-import fr.pludov.scopeexpress.ui.IDeviceBase;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
+import org.apache.log4j.*;
+
+import fr.pludov.scopeexpress.script.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public interface Camera extends IDeviceBase {
+	public static final class LoggerContainer {
+		private static final Logger logger = Logger.getLogger(Camera.class);
+	}
+	
 	public static interface Listener {
 		/** Lorsque l'état de la connection change */
-		void onConnectionStateChanged();
+		default void onConnectionStateChanged() {};
 		
-		void onShootStarted(RunningShootInfo currentShoot);
+		default void onShootStarted(RunningShootInfo currentShoot) {};
 
 		/** Interrupted suite à un cancelCurrentShoot */
-		void onShootInterrupted();
+		default void onShootInterrupted() {};
 		
 		/** Fin d'un cliché */
-		void onShootDone(RunningShootInfo shootInfo, File generatedFits);
+		default void onShootDone(RunningShootInfo shootInfo, File generatedFits) {};
 		
-		void onTempeatureUpdated();
+		default void onTempeatureUpdated() {};
 	}
 
 	WeakListenerCollection<Listener> getListeners();
@@ -44,4 +50,52 @@ public interface Camera extends IDeviceBase {
 	TemperatureParameters getTemperature();
 
 	void setCcdTemperature(boolean coolerStatus, Double setTemp) throws CameraException;
+	
+	default NativeTask coShoot(Object params) {
+		final ShootParameters sp = JSTask.fromJson(ShootParameters.class, params);
+		return new NativeTask() {
+			boolean started = false;
+			
+			@Override
+			protected void cancel() {
+				super.cancel();
+				if (started) {
+					started = false;
+					try {
+						cancelCurrentShoot();
+					} catch (CameraException e) {
+						LoggerContainer.logger.warn("Unable to cancel shoot", e);
+					}
+				}
+			}
+			
+			@Override
+			protected void init() throws Throwable {
+				
+				getListeners().addListener(this.listenerOwner, new Listener() {
+					@Override
+					public void onConnectionStateChanged() {
+						started = false;
+						failed("disconnected");
+					}
+					
+					@Override
+					public void onShootInterrupted() {
+						started = false;
+						failed("interrupted");
+					}
+					
+					@Override
+					public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
+						started = false;
+						done(generatedFits);
+					}
+				});
+				
+				startShoot(sp);
+				started = true;
+			}
+		};
+		
+	}
 }

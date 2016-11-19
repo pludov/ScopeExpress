@@ -5,6 +5,8 @@ import java.util.*;
 
 import org.mozilla.javascript.*;
 
+import com.google.gson.*;
+
 import fr.pludov.scopeexpress.tasks.javascript.*;
 
 public abstract class JSTask extends Task{
@@ -190,6 +192,18 @@ public abstract class JSTask extends Task{
 	abstract StackEntry buildRootEntry();
 	
 	
+	public static <T> T fromJson(Class<T> clazz, Object params) {
+		JSTask current = JSTask.currentTask.get();
+		if (params == Undefined.instance) {
+			return null;
+		}
+		Object val = NativeJSON.stringify(Context.getCurrentContext(), current.scope, params, null, 0);
+		if (!(val instanceof String)) {
+			throw Context.reportRuntimeError("invalid " + clazz.getName());
+		}
+		
+		return new Gson().fromJson((String)val, clazz);
+	}
 	
 	public static void main(String[] args) {
 		TaskGroup tg = new TaskGroup();
@@ -204,5 +218,4 @@ public abstract class JSTask extends Task{
 			
 		}
 	}
-
 }

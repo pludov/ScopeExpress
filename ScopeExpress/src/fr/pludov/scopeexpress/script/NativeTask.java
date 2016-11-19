@@ -23,7 +23,7 @@ public abstract class NativeTask extends Task {
 	}
 	
 	@Override
-	void cancel() {
+	protected void cancel() {
 		setStatus(Status.Done);
 	}
 
