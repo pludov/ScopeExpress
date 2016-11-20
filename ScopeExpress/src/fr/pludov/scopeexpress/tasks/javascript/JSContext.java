@@ -42,6 +42,7 @@ public class JSContext implements AutoCloseable {
 	{
 		Context cx = cf.enterContext();
 		cx.setOptimizationLevel(-1);
+		cx.getWrapFactory().setJavaPrimitiveWrap(false);
 		return new JSContext(cx);
 	}
 
