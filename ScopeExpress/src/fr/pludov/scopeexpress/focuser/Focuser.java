@@ -1,10 +1,15 @@
 package fr.pludov.scopeexpress.focuser;
 
+import org.apache.log4j.*;
+
 import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.utils.*;
 
 public interface Focuser extends IDeviceBase {
+	static final class LoggerContainer {
+		private static final Logger logger = Logger.getLogger(Focuser.class);
+	}
 	
 	/** Les notifications ne sont pas reçues dans le thread swing */
 	public static interface Listener {
@@ -34,7 +39,8 @@ public interface Focuser extends IDeviceBase {
 	
 	public default Task coMove(final int newPosition) {
 		return new NativeTask() {
-			
+
+			boolean moving;
 			@Override
 			public void init() throws Throwable {
 				if (!isConnected()) {
@@ -49,21 +55,37 @@ public interface Focuser extends IDeviceBase {
 					
 					@Override
 					public void onMoveEnded() {
-						if (getStatus() == Status.Blocked) {
+						moving = false;
+						if (newPosition != position()) {
+							failed("Position not achieved. conflict ?");
+						} else {
 							done(null);
 						}
 					}
 					
 					@Override
 					public void onConnectionStateChanged() {
-						if (getStatus() == Status.Blocked) {
-							failed("Disconnected");
-						}
+						moving = false;
+						failed("Disconnected");
 					}
-
 				});
 				moveTo(newPosition);
+				moving = true;
 				setStatus(Status.Blocked);
+			}
+			
+			@Override
+			protected void cancel() {
+				// On laisse le focuser en place ?
+				super.cancel();
+				if (moving) {
+					moving = false;
+					try {
+						moveTo(position());
+					} catch(Throwable t) {
+						LoggerContainer.logger.warn("Failed to stop focuser", t);
+					}
+				}
 			}
 		};
 	}

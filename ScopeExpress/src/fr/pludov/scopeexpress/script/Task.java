@@ -54,6 +54,10 @@ public abstract class Task {
 		return status;
 	}
 	
+	public boolean isTerminated() {
+		return status == Status.Done;
+	}
+	
 	protected void setStatus(Status newStatus)
 	{
 		if (status == newStatus) return;
