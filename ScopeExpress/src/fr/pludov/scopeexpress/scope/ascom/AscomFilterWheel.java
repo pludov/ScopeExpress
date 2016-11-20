@@ -26,7 +26,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 	final IWeakListenerCollection<IDriverStatusListener> statusListeners;
 	final String driver;
 
-	DispatchPtr focuser;
+	DispatchPtr filterWheel;
 	
 	String [] filters;
 	// -1 on move
@@ -103,17 +103,17 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 		String [] maxPosition;
 		boolean connectStatus;
 		boolean moving;
-		if (focuser != null) {
-			connectStatus = (Boolean)focuser.get("Connected");
+		if (filterWheel != null) {
+			connectStatus = (Boolean)filterWheel.get("Connected");
 			if (connectStatus) {
-				Short pos = (Short)focuser.get("Position");
+				Short pos = (Short)filterWheel.get("Position");
 				if (pos == null) {
 					position = null;
 				} else {
 					position = (int)pos;
 				}
 				if (this.filters == null) {
-					maxPosition = (String[])focuser.get("Names");
+					maxPosition = (String[])filterWheel.get("Names");
 				} else {
 					maxPosition = this.filters;
 				}
@@ -182,13 +182,13 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 
 			logger.debug("driver : " + driver);
 			
-			focuser = new DispatchPtr(driver);
+			filterWheel = new DispatchPtr(driver);
 			
-			focuser.put("Connected", true);
+			filterWheel.put("Connected", true);
 			refreshParameters();
 			
 		} catch (Throwable e) {
-			focuser = null;
+			filterWheel = null;
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
 			return;
@@ -252,7 +252,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 			exec(new AsyncOrder() {
 				@Override
 				public Object run() throws Throwable {
-					focuser.put("Position", (Short)(short)newPosition);
+					filterWheel.put("Position", (Short)(short)newPosition);
 					synchronized(this) {
 						waitingMoveEnd = true;
 						lastPosition = -1;

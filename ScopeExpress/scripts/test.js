@@ -1,8 +1,13 @@
 var openphd = require('openphd.js');
 var camera = require('camera.js');
 var focuser = require('focuser.js');
+
+
+//var filterwheel = require('filterwheel.js');
+//api.print("filterwheel filters are " + filterwheel.getFilters());
+
+
 //var startGuiding = openphd.startGuide();
-//
 //coroutine.join(startGuiding);
 
 
@@ -34,7 +39,7 @@ var fwhmMean = 0;
 for(var i = 0; i < 10; ++i)
 {
 	// Prend la photo à la position donnée
-	var shoot = camera.shoot({exp: 3.0});
+	var shoot = camera.shoot({exp: 1.0});
 	var fit = coroutine.join(shoot);
 
 	// Bouge le focuser

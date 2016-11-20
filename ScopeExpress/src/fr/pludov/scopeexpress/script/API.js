@@ -1,6 +1,5 @@
 api.print("Loading api.js");
 
-
 // Polyfills...
 if (typeof Object.assign != 'function') {
 	(function () {
@@ -36,6 +35,22 @@ function unwind(rslt)
 
 global.require = function(path) {
 	return unwind(api.include(path));
+}
+
+global.utils = {
+		fromJavaArray: function(t) {
+			if (t == null) return t;
+			if (t instanceof java.lang.Object && t.getClass().isArray()) {
+				var rslt = [];
+				for(var i = 0; i < t.length; ++i) {
+					var o = t[i];
+					rslt[i] = o;
+				}
+				return rslt;
+			}
+			return t;
+		}
+
 }
 
 global.coroutine = {
