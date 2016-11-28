@@ -1,23 +1,17 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.ref.SoftReference;
-import java.nio.file.Files;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.io.*;
+import java.lang.ref.*;
+import java.nio.file.*;
+import java.nio.file.attribute.*;
+import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.io.CameraFrame;
-import fr.pludov.io.CameraFrameMetadata;
-import fr.pludov.io.ImageProvider;
-import fr.pludov.scopeexpress.async.WorkStepResource;
-import fr.pludov.scopeexpress.utils.Couple;
-import fr.pludov.utils.ChannelMode;
+import fr.pludov.io.*;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 public class Image implements WorkStepResource {
 	private static final Logger logger = Logger.getLogger(Image.class);
@@ -255,7 +249,6 @@ public class Image implements WorkStepResource {
 				try {
 					wait(1000);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				if (this.cameraFrameMetadata != null) {
@@ -268,8 +261,11 @@ public class Image implements WorkStepResource {
 		try {
 			result = ImageProvider.readImageMetadata(this.path);
 		} catch(IOException e) {
-			result = new Couple<CameraFrame, CameraFrameMetadata>(null, new CameraFrameMetadata());
+			e.printStackTrace();
 		} finally {
+			if (result == null) {
+				result = new Couple<CameraFrame, CameraFrameMetadata>(null, new CameraFrameMetadata());
+			}
 			// Eventuellement, on va chercher sur le filesystem (date de création, ...)
 			metadataFallback(result.getB(), this.path, result);
 			synchronized(this) {
