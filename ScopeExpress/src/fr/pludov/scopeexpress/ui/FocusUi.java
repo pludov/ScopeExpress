@@ -24,6 +24,7 @@ import fr.pludov.scopeexpress.focus.Image;
 import fr.pludov.scopeexpress.http.server.*;
 import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.tasks.*;
+import fr.pludov.scopeexpress.tasks.BaseTask;
 import fr.pludov.scopeexpress.tasks.autofocus.*;
 import fr.pludov.scopeexpress.tasks.flat.*;
 import fr.pludov.scopeexpress.tasks.focuser.*;
@@ -77,7 +78,6 @@ public class FocusUi extends FocusUiDesign {
 	private final FocusUiFocuserManager focuserManager;
 	final JDialog cameraControlDialog;
 
-	final ApplicationTaskGroup applicationTaskGroup;
 	
 	private final long sessionStartTime = System.currentTimeMillis();
 	private final AstrometryParameterPanel astrometryParameter;
@@ -109,7 +109,6 @@ public class FocusUi extends FocusUiDesign {
 		this.imagingMosaic = new Mosaic(application);
 		
 		this.mosaic = this.focusMosaic;
-		this.applicationTaskGroup = new ApplicationTaskGroup();
 		this.getFrmFocus().setExtendedState(this.getFrmFocus().getExtendedState() | JFrame.MAXIMIZED_BOTH);
 
 		setupBackgroundTaskQueue();
@@ -144,7 +143,7 @@ public class FocusUi extends FocusUiDesign {
 			}
 		});
 		
-		taskManagerView = new TaskManagerView(this, application.getTaskManager());
+		taskManagerView = new TaskManagerView(this, application.getTaskManager2());
 		this.taskPanel.add(taskManagerView);		
 
 		
@@ -863,6 +862,9 @@ public class FocusUi extends FocusUiDesign {
 				
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
+					ApplicationTaskGroup applicationTaskGroup = new ApplicationTaskGroup();
+
+					
 					Modules m = new Modules(applicationTaskGroup, JSContext.getDebuggingContextFactory()) {
 					
 						@Override
@@ -875,6 +877,8 @@ public class FocusUi extends FocusUiDesign {
 					};
 					
 					new RootJsTask(m, "test.js");
+					
+					application.getTaskManager2().add(applicationTaskGroup);
 				}
 			});
 		}
@@ -1293,7 +1297,7 @@ public class FocusUi extends FocusUiDesign {
 	}
 	
 	public void displayNewTask(BaseTask task) {
-		taskManagerView.displayNewTask(task);
+//		taskManagerView.displayNewTask(task);
 		tabbedPane.setSelectedComponent(taskPanel);	
 	}
 

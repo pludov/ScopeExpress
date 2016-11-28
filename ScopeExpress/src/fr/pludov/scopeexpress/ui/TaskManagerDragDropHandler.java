@@ -1,23 +1,13 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.util.ArrayList;
-import java.util.List;
+import java.awt.datatransfer.*;
+import java.util.*;
 
-import javax.swing.JComponent;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.MutableTreeNode;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
+import javax.swing.*;
+import javax.swing.tree.*;
 
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.tasks.BaseTask;
-import fr.pludov.scopeexpress.tasks.TaskManager;
 
 public class TaskManagerDragDropHandler extends TransferHandler {
 	DataFlavor nodesFlavor;
@@ -26,9 +16,9 @@ public class TaskManagerDragDropHandler extends TransferHandler {
 	
 	final TaskManagerView tmw;
 	final MutableTreeNode root;
-	final TaskManager tm;
+	final TaskManager2 tm;
 	
-	public TaskManagerDragDropHandler(TaskManagerView tmw, MutableTreeNode root, TaskManager tm) {
+	public TaskManagerDragDropHandler(TaskManagerView tmw, MutableTreeNode root, TaskManager2 tm) {
 		this.root = root;
 		this.tmw = tmw;
 		this.tm = tm;
@@ -228,22 +218,24 @@ public class TaskManagerDragDropHandler extends TransferHandler {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				moveRightAfter(fNodes, fPrevious);
+				// 
+				throw new RuntimeException("not implemented");
+//				moveRightAfter(fNodes, fPrevious);
 			}
 		});
 		return false;
 	}
 
-	private void moveRightAfter(List<BaseTask> nodes, BaseTask previous) {
+	private void moveRightAfter(List<TaskOrGroup> nodes, TaskOrGroup previous) {
 		// Add data to model.
-		for(BaseTask bt : nodes) {
+		for(TaskOrGroup bt : nodes) {
 			tm.moveTaskAfter(previous, bt);
 			previous = bt;
 		}
 		// Select all nodes
 		
 		List<TreePath> pathOfNewNodes = new ArrayList<>();
-		for(BaseTask node : nodes) {
+		for(TaskOrGroup node : nodes) {
 			TreePath tp = tmw.findNode(node);
 			if (tp != null) {
 				pathOfNewNodes.add(tp);

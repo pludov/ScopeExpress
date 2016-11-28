@@ -8,6 +8,7 @@ import fr.pludov.scopeexpress.async.*;
 import fr.pludov.scopeexpress.database.*;
 import fr.pludov.scopeexpress.database.content.*;
 import fr.pludov.scopeexpress.irc.*;
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.supervision.*;
 import fr.pludov.scopeexpress.tasks.*;
 import fr.pludov.scopeexpress.ui.*;
@@ -27,6 +28,8 @@ public class Application {
 	final BackgroundTaskQueue backgroundTaskQueue;
 	// Ceci est strictement exécuté dans le thread swing
 	final TaskManager taskManager;
+	final TaskManager2 taskManager2;
+	
 	IRCServer ircServer;
 	Supervisor supervisor;
 	
@@ -52,6 +55,7 @@ public class Application {
 		this.backgroundTaskQueue = new BackgroundTaskQueue();
 		
 		this.taskManager = new TaskManager();
+		this.taskManager2 = new TaskManager2();
 		
 		this.supervisor = new Supervisor();
 		// FIXME: en conf
@@ -128,6 +132,10 @@ public class Application {
 
 	public Database<Root> getDatabase() {
 		return database;
+	}
+
+	public TaskManager2 getTaskManager2() {
+		return taskManager2;
 	}
 
 }

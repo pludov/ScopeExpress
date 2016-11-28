@@ -9,8 +9,11 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.*;
 
+import fr.pludov.scopeexpress.script.*;
+import fr.pludov.scopeexpress.script.TaskChildListener;
+import fr.pludov.scopeexpress.script.TaskManager2.*;
+import fr.pludov.scopeexpress.script.TaskStatusListener;
 import fr.pludov.scopeexpress.tasks.*;
-import fr.pludov.scopeexpress.tasks.TaskManager.*;
 import fr.pludov.scopeexpress.ui.resources.*;
 import fr.pludov.scopeexpress.ui.resources.IconProvider.*;
 import fr.pludov.scopeexpress.ui.utils.*;
@@ -29,7 +32,7 @@ public class TaskManagerView extends JSplitPane {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	final FocusUi focusUi;
-	final TaskManager tm;
+	final TaskManager2 tm;
 	final DefaultMutableTreeNode root;
 	final DefaultTreeModel treeModel;
 	final ToolbarButton pauseButton;
@@ -46,7 +49,7 @@ public class TaskManagerView extends JSplitPane {
 	
 	JComponent currentViewPanel;
 	
-	public TaskManagerView(FocusUi ui, TaskManager taskManager) {
+	public TaskManagerView(FocusUi ui, TaskManager2 taskManager) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
 		this.tm = taskManager;
 		this.focusUi = ui;
@@ -64,9 +67,11 @@ public class TaskManagerView extends JSplitPane {
 		pauseButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				for(BaseTask bt : getTaskSelection())
+				for(TaskOrGroup bt : getTaskSelection())
 				{
-					bt.requestPause();
+					throw new RuntimeException("pausing ?");
+					// Fixme: pause ?
+//					 bt.requestPause();
 				}
 			}
 		});
@@ -78,9 +83,11 @@ public class TaskManagerView extends JSplitPane {
 		resumeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				for(BaseTask bt : getTaskSelection())
+				for(TaskOrGroup bt : getTaskSelection())
 				{
-					bt.resume();
+					throw new RuntimeException("resuming ?");
+					// FIXME: resume ?
+//					bt.resume();
 				}
 			}
 		});
@@ -92,10 +99,12 @@ public class TaskManagerView extends JSplitPane {
 		cancelButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				for(BaseTask bt : getTaskSelection())
+				for(TaskOrGroup bt : getTaskSelection())
 				{
-					if ((!bt.getStatus().isTerminal()) && !bt.hasPendingCancelation()) {
-						bt.requestCancelation(BaseStatus.Canceled);
+					// FIXME: multiple cancel ?
+					if ((!bt.isTerminated()) /*&& !bt.hasPendingCancelation()*/) {
+						throw new RuntimeException("interrupt not supported");
+						// bt.requestCancelation(BaseStatus.Canceled);
 					}
 				}
 			}
@@ -104,19 +113,19 @@ public class TaskManagerView extends JSplitPane {
 		
 		restartButton = new ToolbarButton("restart");
 		restartButton.setToolTipText("Relancer les taches sélectionnées");
-		restartButton.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				for(BaseTask bt : getTaskSelection())
-				{
-					if (bt.getParentLauncher() == null) {
-						tm.startTask(focusUi, bt.getDefinition(), bt.getParameters().clone());
-					}
-				}
-				
-			}
-		});
+//		restartButton.addActionListener(new ActionListener() {
+//			
+//			@Override
+//			public void actionPerformed(ActionEvent arg0) {
+//				for(BaseTask bt : getTaskSelection())
+//				{
+//					if (bt.getParentLauncher() == null) {
+//						tm.startTask(focusUi, bt.getDefinition(), bt.getParameters().clone());
+//					}
+//				}
+//				
+//			}
+//		});
 		leftToolBar.add(restartButton);
 
 		
@@ -128,7 +137,8 @@ public class TaskManagerView extends JSplitPane {
 			public void actionPerformed(ActionEvent e) {
 				for(DefaultMutableTreeNode node: getNodeSelection())
 				{
-					((BaseTask) node.getUserObject()).forget();
+					// FIXME: forget ???
+//					((TaskOrGroup) node.getUserObject()).forget();
 //					removeTask((DefaultMutableTreeNode)node.getParent(), (BaseTask) node.getUserObject());
 				}
 			}
@@ -141,7 +151,7 @@ public class TaskManagerView extends JSplitPane {
 			public void actionPerformed(ActionEvent e) {
 				for(DefaultMutableTreeNode node: getAllNodes())
 				{
-					((BaseTask) node.getUserObject()).forget();
+//					((TaskOrGroup) node.getUserObject()).forget();
 //					removeTask((DefaultMutableTreeNode)node.getParent(), (BaseTask) node.getUserObject());
 				}
 			}
@@ -169,24 +179,24 @@ public class TaskManagerView extends JSplitPane {
 		JScrollPane scroller = new JScrollPane(jtree, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		leftPanel.add(scroller, BorderLayout.CENTER);
 		
-		for(BaseTask bt : tm.getRunningTasks()) {
-			taskAdded(root, null, null, bt);
+		for(TaskGroup bt : tm.getGroups()) {
+			taskAdded(root, null, bt);
 		}
 		
 		this.tm.statusListeners.addListener(this.listenerOwner, new TaskManagerListener() {
 			
 			@Override
-			public void childRemoved(BaseTask bt) {
+			public void childRemoved(TaskOrGroup bt) {
 				taskRemoved(root, bt);
 			}
 			
 			@Override
-			public void childAdded(BaseTask bt, BaseTask after) {
-				taskAdded(root, null, null, bt);
+			public void childAdded(TaskOrGroup bt, TaskOrGroup after) {
+				taskAdded(root, null, bt);
 			}
 			
 			@Override
-			public void childMoved(BaseTask ref, BaseTask movedAfter) {
+			public void childMoved(TaskOrGroup ref, TaskOrGroup movedAfter) {
 				DefaultMutableTreeNode toMove = getNodeForRootTask(movedAfter);
 				if (toMove == null) {
 					return;
@@ -222,18 +232,19 @@ public class TaskManagerView extends JSplitPane {
 					taskControl.setCurrentTask(null);
 				} else {
 					Object rawbt = node.getUserObject();
-					if (rawbt instanceof BaseTask) {
-						BaseTaskDefinition btdef = ((BaseTask)rawbt).getDefinition();
-						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
-						if (currentView == null) {
-							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);
-						}
-						if (currentView != null) {
-							currentView.setTask((BaseTask)rawbt);
-							currentViewPanel = currentView.getMainPanel();
-							details.add(currentViewPanel, BorderLayout.CENTER);
-						}
-						taskControl.setCurrentTask((BaseTask)rawbt);
+					if (rawbt instanceof TaskOrGroup) {
+//						BaseTaskDefinition btdef = ((TaskOrGroup)rawbt).getDefinition();
+//						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
+//						if (currentView == null) {
+//							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);
+//						}
+//						if (currentView != null) {
+//							currentView.setTask((BaseTask)rawbt);
+//							currentViewPanel = currentView.getMainPanel();
+//							details.add(currentViewPanel, BorderLayout.CENTER);
+//						}
+						// FIXME !
+//						taskControl.setCurrentTask((TaskOrGroup)rawbt);
 					} else {
 						taskControl.setCurrentTask(null);
 					}
@@ -249,11 +260,11 @@ public class TaskManagerView extends JSplitPane {
 		updateBtonStatus();
 	}
 	
-	List<BaseTask> getTaskSelection()
+	List<TaskOrGroup> getTaskSelection()
 	{
-		List<BaseTask> result = new ArrayList<>();
+		List<TaskOrGroup> result = new ArrayList<>();
 		for(DefaultMutableTreeNode item : getNodeSelection()) {
-			result.add((BaseTask) item.getUserObject());
+			result.add((TaskOrGroup) item.getUserObject());
 		}
 		return result;
 	}
@@ -268,7 +279,7 @@ public class TaskManagerView extends JSplitPane {
 			{
 				Object value = tp.getLastPathComponent();
 				if ((value instanceof DefaultMutableTreeNode)
-						&& ((DefaultMutableTreeNode)value).getUserObject() instanceof BaseTask)
+						&& ((DefaultMutableTreeNode)value).getUserObject() instanceof TaskOrGroup)
 				{
 					result.add(((DefaultMutableTreeNode)value));
 				}
@@ -286,7 +297,7 @@ public class TaskManagerView extends JSplitPane {
 		{
 			Object value = e.nextElement();
 			if ((value instanceof DefaultMutableTreeNode)
-					&& ((DefaultMutableTreeNode)value).getUserObject() instanceof BaseTask)
+					&& ((DefaultMutableTreeNode)value).getUserObject() instanceof TaskOrGroup)
 			{
 				result.add((DefaultMutableTreeNode)value);
 			}
@@ -294,26 +305,36 @@ public class TaskManagerView extends JSplitPane {
 		return result;
 	}
 	
-	List<BaseTask> getAllTasks()
+	List<TaskOrGroup> getAllTasks()
 	{
-		List<BaseTask> result = new ArrayList<>();
+		List<TaskOrGroup> result = new ArrayList<>();
 		for(DefaultMutableTreeNode item : getAllNodes()) {
-			result.add((BaseTask) item.getUserObject());
+			result.add((TaskOrGroup) item.getUserObject());
 		}
 		return result;
 	}
 	
-	void removeNode(BaseTask task)
+	List<TaskGroup> getAllGroups()
 	{
-		if (!task.getStatus().isTerminal()) {
+		List<TaskGroup> result = new ArrayList<>();
+		for(DefaultMutableTreeNode item : getAllNodes()) {
+			TaskOrGroup tog = (TaskOrGroup) item.getUserObject();
+			if (tog instanceof TaskGroup) {
+				result.add((TaskGroup) tog);
+			}
+		}
+		return result;
+	}
+	
+	void removeNode(TaskOrGroup task)
+	{
+		if (!(task instanceof TaskGroup)) {
 			return;
 		}
-		
-		if (task.getParentLauncher() != null) {
-			
-		} else {
-			tm.removeTask(task);
+		if (!task.isTerminated()) {
+			return;
 		}
+		tm.removeTask((TaskGroup)task);
 	}
 	
 	void updateBtonStatus()
@@ -325,23 +346,27 @@ public class TaskManagerView extends JSplitPane {
 		boolean canPause = false;
 		boolean canResume = false;
 		
-		List<BaseTask> selection = getTaskSelection();
+		List<TaskOrGroup> selection = getTaskSelection();
 		
-		for(BaseTask bt : selection)
+		for(TaskOrGroup bt : selection)
 		{
-			if ((!bt.getStatus().isTerminal()) && (!bt.hasPendingCancelation())) {
+			// FIXME: multiple cancel .
+			if ((!bt.isTerminated()) /* && (!bt.hasPendingCancelation())*/) {
 				canCancel = true;
 			}
-			if (bt.getStatus().isTerminal()) {
+			if (bt.isTerminated()) {
 				canRemove = true;
 			}
-			canRestart |= bt.getParentLauncher() == null;
-			canPause |= bt.pausable();
-			canResume |= bt.getStatus() == BaseStatus.Paused;
+			// FIXME: pas de canRestart
+			canRestart |= false;
+			// FIXME: pour la pause, on rêve ?
+			canPause |= false;
+			// FIXME: pareil... Il faudrait des hook au niveau des scripts.
+			canResume |= false;
 		}
-		for(BaseTask bt : getAllTasks())
+		for(TaskOrGroup bt : getAllTasks())
 		{
-			if (bt.getStatus().isTerminal()) {
+			if (bt.isTerminated()) {
 				canRemoveAll = true;
 				break;
 			}
@@ -361,10 +386,10 @@ public class TaskManagerView extends JSplitPane {
 				boolean sel,
 				boolean expanded, boolean leaf, int row, boolean hasFocus) {
 			if ((value instanceof DefaultMutableTreeNode)
-				&& ((DefaultMutableTreeNode)value).getUserObject() instanceof BaseTask)
+				&& ((DefaultMutableTreeNode)value).getUserObject() instanceof TaskOrGroup)
 			{
 				// On va afficher une icone en fonction de l'état de la tache
-				BaseTask bt = (BaseTask) ((DefaultMutableTreeNode)value).getUserObject();
+				TaskOrGroup bt = (TaskOrGroup) ((DefaultMutableTreeNode)value).getUserObject();
 				JPanel result = new JPanel();
 				result.setLayout(new BoxLayout(result, BoxLayout.LINE_AXIS));
 				
@@ -388,7 +413,7 @@ public class TaskManagerView extends JSplitPane {
 
 				}
 				
-				String iconId = bt.getStatus().getIconId();
+				String iconId = bt.getStatusIconId();
 					
 				
 				JButton icon = new JButton("");
@@ -403,7 +428,7 @@ public class TaskManagerView extends JSplitPane {
 				
 				JLabel jl = new JLabel(bt.getTitle());
 				result.add(jl);
-				if (!bt.getStatus().isTerminal()) {
+				if (!bt.isTerminated()) {
 					jl.setFont(jl.getFont().deriveFont(Font.BOLD));
 				}
 				// jl.setForeground(bt.getStatus().getColor());
@@ -446,12 +471,12 @@ public class TaskManagerView extends JSplitPane {
 	}
 	
 	
-	void taskAdded(DefaultMutableTreeNode parent, BaseTask parentTask, TaskLauncherDefinition parentLauncher, final BaseTask child)
+	void taskAdded(DefaultMutableTreeNode parent, TaskOrGroup parentTask, final TaskOrGroup child)
 	{
 		// child.statusListeners.addListener(this.lis, i);
 		final DefaultMutableTreeNode childNode = new DefaultMutableTreeNode(child);
 //		parent.add(childNode);
-		child.statusListeners.addListener(this.listenerOwner, new TaskStatusListener() {
+		child.getStatusListeners().addListener(this.listenerOwner, new TaskStatusListener() {
 			
 			@Override
 			public void statusChanged() {
@@ -460,8 +485,18 @@ public class TaskManagerView extends JSplitPane {
 		});
 //		childNode.setParent(parent);
 		
-		
-		treeModel.insertNodeInto(childNode, parent, getInsertAfterIndex(parent, child.getPrevious()));
+		int insertIndex;
+		if (child instanceof TaskGroup) {
+			int childPos = tm.getGroups().indexOf(child);
+			assert(childPos != -1);
+			TaskOrGroup previous = childPos > 0 ? tm.getGroups().get(childPos - 1) : null;
+			
+			insertIndex = getInsertAfterIndex(parent, previous);
+		} else {
+			// On le met après ceux qu'on connait déjà
+			insertIndex = parent.getChildCount();
+		}
+		treeModel.insertNodeInto(childNode, parent, insertIndex);
 		updateStatus(child, childNode);
 		
 		//Make sure the user can see the lovely new node.
@@ -470,22 +505,22 @@ public class TaskManagerView extends JSplitPane {
 		//}
 		
 		
-		child.childListeners.addListener(this.listenerOwner, new TaskChildListener() {
+		child.getChildListeners().addListener(this.listenerOwner, new TaskChildListener() {
 			
 			@Override
-			public void childRemoved(ChildLauncher launcher) {
-				taskRemoved(childNode, /*child, launcher.getLaunched(), */launcher.getTask());
+			public void childRemoved(Task task) {
+				taskRemoved(childNode, task);
 			}
 			
 			@Override
-			public void childAdded(ChildLauncher launcher) {
-				taskAdded(childNode, child, launcher.getLaunched(), launcher.getTask());
+			public void childAdded(Task task) {
+				taskAdded(childNode, child, task);
 			}
 		});
 		
-		for(ChildLauncher childLauncher : child.getStartedTask())
+		for(TaskOrGroup childOfChild : child.getChilds())
 		{
-			taskAdded(childNode, child, childLauncher.getLaunched(), childLauncher.getTask());
+			taskAdded(childNode, child, childOfChild);
 		}
 		
 		updateBtonStatus();
@@ -505,20 +540,20 @@ public class TaskManagerView extends JSplitPane {
 	}
 	
 	
-	void removeTask(final BaseTask child)
+	void removeTask(final TaskOrGroup child)
 	{
-		if (!child.getStatus().isTerminal()) {
+		if (!child.isTerminated()) {
 			return;
 		}
-		if (child.getParentLauncher() == null) {
-			this.tm.removeTask(child);
+		if (child.getParent() == null) {
+			this.tm.removeTask((TaskGroup)child);
 		} else {
-			BaseTask parentTask = child.getParentLauncher().getFrom();
-			parentTask.forgetStartedTask(child);
+			// Les taches dégagent toutes seules de leur parent.
+			// FIXME !
 		}
 	}
 	
-	void taskRemoved(DefaultMutableTreeNode parent, final BaseTask child)
+	void taskRemoved(DefaultMutableTreeNode parent, final TaskOrGroup child)
 	{
 		DefaultMutableTreeNode nodeForChild = getNodeForTask(parent, child);
 		if (nodeForChild != null) {
@@ -528,13 +563,13 @@ public class TaskManagerView extends JSplitPane {
 		}
 	}
 
-	private DefaultMutableTreeNode getNodeForRootTask(BaseTask child)
+	private DefaultMutableTreeNode getNodeForRootTask(TaskOrGroup child)
 	{
 		return getNodeForTask(root, child);
 		
 	}
 	
-	private DefaultMutableTreeNode getNodeForTask(DefaultMutableTreeNode parent, final BaseTask child) {
+	private DefaultMutableTreeNode getNodeForTask(DefaultMutableTreeNode parent, final TaskOrGroup child) {
 		DefaultMutableTreeNode nodeForChild = null;
 		for(int i = 0; i < parent.getChildCount(); ++i)
 		{
@@ -547,16 +582,16 @@ public class TaskManagerView extends JSplitPane {
 		return nodeForChild;
 	}
 
-	private void updateStatus(BaseTask child, DefaultMutableTreeNode childNode) {
+	private void updateStatus(TaskOrGroup child, DefaultMutableTreeNode childNode) {
 		treeModel.nodeChanged(childNode);
 		updateBtonStatus();
 	}
 
-	TreePath findNode(BaseTask bt)
+	TreePath findNode(TaskOrGroup bt)
 	{
 		TreePath parentPath;
-		if (bt.getParentLauncher() != null) {
-			parentPath = findNode(bt.getParentLauncher().getFrom());
+		if (bt.getParent() != null) {
+			parentPath = findNode(bt.getParent());
 		} else {
 			parentPath = new TreePath(this.root);
 		}
@@ -573,17 +608,17 @@ public class TaskManagerView extends JSplitPane {
 		return null;
 	}
 	
-	public void displayNewTask(BaseTask task) {
+	public void displayNewTask(TaskOrGroup task) {
 		TreePath dmt = findNode(task);
 		if (dmt != null) {
-			if (task.getStatus() != BaseStatus.Pending) {
-				jtree.setSelectionPath(dmt);
-			}
+//			if (task.getStatus() != TaskGroup.Status.Pending) {
+//				jtree.setSelectionPath(dmt);
+//			}
 			scrollPathToVisible(dmt);
 		}
 	}
 
-	private int getInsertAfterIndex(DefaultMutableTreeNode parent, BaseTask ref) {
+	private int getInsertAfterIndex(DefaultMutableTreeNode parent, TaskOrGroup ref) {
 		int where;
 		if (ref == null) {
 			where = 0;

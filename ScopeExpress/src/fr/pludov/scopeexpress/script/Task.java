@@ -3,9 +3,14 @@ package fr.pludov.scopeexpress.script;
 import java.lang.reflect.*;
 import java.util.*;
 
-/** Tout est executé en synchrone dans le thread swing */
-public abstract class Task {
+import fr.pludov.scopeexpress.utils.*;
 
+/** Tout est executé en synchrone dans le thread swing */
+public abstract class Task implements TaskOrGroup {
+
+	final WeakListenerCollection<TaskStatusListener> statusListeners = new WeakListenerCollection<>(TaskStatusListener.class);
+	final WeakListenerCollection<TaskChildListener> childListeners = new WeakListenerCollection<>(TaskChildListener.class);
+	
 	public enum Status {
 		/** En attente d'initialisation */
 		Pending,
@@ -54,6 +59,7 @@ public abstract class Task {
 		return status;
 	}
 	
+	@Override
 	public boolean isTerminated() {
 		return status == Status.Done;
 	}
@@ -88,9 +94,6 @@ public abstract class Task {
 			}
 		}
 		
-		
-		
-		
 		if (status == Status.Done && onDone != null) {
 			for(Runnable r : onDone) {
 				r.run();
@@ -98,6 +101,17 @@ public abstract class Task {
 			onDone = null;
 		}
 		
+		statusListeners.getTarget().statusChanged();
+		if (wasActive != isActive) {
+			if (isActive) {
+				taskGroup.childListeners.getTarget().childAdded(this);
+			} else {
+				taskGroup.childListeners.getTarget().childRemoved(this);
+			}
+		}
+		if (wasActive && taskGroup.isTerminated()) {
+			taskGroup.statusListeners.getTarget().statusChanged();
+		}
 	}
 
 	public void onDone(Runnable callback) {
@@ -119,16 +133,39 @@ public abstract class Task {
 			onProduced.remove(callback);
 		}
 	}
+
+	@Override
+	public String getTitle() {
+		return "TODO: title";
+	}
 	
-	List<Task> getChilds()
+	@Override
+	public String getStatusIconId() {
+		// FIXME !
+		return "status-running";
+	}
+	
+	@Override
+	public TaskOrGroup getParent() {
+		return parent != null ? parent : taskGroup;
+	}
+	
+	@Override
+	public WeakListenerCollection<TaskStatusListener> getStatusListeners()
 	{
-		List<Task> result = new ArrayList<>();
-		for(Task child : this.taskGroup.allTasks) {
-			if (child.parent == this) {
-				result.add(child);
-			}
-		}
-		return result;
+		return statusListeners;
+	}
+	
+	@Override
+	public WeakListenerCollection<TaskChildListener> getChildListeners()
+	{
+		return childListeners;
+	}
+	
+	@Override
+	public List<Task> getChilds()
+	{
+		return Collections.emptyList();
 	}
 	
 	public Object readProduced() { return null; }
