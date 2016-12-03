@@ -1,20 +1,12 @@
 package fr.pludov.scopeexpress;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.lang.ref.SoftReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.lang.ref.*;
+import java.util.*;
 
-import fr.pludov.io.CameraFrame;
-import fr.pludov.scopeexpress.focus.Histogram;
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.cache.Cache;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.scopeexpress.utils.cache.*;
 
 public class ImageDisplayParameter implements Serializable, Cloneable {
 	
@@ -158,6 +150,7 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 					&& other.channel == this.channel;
 		}
 		
+		@Override
 		public int hashCode() {
 			if (hashCode == -1) {
 				hashCode = channel
@@ -183,6 +176,21 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		public int getChannel() {
 			return channel;
 		}
+
+		public AduLevelMapperId normalize() {
+			if (black <= medium && medium <= maximum) {
+				return this;
+			}
+			double nvmed = medium;
+			if (nvmed < black) {
+				nvmed = black;
+			}
+			double nvmax = maximum;
+			if (nvmax < medium) {
+				nvmax = medium;
+			}
+			return new AduLevelMapperId(black, nvmed, nvmax, channel);
+		}
 	}
 	
 	public class AduLevelMapper
@@ -193,16 +201,8 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 		
 		AduLevelMapper(AduLevelMapperId id)
 		{
-			this.id = id;
+			this.id = id.normalize();
 			
-		}
-		
-		boolean shareParameters(AduLevelMapper other)
-		{
-			return other.id.getBlack() == id.getBlack()
-					&& other.id.getMaximum() == id.getMaximum()
-					&& other.id.getMedium() == id.getMedium()
-					&& other.id.getChannel() == id.getChannel();
 		}
 		
 		void init()
@@ -217,7 +217,6 @@ public class ImageDisplayParameter implements Serializable, Cloneable {
 			// gamma . log((med - black)/(max - black)) = log(0.5)
 			// gamma = log(0.5) / log((med - black)/(max - black))
 			this.gamma = Math.log(0.5) / Math.log((id.getMedium() - id.getBlack()) / (id.getMaximum() - id.getBlack()));
-			System.out.println("gamma = " + gamma);
 			//gamma = 1.0;
 		}
 		
