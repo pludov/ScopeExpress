@@ -1,13 +1,10 @@
 package fr.pludov.scopeexpress.focus;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import org.apache.commons.collections.primitives.ArrayIntList;
-import org.apache.commons.collections.primitives.IntList;
+import org.apache.commons.collections.primitives.*;
 
-import fr.pludov.utils.PerfCounter;
-import fr.pludov.utils.FixedSizeBitSet;
+import fr.pludov.utils.*;
 
 public class BitMask {
 	
@@ -256,9 +253,7 @@ public class BitMask {
 		private int uniqId;
 		private ConnexityGroup mergedInto;
 		
-		private boolean returned;
-		
-		public final IntList pixelPositions;
+		public IntList pixelPositions;
 		
 		public double weight;
 		public double centerx, centery;
@@ -266,8 +261,7 @@ public class BitMask {
 		
 		ConnexityGroup(int uniqId) {
 			this.uniqId = uniqId;
-			this.pixelPositions = new ArrayIntList();
-			this.returned = false;
+			this.pixelPositions = null;
 			this.mergedInto = null;
 		}
 		
@@ -324,7 +318,8 @@ public class BitMask {
 	private static void mergeGroups(List<ConnexityGroup> result, ConnexityGroup c1, ConnexityGroup c2)
 	{
 		c1.mergedInto = c2;
-		c2.pixelPositions.addAll(c1.pixelPositions);
+//		c2.pixelPositions.addAll(c1.pixelPositions);
+//		c1.pixelPositions = null;
 	}
 	
 	public List<ConnexityGroup> calcConnexityGroups()
@@ -371,20 +366,41 @@ public class BitMask {
 				groupsByUniqId.add(c);
 			}
 			
-			c.pixelPositions.add(x);
-			c.pixelPositions.add(y);
+//			c.pixelPositions.add(x);
+//			c.pixelPositions.add(y);
 			
 			groupPos[x + sx * y] = c.uniqId;
 		}
-		
+
+		// Maintenant que tous le monde est mergé, on attribue les pixels aux bon groupes
+		for(ConnexityGroup c :  groupsByUniqId)
+		{
+			if (c == null) continue;
+			ConnexityGroup repl = c.getEffective();
+			if (repl != c) {
+				c.mergedInto = repl;
+			} else {
+				c.pixelPositions = new ArrayIntList();
+			}
+		}
+		for(coords = nextPixel(coords); coords != null; coords = nextPixel(coords))
+		{
+			int x = coords[0];
+			int y = coords[1];
+			
+			int pixelGroup = groupPos[x + y * sx];
+			
+			ConnexityGroup cg = groupsByUniqId.get(pixelGroup).getEffective();
+			cg.pixelPositions.add(x);
+			cg.pixelPositions.add(y);
+		}
+					
 		List<ConnexityGroup> result = new ArrayList<BitMask.ConnexityGroup>(groupsByUniqId.size() - mergeCount);
 		for(ConnexityGroup c :  groupsByUniqId)
 		{
 			if (c == null) continue;
-			if (c.returned) continue;
 			if (c.mergedInto != null) continue;
 			result.add(c);
-			c.returned = true;
 		}
 		
 		return result;
