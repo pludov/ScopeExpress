@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.openphd;
 
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
+import fr.pludov.scopeexpress.scope.*;
 
 public class OpenPhdDeviceIdentifier implements DeviceIdentifier {
 	final String id;
@@ -16,12 +16,12 @@ public class OpenPhdDeviceIdentifier implements DeviceIdentifier {
 
 	@Override
 	public String getStorableId() {
-		return id;
+		return Utils.withProviderId(getProviderId(), id);
 	}
 
 	@Override
 	public boolean matchStorableId(String storedId) {
-		return storedId.equals(id);
+		return storedId.equals(getStorableId());
 	}
 
 	@Override
@@ -51,5 +51,10 @@ public class OpenPhdDeviceIdentifier implements DeviceIdentifier {
 
 	static OpenPhdDeviceIdentifier getInstance() {
 		return new OpenPhdDeviceIdentifier("openphd2.x");
+	}
+	
+	@Override
+	public String getProviderId() {
+		return OpenPhdProvider.openPhdProviderId;
 	}
 }

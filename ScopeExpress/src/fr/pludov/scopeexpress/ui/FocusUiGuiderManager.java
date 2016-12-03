@@ -20,7 +20,7 @@ public class FocusUiGuiderManager extends DeviceManager<OpenPhdDevice> {
 	
 	public FocusUiGuiderManager(FocusUi focusUi)
 	{
-		super(new OpenPhdProvider(), new Labels(), "openphd", focusUi);
+		super(new Labels(), "openphd", focusUi, new OpenPhdProvider());
 	}
 	
 	@Override

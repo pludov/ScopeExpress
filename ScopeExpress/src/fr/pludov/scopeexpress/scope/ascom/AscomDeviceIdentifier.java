@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
+import fr.pludov.scopeexpress.scope.*;
 
 public class AscomDeviceIdentifier implements DeviceIdentifier {
 	String classId;
@@ -19,7 +19,12 @@ public class AscomDeviceIdentifier implements DeviceIdentifier {
 
 	@Override
 	public String getStorableId() {
-		return classId + "#" + title;
+		return Utils.withProviderId(getProviderId(), classId + "#" + title);
+	}
+	
+	@Override
+	public String getProviderId() {
+		return AscomDriverProvider.ascomProviderId;
 	}
 	
 	@Override

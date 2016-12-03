@@ -1,23 +1,17 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
-import org.jawin.COMException;
-import org.jawin.DispatchPtr;
+import org.jawin.*;
 
-import fr.pludov.scopeexpress.platform.windows.Ole;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.DeviceChoosedCallback;
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
-import fr.pludov.scopeexpress.scope.DeviceListedCallback;
-import fr.pludov.scopeexpress.ui.DriverProvider;
-import fr.pludov.scopeexpress.ui.IDeviceBase;
+import fr.pludov.scopeexpress.platform.windows.*;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public abstract class AscomDriverProvider<HARDWARE extends IDeviceBase> implements DriverProvider<HARDWARE>{
-
+	final static String ascomProviderId = "ASCOM";
 	final String ascomType;
 	
 	public AscomDriverProvider(String ascomType)
@@ -131,7 +125,9 @@ public abstract class AscomDriverProvider<HARDWARE extends IDeviceBase> implemen
 	}
 
 	@Override
-	public void chooseDevice(final String prefered, final DeviceChoosedCallback onChoose) {
+	public void chooseDevice(String iPrefered, final DeviceChoosedCallback onChoose) {
+		
+		final String prefered = DeviceIdentifier.Utils.withoutSpecificProviderId(iPrefered, ascomProviderId);
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -141,11 +137,19 @@ public abstract class AscomDriverProvider<HARDWARE extends IDeviceBase> implemen
 
 	}
 	
+	@Override
 	public abstract HARDWARE buildDevice(DeviceIdentifier si);
 
 
 	@Override
+	public String getProviderId() {
+		return ascomProviderId;
+	}
+	
+	@Override
 	public DeviceIdentifier buildIdFor(String storedId) {
+		storedId = AscomDeviceIdentifier.Utils.withoutProviderId(storedId);
+		
 		int dash = storedId.indexOf('#');
 		String classId, title;
 		if (dash != -1) {

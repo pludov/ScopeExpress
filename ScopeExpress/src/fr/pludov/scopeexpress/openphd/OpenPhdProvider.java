@@ -1,14 +1,14 @@
 package fr.pludov.scopeexpress.openphd;
 
-import java.util.Collections;
+import java.util.*;
 
-import fr.pludov.scopeexpress.scope.DeviceChoosedCallback;
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
-import fr.pludov.scopeexpress.scope.DeviceListedCallback;
-import fr.pludov.scopeexpress.ui.DriverProvider;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class OpenPhdProvider implements DriverProvider<OpenPhdDevice>{
 
+	static final String openPhdProviderId = "openphd";
+	
 	public OpenPhdProvider() {
 		// TODO Auto-generated constructor stub
 	}
@@ -35,7 +35,12 @@ public class OpenPhdProvider implements DriverProvider<OpenPhdDevice>{
 
 	@Override
 	public DeviceIdentifier buildIdFor(String storedId) {
+		storedId = OpenPhdDeviceIdentifier.Utils.withoutProviderId(storedId);
 		return new OpenPhdDeviceIdentifier(storedId);
 	}
 
+	@Override
+	public String getProviderId() {
+		return openPhdProviderId;
+	}
 }

@@ -1,23 +1,16 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.List;
+import java.awt.event.*;
+import java.util.*;
 
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.ScopeException;
-import fr.pludov.scopeexpress.scope.ascom.AscomScopeProvider;
-import fr.pludov.scopeexpress.scope.dummy.DummyScope;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
-import fr.pludov.scopeexpress.utils.SkyAlgorithms;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.scope.ascom.*;
+import fr.pludov.scopeexpress.scope.dummy.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
+import fr.pludov.scopeexpress.utils.*;
 
 
 public class FocusUiScopeManager extends DeviceManager<Scope>{
@@ -31,7 +24,7 @@ public class FocusUiScopeManager extends DeviceManager<Scope>{
 	}
 	
 	public FocusUiScopeManager(FocusUi focusUi) {
-		super(new AscomScopeProvider(), new Labels(), "scope", focusUi);
+		super(new Labels(), "scope", focusUi, new AscomScopeProvider());
 	}
 
 	@Override
@@ -59,13 +52,18 @@ public class FocusUiScopeManager extends DeviceManager<Scope>{
 		currentDeviceIdentifier = new DeviceIdentifier() {
 
 			@Override
+			public String getProviderId() {
+				return "fake";
+			}
+			
+			@Override
 			public String getTitle() {
 				return "<dummy>";
 			}
 
 			@Override
 			public String getStorableId() {
-				return "<dummy>";
+				return Utils.withProviderId(getProviderId(), "<dummy>");
 			}
 
 			@Override

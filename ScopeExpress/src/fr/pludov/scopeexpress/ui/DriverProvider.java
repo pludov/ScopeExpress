@@ -1,9 +1,6 @@
 package fr.pludov.scopeexpress.ui;
 
-import fr.pludov.scopeexpress.scope.Scope;
-import fr.pludov.scopeexpress.scope.DeviceChoosedCallback;
-import fr.pludov.scopeexpress.scope.DeviceIdentifier;
-import fr.pludov.scopeexpress.scope.DeviceListedCallback;
+import fr.pludov.scopeexpress.scope.*;
 
 public interface DriverProvider<DRIVER extends IDeviceBase> {
 	/** Liste les scope dispos (attention, c'est asynchrone) */
@@ -17,4 +14,5 @@ public interface DriverProvider<DRIVER extends IDeviceBase> {
 	/** Retourne un identifiant pour la chaine donnée */
 	DeviceIdentifier buildIdFor(String storedId);
 
+	String getProviderId();
 }

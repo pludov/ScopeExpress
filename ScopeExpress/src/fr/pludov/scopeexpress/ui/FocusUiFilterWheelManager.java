@@ -21,7 +21,7 @@ public class FocusUiFilterWheelManager extends DeviceManager<FilterWheel>{
 	}
 	
 	public FocusUiFilterWheelManager(FocusUi focusUi) {
-		super(new AscomFilterWheelProvider(), new Labels(), "filterWheel", focusUi);
+		super(new Labels(), "filterWheel", focusUi, new AscomFilterWheelProvider());
 	}
 
 	@Override

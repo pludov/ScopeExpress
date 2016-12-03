@@ -348,24 +348,34 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 					progressBar.setStringPainted(true);
 					if (currentShoot.getExp() >= 2.0) {
 						int durationsec = (int)Math.floor(currentShoot.getExp());
-						int value = (int)Math.floor((System.currentTimeMillis() - currentShootStart) / 1000);
+						int value;
+						if (currentShootStart != 0) {
+							value = (int)Math.floor((System.currentTimeMillis() - currentShootStart) / 1000);
+						} else {
+							value = 0;
+						}
 						if (value > durationsec) {
 							value = durationsec;
 						}
 						
 						progressBar.setMaximum(durationsec);
 						progressBar.setValue(value);
-						progressBar.setString("Capture: " + value + "s /"+ durationsec);
+						progressBar.setString((currentShootStart != 0 ? "Capture: " + value +"s / " : "Init / ") + durationsec);
 					} else {
 						int durationmsec = (int)Math.floor(currentShoot.getExp() * 1000);
-						long value = System.currentTimeMillis() - currentShootStart;
+						long value;
+						if (currentShootStart != 0) {
+							value = System.currentTimeMillis() - currentShootStart;
+						} else {
+							value = 0;
+						}
 						if (value > durationmsec) {
 							value = durationmsec;
 						}
 						
 						progressBar.setMaximum(durationmsec);
 						progressBar.setValue((int)value);
-						progressBar.setString("Capture: " + value + "ms /"+ durationmsec);
+						progressBar.setString((currentShootStart != 0 ? "Capture: " + value + "ms /" : "Init / ")+ durationmsec);
 					}
 					
 				}

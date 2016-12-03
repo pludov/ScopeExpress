@@ -23,7 +23,7 @@ public class FocusUiFocuserManager extends DeviceManager<Focuser>{
 	}
 	
 	public FocusUiFocuserManager(FocusUi app) {
-		super(new AscomFocuserProvider(), new Labels(), "Focuser", app);
+		super(new Labels(), "Focuser", app, new AscomFocuserProvider());
 	}
 
 	@Override

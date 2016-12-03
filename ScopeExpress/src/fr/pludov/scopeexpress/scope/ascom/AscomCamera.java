@@ -16,7 +16,7 @@ import net.ivoa.fits.*;
 import net.ivoa.fits.hdu.*;
 
 public class AscomCamera extends WorkThread implements Camera {
-	private static final Logger logger = Logger.getLogger(AscomCamera.class);
+	public static final Logger logger = Logger.getLogger(AscomCamera.class);
 
 	final WeakListenerCollection<Camera.Listener> listeners = new WeakListenerCollection<Camera.Listener>(Camera.Listener.class, true);
 	final IWeakListenerCollection<IDriverStatusListener> statusListeners;
@@ -192,28 +192,8 @@ public class AscomCamera extends WorkThread implements Camera {
 					
 					logger.info("Now saving");
 					try {
-						File target = new File(readyImageParameters.getPath() + "/" + readyImageParameters.getFileName());
-						File parent = target.getParentFile();
-						parent.mkdirs();
-						
-						String baseName = target.getName();
-						String ext = ".fits";
-						File targetFile = null;
-						for(int i = 0; i < 10000; ++i) {
-							File f;
-							if (i == 0) {
-								f = new File(parent, baseName + ext);
-							} else {
-								f = new File(parent, baseName + "-" + i + ext);
-							}
-							if (f.createNewFile()) {
-								targetFile = f;
-								break;
-							}
-						}
-						if (targetFile == null) {
-							logger.warn("Unable to create new file for " + baseName);
-						} else {
+						File targetFile = readyImageParameters.createTargetFile(".fits");
+						if (targetFile != null) {
 							try(FileOutputStream fos = new FileOutputStream(targetFile);
 									DataOutputStream dos = new DataOutputStream(fos)){
 								Fits fits = new Fits();

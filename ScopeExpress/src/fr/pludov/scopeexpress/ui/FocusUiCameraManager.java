@@ -1,11 +1,11 @@
 package fr.pludov.scopeexpress.ui;
 
-import javax.swing.JMenuItem;
+import javax.swing.*;
 
-import fr.pludov.scopeexpress.camera.Camera;
-import fr.pludov.scopeexpress.camera.TemperatureAdjusterTask;
-import fr.pludov.scopeexpress.scope.ascom.AscomCameraProvider;
-import fr.pludov.scopeexpress.ui.widgets.ToolbarButton;
+import fr.pludov.scopeexpress.camera.*;
+import fr.pludov.scopeexpress.drivers.gphoto.*;
+import fr.pludov.scopeexpress.scope.ascom.*;
+import fr.pludov.scopeexpress.ui.widgets.*;
 
 
 public class FocusUiCameraManager extends DeviceManager<Camera>{
@@ -21,7 +21,9 @@ public class FocusUiCameraManager extends DeviceManager<Camera>{
 	TemperatureAdjusterTask currentAdjuster;
 	
 	public FocusUiCameraManager(FocusUi focusUi) {
-		super(new AscomCameraProvider(), new Labels(), "camera", focusUi);
+		super(new Labels(), "camera", focusUi, 
+				new AscomCameraProvider(),
+				new GPhotoCameraProvider());
 	}
 
 	@Override

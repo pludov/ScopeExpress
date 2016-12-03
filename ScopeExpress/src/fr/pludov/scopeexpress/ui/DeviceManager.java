@@ -35,20 +35,24 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 	final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 	public final WeakListenerCollection<Listener> listeners; 
 	final FocusUi focusUi;
-	final DriverProvider<HARDWARE> deviceProvider;
+	final List<DriverProvider<HARDWARE>> deviceProviders;
 	HARDWARE device;
 	DeviceIdentifier currentDeviceIdentifier;
 	// Listes des id de device dispo. Si null, non disponible.
-	List<? extends DeviceIdentifier> deviceIdentifiers;
+	List<DeviceIdentifier> deviceIdentifiers;
 	private DeviceChoosedCallback chooser;
 	private DeviceListedCallback lister;
 	
 	final StringConfigItem lastUsedDevice;
-	
-	public DeviceManager(DriverProvider<HARDWARE> provider, Labels labels, String configKeyName, FocusUi focusUi) {
+//	
+//	public DeviceManager(DriverProvider<HARDWARE> provider, Labels labels, String configKeyName, FocusUi focusUi) {
+//		this(labels, configKeyName, focusUi, provider);
+//	}
+
+	public DeviceManager(Labels labels, String configKeyName, FocusUi focusUi, DriverProvider<HARDWARE> ... provider) {
 		this.focusUi = focusUi;
 		this.labels = labels;
-		this.deviceProvider = provider;
+		this.deviceProviders = Arrays.asList(provider);
 		this.device = null;
 		this.currentDeviceIdentifier = null;
 		this.listeners = new WeakListenerCollection<Listener>(Listener.class);
@@ -62,17 +66,31 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		if (lister != null) return;
 		
 		lister = new DeviceListedCallback() {
+			boolean first = true;
+			int expectedCount = deviceProviders.size();
 			
 			@Override
 			public void onDeviceListed(List<? extends DeviceIdentifier> availables) {
 				if (lister != this) return;
-				lister = null;
-				deviceIdentifiers = availables;
+				expectedCount--;
+				if (expectedCount == 0) {
+					lister = null;
+				}
+				if (first) {
+					deviceIdentifiers = new ArrayList<>();
+					first = false;
+				}
+				deviceIdentifiers.addAll(availables);
+				
 				refreshDeviceMenu();
 			}
 		};
 		
-		this.deviceProvider.listDevices(lister);
+		for(DriverProvider<HARDWARE> dp : deviceProviders) 
+		{
+			dp.listDevices(lister);
+		}
+		
 	}
 
 	private void actionDeconnecter()
@@ -90,8 +108,19 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 	{
 		if (this.device != null) return;
 		if (this.chooser != null) return;
+		
+		boolean found = false;
+		for(DriverProvider<HARDWARE> dp : this.deviceProviders)
+		{
+			if (dp.getProviderId().equals(si.getProviderId())) {
+				device = dp.buildDevice(si);
+				found = true;
+			}
+		}
+		if (!found) {
+			return;
+		}
 		lastUsedDevice.set(si.getStorableId());
-		device = deviceProvider.buildDevice(si);
 		currentDeviceIdentifier = si;
 		initDevice();
 	}
@@ -151,6 +180,16 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		this.listeners.getTarget().onDeviceChanged();
 	}
 	
+	private DriverProvider<HARDWARE> getProviderForClass(String clazz)
+	{
+		for(DriverProvider<HARDWARE> dp : this.deviceProviders) {
+			if (dp.getProviderId().equals(clazz)) {
+				return dp;
+			}
+		}
+		return null;
+	}
+	
 	private DeviceIdentifier getIdFor(String storedId)
 	{
 		if (this.deviceIdentifiers != null) {
@@ -160,14 +199,23 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 				}
 			}
 		}
-		return deviceProvider.buildIdFor(storedId);
+		
+		String provider = DeviceIdentifier.Utils.getProviderId(storedId);
+		DriverProvider<HARDWARE> dp = getProviderForClass(provider);
+		if (dp == null) {
+			return null;
+		}
+		
+		return dp.buildIdFor(storedId);
 	}
 
 
-	private void actionChoose()
+	private void actionChoose(DriverProvider<HARDWARE> dp)
 	{
 		if (device != null) return;
 		if (chooser != null) return;
+		if (!dp.canChooseScope()) return;
+		
 		chooser = new DeviceChoosedCallback() {
 			
 			@Override
@@ -182,7 +230,7 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 				quickConnect();
 			}
 		};
-		deviceProvider.chooseDevice(lastUsedDevice.get(), chooser);
+		dp.chooseDevice(lastUsedDevice.get(), chooser);
 	}
 	
 	// Connecte au dernier device, ou lance le chooser
@@ -192,9 +240,14 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 		String idOfLastUsedDevice = lastUsedDevice.get();
 		if (idOfLastUsedDevice == null || "".equals(idOfLastUsedDevice)) {
 			// Il faut lancer le chooser
-			actionChoose();
+			actionChoose(this.deviceProviders.get(0));
 		} else {
-			actionConnecter(getIdFor(idOfLastUsedDevice));
+			DeviceIdentifier dp = getIdFor(idOfLastUsedDevice);
+			if (dp != null) {
+				actionConnecter(dp);
+			} else {
+				actionChoose(this.deviceProviders.get(0));
+			}
 		}
 	}
 
@@ -338,36 +391,41 @@ public abstract class DeviceManager<HARDWARE extends IDeviceBase> {
 					
 	
 					String lastUsed = lastUsedDevice.get();
+					DeviceIdentifier lastUsedId;
 					if (deviceIdentifiers != null) {
 						for(final DeviceIdentifier si : deviceIdentifiers) {
 							JMenuItem activate = buildActivateDeviceIdMenuItem(lastUsed, si);
 							result.add(activate);
 						}
-					} else if (lastUsed != null && !lastUsed.equals("")) {
+					} else if (lastUsed != null && !lastUsed.equals("") && (lastUsedId = getIdFor(lastUsed)) != null) {
 						// Reconnection au dernier
-						JMenuItem activate = buildActivateDeviceIdMenuItem(lastUsed, deviceProvider.buildIdFor(lastUsed));
+						JMenuItem activate = buildActivateDeviceIdMenuItem(lastUsed, lastUsedId);
 						result.add(activate);
 					}
 	
 					// Accès au chooser
-					JMenuItem chooserMnu = new JMenuItem(labels.CHOOSE);
-					result.add(chooserMnu);
-					register(new StatusControler<JMenuItem>(chooserMnu) {
-						@Override
-						void update(JMenuItem o) {
-							o.setEnabled(device == null && chooser == null);
+					for(DriverProvider<HARDWARE> dp : deviceProviders) {
+						if (dp.canChooseScope()) {
+							JMenuItem chooserMnu = new JMenuItem(labels.CHOOSE);
+							result.add(chooserMnu);
+							register(new StatusControler<JMenuItem>(chooserMnu) {
+								@Override
+								void update(JMenuItem o) {
+									o.setEnabled(device == null && chooser == null);
+								}
+								
+								@Override
+								void reportError(Throwable t) {
+								}
+							});
+							chooserMnu.addActionListener(new ActionListener() {
+								@Override
+								public void actionPerformed(ActionEvent e) {
+									actionChoose(dp);
+								};
+							});
 						}
-						
-						@Override
-						void reportError(Throwable t) {
-						}
-					});
-					chooserMnu.addActionListener(new ActionListener() {
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							actionChoose();
-						};
-					});
+					}
 					
 					if (controlerDialog != null) {
 						JMenuItem controler = new JMenuItem(labels.CONTROLER);
