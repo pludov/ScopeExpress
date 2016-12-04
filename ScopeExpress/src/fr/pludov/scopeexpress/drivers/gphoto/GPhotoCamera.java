@@ -192,6 +192,8 @@ public class GPhotoCamera implements Camera {
 				p.noError(p.doCommand("set-config output 1"));
 				
 				sleepOrAbort(2000, ()->{
+					rsi.setAborted();
+					listeners.getTarget().onShootProgress();
 					p.doCommand("set-config output 0");
 					p.trashEvents();
 				});
@@ -199,15 +201,18 @@ public class GPhotoCamera implements Camera {
 				// FIXME : wait bulb start event ?
 				long t = System.currentTimeMillis();
 				rsi.setStartTime(t);
+				listeners.getTarget().onShootProgress();
 				long elapsed = System.currentTimeMillis() - t;
 				long toSleep = ms - elapsed;
 				if (toSleep > 0) {
 					System.out.println("Sleeping :" + toSleep);
 					sleepOrAbort(toSleep, ()->{
+						rsi.setAborted();
+						listeners.getTarget().onShootProgress();
 						p.doCommand("set-config bulb 0", "set-config output 0");
 						p.trashEvents();
 					});
-				} else {
+				} else if (toSleep > 5) {
 					System.out.println("Too late :" + toSleep);
 				}
 				CommandResult cr = p.doCommand("set-config bulb 0",

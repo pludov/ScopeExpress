@@ -21,6 +21,8 @@ public interface Camera extends IDeviceBase {
 		
 		default void onShootStarted(RunningShootInfo currentShoot) {};
 
+		default void onShootProgress() {};
+		
 		/** Interrupted suite à un cancelCurrentShoot */
 		default void onShootInterrupted() {};
 		

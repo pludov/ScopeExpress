@@ -6,7 +6,7 @@ import fr.pludov.scopeexpress.scope.ascom.*;
 
 public class RunningShootInfo extends ShootParameters {
 	long startTime;
-	
+	boolean aborted;
 
 	public RunningShootInfo(ShootParameters parameters) {
 		super(parameters);
@@ -45,4 +45,12 @@ public class RunningShootInfo extends ShootParameters {
 		return targetFile;
 	}
 
+	public boolean aborted() {
+		return aborted;
+	}
+
+	public void setAborted()
+	{
+		this.aborted = true;
+	}
 }

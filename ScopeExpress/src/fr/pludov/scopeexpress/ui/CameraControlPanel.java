@@ -268,6 +268,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			btnShoot.setVisible(!hasCamera || (hasCamera && currentShoot == null));
 			btnShoot.setEnabled(hasCamera);
 			btnInterrupt.setVisible(hasCamera && currentShoot != null);
+			btnInterrupt.setEnabled(hasCamera && currentShoot != null && !currentShoot.aborted());
 			
 			// lblExp.setVisible(hasCamera);
 			lblExp.setEnabled(hasCamera);
@@ -346,7 +347,13 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				} else {
 					long currentShootStart = currentShoot.getStartTime();
 					progressBar.setStringPainted(true);
-					if (currentShoot.getExp() >= 2.0) {
+					if (currentShoot.aborted()) {
+						exposureTimer.stop();
+						
+						progressBar.setString("Annulation");
+						progressBar.setValue(0);
+						progressBar.setMaximum(0);
+					} else if (currentShoot.getExp() >= 2.0) {
 						int durationsec = (int)Math.floor(currentShoot.getExp());
 						int value;
 						if (currentShootStart != 0) {
@@ -524,6 +531,13 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 					exposureTimer.start();
 					loadParameters(rsi);
 				}
+				
+				@Override
+				public void onShootProgress()
+				{
+					refresh();
+				}
+				
 				@Override
 				public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
 					if (saveNextShoot && generatedFits != null) {
