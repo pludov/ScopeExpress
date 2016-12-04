@@ -526,7 +526,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				}
 				@Override
 				public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
-					if (saveNextShoot) {
+					if (saveNextShoot && generatedFits != null) {
 						NotificationChannel.Photo.emit("Chargement de " + generatedFits.getName());
 						addImage(generatedFits);
 					}

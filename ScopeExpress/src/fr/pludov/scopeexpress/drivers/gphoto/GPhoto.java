@@ -3,6 +3,7 @@ package fr.pludov.scopeexpress.drivers.gphoto;
 import java.io.*;
 import java.lang.ProcessBuilder.*;
 import java.util.*;
+import java.util.regex.*;
 
 import fr.pludov.scopeexpress.camera.*;
 
@@ -15,6 +16,8 @@ public class GPhoto {
 	InputStreamReader stdout;
 	
 	boolean connected;
+
+	String lastCamStatus;
 	
 	public GPhoto() {
 		
@@ -41,13 +44,17 @@ public class GPhoto {
 		forceStartRunnable(() -> { 
 			gphoto = pb.start();
 
-			waitInit();
+			try {
+				waitInit();
+			} catch (CameraException e) {
+				throw new IOException("Initialisation failed", e);
+			}
 			onReady.run();
 		});
 	}
 	
-	String pathRequest = "cd /";
-	String pathExpect = "Remote directory now '/'.";
+	String pathRequest = "lcd /";
+	String pathExpect = "Local directory now '/'.\n";
 
 	void send(String command) throws IOException
 	{
@@ -66,17 +73,6 @@ public class GPhoto {
 		
 	
 	}
-//	class MegaBufferedInputStream extends BufferedInputStream {
-//
-//		public MegaBufferedInputStream(InputStream in) {
-//			super(in);
-//			super.in;
-//			
-//		}
-//		static InputStream getUnbuffered(BufferedInputStream bus) {
-//		}
-//	
-//	}
 	
 	byte [] content;
 	int end;
@@ -96,7 +92,7 @@ public class GPhoto {
 			if (pc != cc) return false;
 		}
 		if (end > l + offset) {
-			if (content[(4096 + end - pattern.length() - 1) % 4096] != '\n') {
+			if (content[(4096 + end - pattern.length() - 1 - offset) % 4096] != '\n') {
 				return false;
 			}
 		}
@@ -134,6 +130,16 @@ public class GPhoto {
 		public String label;
 		public String current;
 		List<String> choices;
+		List<String> data;
+		
+		public boolean hasData() {
+			return data != null && !data.isEmpty();
+		}
+
+		public void addData(String data2) {
+			if (data == null) data = new ArrayList<>();
+			data.add(data2);
+		}
 		
 	}
 	
@@ -163,47 +169,83 @@ public class GPhoto {
 	
 	interface GPhotoJob {
 		public void run() throws IOException, InterruptedException;
-		
 	}
 	
-	GPhotoJob running;
+	interface GPhotoCancelableJob extends GPhotoJob {
+		/** Appellé quand le job n'a pas pu démarrer */
+		public void canceled();
+	}
 	
-	synchronized void startRunnable(GPhotoJob r) throws CameraException
+	private GPhotoJob running;
+	private final List<GPhotoJob> nexts = new LinkedList<>();
+	
+	synchronized GPhotoJob getRunning()
 	{
-		if (running != null) {
-			throw new CameraException("Busy");
-		}
+		return running;
+	}
+
+	// Démarrer ou met en file d'attente.
+	synchronized void startRunnable(GPhotoJob r)
+	{
 		forceStartRunnable(r);
 	}
 	
-	private void forceStartRunnable(GPhotoJob r) {
-		running = r;
+	private synchronized void forceStartRunnable(GPhotoJob r) {
+		nexts.add(r);
+		if (running != null) {
+			return;
+		}
 		
 		new Thread(()->{
-			try {
-				r.run();
-			} catch(IOException | InterruptedException e) {
-				e.printStackTrace();
-				gphoto.destroy();
-			} finally {
-				synchronized(GPhoto.this) {
-					if (running == r) {
+			
+			GPhotoJob toRun;
+			while(true)
+			{
+				synchronized(GPhoto.this)
+				{
+					if (!nexts.isEmpty()) {
+						running = nexts.remove(0);
+					} else {
 						running = null;
+						return;
+					}
+					toRun = running;
+				}
+				
+				try {
+					toRun.run();
+				} catch(IOException | InterruptedException e) {
+					e.printStackTrace();
+
+					kill();
+					
+					synchronized(GPhoto.this)
+					{
+						running = null;
+						for(GPhotoJob job : nexts) {
+							if (job instanceof GPhotoCancelableJob) {
+								((GPhotoCancelableJob)job).canceled();
+							}
+						}
+						nexts.clear();
+						
+						return;
 					}
 				}
 			}
-			
 		}).start();
 		
 	}
-//	
-//	synchronized void startShoot(RunningShootInfo rsi) throws CameraException
-//	{
-//		startRunnable(()-> {
-//			doShoot(rsi);	
-//		});
-//		
-//	}
+
+	String extractString(int startOffset, int endOffset)
+	{
+		StringBuilder errorStr = new StringBuilder();
+		while(startOffset > endOffset) {
+			errorStr.append((char)lastChar(startOffset));
+			startOffset --;
+		}
+		return errorStr.toString();
+	}
 	
 	CommandResult expect(String expectStr) throws IOException
 	{
@@ -238,19 +280,16 @@ public class GPhoto {
 				System.out.println("error ?");
 				int startOffset = 4;
 				
-				while(startOffset < content.length && !finishByNewLine("*** ", startOffset)) {
+				while(startOffset < content.length && startOffset < end && !finishByNewLine("*** ", startOffset)) {
 					startOffset ++;
 				}
-				startOffset -= 4;
-				StringBuilder errorStr = new StringBuilder();
-				while(startOffset > 4) {
-					errorStr.append((char)lastChar(startOffset));
-					startOffset --;
-				}
-				System.out.println("Error: " + errorStr);
+				startOffset --;
+				String errorStr = extractString(startOffset, 4);
+				System.out.println("error:" + errorStr);
 				if (result.error == null) {
-					result.error = errorStr.toString();
+					result.error = errorStr;
 				}
+				continue;
 			}
 			
 			if (	finishBy("CR\u0002")
@@ -299,13 +338,36 @@ public class GPhoto {
 				try(FileOutputStream fos = new FileOutputStream("c:\\tmp\\test.cr2")) {
 					fos.write(buff);
 				}
-				result.cr2 = buff;				
+				result.cr2 = buff;
+				// Retirer le début du CR2
+				end -= 8 + 3;
+				continue;
 			}
 			
 			if (finishBy(expectStr)) {
 				System.out.println("found: " + expectStr);
 				return result;
 			}
+			
+			if (finishBy("\n")) {
+				int lineLength = 1;
+				while(lineLength < end && lineLength < content.length &&  !finishByNewLine("", lineLength)) {
+					lineLength ++;
+				}
+				String data = extractString(lineLength - 1, 0);
+				if (!data.startsWith("gphoto2: {")) {
+					System.out.println("Got data: " + data);
+					
+					Pattern camStatus = Pattern.compile("Camera Status (\\d+)$");
+					Matcher m = camStatus.matcher(data);
+					if (m.find()) {
+						lastCamStatus = m.group(1);
+						System.out.println("Cam status is now " + lastCamStatus);
+					}
+					result.addData(data);
+				}
+			}
+			
 		}
 		
 	}
@@ -314,32 +376,50 @@ public class GPhoto {
 	
 	CommandResult doCommand(String ... batch) throws IOException 
 	{
-		StringBuilder toSend = new StringBuilder();
-		for(String b : batch) {
-			toSend.append(b);
+		long start = System.currentTimeMillis();
+		try {
+			StringBuilder toSend = new StringBuilder();
+			for(String b : batch) {
+				toSend.append(b);
+				toSend.append("\n");
+			}
+			toSend.append(pathRequest);
 			toSend.append("\n");
+			send(toSend.toString());
+			return expect(pathExpect);
+		} finally {
+			System.out.println("command " + Arrays.asList(batch) + " done in " + (System.currentTimeMillis() - start) + "ms");
 		}
-		toSend.append(pathRequest);
-		toSend.append("\n");
-		send(toSend.toString());
-		return expect(pathExpect);
-		
 	}
 	
-	void waitInit() throws IOException, InterruptedException
+	CommandResult noError(CommandResult cr) throws CameraException
 	{
-		expect("Model");
-		doCommand("set-config uilock 1");
-		doCommand("get-config shutterspeed");
-		doCommand("set-config shutterspeed bulb");
-//		doCommand("wait-event 10s");
-//		doCommand("wait-event 10s");
-//		doCommand("wait-event 10s");
-//		doCommand("wait-event 10s");
-		doCommand("set-config imageformat RAW");
-		doCommand("set-config capturetarget 0");
+		if (cr.error != null) {
+			throw new CameraException("Camera error: " + cr.error);
+		}
+		return cr;
+	}
+	
+	void waitInit() throws IOException, InterruptedException, CameraException
+	{
+		noError(expect("Model"));
+		CommandResult cr;
+		int cpt = 0;
+		while(noError(doCommand("wait-event 0s")).hasData()) {
+			if (cpt++ > 100) {
+				throw new IOException("Too many event to flush");
+			}
+		};
+//		noError(doCommand("set-config uilock 0"));
+
+		noError(doCommand("set-config uilock 0"));
+		noError(doCommand("set-config uilock 1"));
+		noError(doCommand("get-config shutterspeed"));
+		noError(doCommand("set-config shutterspeed bulb"));
+		noError(doCommand("set-config imageformat RAW"));
+		noError(doCommand("set-config capturetarget 0"));
 		
-		doCommand("get-config battery-level");
+		noError(doCommand("get-config battery-level"));
 		
 		connected = true;
 		// doShoot(500);
@@ -397,18 +477,76 @@ public class GPhoto {
 		GPhoto gp = new GPhoto();
 		try {
 			gp.startProcess(()->{});
-			gp.waitInit();
-		}catch (IOException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
+		}catch (Exception e) {
 			e.printStackTrace();
 		}
 
 	}
 
 	public void kill() {
-		gphoto.destroy();
+		Process p = gphoto;
+		connected = false;
+		if (p != null) {
+			gphoto = null;
+			p.destroy();
+			try {
+				p.getErrorStream().close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				p.getInputStream().close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			try {
+				p.getOutputStream().close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/** Ecoute les evenements 
+	 * @throws IOException 
+	 * @throws CameraException */
+	public void trashEvents() throws IOException {
+		int cpt = 0;
+		CommandResult cr;
+		try {
+			int consecutiveCamBusy = 0;
+			long consecutiveCamBusyStart = 0L;
+			while((cr = noError(doCommand("wait-event 1s"))).hasData() || "1".equals(lastCamStatus)) {
+				if ("1".equals(lastCamStatus)) {
+					if (consecutiveCamBusy == 0) {
+						consecutiveCamBusyStart = System.currentTimeMillis();		
+					}
+					// On a un camera status 1 en attente. Il faut attendre un peu plus...
+					consecutiveCamBusy++;
+					// On attend jusque 5 secondes !
+					if (System.currentTimeMillis() > consecutiveCamBusyStart + 20000) {
+						// FIXME: erreur de protocole ? La cam devrait être réinitialisée ?
+						// On peut peut être essayer de faire un reset en gphoto ?
+						throw new IOException("Camera failed to become idle within 20s");
+					}
+				}
+				
+				for(String s : cr.data) {
+					if (s.startsWith("FILEADDED ")) {
+						System.err.println("file added : " + s);
+					}
+				}
+					
+				if (cpt++ > 100) {
+					throw new IOException("Too many event to flush");
+				}
+			};
+		} catch(CameraException e) {
+			throw new IOException("Protocol error", e);
+		}
 	}
 }
 
