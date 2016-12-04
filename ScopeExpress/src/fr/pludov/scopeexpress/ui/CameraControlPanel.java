@@ -295,7 +295,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				exposureTimer.stop();
 				
 				progressBar.setValue(0);
-				progressBar.setString("Déconnecté");
+				progressBar.setString(camera != null ? "Connection..." : "Déconnecté");
 				
 				btnTemp.setStatus(AbstractIconButton.Status.DEFAULT);
 				btnTemp.setToolTipText(null);

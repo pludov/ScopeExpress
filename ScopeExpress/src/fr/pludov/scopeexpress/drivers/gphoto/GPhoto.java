@@ -18,12 +18,13 @@ public class GPhoto {
 	boolean connected;
 
 	String lastCamStatus;
+	String model;
 	
 	public GPhoto() {
 		
 	}
 
-	void startProcess(Runnable onReady)
+	void startProcess() throws IOException
 	{
 		List<String> args = new ArrayList<>();
 		
@@ -40,18 +41,23 @@ public class GPhoto {
 		pb.environment().put("LANG", "C");
 		pb.environment().put("nodosfilewarning", "true");
 		pb.redirectError(Redirect.INHERIT);
-		
-		forceStartRunnable(() -> { 
-			gphoto = pb.start();
 
-			try {
-				waitInit();
-			} catch (CameraException e) {
-				throw new IOException("Initialisation failed", e);
-			}
-			onReady.run();
-		});
+		gphoto = pb.start();
 	}
+	
+//	void startProcess(Runnable onReady)
+//	{
+//		
+//		forceStartRunnable(() -> { 
+//
+//			try {
+//				waitInit();
+//			} catch (CameraException e) {
+//				throw new IOException("Initialisation failed", e);
+//			}
+//			onReady.run();
+//		});
+//	}
 	
 	String pathRequest = "lcd /";
 	String pathExpect = "Local directory now '/'.\n";
@@ -403,7 +409,16 @@ public class GPhoto {
 	void waitInit() throws IOException, InterruptedException, CameraException
 	{
 		noError(expect("Model"));
-		CommandResult cr;
+		CommandResult cr = noError(doCommand(""));
+		if (cr.hasData() && cr.data.size() >= 3) {
+			model = cr.data.get(2);
+			if (model.length() > 31) {
+				model = model.substring(0, 31);
+			}
+			model = model.trim();
+			System.out.println("model = " + model);
+		}
+		
 		int cpt = 0;
 		while(noError(doCommand("wait-event 0s")).hasData()) {
 			if (cpt++ > 100) {
@@ -478,7 +493,8 @@ public class GPhoto {
 	public static void main(String[] args) {
 		GPhoto gp = new GPhoto();
 		try {
-			gp.startProcess(()->{});
+			gp.startProcess();
+			gp.waitInit();
 		}catch (Exception e) {
 			e.printStackTrace();
 		}

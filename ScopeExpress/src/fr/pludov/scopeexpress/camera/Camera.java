@@ -17,6 +17,8 @@ public interface Camera extends IDeviceBase {
 		/** Lorsque l'état de la connection change */
 		default void onConnectionStateChanged() {};
 		
+		default void onConnectionError(Throwable t) {};
+		
 		default void onShootStarted(RunningShootInfo currentShoot) {};
 
 		/** Interrupted suite à un cancelCurrentShoot */

@@ -19,6 +19,7 @@ public class GPhotoCamera implements Camera {
 	final IWeakListenerCollection<IDriverStatusListener> statusListeners;
 
 	GPhoto currentProcess;
+	volatile CameraProperties cameraProperties;
 	/** Modifié en asynhchrone par les thread de traitement (GPhotoJob) */
 	volatile boolean lastConnected;
 	/** Repositionné à null  en asynhchrone par les thread de traitement (GPhotoJob) */
@@ -33,6 +34,12 @@ public class GPhotoCamera implements Camera {
 					public void onConnectionStateChanged() {
 						i.onConnectionStateChanged();
 					}
+
+					@Override
+					public void onConnectionError(Throwable message) {
+						i.onConnectionError(message);
+					}
+					
 					@Override
 					public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
 					}
@@ -98,7 +105,36 @@ public class GPhotoCamera implements Camera {
 	@Override
 	public void start() {
 		currentProcess = new GPhoto();
-		currentProcess.startProcess(()-> {
+		currentProcess.startRunnable(()-> {
+			try {
+				currentProcess.startProcess();
+			
+				try {
+					currentProcess.waitInit();
+
+					CameraProperties result = new CameraProperties();
+					result.setCanAbortExposure(true);
+					result.setCanFastReadout(false);
+					result.setCanGetCoolerPower(false);
+					result.setCanSetCCDTemperature(false);
+					result.setCanStopExposure(true);
+					result.setMaxBin(1);
+					result.setSensorName(currentProcess.model != null ? currentProcess.model : "Unknown model");
+					
+					cameraProperties = result;
+
+				} catch (CameraException e) {
+					throw new IOException("Initialisation failed", e);
+				}
+
+			} catch(Throwable t) {
+				t.printStackTrace();
+				// statusListeners.
+				listeners.getTarget().onConnectionError(t);
+				lastConnected = false;
+				listeners.getTarget().onConnectionStateChanged();
+				return;
+			}
 			lastConnected = true;
 			listeners.getTarget().onConnectionStateChanged();
 		});
@@ -160,7 +196,7 @@ public class GPhotoCamera implements Camera {
 					p.trashEvents();
 				});
 				p.noError(p.doCommand("set-config bulb 1"));
-				
+				// FIXME : wait bulb start event ?
 				long t = System.currentTimeMillis();
 				rsi.setStartTime(t);
 				long elapsed = System.currentTimeMillis() - t;
@@ -247,16 +283,7 @@ public class GPhotoCamera implements Camera {
 
 	@Override
 	public CameraProperties getProperties() {
-		CameraProperties result = new CameraProperties();
-		result.setCanAbortExposure(true);
-		result.setCanFastReadout(false);
-		result.setCanGetCoolerPower(false);
-		result.setCanSetCCDTemperature(false);
-		result.setCanStopExposure(true);
-		result.setMaxBin(1);
-		result.setSensorName("GPHOTO ???");
-		
-		return result;
+		return cameraProperties;
 	}
 
 	@Override
