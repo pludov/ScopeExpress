@@ -124,7 +124,7 @@ public class GPhotoCamera implements Camera {
 					cameraProperties = result;
 
 				} catch (CameraException e) {
-					throw new IOException("Initialisation failed", e);
+					throw new IOException("Initialisation failed: " + e.getMessage(), e);
 				}
 
 			} catch(Throwable t) {

@@ -553,8 +553,11 @@ public class GPhoto {
 				}
 				
 				for(String s : cr.data) {
-					if (s.startsWith("FILEADDED ")) {
-						System.err.println("file added : " + s);
+					Pattern fileAdded = Pattern.compile("^FILEADDED (.*) /");
+					Matcher m = fileAdded.matcher(s);
+					if (m.matches()) {
+						System.err.println("dropping file added : " + m.group(1));
+						doCommand("delete " + m.group(1));
 					}
 				}
 					
