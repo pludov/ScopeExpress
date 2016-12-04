@@ -410,9 +410,11 @@ public class GPhoto {
 				throw new IOException("Too many event to flush");
 			}
 		};
-//		noError(doCommand("set-config uilock 0"));
 
-		noError(doCommand("set-config uilock 0"));
+		// On ignore les erreur sur les deux premies 
+		// (ils permettent de faire réussir le uilock 1, mais parfois ils lancent un busy)
+		doCommand("set-config capture 0");
+		doCommand("set-config uilock 0");
 		noError(doCommand("set-config uilock 1"));
 		noError(doCommand("get-config shutterspeed"));
 		noError(doCommand("set-config shutterspeed bulb"));
@@ -420,7 +422,7 @@ public class GPhoto {
 		noError(doCommand("set-config capturetarget 0"));
 		
 		noError(doCommand("get-config battery-level"));
-		
+		trashEvents();
 		connected = true;
 		// doShoot(500);
 //		doCommand("set-config output 1", 
