@@ -42,29 +42,7 @@ public class AscomCamera extends WorkThread implements Camera {
 
 	public AscomCamera(String driver) {
 		super();
-		statusListeners = new SubClassListenerCollection<IDriverStatusListener, Camera.Listener>(listeners) {
-			@Override
-			protected Camera.Listener createListenerFor(final IDriverStatusListener i) {
-				return new Camera.Listener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-					@Override
-					public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
-					}
-					@Override
-					public void onShootStarted(RunningShootInfo shootInfo) {
-					}
-					@Override
-					public void onShootInterrupted() {
-					}
-					@Override
-					public void onTempeatureUpdated() {
-					}
-				};
-			}
-		};
+		statusListeners = new SubClassListenerCollection<IDriverStatusListener, Camera.Listener>(listeners, IDriverStatusListener.class, Camera.Listener.class);
 		this.driver = driver;
 		this.lastConnected = false;
 	}
@@ -298,7 +276,7 @@ public class AscomCamera extends WorkThread implements Camera {
 	}
 
 	// Quand cette méthode retourne, 
-	protected void chooseDevice() throws CancelationException
+	protected void chooseDevice() throws CancelationException, Throwable
 	{
 		try {
 			Ole.initOle();
@@ -323,7 +301,7 @@ public class AscomCamera extends WorkThread implements Camera {
 			camera = null;
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
-			return;
+			throw e;
 		}
 	}
 	
@@ -349,6 +327,7 @@ public class AscomCamera extends WorkThread implements Camera {
 			}
 			
 			t.printStackTrace();
+			this.listeners.getTarget().onConnectionError(t);
 			return;
 		}
 		

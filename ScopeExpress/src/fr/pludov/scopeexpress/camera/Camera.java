@@ -13,12 +13,7 @@ public interface Camera extends IDeviceBase {
 		private static final Logger logger = Logger.getLogger(Camera.class);
 	}
 	
-	public static interface Listener {
-		/** Lorsque l'état de la connection change */
-		default void onConnectionStateChanged() {};
-		
-		default void onConnectionError(Throwable t) {};
-		
+	public static interface Listener extends IDriverStatusListener {
 		default void onShootStarted(RunningShootInfo currentShoot) {};
 
 		default void onShootProgress() {};

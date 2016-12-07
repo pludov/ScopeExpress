@@ -25,24 +25,7 @@ public class AscomScope extends WorkThread implements Scope {
 		this.driver = driver;
 		this.lastNotifiedDec = Double.NaN;
 		this.lastNotifiedRa = Double.NaN;
-		this.statusListener = new SubClassListenerCollection<IDriverStatusListener, Scope.Listener>(this.listeners) {
-
-			@Override
-			protected Listener createListenerFor(final IDriverStatusListener i) {
-				return new Listener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-					@Override
-					public void onConnectionError(Throwable message) {
-					}
-					@Override
-					public void onCoordinateChanged() {
-					}
-				};
-			}
-		};
+		this.statusListener = new SubClassListenerCollection<IDriverStatusListener, Scope.Listener>(this.listeners, IDriverStatusListener.class, Scope.Listener.class);
 	}
 	
 	@Override
@@ -206,7 +189,7 @@ public class AscomScope extends WorkThread implements Scope {
 	}
 	
 	// Quand cette méthode retourne, 
-	protected void chooseScope() throws CancelationException
+	protected void chooseScope() throws CancelationException, Throwable
 	{
 		try {
 			Ole.initOle();
@@ -240,7 +223,7 @@ public class AscomScope extends WorkThread implements Scope {
 //			releaseOle();
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
-			return;
+			throw e;
 		}
 	}
 	
@@ -256,6 +239,7 @@ public class AscomScope extends WorkThread implements Scope {
 			}
 			
 			t.printStackTrace();
+			this.listeners.getTarget().onConnectionError(t);
 			return;
 		}
 		

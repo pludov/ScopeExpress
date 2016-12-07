@@ -12,12 +12,11 @@ public interface FilterWheel extends IDeviceBase {
 	}
 	
 	/** Les notifications ne sont pas reçues dans le thread swing */
-	public static interface Listener {
+	public static interface Listener extends IDriverStatusListener{
 		/** Emis suite à un ordre de déplacement qui se termine */
 		void onMoveEnded();
 		/** Emis periodiquement tant que la roue à filtre est en cours de mouvement */
 		void onMoving();
-		void onConnectionStateChanged();
 	}
 	
 	WeakListenerCollection<Listener> getListeners();

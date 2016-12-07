@@ -1,7 +1,7 @@
 package fr.pludov.scopeexpress.ui;
 
 public interface IDriverStatusListener {
-	void onConnectionStateChanged();
+	default void onConnectionStateChanged() {};
 	// Purement informatif
-	void onConnectionError(Throwable message);
+	default void onConnectionError(Throwable message) {};
 }

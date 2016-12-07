@@ -1,22 +1,15 @@
 package fr.pludov.scopeexpress.scope.ascom;
 
-import java.util.Objects;
+import java.util.*;
 
-import org.apache.log4j.Logger;
-import org.jawin.COMException;
-import org.jawin.DispatchPtr;
+import org.apache.log4j.*;
+import org.jawin.*;
 
-import fr.pludov.scopeexpress.async.CancelationException;
-import fr.pludov.scopeexpress.filterwheel.FilterWheel;
-import fr.pludov.scopeexpress.filterwheel.FilterWheelException;
-import fr.pludov.scopeexpress.focuser.Focuser;
-import fr.pludov.scopeexpress.focuser.FocuserException;
-import fr.pludov.scopeexpress.platform.windows.Ole;
-import fr.pludov.scopeexpress.ui.IDriverStatusListener;
-import fr.pludov.scopeexpress.utils.IWeakListenerCollection;
-import fr.pludov.scopeexpress.utils.SubClassListenerCollection;
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.scopeexpress.utils.WorkThread;
+import fr.pludov.scopeexpress.async.*;
+import fr.pludov.scopeexpress.filterwheel.*;
+import fr.pludov.scopeexpress.platform.windows.*;
+import fr.pludov.scopeexpress.ui.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class AscomFilterWheel extends WorkThread implements FilterWheel {
 	private static final Logger logger = Logger.getLogger(AscomFilterWheel.class);
@@ -37,23 +30,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 
 	public AscomFilterWheel(String driver) {
 		super();
-		statusListeners = new SubClassListenerCollection<IDriverStatusListener, FilterWheel.Listener>(listeners) {
-			@Override
-			protected FilterWheel.Listener createListenerFor(final IDriverStatusListener i) {
-				return new FilterWheel.Listener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-					@Override
-					public void onMoveEnded() {
-					}
-					@Override
-					public void onMoving() {
-					}
-				};
-			}
-		};
+		statusListeners = new SubClassListenerCollection<IDriverStatusListener, FilterWheel.Listener>(listeners, IDriverStatusListener.class, FilterWheel.Listener.class);
 		this.driver = driver;
 		this.lastConnected = false;
 		this.lastPosition = null;	
@@ -175,7 +152,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 	
 
 	// Quand cette méthode retourne, 
-	protected void chooseFocuser() throws CancelationException
+	protected void chooseFocuser() throws CancelationException, Throwable
 	{
 		try {
 			Ole.initOle();
@@ -191,7 +168,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 			filterWheel = null;
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
-			return;
+			throw e;
 		}
 	}
 
@@ -208,6 +185,7 @@ public class AscomFilterWheel extends WorkThread implements FilterWheel {
 			}
 			
 			t.printStackTrace();
+			this.listeners.getTarget().onConnectionError(t);
 			return;
 		}
 		

@@ -16,24 +16,7 @@ public class DummyScope implements Scope{
 	public DummyScope() {
 		super();
 		this.connectionStatus = false;
-		this.statusListener = new SubClassListenerCollection<IDriverStatusListener, Scope.Listener>(this.listeners) {
-
-			@Override
-			protected Listener createListenerFor(final IDriverStatusListener i) {
-				return new Listener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-					@Override
-					public void onConnectionError(Throwable message) {
-					}
-					@Override
-					public void onCoordinateChanged() {
-					}
-				};
-			}
-		};
+		this.statusListener = new SubClassListenerCollection<IDriverStatusListener, Scope.Listener>(this.listeners, IDriverStatusListener.class, Scope.Listener.class);
 	}
 	
 	@Override

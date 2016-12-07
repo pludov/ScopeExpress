@@ -25,29 +25,7 @@ public class OpenPhdDevice extends Thread implements IDeviceBase {
 	public OpenPhdDevice() {
 		normalClose = false;
 		currentState = null;
-		statusListeners = new SubClassListenerCollection<IDriverStatusListener, IGuiderListener>(listeners) {
-			@Override
-			protected IGuiderListener createListenerFor(final IDriverStatusListener i) {
-				return new IGuiderListener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-
-					@Override
-					public void onConnectionError(Throwable message) {
-						i.onConnectionError(message);
-					}
-					
-					@Override
-					public void onEvent(String e, JsonObject message) {
-						if (e.equals("AppState")) {
-							currentState = message.get("State").getAsString();
-						}
-					}
-				};
-			}
-		};
+		statusListeners = new SubClassListenerCollection<IDriverStatusListener, IGuiderListener>(listeners, IDriverStatusListener.class, IGuiderListener.class);
 		
 	}
 
