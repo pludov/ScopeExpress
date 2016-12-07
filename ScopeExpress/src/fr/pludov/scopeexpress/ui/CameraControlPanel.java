@@ -195,6 +195,16 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				}
 			}
 		});
+		
+		Utils.addComboChangeListener(this.comboGain, ()-> {
+			if (comboGain.isEnabled()) {
+				String val = (String)comboGain.getSelectedItem();
+				parameters.setGain(val);
+				comboGain.setSelectedItem(parameters.getGain() != null ? parameters.getGain() : "");
+			}
+			
+		});
+		
 		refresh();
 		
 		this.btnShoot.addActionListener(new ActionListener() {
@@ -261,6 +271,10 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			return currentTemperatureAdjustment == null && hasCamera && temps != null && temps.isCoolerOn();
 		}
 		
+		boolean hasGain() {
+			return hasCamera && camProps != null && camProps.getGains() != null; 
+		}
+		
 		void updateDisplay()
 		{
 			progressBar.setStringPainted(true);
@@ -276,8 +290,13 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			comboExp.setEnabled(hasCamera && currentShoot == null);
 			
 			lblGain.setEnabled(hasCamera);
-			comboGain.setEditable(false && hasCamera);
-			comboGain.setEnabled(false && hasCamera && currentShoot == null);
+			//comboGain.setEditable(hasCamera && hasGain());
+			comboGain.setEnabled(hasCamera && hasGain() && currentShoot == null);
+			if (hasGain()) {
+				// Assurer que le comboGain ait toutes les valeurs de gain supportées
+				Utils.setComboBoxValues(comboGain, camProps.getGains());
+			}
+			
 			
 			lblMode.setEnabled(hasCamera);
 			comboMode.setEditable(false && hasCamera);
@@ -286,11 +305,11 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 			lblTemp.setEnabled(hasCamera);
 
 			// camProps.isCanSetCCDTemperature());
-			lblTempValue.setVisible(hasCamera && (camProps.isCanSetCCDTemperature() || camProps.isCanGetCoolerPower()));
+			lblTempValue.setVisible(hasCamera && camProps != null && (camProps.isCanSetCCDTemperature() || camProps.isCanGetCoolerPower()));
 			// btnTemp.setVisible(hasCamera &&
 			// camProps.isCanSetCCDTemperature());
 
-			lblCameraName.setText(hasCamera ? "Model:" + camProps.getSensorName() : "");
+			lblCameraName.setText((hasCamera && camProps != null) ? "Model:" + camProps.getSensorName() : "");
 			
 			if (!hasCamera) {
 				exposureTimer.stop();
@@ -398,6 +417,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 	void loadParameters(ShootParameters p)
 	{
 		comboExp.setSelectedItem(expFormat.format(p.getExp()));
+		comboGain.setSelectedItem(p.getGain() == null ? "" : p.getGain());
 	}
 	
 	void showCameraTemperatureAdjustmentDialog(final int sens)
@@ -521,6 +541,7 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 		}
 		this.camera = camera;
 		if (camera != null) {
+			// FIXME: verifier que le gain, la durée du shoot, ... sont compatibles
 			this.camera.getListeners().addListener(this.owner, new Camera.Listener() {
 				
 				@Override

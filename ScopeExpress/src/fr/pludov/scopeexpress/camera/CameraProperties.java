@@ -1,5 +1,7 @@
 package fr.pludov.scopeexpress.camera;
 
+import java.util.*;
+
 public class CameraProperties {
 
 	boolean canStopExposure;
@@ -7,6 +9,8 @@ public class CameraProperties {
 	boolean canFastReadout;
 	boolean canGetCoolerPower;
 	boolean canSetCCDTemperature;
+	/** Null == pas supporté */
+	List<String> gains;
 	
 	String sensorName;
 	Double pixelSizeX, pixelSizeY;
@@ -101,6 +105,16 @@ public class CameraProperties {
 
 	public void setMaxBin(int maxBin) {
 		this.maxBin = maxBin;
+	}
+
+
+	public List<String> getGains()
+	{
+		return gains != null ? Collections.unmodifiableList(gains) : null;
+	}
+	
+	public void setGains(List<String> gains) {
+		this.gains = gains != null ? new ArrayList<>(gains): null;
 	}
 
 }

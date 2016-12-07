@@ -8,7 +8,7 @@ package fr.pludov.scopeexpress.camera;
 public class ShootParameters {
 	// La durée du shoot
 	double exp;
-	Double gain;
+	String gain;
 	Integer readoutMode;
 	Integer binx, biny;
 	String path;
@@ -35,12 +35,12 @@ public class ShootParameters {
 		this.exp = exp;
 	}
 
-	public Double getGain() {
+	public String getGain() {
 		return gain;
 	}
 
-	public void setGain(Double gain) {
-		this.gain = gain;
+	public void setGain(String val) {
+		this.gain = val;
 	}
 
 	public Integer getReadoutMode() {

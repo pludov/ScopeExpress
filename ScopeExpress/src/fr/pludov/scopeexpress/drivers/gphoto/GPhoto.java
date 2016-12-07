@@ -146,6 +146,30 @@ public class GPhoto {
 			if (data == null) data = new ArrayList<>();
 			data.add(data2);
 		}
+
+		public boolean hasChoices() {
+			return choices != null && !choices.isEmpty();
+		}
+
+		/** Libellé => index */
+		public LinkedHashMap<String, Integer> decodeChoices() throws CameraException {
+			if (!hasChoices()) {
+				throw new CameraException("no value founds");
+			}
+			LinkedHashMap<String, Integer> result = new LinkedHashMap<String, Integer>();
+			Pattern p = Pattern.compile("(\\d+) (.*)");
+			for(String isoChoice : choices) {
+				Matcher m = p.matcher(isoChoice);
+				if (!m.matches()) {
+					throw new CameraException("Malformed choice: " + isoChoice);
+				}
+				Integer id = Integer.parseInt(m.group(1));
+				String value = m.group(2);
+				result.put(value, id);
+			}
+
+			return result;
+		}
 		
 	}
 	
@@ -435,7 +459,7 @@ public class GPhoto {
 		noError(doCommand("set-config shutterspeed bulb"));
 		noError(doCommand("set-config imageformat RAW"));
 		noError(doCommand("set-config capturetarget 0"));
-		
+		noError(doCommand("list-config"));
 		noError(doCommand("get-config battery-level"));
 		trashEvents();
 		connected = true;

@@ -1,6 +1,7 @@
 package fr.pludov.scopeexpress.drivers.gphoto;
 
 import java.io.*;
+import java.util.*;
 
 import org.apache.log4j.*;
 
@@ -26,35 +27,7 @@ public class GPhotoCamera implements Camera {
 	volatile RunningShootInfo currentShoot;
 	
 	public GPhotoCamera() {
-		statusListeners = new SubClassListenerCollection<IDriverStatusListener, Camera.Listener>(listeners) {
-			@Override
-			protected Camera.Listener createListenerFor(final IDriverStatusListener i) {
-				return new Camera.Listener() {
-					@Override
-					public void onConnectionStateChanged() {
-						i.onConnectionStateChanged();
-					}
-
-					@Override
-					public void onConnectionError(Throwable message) {
-						i.onConnectionError(message);
-					}
-					
-					@Override
-					public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
-					}
-					@Override
-					public void onShootStarted(RunningShootInfo shootInfo) {
-					}
-					@Override
-					public void onShootInterrupted() {
-					}
-					@Override
-					public void onTempeatureUpdated() {
-					}
-				};
-			}
-		};
+		statusListeners = new SubClassListenerCollection<IDriverStatusListener, Camera.Listener>(listeners, IDriverStatusListener.class, Camera.Listener.class);
 	}
 
 	@Override
@@ -102,6 +75,9 @@ public class GPhotoCamera implements Camera {
 		return listeners;
 	}
 
+	Map<String, Integer> isoToIndex;
+	String lastIso;
+	
 	@Override
 	public void start() {
 		currentProcess = new GPhoto();
@@ -112,6 +88,15 @@ public class GPhotoCamera implements Camera {
 				try {
 					currentProcess.waitInit();
 
+					try {
+						CommandResult iso = currentProcess.noError(currentProcess.doCommand("get-config iso"));
+						
+						isoToIndex = iso.decodeChoices();
+						lastIso = iso.current;
+					} catch(CameraException e) {
+						throw new CameraException("Failed to read iso: " + e.getMessage(), e);
+					}
+					
 					CameraProperties result = new CameraProperties();
 					result.setCanAbortExposure(true);
 					result.setCanFastReadout(false);
@@ -119,6 +104,7 @@ public class GPhotoCamera implements Camera {
 					result.setCanSetCCDTemperature(false);
 					result.setCanStopExposure(true);
 					result.setMaxBin(1);
+					result.setGains(new ArrayList<>(isoToIndex.keySet()));
 					result.setSensorName(currentProcess.model != null ? currentProcess.model : "Unknown model");
 					
 					cameraProperties = result;
@@ -189,6 +175,19 @@ public class GPhotoCamera implements Camera {
 			try {
 				int ms = (int)Math.floor(rsi.getExp() * 1000);
 
+				if (rsi.getGain() != null && !rsi.getGain().equals("")) {
+					if (!lastIso.equals(rsi.getGain())) {
+						Integer id = isoToIndex.get(rsi.getGain());
+						if (id == null) {
+							throw new CameraException("Invalid iso: " + rsi.getGain());
+						}
+						logger.info("Switching to iso: " + lastIso + "(" + id + ")");
+						p.noError(p.doCommand("set-config-index iso " + id));
+						lastIso = rsi.getGain();
+					}
+					
+				}
+				
 				p.noError(p.doCommand("set-config output 1"));
 				
 				sleepOrAbort(2000, ()->{

@@ -64,7 +64,7 @@ public class CameraControlPanelDesign extends JPanel {
 		add(this.lblGain, "cell 0 3,alignx trailing");
 		
 		this.comboGain = new JComboBox();
-		this.comboGain.setEditable(true);
+		this.comboGain.setEditable(false);
 		add(this.comboGain, "cell 1 3 2 1,growx");
 		
 		this.lblMode = new JLabel("Mode:");

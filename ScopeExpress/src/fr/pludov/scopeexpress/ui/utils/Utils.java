@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.List;
 import java.util.regex.*;
 
 import javax.swing.*;
@@ -37,6 +38,34 @@ public final class Utils {
 				}
 			}	
 		});
+	}
+	
+	public static <T> void setComboBoxValues(JComboBox<T> field, List<? extends T> gains) {
+		if (field.getItemCount() == gains.size()) {
+			boolean update = false;
+			for(int i = 0; i < field.getItemCount(); ++i) {
+				T v = field.getItemAt(i);
+				if (!Objects.equals(v, gains.get(i))) {
+					update = true;
+				}
+			}
+			if (!update) return;
+		}
+		int currentIndex = field.getSelectedIndex();
+		T current = currentIndex != -1 ? field.getItemAt(currentIndex) : null;
+		field.removeAllItems();
+		int i = 0;
+		int newIndex = -1;
+		for(T t : gains) {
+			field.addItem(t);
+			if (newIndex == -1 && Objects.equals(current, t)) {
+				newIndex = i;
+			}
+			i++;
+		}
+		if (newIndex != -1) {
+			field.setSelectedIndex(newIndex);
+		}
 	}
 	
 	public static void addComboChangeListener(JComboBox field, final Runnable listener)
