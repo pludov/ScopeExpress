@@ -1,10 +1,9 @@
 package fr.pludov.io;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
+import java.awt.image.*;
 
-import fr.pludov.scopeexpress.ImageDisplayParameter;
-import fr.pludov.scopeexpress.utils.cache.Cache;
+import fr.pludov.scopeexpress.*;
+import fr.pludov.scopeexpress.utils.cache.*;
 
 /**
  * Les pixels chauds valent maximum
@@ -20,6 +19,40 @@ public class CameraFrame {
 	// Les pixels atteignant cette valeur sont considéré comme saturés
 	int maximum;
 
+	public CameraFrame bin(int minx, int miny, int maxx, int maxy, int bin)
+	{
+		CameraFrame result = new CameraFrame();
+		result.width = (maxx - minx) / bin;
+		result.height = (maxy - miny) / bin;
+		result.buffer = new char[result.width * result.height];
+		
+		int max = 0;
+		for(int oy = 0; oy < result.height; ++oy)
+			for(int ox = 0; ox < result.width; ++ox)
+			{
+				int v = 0;
+				int cpt = 0;
+				for(int dy = 0; dy < bin; ++dy)
+					for(int dx = 0; dx < bin; ++dx)
+					{
+						int x = minx + ox * bin + dx;
+						int y = miny + oy * bin + dy;
+						if (x >= width) continue;
+						if (y >= height) continue;
+						v += buffer[x + y * width];
+						cpt++;
+					}
+				if (cpt > 0) {
+					v = v / cpt;
+				}
+				if (v > max) max = v;
+				result.buffer[ox + oy * result.width] = (char)v;
+			}
+		result.maximum = max;
+		result.isCfa = false;
+		return result;		
+	}
+	
 	/**
 	 * Retourne une sous-image (coordonnées super pixel)
 	 */

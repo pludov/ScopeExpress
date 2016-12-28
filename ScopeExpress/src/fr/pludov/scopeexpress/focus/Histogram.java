@@ -62,7 +62,7 @@ public class Histogram {
 		return Math.sqrt(avgdst / adusum);
 	}
 	
-	/** Retourne le premier adu ayant au moins le pourcentage donné de pixel en dessus */
+	/** Retourne le premier adu ayant au moins le pourcentage donné de pixel en dessus  (0-1)*/
 	public int getBlackLevel(double percent)
 	{
 		int blackLevel = 0;

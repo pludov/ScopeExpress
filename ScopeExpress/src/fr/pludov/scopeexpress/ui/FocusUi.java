@@ -853,9 +853,10 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
-		
+		String [] scripts = new String[]{"test.js", "colimation.js"};
+		for(String script : scripts)
 		{
-			JMenuItem testTask = new JMenuItem("start test.js script");
+			JMenuItem testTask = new JMenuItem("start " + script + " script");
 		
 			mnTests.add(testTask);
 			testTask.addActionListener(new ActionListener() {
@@ -876,7 +877,7 @@ public class FocusUi extends FocusUiDesign {
 						
 					};
 					
-					new RootJsTask(m, "test.js");
+					new RootJsTask(m, script);
 					
 					application.getTaskManager2().add(applicationTaskGroup);
 				}
