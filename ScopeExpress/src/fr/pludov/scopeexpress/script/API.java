@@ -12,12 +12,23 @@ import fr.pludov.scopeexpress.tasks.javascript.*;
 
 public class API {
 
-	public API() {
-		// TODO Auto-generated constructor stub
+	final TaskGroup taskGroup;
+	
+	public API(TaskGroup taskGroup) {
+		this.taskGroup = taskGroup;
 	}
 
 	public void print(String s) {
+
 		System.out.println(s);
+		int from = 0;
+		int to;
+		while((to = s.indexOf('\n', from)) != -1) {
+			this.taskGroup.addLog(s.substring(from, to));
+			from = to + 1;
+		}
+		this.taskGroup.addLog(s.substring(from));
+		
 	}
 	
 	public void yield()

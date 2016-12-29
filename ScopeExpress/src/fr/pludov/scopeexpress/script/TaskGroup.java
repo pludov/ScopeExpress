@@ -8,10 +8,13 @@ public class TaskGroup implements TaskOrGroup {
 	final static ThreadLocal<TaskGroup> current = new ThreadLocal<>();
 	
 	final WeakListenerCollection<TaskStatusListener> statusListeners = new WeakListenerCollection<>(TaskStatusListener.class);
+	final WeakListenerCollection<TaskGroupLogListener> logListeners = new WeakListenerCollection<>(TaskGroupLogListener.class);
 	final WeakListenerCollection<TaskChildListener> childListeners = new WeakListenerCollection<>(TaskChildListener.class);
 	
 	private final List<Task> runnableTasks = new ArrayList<>();
 	final List<Task> allTasks = new ArrayList<>();
+	final List<String> lastLogs = new LinkedList<>();
+	int logCount = 0;
 	
 	boolean runningFlag = false;
 	
@@ -104,5 +107,28 @@ public class TaskGroup implements TaskOrGroup {
 		TaskGroup result = current.get();
 		assert(result != null);
 		return result;
+	}
+	
+	public void addLog(String line)
+	{
+		boolean replace;
+		this.lastLogs.add(line);
+		if (replace = (logCount > 1000)) {
+			this.lastLogs.remove(0);
+		} else {
+			logCount++;
+		}
+		logListeners.getTarget().logAdded(line, replace);
+	}
+	
+	public List<String> getLogs()
+	{
+		return this.lastLogs;
+	}
+
+
+
+	public WeakListenerCollection<TaskGroupLogListener> getLogListeners() {
+		return logListeners;
 	}
 }

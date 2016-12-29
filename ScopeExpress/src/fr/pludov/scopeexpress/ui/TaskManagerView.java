@@ -221,6 +221,7 @@ public class TaskManagerView extends JSplitPane {
 				}
 				if (currentViewPanel != null) {
 					details.remove(currentViewPanel);
+					// FIXME: dispose ? sinon les listener s'empilent
 					currentViewPanel = null;
 					
 				}
@@ -232,8 +233,14 @@ public class TaskManagerView extends JSplitPane {
 					taskControl.setCurrentTask(null);
 				} else {
 					Object rawbt = node.getUserObject();
-					if (rawbt instanceof TaskOrGroup) {
+					if (rawbt instanceof TaskGroup) {
+						currentViewPanel = new TaskGroupConsoleView((TaskGroup) rawbt);
+						details.add(currentViewPanel);
+						
+					} else if (rawbt instanceof TaskOrGroup) {
+						currentViewPanel = new JLabel("jsTask:" + rawbt);
 //						BaseTaskDefinition btdef = ((TaskOrGroup)rawbt).getDefinition();
+						details.add(currentViewPanel, BorderLayout.CENTER);
 //						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
 //						if (currentView == null) {
 //							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);

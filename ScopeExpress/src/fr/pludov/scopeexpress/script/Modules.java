@@ -33,7 +33,7 @@ public class Modules {
 	protected Scriptable buildGlobalScope(JSContext jsc)
 	{
 		Scriptable scope = jsc.getContext().initStandardObjects();
-		ScriptableObject.putProperty(scope, "api", new API());
+		ScriptableObject.putProperty(scope, "api", new API(taskGroup));
 		
 		String content;
 		try {
