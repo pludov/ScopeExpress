@@ -38,6 +38,33 @@ public class API {
 		
 	}
 	
+	public void setCustomUiProvider(NativeFunction nf)
+	{
+		if (nf == null) {
+			taskGroup.setCustomUiProvider(null);
+			return;
+		}
+		JSTask jsTask = JSTask.currentTask.get();
+		taskGroup.setCustomUiProvider(() -> {
+			if (jsTask.scope == null) return null;
+			
+			try(JSContext jsc = JSContext.open(jsTask.modules.getContextFactory())) {
+				UIElement element = new UIElement(jsTask);
+				Object result = nf.call(Context.getCurrentContext(), jsTask.scope, jsTask.scope, new Object[]{element});
+				if (result == null) return null;
+				JComponent component = (JComponent) Context.jsToJava(result, JComponent.class);
+				
+				element.setTarget(component);
+				element.performBinders();
+				return element;
+			} catch(Throwable t) {
+				t.printStackTrace();
+				return null;
+			}
+		});
+	}
+	
+	
 	public Object include(String file)
 	{
 		JSTask jsTask = JSTask.currentTask.get();
@@ -75,6 +102,11 @@ public class API {
 		final Scriptable parentScope = jsTask.scope;
 		
 		JSTask child = new JSTask(jsTask) {
+			@Override
+			public String getTitle() {
+				return "coroutine";
+			}
+			
 			@Override
 			StackEntry buildRootEntry() {
 				return new StackEntry() {

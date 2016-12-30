@@ -1,6 +1,8 @@
 package fr.pludov.scopeexpress.script;
 
+import java.lang.ref.*;
 import java.util.*;
+import java.util.function.*;
 
 import fr.pludov.scopeexpress.utils.*;
 
@@ -12,11 +14,31 @@ public class TaskGroup implements TaskOrGroup {
 	final WeakListenerCollection<TaskChildListener> childListeners = new WeakListenerCollection<>(TaskChildListener.class);
 	
 	private final List<Task> runnableTasks = new ArrayList<>();
+	
 	final List<Task> allTasks = new ArrayList<>();
 	final List<String> lastLogs = new LinkedList<>();
+	String title;
 	int logCount = 0;
 	
 	boolean runningFlag = false;
+	
+	final List<WeakReference<UIElement>> uiElements = new LinkedList<>();
+	
+	public TaskGroup() {
+		this.title = "(anonyme)";
+	}
+	
+	public void performBinders()
+	{
+		for(Iterator<WeakReference<UIElement>> dbit = uiElements.iterator(); dbit.hasNext(); )
+		{
+			WeakReference<UIElement> ref = dbit.next();
+			UIElement element = ref.get();
+			if (element == null || !element.performBinders()) {
+				dbit.remove();
+			}
+		}
+	}
 	
 	public boolean advance() {
 		
@@ -78,7 +100,13 @@ public class TaskGroup implements TaskOrGroup {
 	
 	@Override
 	public String getTitle() {
-		return "TODO";
+		return title;
+	}
+	
+	public void setTitle(String title) {
+		if (Objects.equals(this.title, title)) return;
+		this.title = title;
+		statusListeners.getTarget().statusChanged();
 	}
 	
 	@Override
@@ -121,6 +149,22 @@ public class TaskGroup implements TaskOrGroup {
 		logListeners.getTarget().logAdded(line, replace);
 	}
 	
+	Supplier<UIElement> customUiProvider = null;
+	
+	public void setCustomUiProvider(Supplier<UIElement> supplier)
+	{
+		// FIXME: send event !
+		customUiProvider = supplier;
+	}
+	
+	public UIElement buildCustomUi()
+	{
+		if (customUiProvider != null) {
+			return customUiProvider.get();
+		}
+		return null;
+	}
+	
 	public List<String> getLogs()
 	{
 		return this.lastLogs;
@@ -130,5 +174,15 @@ public class TaskGroup implements TaskOrGroup {
 
 	public WeakListenerCollection<TaskGroupLogListener> getLogListeners() {
 		return logListeners;
+	}
+
+	void removeUiElements(UIElement uiElement) {
+		for(Iterator<WeakReference<UIElement>> it = uiElements.iterator(); it.hasNext();) {
+			WeakReference<UIElement> ref = it.next();
+			UIElement elem = ref.get();
+			if (elem == null || elem == uiElement) {
+				it.remove();
+			}
+		}
 	}
 }

@@ -47,7 +47,7 @@ public class TaskManagerView extends JSplitPane {
 	final TaskControl taskControl;
 	TaskDetailView currentView;
 	
-	JComponent currentViewPanel;
+	UIElement currentViewPanel;
 	
 	public TaskManagerView(FocusUi ui, TaskManager2 taskManager) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
@@ -220,8 +220,8 @@ public class TaskManagerView extends JSplitPane {
 					currentView = null;
 				}
 				if (currentViewPanel != null) {
-					details.remove(currentViewPanel);
-					// FIXME: dispose ? sinon les listener s'empilent
+					details.remove(currentViewPanel.getComponent());
+					currentViewPanel.dispose();
 					currentViewPanel = null;
 					
 				}
@@ -234,13 +234,21 @@ public class TaskManagerView extends JSplitPane {
 				} else {
 					Object rawbt = node.getUserObject();
 					if (rawbt instanceof TaskGroup) {
-						currentViewPanel = new TaskGroupConsoleView((TaskGroup) rawbt);
-						details.add(currentViewPanel);
+						UIElement jpanel = ((TaskGroup)rawbt).buildCustomUi();
+						if (jpanel != null) {
+							currentViewPanel = jpanel;
+							
+						} else {
+							currentViewPanel = new UIElement(new TaskGroupConsoleView((TaskGroup) rawbt));
+						}
+						if (currentViewPanel != null) {
+							details.add(currentViewPanel.getComponent());
+						}
 						
 					} else if (rawbt instanceof TaskOrGroup) {
-						currentViewPanel = new JLabel("jsTask:" + rawbt);
+						currentViewPanel = new UIElement(new JLabel("jsTask:" + rawbt));
 //						BaseTaskDefinition btdef = ((TaskOrGroup)rawbt).getDefinition();
-						details.add(currentViewPanel, BorderLayout.CENTER);
+						details.add(currentViewPanel.getComponent(), BorderLayout.CENTER);
 //						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
 //						if (currentView == null) {
 //							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);

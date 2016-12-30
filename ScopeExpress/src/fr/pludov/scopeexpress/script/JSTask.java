@@ -143,7 +143,9 @@ public abstract class JSTask extends Task{
 			
 			
 			try(JSContext jsc = JSContext.open(modules.getContextFactory())) {
+				boolean sthDone = false;
 				while(currentStackEntry != null && getStatus() != Status.Blocked) { 
+					sthDone = true;
 					try {
 						if (!currentStackEntry.started) {
 							currentStackEntry.started = true;
@@ -181,6 +183,9 @@ public abstract class JSTask extends Task{
 						currentStackEntry.error = t;
 						done(currentStackEntry);
 					}
+				}
+				if (sthDone) {
+					taskGroup.performBinders();
 				}
 			}
 		} finally {

@@ -15,6 +15,11 @@ public class IncludeTask extends JSTask {
 		super(parent);
 		this.script = script;
 	}
+	
+	@Override
+	public String getTitle() {
+		return "include: " + script;
+	}
 
 	@Override
 	StackEntry buildRootEntry() {

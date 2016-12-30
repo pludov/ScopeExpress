@@ -12,6 +12,10 @@ public class RootJsTask extends JSTask {
 	
 	final String script;
 
+	@Override
+	public String getTitle() {
+		return "script principal";
+	}
 	
 	public RootJsTask(Modules modules, String script) {
 		super(modules);

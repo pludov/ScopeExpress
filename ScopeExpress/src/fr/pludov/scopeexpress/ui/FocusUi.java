@@ -864,7 +864,7 @@ public class FocusUi extends FocusUiDesign {
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
 					ApplicationTaskGroup applicationTaskGroup = new ApplicationTaskGroup();
-
+					applicationTaskGroup.setTitle(script);
 					
 					Modules m = new Modules(applicationTaskGroup, JSContext.getDebuggingContextFactory()) {
 					
