@@ -43,11 +43,14 @@ public class TaskManagerView extends JSplitPane {
 	final ToolbarButton removeAllButton;
 	
 	final JTree jtree;
-	final JPanel details;
 	final TaskControl taskControl;
-	TaskDetailView currentView;
+
+	UIElement taskUi;
+	UIElement taskLog;
+	final JTabbedPane taskDetailsTabbedPane;
+	final JPanel taskUiContainer;
+	final JPanel taskLogContainer;
 	
-	UIElement currentViewPanel;
 	
 	public TaskManagerView(FocusUi ui, TaskManager2 taskManager) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
@@ -209,70 +212,77 @@ public class TaskManagerView extends JSplitPane {
 			}
 		});
 		taskControl = new TaskControl();
-		details = taskControl.getDetailsPanel();
-		details.setLayout(new BorderLayout());
+		this.taskLogContainer = new JPanel();
+		this.taskLogContainer.setLayout(new BorderLayout());
+		this.taskUiContainer = new JPanel();
+		this.taskUiContainer.setLayout(new BorderLayout());
+		this.taskDetailsTabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		
+		this.taskDetailsTabbedPane.add("details", this.taskUiContainer);
+		this.taskDetailsTabbedPane.add("logs", this.taskLogContainer);
+		
+		taskControl.getDetailsPanel().setLayout(new BorderLayout());
+		taskControl.getDetailsPanel().add(this.taskDetailsTabbedPane);
 
 		jtree.addTreeSelectionListener(new TreeSelectionListener() {
 			
 			@Override
 			public void valueChanged(TreeSelectionEvent arg0) {
-				if (currentView != null) {
-					currentView = null;
-				}
-				if (currentViewPanel != null) {
-					details.remove(currentViewPanel.getComponent());
-					currentViewPanel.dispose();
-					currentViewPanel = null;
-					
-				}
-					
 				DefaultMutableTreeNode node = (DefaultMutableTreeNode)
-                        jtree.getLastSelectedPathComponent();
+						jtree.getLastSelectedPathComponent();
 				
-				if (node == null) {
-					taskControl.setCurrentTask(null);
-				} else {
-					Object rawbt = node.getUserObject();
-					if (rawbt instanceof TaskGroup) {
-						UIElement jpanel = ((TaskGroup)rawbt).buildCustomUi();
-						if (jpanel != null) {
-							currentViewPanel = jpanel;
-							
-						} else {
-							currentViewPanel = new UIElement(new TaskGroupConsoleView((TaskGroup) rawbt));
-						}
-						if (currentViewPanel != null) {
-							details.add(currentViewPanel.getComponent());
-						}
-						
-					} else if (rawbt instanceof TaskOrGroup) {
-						currentViewPanel = new UIElement(new JLabel("jsTask:" + rawbt));
-//						BaseTaskDefinition btdef = ((TaskOrGroup)rawbt).getDefinition();
-						details.add(currentViewPanel.getComponent(), BorderLayout.CENTER);
-//						currentView = btdef.getViewer(TaskManagerView.this.focusUi);
-//						if (currentView == null) {
-//							currentView = new DefaultTaskView(TaskManagerView.this.focusUi);
-//						}
-//						if (currentView != null) {
-//							currentView.setTask((BaseTask)rawbt);
-//							currentViewPanel = currentView.getMainPanel();
-//							details.add(currentViewPanel, BorderLayout.CENTER);
-//						}
-						// FIXME !
-//						taskControl.setCurrentTask((TaskOrGroup)rawbt);
-					} else {
-						taskControl.setCurrentTask(null);
-					}
-				}
-				updateBtonStatus();
-				details.revalidate();
-				details.repaint();
+				
+				TaskOrGroup newTarget = node == null ? null : (TaskOrGroup)node.getUserObject();
+				syncSelectedTask(newTarget);
 			}
 		});
 		
 		setLeftComponent(leftPanel);
 		setRightComponent(taskControl);
 		updateBtonStatus();
+	}
+	
+	void syncSelectedTask(TaskOrGroup newTarget)
+	{
+		if (taskUi != null) {
+			taskUiContainer.remove(taskUi.getComponent());
+			taskUi.dispose();
+			taskUi = null;
+		}
+		if (taskLog != null) {
+			taskLogContainer.remove(taskLog.getComponent());
+			taskLog.dispose();
+			taskLog = null;
+		}
+		
+		if (newTarget == null) {
+			taskControl.setCurrentTask(null);
+		} else {
+			// FIXME: taskControl.setCurrentTask(newTarget);
+			if (newTarget instanceof TaskGroup) {
+				taskUi = ((TaskGroup)newTarget).buildCustomUi();
+				if (taskUi != null) {
+					taskUiContainer.add(taskUi.getComponent());
+				}
+
+				taskLog = new UIElement(new TaskGroupConsoleView((TaskGroup) newTarget));
+				taskLogContainer.add(taskLog.getComponent());
+				
+			} else {
+				// FIXME: ils pourraient fournir leur ui...
+				taskUi = new UIElement(new JLabel("jsTask:" + newTarget));
+//				BaseTaskDefinition btdef = ((TaskOrGroup)rawbt).getDefinition();
+				taskUiContainer.add(taskUi.getComponent(), BorderLayout.CENTER);
+//				currentView = btdef.getViewer(TaskManagerView.this.focusUi);
+			}
+		}
+		updateBtonStatus();
+		
+		taskUiContainer.revalidate();
+		taskLogContainer.revalidate();
+		taskUiContainer.repaint();
+		taskLogContainer.repaint();
+		
 	}
 	
 	List<TaskOrGroup> getTaskSelection()
@@ -352,6 +362,32 @@ public class TaskManagerView extends JSplitPane {
 		tm.removeTask((TaskGroup)task);
 	}
 	
+	void updateDetailTabbedPane()
+	{
+		taskDetailsTabbedPane.setEnabledAt(0, this.taskUi != null);
+		taskDetailsTabbedPane.setEnabledAt(1, this.taskLog != null);
+		int current = taskDetailsTabbedPane.getSelectedIndex();
+		if (current == -1) {
+			for(int i = 0; i < 2; ++i) {
+				if (taskDetailsTabbedPane.isEnabledAt(i)) {
+					taskDetailsTabbedPane.setSelectedIndex(i);
+					break;
+				}
+			}
+		} else if (!taskDetailsTabbedPane.isEnabledAt(current)) {
+			boolean matched = false;
+			for(int i = 0; i < 2; ++i) {
+				if (taskDetailsTabbedPane.isEnabledAt(i)) {
+					taskDetailsTabbedPane.setSelectedIndex(i);
+					matched = true;
+					break;
+				}
+			}
+			if (!matched) taskDetailsTabbedPane.setSelectedIndex(-1);
+			
+		}
+	}
+	
 	void updateBtonStatus()
 	{
 		boolean canCancel = false;
@@ -386,6 +422,8 @@ public class TaskManagerView extends JSplitPane {
 				break;
 			}
 		}
+		
+		updateDetailTabbedPane();
 		
 		cancelButton.setEnabled(canCancel);
 		restartButton.setEnabled(canRestart);
