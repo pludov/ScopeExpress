@@ -153,8 +153,9 @@ public class TaskGroup implements TaskOrGroup {
 	
 	public void setCustomUiProvider(Supplier<UIElement> supplier)
 	{
-		// FIXME: send event !
 		customUiProvider = supplier;
+		
+		statusListeners.getTarget().uiUpdated();
 	}
 	
 	public UIElement buildCustomUi()

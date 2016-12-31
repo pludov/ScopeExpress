@@ -51,6 +51,8 @@ public class TaskManagerView extends JSplitPane {
 	final JPanel taskUiContainer;
 	final JPanel taskLogContainer;
 	
+	/** Invoqué quand une nouvelle tache apparait, pour prise du focus */
+	Runnable popup;
 	
 	public TaskManagerView(FocusUi ui, TaskManager2 taskManager) {
 		super(JSplitPane.HORIZONTAL_SPLIT);
@@ -242,8 +244,14 @@ public class TaskManagerView extends JSplitPane {
 		updateBtonStatus();
 	}
 	
+	TaskOrGroup currentDisplay = null;
+	
 	void syncSelectedTask(TaskOrGroup newTarget)
 	{
+		if (currentDisplay == newTarget) {
+			return;
+		}
+		
 		if (taskUi != null) {
 			taskUiContainer.remove(taskUi.getComponent());
 			taskUi.dispose();
@@ -254,6 +262,8 @@ public class TaskManagerView extends JSplitPane {
 			taskLog.dispose();
 			taskLog = null;
 		}
+		
+		currentDisplay = newTarget;
 		
 		if (newTarget == null) {
 			taskControl.setCurrentTask(null);
@@ -284,6 +294,33 @@ public class TaskManagerView extends JSplitPane {
 		taskLogContainer.repaint();
 		
 	}
+	
+	void refreshTaskCustomUi(TaskGroup tg)
+	{
+		if (currentDisplay != tg) return;
+		boolean wasHere = taskUi != null;
+		
+		if (taskUi != null) {
+			taskUiContainer.remove(taskUi.getComponent());
+			taskUi.dispose();
+			taskUi = null;
+		}
+		
+		taskUi = ((TaskGroup)tg).buildCustomUi();
+		if (taskUi != null) {
+			taskUiContainer.add(taskUi.getComponent());
+		}
+		
+		boolean isHere = taskUi != null;
+		if (isHere && !wasHere) {
+			taskDetailsTabbedPane.setSelectedIndex(0);
+		}
+		updateBtonStatus();
+		
+		taskUiContainer.revalidate();
+		taskUiContainer.repaint();
+	}
+	
 	
 	List<TaskOrGroup> getTaskSelection()
 	{
@@ -535,6 +572,13 @@ public class TaskManagerView extends JSplitPane {
 			public void statusChanged() {
 				updateStatus(child, childNode);
 			}
+			
+			@Override
+			public void uiUpdated() {
+				if (child instanceof TaskGroup) {
+					refreshTaskCustomUi((TaskGroup) child);
+				}
+			}
 		});
 //		childNode.setParent(parent);
 		
@@ -551,12 +595,6 @@ public class TaskManagerView extends JSplitPane {
 		}
 		treeModel.insertNodeInto(childNode, parent, insertIndex);
 		updateStatus(child, childNode);
-		
-		//Make sure the user can see the lovely new node.
-		// if (shouldBeVisible) {
-		scrollPathToVisible(new TreePath(childNode.getPath()));
-		//}
-		
 		
 		child.getChildListeners().addListener(this.listenerOwner, new TaskChildListener() {
 			
@@ -577,6 +615,10 @@ public class TaskManagerView extends JSplitPane {
 		}
 		
 		updateBtonStatus();
+		
+		if (parentTask == null) {
+			displayNewTask(child);
+		}
 	}
 
 	private void scrollPathToVisible(TreePath treePath) {
@@ -614,6 +656,7 @@ public class TaskManagerView extends JSplitPane {
 		} else {
 			System.out.println("bizarre, il n'y est pas");
 		}
+		child.getStatusListeners().removeListener(this.listenerOwner);
 	}
 
 	private DefaultMutableTreeNode getNodeForRootTask(TaskOrGroup child)
@@ -664,11 +707,12 @@ public class TaskManagerView extends JSplitPane {
 	public void displayNewTask(TaskOrGroup task) {
 		TreePath dmt = findNode(task);
 		if (dmt != null) {
-//			if (task.getStatus() != TaskGroup.Status.Pending) {
-//				jtree.setSelectionPath(dmt);
-//			}
+			jtree.setSelectionPath(dmt);
 			scrollPathToVisible(dmt);
 		}
+
+		if (popup != null) popup.run();
+
 	}
 
 	private int getInsertAfterIndex(DefaultMutableTreeNode parent, TaskOrGroup ref) {
@@ -689,5 +733,10 @@ public class TaskManagerView extends JSplitPane {
 			}
 		}
 		return where;
+	}
+	
+	void setPopup(Runnable popup)
+	{
+		this.popup = popup;
 	}
 }

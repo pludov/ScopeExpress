@@ -144,7 +144,8 @@ public class FocusUi extends FocusUiDesign {
 		});
 		
 		taskManagerView = new TaskManagerView(this, application.getTaskManager2());
-		this.taskPanel.add(taskManagerView);		
+		this.taskPanel.add(taskManagerView);
+		taskManagerView.setPopup(() -> { this.tabbedPane.setSelectedIndex(2); });
 
 		
 		starFocusFilter = new GraphPanelParameters();
