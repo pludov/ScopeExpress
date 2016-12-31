@@ -1,8 +1,10 @@
 package fr.pludov.scopeexpress.script;
 
+import java.io.*;
+
 import fr.pludov.scopeexpress.script.Task.*;
 
-public abstract class ResumeCondition {
+public abstract class ResumeCondition implements Closeable {
 	
 	
 	
@@ -28,9 +30,12 @@ public abstract class ResumeCondition {
 		target.blockingCondition = null;
 		target.resumeResult = result;
 		target.getTask().setStatus(Status.Runnable);
+		close();
 		this.target = null;
 		
 	}
 	
-
+	@Override
+	public void close() {
+	}
 }

@@ -8,6 +8,7 @@ import javax.swing.*;
 import org.mozilla.javascript.*;
 
 import fr.pludov.scopeexpress.script.Task.*;
+import fr.pludov.scopeexpress.script.TaskGroup.*;
 import fr.pludov.scopeexpress.tasks.javascript.*;
 
 public class API {
@@ -164,6 +165,29 @@ public class API {
 			}
 		};
 		
+	}
+	
+	public boolean flushUiEvents(int maxCount)
+	{
+		if (taskGroup.pendingEvents.isEmpty()) return false;
+		while(!taskGroup.pendingEvents.isEmpty()) {
+			Event todo = taskGroup.pendingEvents.remove(0);
+			
+			todo.toCall.call(Context.getCurrentContext(), todo.scope, todo.scope, todo.args);
+			if (maxCount != 0) {
+				maxCount--;
+				if (maxCount == 0) {
+					break;
+				}
+			}
+		}
+		return true;
+	}
+	
+	// FIXME: timeout ?
+	public ConditionMeet waitOneUiEvents()
+	{
+		return JSTask.currentTask.get().blockWithCondition(taskGroup.waitUiEventCondition());
 	}
 	
 	public ConditionMeet joinCoroutine(final Task childTask)

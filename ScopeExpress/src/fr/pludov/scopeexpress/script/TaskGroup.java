@@ -4,6 +4,8 @@ import java.lang.ref.*;
 import java.util.*;
 import java.util.function.*;
 
+import org.mozilla.javascript.*;
+
 import fr.pludov.scopeexpress.utils.*;
 
 public class TaskGroup implements TaskOrGroup {
@@ -23,6 +25,8 @@ public class TaskGroup implements TaskOrGroup {
 	boolean runningFlag = false;
 	
 	final List<WeakReference<UIElement>> uiElements = new LinkedList<>();
+	final List<Event> pendingEvents = new LinkedList<>();
+	final List<ResumeCondition> onPendingEvents = new ArrayList<>();
 	
 	public TaskGroup() {
 		this.title = "(anonyme)";
@@ -185,5 +189,54 @@ public class TaskGroup implements TaskOrGroup {
 				it.remove();
 			}
 		}
+	}
+
+	static class Event {
+		NativeFunction toCall;
+		Scriptable scope;
+		Object [] args;
+	}
+	
+	public void enqueueEvent(Scriptable scope, NativeFunction toCall, String event, Object ... args) {
+		if (isTerminated()) {
+			return;
+		}
+		Event evt = new Event();
+		Object []evtArgs = new Object[args.length + 1];
+		evtArgs[0] = event;
+		for(int i = 0; i < args.length; ++i) {
+			evtArgs[i + 1] = args[i];
+		}
+		evt.toCall = toCall;
+		evt.args = evtArgs;
+		evt.scope = scope;
+
+		this.pendingEvents.add(evt);
+		if (this.pendingEvents.size() == 1) {
+			for(ResumeCondition rc : new ArrayList<>(onPendingEvents)) {
+				rc.refresh();
+			}
+		}
+	}
+
+	
+	
+	public ResumeCondition waitUiEventCondition() {
+		ResumeCondition resumeCondition = new ResumeCondition() {
+			@Override
+			ConditionMeet check() {
+				if (!pendingEvents.isEmpty()) {
+					return ConditionMeet.success(null);
+				}
+				return null;
+			}
+			
+			@Override
+			public void close() {
+				onPendingEvents.remove(this);
+			}
+		};
+		onPendingEvents.add(resumeCondition);
+		return resumeCondition;
 	}
 }

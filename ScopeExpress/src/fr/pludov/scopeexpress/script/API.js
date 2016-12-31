@@ -70,6 +70,14 @@ global.coroutine = {
 		},
 		read: function(coroutine) {
 			return unwind(api.readCoroutine(coroutine));
+		},
+		waitUiCondition : function(func) {
+			if (func()) return;
+			while(true) {
+				api.flushUiEvents(0);
+				if (func()) return;
+				unwind(api.waitOneUiEvents());
+			}
 		}
 }
 

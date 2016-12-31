@@ -1,6 +1,7 @@
 package fr.pludov.scopeexpress.script;
 
 import java.awt.*;
+import java.awt.event.*;
 import java.lang.ref.*;
 import java.util.*;
 import java.util.List;
@@ -51,6 +52,23 @@ public final class UIElement {
 		return true;
 	}
 
+	public void on(JComponent component, String event, NativeFunction evt)
+	{
+		final Scriptable eventScope = task.scope;
+		// Ajoute un listener sur le component... Tant qu'il est là !
+		if ("click".equals(event)) {
+			if (component instanceof JButton) {
+				((JButton)component).addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						taskGroup.enqueueEvent(eventScope, evt, event, component, e);
+					}
+				});
+				return;
+			}
+		}
+		throw Context.reportRuntimeError("unsupported event for object");
+	}
 
 	public void bind(NativeFunction load, NativeFunction write)
 	{

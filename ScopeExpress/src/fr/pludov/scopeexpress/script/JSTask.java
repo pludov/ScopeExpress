@@ -53,6 +53,7 @@ public abstract class JSTask extends Task{
 	ConditionMeet blockWithCondition(ResumeCondition resumeCondition) {
 		ConditionMeet result = resumeCondition.check();
 		if (result != null) {
+			resumeCondition.close();
 			return result;
 		}
 		assert(getStatus() == Status.Runnable);
