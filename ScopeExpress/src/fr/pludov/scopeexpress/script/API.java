@@ -193,6 +193,8 @@ public class API {
 	public ConditionMeet joinCoroutine(final Task childTask)
 	{
 		ResumeCondition resumeCondition = new ResumeCondition() {
+			Runnable listener;
+			
 			@Override
 			ConditionMeet check() {
 				if (childTask.getStatus() == Status.Done) {
@@ -214,9 +216,17 @@ public class API {
 				}
 				return null;
 			}
+			
+			@Override
+			public void close() {
+				childTask.onDone.remove(listener);
+			}
+			
+			{
+				childTask.onDone(listener = () -> { this.refresh(); });		
+			}
 		};
 		
-		childTask.onDone(() -> { resumeCondition.refresh(); });
 		return JSTask.currentTask.get().blockWithCondition(resumeCondition);
 	}
 	
@@ -229,16 +239,21 @@ public class API {
 			ConditionMeet check() {
 				Object o = childTask.readProduced();
 				if (o != null) {
-					childTask.removeOnProduced(signal);
 					return ConditionMeet.success(o);
 				}
 				
 				if (childTask.getStatus() == Status.Done) {
-					childTask.removeOnProduced(signal);
 					return ConditionMeet.success(null);
 				}
+				
 				return null;
 			}
+			
+			@Override
+			public void close() {
+				childTask.removeOnProduced(signal);
+			};
+			
 			{
 				signal = () -> {refresh(); };
 				childTask.onProduced(signal);		
