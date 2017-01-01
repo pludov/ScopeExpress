@@ -85,7 +85,7 @@ public class FrameDisplay extends JPanel {
 		backBuffer = createImage(wantedWidth, wantedHeight);
 	}
 
-	public AffineTransform getImageToScreen()
+	public AffineTransform getBufferToScreen()
 	{
         int w = getWidth();
         int h = getHeight();
@@ -128,7 +128,7 @@ public class FrameDisplay extends JPanel {
         gPaint.setColor(getBackground());
         gPaint.fillRect(0, 0, getWidth(), getHeight());
         if (plane != null) {
-        	AffineTransform imageToScreen = getImageToScreen();
+        	AffineTransform imageToScreen = getBufferToScreen();
         	Graphics2D g2d = (Graphics2D)gPaint;
         	AffineTransform origin = g2d.getTransform();
         	try {

@@ -97,7 +97,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		@Override
 		void dragged(int scx, int scy, double imgx, double imgy) {
-			AffineTransform transfo = fd.getImageToScreen();
+			AffineTransform transfo = fd.getBufferToScreen();
 			try {
 				transfo.invert();
 			} catch(NoninvertibleTransformException ex) {
@@ -348,7 +348,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 							int x = e.getX();
 							int y = e.getY();
 							
-							AffineTransform transform = principal.getImageToScreen();
+							AffineTransform transform = principal.getBufferToScreen();
 							try {
 								transform.invert();
 							} catch(NoninvertibleTransformException ex) {
@@ -403,7 +403,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		int x = mousePosX;
 		int y = mousePosY;
 		
-		AffineTransform transform = principal.getImageToScreen();
+		AffineTransform transform = principal.getBufferToScreen();
 		try {
 			transform.invert();
 		} catch(NoninvertibleTransformException ex) {
@@ -435,7 +435,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			double [] tmp1 = new double[2];
 			double [] tmp2 = new double[2];
 			
-			AffineTransform imageToScreen = display.getImageToScreen();
+			AffineTransform imageToScreen = display.getBufferToScreen();
 			AffineTransform screenToImage = imageToScreen;
 			screenToImage.invert();
 			

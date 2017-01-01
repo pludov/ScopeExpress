@@ -95,8 +95,8 @@ public abstract class Task implements TaskOrGroup {
 		}
 		
 		if (status == Status.Done && onDone != null) {
-			for(Runnable r : onDone) {
-				r.run();
+			while(!onDone.isEmpty()) {
+				onDone.remove(0).run();
 			}
 			onDone = null;
 		}
@@ -116,7 +116,7 @@ public abstract class Task implements TaskOrGroup {
 
 	public void onDone(Runnable callback) {
 		if (onDone == null) {
-			onDone = new ArrayList<>();
+			onDone = new LinkedList<>();
 		}
 		onDone.add(callback);
 	}

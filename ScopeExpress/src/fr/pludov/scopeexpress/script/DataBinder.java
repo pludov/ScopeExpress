@@ -21,7 +21,7 @@ public class DataBinder {
 		this.jsTask = jsTask;
 		this.loadData = load;
 		this.writeData = write;
-		
+		this.first = true;
 	}
 
 	void perform()
@@ -40,7 +40,7 @@ public class DataBinder {
 			}
 			
 			
-			this.writeData.call(Context.getCurrentContext(), jsTask.scope, jsTask.scope, new Object[]{data});
+			this.writeData.call(Context.getCurrentContext(), jsTask.scope, jsTask.scope, new Object[]{newData});
 			
 		} catch(Throwable t) {
 			t.printStackTrace();
