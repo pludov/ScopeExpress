@@ -129,7 +129,7 @@ public class FocusUi extends FocusUiDesign {
 		fd = new MosaicImageListView(this, viewControl);
 		this.astrometryParameter = fd.astrometryParameterPanel;
 		this.imageViewPanel.add(fd);
-		fd.setOnClick(new MosaicImageListView.ClicEvent() {
+		fd.setOnClick(new FrameDisplayMovementControler.ClicEvent() {
 			
 			@Override
 			public void clicked(FrameDisplay fdisplay, int scx, int scy, double imgx, double imgy) {
@@ -854,7 +854,7 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
-		String [] scripts = new String[]{"test.js", "colimation.js"};
+		String [] scripts = new String[]{"test.js", "colimation.js", "pulse.js"};
 		for(String script : scripts)
 		{
 			JMenuItem testTask = new JMenuItem("start " + script + " script");

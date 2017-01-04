@@ -1,48 +1,24 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Cursor;
-import java.awt.Point;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.FocusEvent;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.event.FocusListener;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.NoninvertibleTransformException;
-import java.awt.geom.Point2D;
-import java.util.Calendar;
+import java.awt.geom.*;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.*;
+import javax.swing.event.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.scopeexpress.ImageDisplayParameter;
-import fr.pludov.scopeexpress.ImageDisplayParameterListener;
-import fr.pludov.scopeexpress.focus.ExclusionZone;
+import fr.pludov.scopeexpress.*;
+import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.MosaicListener;
-import fr.pludov.scopeexpress.focus.PointOfInterest;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.ui.settings.AstrometryParameterPanel;
-import fr.pludov.scopeexpress.ui.settings.ImageDisplayParameterPanel;
-import fr.pludov.scopeexpress.ui.utils.PanelFocusBorderHandler;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.SkyAlgorithms;
-import fr.pludov.scopeexpress.utils.WeakListenerOwner;
+import fr.pludov.scopeexpress.ui.FrameDisplayMovementControler.*;
+import fr.pludov.scopeexpress.ui.settings.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class MosaicImageListView extends MosaicImageListViewDesign {
 	private static final Logger logger = Logger.getLogger(MosaicImageListView.class);
@@ -51,82 +27,16 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	protected final WeakListenerOwner listenerOwner = new WeakListenerOwner(this);
 
 	final FrameDisplayWithStar principal;
+	final FrameDisplayMovementControler principalMoveControler;
 	final FrameDisplayWithStar zoomed;
 	final MosaicImageList focusImageList;
 	final ImageDisplayParameterPanel displayParameterPanel;
 	final AstrometryParameterPanel astrometryParameterPanel;
-	ClicEvent onPrincipalClick = null;
-	DragOperation principalDragOperation = null;
 	Image currentImage = null;
 	
 	Mosaic mosaic;
-	
-	public static interface ClicEvent
-	{
-		void clicked(FrameDisplay fd, int scx, int scy, double imgx, double imgy);
-		
-	}
-	
-	public abstract class DragOperation {
-		
-		abstract void init(int scx, int scy, double imgx, double imgy);
-		abstract void dragged(int scx, int scy, double imgx, double imgy);
-		abstract void done();
-		
-		abstract Cursor getCursor();
-	}
 
-	/** Dernière position de la souris (controle la vue "zoomed") */
-	int mousePosX, mousePosY;
-	
-	class DisplayMoveOperation extends DragOperation
-	{
-		int lastScx, lastScy;
-		FrameDisplay fd;
-		
-		DisplayMoveOperation(FrameDisplay fd)
-		{
-			this.fd = fd;
-		}
-		
-		@Override
-		void init(int scx, int scy, double imgx, double imgy) {
-			lastScx = scx;
-			lastScy = scy;
-		}
-		
-		@Override
-		void dragged(int scx, int scy, double imgx, double imgy) {
-			AffineTransform transfo = fd.getBufferToScreen();
-			try {
-				transfo.invert();
-			} catch(NoninvertibleTransformException ex) {
-				throw new RuntimeException("imp", ex);
-			}
-			
-			Point2D org = transfo.transform(new Point(lastScx, lastScy), null);
-			Point2D nv = transfo.transform(new Point(scx, scy), null);
-			
 
-			double deltax = nv.getX() - org.getX();
-			double deltay = nv.getY() - org.getY();
-
-			fd.setCenter(fd.getCenterx() - deltax, fd.getCentery() - deltay);
-			
-			lastScx = scx;
-			lastScy = scy;
-		}
-		
-		@Override
-		void done() {
-			
-		}
-		
-		@Override
-		Cursor getCursor() {
-			return Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR);
-		}
-	}
 	
 	public void setMosaic(final Mosaic mosaic)
 	{
@@ -149,6 +59,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 					if (mosaic.getImages().size() == 1) {
 						// Première image
 						SwingUtilities.invokeLater(new Runnable() {
+							@Override
 							public void run() {
 								if (principal.getImage() == image) {
 									principal.setBestFit();
@@ -204,6 +115,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 //				updateMousePosition(principal, e.getX(), e.getY());				
 //			}
 //		});
+		
 		principal.setKeyboardNavAllowed(true);
 		
 		principal.addFocusListener(new FocusListener() {
@@ -220,6 +132,10 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		});
 		principal.setFocusable(true);
 		principal.setRequestFocusEnabled(true);
+		
+		principalMoveControler = new FrameDisplayMovementControler(principal);
+		principalMoveControler.init();
+		principalMoveControler.setOnMousePositionChanged(this::updatePrincipalMousePos);
 		
 		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
@@ -238,45 +154,12 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		new PanelFocusBorderHandler(imageViewPanel, principal);
 		
-		principal.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mousePressed(MouseEvent e) {
-				principal.requestFocusInWindow();
-			}
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				principal.requestFocusInWindow();
-			}
-		});
 		
 		super.zoomPanel.add(zoomed);
 		super.imageListPanel.add(imageListScrollPane);
 		super.viewParameterPanel.add(displayParameterPanel);
 		super.astrometryParameterPanel.add(this.astrometryParameterPanel);
 		
-		mousePosX = principal.getWidth() / 2;
-		mousePosY = principal.getHeight() / 2;
-		principal.addComponentListener(new ComponentListener() {
-			
-			@Override
-			public void componentShown(ComponentEvent e) {
-			}
-			
-			@Override
-			public void componentResized(ComponentEvent e) {
-				mousePosX = principal.getWidth() / 2;
-				mousePosY = principal.getHeight() / 2;
-				updatePrincipalMousePos();
-			}
-			
-			@Override
-			public void componentMoved(ComponentEvent e) {
-			}
-			
-			@Override
-			public void componentHidden(ComponentEvent e) {
-			}
-		});
 		
 		displayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 			
@@ -294,6 +177,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			}
 		});
 		
+				
 		principal.listeners.addListener(this.listenerOwner, new FrameDisplayListener() {
 			
 			@Override
@@ -302,106 +186,12 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			}
 		});
 		
-		principal.addMouseMotionListener(new MouseMotionListener() {
-			
-			@Override
-			public void mouseMoved(MouseEvent e) {
-				mousePosX = e.getX();
-				mousePosY = e.getY();
-				
-				updatePrincipalMousePos();
-			}
-			
-			@Override
-			public void mouseDragged(MouseEvent e) {
-				if (principalDragOperation != null) {
-					principalDragOperation.dragged(e.getX(), e.getY(), -1, -1);
-					principal.setCursor(principalDragOperation.getCursor());
-				}
-				mousePosX = e.getX();
-				mousePosY = e.getY();
-				updatePrincipalMousePos();
-			}
-		});
-		
-		principal.addMouseListener(new MouseListener() {
-			
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				if (principalDragOperation != null) {
-					principalDragOperation.done();
-					principalDragOperation = null;
-					principal.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-				}
-			}
-			
-			@Override
-			public void mousePressed(MouseEvent e) {
-				if (principalDragOperation == null) {
-					principalDragOperation = getDragOperation(e);
-					if (principalDragOperation != null) {
-						principal.setCursor(principalDragOperation.getCursor());
-						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
-						
-					} else {
-						if (e.getButton() != MouseEvent.BUTTON1 && onPrincipalClick != null) {
-							int x = e.getX();
-							int y = e.getY();
-							
-							AffineTransform transform = principal.getBufferToScreen();
-							try {
-								transform.invert();
-							} catch(NoninvertibleTransformException ex) {
-								throw new RuntimeException("non invertible", ex);
-							}
-							Point2D coord = transform.transform(new Point(x, y), null);
-							onPrincipalClick.clicked(principal, x, y, coord.getX(), coord.getY());
-						}
-						
-						
-					}
-				}
-				
-				if (e.getButton() == MouseEvent.BUTTON1) {
-					if (principalDragOperation == null) {
-						if ((e.getModifiers() & InputEvent.SHIFT_DOWN_MASK) != 0) {
-							principalDragOperation = new DisplayMoveOperation(principal);
-						} else {
-							principalDragOperation = new DisplayMoveOperation(principal);
-							
-						}
-						principal.setCursor(principalDragOperation.getCursor());
-						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
-					}
-				} else {
-				}
-			}
-			
-
-			@Override
-			public void mouseExited(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseEntered(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-		});
 	}
 	
 	private void updatePrincipalMousePos()
 	{
-		int x = mousePosX;
-		int y = mousePosY;
+		int x = principalMoveControler.getMousePosX();
+		int y = principalMoveControler.getMousePosY();
 		
 		AffineTransform transform = principal.getBufferToScreen();
 		try {
@@ -416,13 +206,6 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		
 		lblStatus.setText(getPositionLabel(principal, x, y));
-	}
-	
-	private DragOperation getDragOperation(MouseEvent e) {
-		if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) == 0) {
-			return new DisplayMoveOperation(principal);
-		}
-		return null;
 	}
 	
 	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
@@ -522,12 +305,8 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		displayParameterPanel.setImage(image);
 	}
 
-	public ClicEvent getOnClick() {
-		return onPrincipalClick;
-	}
-
 	public void setOnClick(ClicEvent onClick) {
-		this.onPrincipalClick = onClick;
+		this.principalMoveControler.setOnPrincipalClick(onClick);
 	}
 
 	public ImageDisplayParameter getDisplayParameter() {
@@ -540,5 +319,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 
 	public FrameDisplayWithStar getPrincipal() {
 		return principal;
+	}
+
+	public FrameDisplayMovementControler getPrincipalMoveControler() {
+		return principalMoveControler;
 	}
 }
