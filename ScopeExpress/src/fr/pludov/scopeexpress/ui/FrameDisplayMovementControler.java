@@ -211,7 +211,19 @@ public class FrameDisplayMovementControler {
 			}
 		});
 		
-
+		
+		principal.addMouseWheelListener((e) -> {
+			double d = e.getPreciseWheelRotation();
+			double z = principal.getZoom();
+			z = Math.exp(Math.log(z) - d / 8);
+			if (z < 1) z = 1;
+			if (z > 8192) z = 8192;
+			principal.setZoom(z);
+			
+			e.consume();
+			
+		});
+		
 		principal.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
