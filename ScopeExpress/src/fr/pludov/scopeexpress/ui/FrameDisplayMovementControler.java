@@ -4,14 +4,16 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
 
+import javax.swing.*;
+
 public class FrameDisplayMovementControler {
-	final FrameDisplay principal;
+	final FrameDisplay display;
 	
-	private DragOperation principalDragOperation = null;
+	private DragOperation currentDragOperation = null;
 	Runnable onMousePositionChanged = null;
-	ClicEvent onPrincipalClick = null;
+	ClicEvent onClick = null;
 	
-	/** Dernière position de la souris (controle la vue "zoomed") */
+	/** Dernière position de la souris */
 	int mousePosX, mousePosY;
 
 	public static interface ClicEvent
@@ -79,22 +81,23 @@ public class FrameDisplayMovementControler {
 	}
 
 	public FrameDisplayMovementControler(FrameDisplay fd) {
-		this.principal = fd;
+		this.display = fd;
+		init();
 	}
 	
 	
 	protected DragOperation getDragOperation(MouseEvent e) {
 		if ((e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) == 0) {
-			return new DisplayMoveOperation(principal);
+			return new DisplayMoveOperation(display);
 		}
 		return null;
 	}
 	
-	void init()
+	private void init()
 	{
-		mousePosX = principal.getWidth() / 2;
-		mousePosY = principal.getHeight() / 2;
-		principal.addComponentListener(new ComponentListener() {
+		mousePosX = display.getWidth() / 2;
+		mousePosY = display.getHeight() / 2;
+		display.addComponentListener(new ComponentListener() {
 			
 			@Override
 			public void componentShown(ComponentEvent e) {
@@ -102,8 +105,8 @@ public class FrameDisplayMovementControler {
 			
 			@Override
 			public void componentResized(ComponentEvent e) {
-				mousePosX = principal.getWidth() / 2;
-				mousePosY = principal.getHeight() / 2;
+				mousePosX = display.getWidth() / 2;
+				mousePosY = display.getHeight() / 2;
 				updatePrincipalMousePos();
 			}
 			
@@ -116,7 +119,7 @@ public class FrameDisplayMovementControler {
 			}
 		});
 		
-		principal.addMouseMotionListener(new MouseMotionListener() {
+		display.addMouseMotionListener(new MouseMotionListener() {
 			
 			@Override
 			public void mouseMoved(MouseEvent e) {
@@ -128,9 +131,9 @@ public class FrameDisplayMovementControler {
 			
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				if (principalDragOperation != null) {
-					principalDragOperation.dragged(e.getX(), e.getY(), -1, -1);
-					principal.setCursor(principalDragOperation.getCursor());
+				if (currentDragOperation != null) {
+					currentDragOperation.dragged(e.getX(), e.getY(), -1, -1);
+					display.setCursor(currentDragOperation.getCursor());
 				}
 				mousePosX = e.getX();
 				mousePosY = e.getY();
@@ -138,38 +141,38 @@ public class FrameDisplayMovementControler {
 			}
 		});
 		
-		principal.addMouseListener(new MouseListener() {
+		display.addMouseListener(new MouseListener() {
 			
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				if (principalDragOperation != null) {
-					principalDragOperation.done();
-					principalDragOperation = null;
-					principal.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+				if (currentDragOperation != null) {
+					currentDragOperation.done();
+					currentDragOperation = null;
+					display.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 				}
 			}
 			
 			@Override
 			public void mousePressed(MouseEvent e) {
-				if (principalDragOperation == null) {
-					principalDragOperation = getDragOperation(e);
-					if (principalDragOperation != null) {
-						principal.setCursor(principalDragOperation.getCursor());
-						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
+				if (currentDragOperation == null) {
+					currentDragOperation = getDragOperation(e);
+					if (currentDragOperation != null) {
+						display.setCursor(currentDragOperation.getCursor());
+						currentDragOperation.init(e.getX(), e.getY(), -1, -1);
 						
 					} else {
-						if (e.getButton() != MouseEvent.BUTTON1 && onPrincipalClick != null) {
+						if (e.getButton() != MouseEvent.BUTTON1 && onClick != null) {
 							int x = e.getX();
 							int y = e.getY();
 							
-							AffineTransform transform = principal.getBufferToScreen();
+							AffineTransform transform = display.getBufferToScreen();
 							try {
 								transform.invert();
 							} catch(NoninvertibleTransformException ex) {
 								throw new RuntimeException("non invertible", ex);
 							}
 							Point2D coord = transform.transform(new Point(x, y), null);
-							onPrincipalClick.clicked(principal, x, y, coord.getX(), coord.getY());
+							onClick.clicked(display, x, y, coord.getX(), coord.getY());
 						}
 						
 						
@@ -177,15 +180,15 @@ public class FrameDisplayMovementControler {
 				}
 				
 				if (e.getButton() == MouseEvent.BUTTON1) {
-					if (principalDragOperation == null) {
+					if (currentDragOperation == null) {
 						if ((e.getModifiers() & InputEvent.SHIFT_DOWN_MASK) != 0) {
-							principalDragOperation = new DisplayMoveOperation(principal);
+							currentDragOperation = new DisplayMoveOperation(display);
 						} else {
-							principalDragOperation = new DisplayMoveOperation(principal);
+							currentDragOperation = new DisplayMoveOperation(display);
 							
 						}
-						principal.setCursor(principalDragOperation.getCursor());
-						principalDragOperation.init(e.getX(), e.getY(), -1, -1);
+						display.setCursor(currentDragOperation.getCursor());
+						currentDragOperation.init(e.getX(), e.getY(), -1, -1);
 					}
 				} else {
 				}
@@ -212,28 +215,62 @@ public class FrameDisplayMovementControler {
 		});
 		
 		
-		principal.addMouseWheelListener((e) -> {
+		display.addMouseWheelListener((e) -> {
 			double d = e.getPreciseWheelRotation();
-			double z = principal.getZoom();
+			double z = display.getZoom();
 			z = Math.exp(Math.log(z) - d / 8);
 			if (z < 1) z = 1;
 			if (z > 8192) z = 8192;
-			principal.setZoom(z);
+			display.setZoom(z);
 			
 			e.consume();
 			
 		});
 		
-		principal.addMouseListener(new MouseAdapter() {
+		display.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
-				principal.requestFocusInWindow();
+				display.requestFocusInWindow();
 			}
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				principal.requestFocusInWindow();
+				display.requestFocusInWindow();
 			}
 		});
+		
+
+		display.setFocusable(true);
+		display.setRequestFocusEnabled(true);
+		
+		display.addKeyListener(new KeyListener() {
+			
+			@Override
+			public void keyTyped(KeyEvent e) {
+			}
+			
+			@Override
+			public void keyReleased(KeyEvent e) {
+				FrameDisplayMovementControler.this.keyReleased(e);
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent e) {
+				FrameDisplayMovementControler.this.keyPressed(e);
+			}
+		});
+		display.addFocusListener(new FocusListener() {
+			
+			@Override
+			public void focusLost(FocusEvent e) {
+				resetKeyNav();
+			}
+			
+			@Override
+			public void focusGained(FocusEvent e) {
+			}
+		});
+		keyboardNavAllowed = true;
+
 	}
 	
 	void updatePrincipalMousePos()
@@ -255,12 +292,12 @@ public class FrameDisplayMovementControler {
 
 
 	public ClicEvent getOnPrincipalClick() {
-		return onPrincipalClick;
+		return onClick;
 	}
 
 
 	public void setOnPrincipalClick(ClicEvent onPrincipalClick) {
-		this.onPrincipalClick = onPrincipalClick;
+		this.onClick = onPrincipalClick;
 	}
 
 
@@ -271,6 +308,180 @@ public class FrameDisplayMovementControler {
 
 	public int getMousePosY() {
 		return mousePosY;
+	}
+
+	
+	
+	static final int dir_left = 0;
+	static final int dir_up = 1;
+	static final int dir_right = 2;
+	static final int dir_down = 3;
+	
+
+	/** Interval de temps entre deux déplacement */
+	int moveInterval = 25;
+	
+	/** Est-ce que la navigation au clavier est permise */
+	boolean keyboardNavAllowed;
+	
+	// début d'appui sur les touches de navigation 0 si aucun.
+	long [] keyStartTime = new long[4];
+	private int modifier;
+	
+	/** Ce timer se déclencher régulièrement quand une touche est appuyée */
+	Timer keyTimer;
+
+	
+	int getDirKey(KeyEvent e)
+	{
+		switch(e.getKeyCode())
+		{
+		case KeyEvent.VK_UP:
+			return dir_up;
+
+		case KeyEvent.VK_DOWN:
+			return dir_down;
+
+		case KeyEvent.VK_LEFT:
+			return dir_left;
+			
+
+		case KeyEvent.VK_RIGHT:
+			return dir_right;
+			
+		}
+		return -1;
+	}
+	
+	void resetKeyNav()
+	{
+		if (keyboardNavAllowed) {
+			flushMoves(System.currentTimeMillis());
+		}
+		for(int i = 0; i < this.keyStartTime.length; ++i)
+		{
+			this.keyStartTime[i] = 0;
+		}
+		this.modifier = 0;
+		setTimer();
+	}
+	
+	void keyPressed(KeyEvent e)
+	{
+		if (!keyboardNavAllowed) {
+			return;
+		}
+		
+		int dir = getDirKey(e);
+		
+		if (dir == -1) {
+			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+				e.consume();
+				flushMoves(e.getWhen());
+				modifier = 1;
+				flushMoves(System.currentTimeMillis());
+				setTimer();
+			}
+			return;
+		}
+		
+		e.consume();
+		keyStartTime[dir] = e.getWhen();
+		flushMoves(System.currentTimeMillis());
+		setTimer();
+	}
+	
+	void keyReleased(KeyEvent e)
+	{
+		if (!keyboardNavAllowed) {
+			return;
+		}
+		int dir = getDirKey(e);
+		if (dir == -1) {
+			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+				e.consume();
+				flushMoves(e.getWhen());
+				modifier = 0;
+				flushMoves(System.currentTimeMillis());
+				setTimer();
+			}
+
+			return;
+		}
+		e.consume();
+		flushMoves(System.currentTimeMillis());
+		keyStartTime[dir] = 0;
+		setTimer();
+	}
+	
+	void setTimer()
+	{
+		if (keyTimer == null) {
+			keyTimer = new Timer(moveInterval, new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					flushMoves(System.currentTimeMillis());
+				}
+			});
+			
+			keyTimer.setRepeats(true);
+			keyTimer.setCoalesce(true);
+			keyTimer.setInitialDelay(moveInterval);
+		}
+		
+		for(int i = 0; i < keyStartTime.length; ++i)
+		{
+			if (keyStartTime[i] > 0) {
+				keyTimer.start();
+				return;
+			}
+		}
+		keyTimer.stop();
+	}
+	
+	void flushMoves(long now)
+	{
+		for(int i = 0; i < 4; ++i)
+		{
+			while(keyStartTime[i] > 0 && keyStartTime[i] <= now)
+			{
+				doMove(i);
+				keyStartTime[i] += moveInterval;
+			}
+		}
+	}
+	
+	void doMove(int dir)
+	{
+		int dx = (dir == dir_left ? -1 : dir == dir_right ? 1 : 0);
+		int dy = (dir == dir_up ? -1 : dir == dir_down ? 1 : 0);
+		dx *= 2;
+		dy *= 2;
+		
+		if (modifier > 0) {
+			dx *= 5;
+			dy *= 5;
+		}
+		// FIXME: en fonction du zoom
+		display.setCenter(display.getCenterx() + dx, display.getCentery() + dy);
+	}
+
+
+	public boolean isKeyboardNavAllowed() {
+		return keyboardNavAllowed;
+	}
+
+	public void setKeyboardNavAllowed(boolean keyboardNavAllowed) {
+		if (this.keyboardNavAllowed == keyboardNavAllowed) {
+			return;
+		}
+		
+		if (this.keyboardNavAllowed) {
+			flushMoves(System.currentTimeMillis());
+		}
+		this.keyboardNavAllowed = keyboardNavAllowed;
+		resetKeyNav();
 	}
 
 }

@@ -1,12 +1,8 @@
 package fr.pludov.scopeexpress.ui;
 
 import java.awt.*;
-import java.awt.event.*;
-import java.awt.event.FocusListener;
 import java.awt.geom.*;
 import java.awt.image.*;
-
-import javax.swing.*;
 
 import fr.pludov.io.*;
 import fr.pludov.scopeexpress.*;
@@ -27,191 +23,8 @@ public class DecorableFrameDisplay extends FrameDisplay {
 	public DecorableFrameDisplay(Application application) {
 		this.application = application;
 		this.taskToGetImageToDisplay = null;
-		this.addKeyListener(new KeyListener() {
-			
-			@Override
-			public void keyTyped(KeyEvent e) {
-			}
-			
-			@Override
-			public void keyReleased(KeyEvent e) {
-				DecorableFrameDisplay.this.keyReleased(e);
-			}
-			
-			@Override
-			public void keyPressed(KeyEvent e) {
-				DecorableFrameDisplay.this.keyPressed(e);
-			}
-		});
-		this.addFocusListener(new FocusListener() {
-			
-			@Override
-			public void focusLost(FocusEvent e) {
-				resetKeyNav();
-			}
-			
-			@Override
-			public void focusGained(FocusEvent e) {
-			}
-		});
-		keyboardNavAllowed = true;
 	}
 
-	
-	static final int dir_left = 0;
-	static final int dir_up = 1;
-	static final int dir_right = 2;
-	static final int dir_down = 3;
-	
-
-	/** Interval de temps entre deux déplacement */
-	int moveInterval = 25;
-	
-	/** Est-ce que la navigation au clavier est permise */
-	boolean keyboardNavAllowed;
-	
-	// début d'appui sur les touches de navigation 0 si aucun.
-	long [] keyStartTime = new long[4];
-	private int modifier;
-	
-	/** Ce timer se déclencher régulièrement quand une touche est appuyée */
-	Timer keyTimer;
-
-	
-	int getDirKey(KeyEvent e)
-	{
-		switch(e.getKeyCode())
-		{
-		case KeyEvent.VK_UP:
-			return dir_up;
-
-		case KeyEvent.VK_DOWN:
-			return dir_down;
-
-		case KeyEvent.VK_LEFT:
-			return dir_left;
-			
-
-		case KeyEvent.VK_RIGHT:
-			return dir_right;
-			
-		}
-		return -1;
-	}
-	
-	void resetKeyNav()
-	{
-		if (keyboardNavAllowed) {
-			flushMoves(System.currentTimeMillis());
-		}
-		for(int i = 0; i < this.keyStartTime.length; ++i)
-		{
-			this.keyStartTime[i] = 0;
-		}
-		this.modifier = 0;
-		setTimer();
-	}
-	
-	void keyPressed(KeyEvent e)
-	{
-		if (!keyboardNavAllowed) {
-			return;
-		}
-		
-		int dir = getDirKey(e);
-		
-		if (dir == -1) {
-			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
-				e.consume();
-				flushMoves(e.getWhen());
-				modifier = 1;
-				flushMoves(System.currentTimeMillis());
-				setTimer();
-			}
-			return;
-		}
-		
-		e.consume();
-		keyStartTime[dir] = e.getWhen();
-		flushMoves(System.currentTimeMillis());
-		setTimer();
-	}
-	
-	void keyReleased(KeyEvent e)
-	{
-		if (!keyboardNavAllowed) {
-			return;
-		}
-		int dir = getDirKey(e);
-		if (dir == -1) {
-			if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
-				e.consume();
-				flushMoves(e.getWhen());
-				modifier = 0;
-				flushMoves(System.currentTimeMillis());
-				setTimer();
-			}
-
-			return;
-		}
-		e.consume();
-		flushMoves(System.currentTimeMillis());
-		keyStartTime[dir] = 0;
-		setTimer();
-	}
-	
-	void setTimer()
-	{
-		if (keyTimer == null) {
-			keyTimer = new Timer(moveInterval, new ActionListener() {
-				
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					flushMoves(System.currentTimeMillis());
-				}
-			});
-			
-			keyTimer.setRepeats(true);
-			keyTimer.setCoalesce(true);
-			keyTimer.setInitialDelay(moveInterval);
-		}
-		
-		for(int i = 0; i < keyStartTime.length; ++i)
-		{
-			if (keyStartTime[i] > 0) {
-				keyTimer.start();
-				return;
-			}
-		}
-		keyTimer.stop();
-	}
-	
-	void flushMoves(long now)
-	{
-		for(int i = 0; i < 4; ++i)
-		{
-			while(keyStartTime[i] > 0 && keyStartTime[i] <= now)
-			{
-				doMove(i);
-				keyStartTime[i] += moveInterval;
-			}
-		}
-	}
-	
-	void doMove(int dir)
-	{
-		int dx = (dir == dir_left ? -1 : dir == dir_right ? 1 : 0);
-		int dy = (dir == dir_up ? -1 : dir == dir_down ? 1 : 0);
-		dx *= 2;
-		dy *= 2;
-		
-		if (modifier > 0) {
-			dx *= 5;
-			dy *= 5;
-		}
-		// FIXME: en fonction du zoom
-		setCenter(getCenterx() + dx, getCentery() + dy);
-	}
 
 	
 	private boolean isIntBound(double d)
@@ -503,22 +316,6 @@ public class DecorableFrameDisplay extends FrameDisplay {
 		}
 		setZoom(1.0);
 		
-	}
-
-	public boolean isKeyboardNavAllowed() {
-		return keyboardNavAllowed;
-	}
-
-	public void setKeyboardNavAllowed(boolean keyboardNavAllowed) {
-		if (this.keyboardNavAllowed == keyboardNavAllowed) {
-			return;
-		}
-		
-		if (this.keyboardNavAllowed) {
-			flushMoves(System.currentTimeMillis());
-		}
-		this.keyboardNavAllowed = keyboardNavAllowed;
-		resetKeyNav();
 	}
 
 	public void setImage(Image image, boolean resetImagePosition) {

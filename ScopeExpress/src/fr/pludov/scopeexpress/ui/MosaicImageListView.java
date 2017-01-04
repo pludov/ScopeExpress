@@ -116,7 +116,6 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 //			}
 //		});
 		
-		principal.setKeyboardNavAllowed(true);
 		
 		principal.addFocusListener(new FocusListener() {
 			
@@ -130,11 +129,8 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 				viewControler.setView(principal);
 			}
 		});
-		principal.setFocusable(true);
-		principal.setRequestFocusEnabled(true);
 		
 		principalMoveControler = new FrameDisplayMovementControler(principal);
-		principalMoveControler.init();
 		principalMoveControler.setOnMousePositionChanged(this::updatePrincipalMousePos);
 		
 		zoomed = new FrameDisplayWithStar(focusUi.application);
