@@ -1,6 +1,7 @@
 var scope = require('scope.js');
 var ui = require('ui.js');
 var camera = require('camera.js');
+var localStorage = require('localStorage.js');
 
 /*
  * Idée d'interface:
@@ -54,7 +55,7 @@ var status = {
 	circles: [],
 };
 
-
+localStorage.bind('colimation', status, 'roughtMaxRay' , 'whitePercent', 'blackPercent', 'fineWhitePercent', 'fineBlackPercent');
 
 var uiDef =
 	{

@@ -27,6 +27,7 @@ public class TaskGroup implements TaskOrGroup {
 	final List<WeakReference<UIElement>> uiElements = new LinkedList<>();
 	final List<Event> pendingEvents = new LinkedList<>();
 	final List<ResumeCondition> onPendingEvents = new ArrayList<>();
+	final List<Binder> globalBinders = new LinkedList<>();
 	
 	public TaskGroup() {
 		this.title = "(anonyme)";
@@ -40,6 +41,15 @@ public class TaskGroup implements TaskOrGroup {
 			UIElement element = ref.get();
 			if (element == null || !element.performBinders()) {
 				dbit.remove();
+			}
+		}
+		for(Iterator<Binder> it = globalBinders.iterator(); it.hasNext();)
+		{
+			Binder b = it.next();
+			try {
+				b.perform();
+			} catch(Throwable t) {
+				t.printStackTrace();
 			}
 		}
 	}

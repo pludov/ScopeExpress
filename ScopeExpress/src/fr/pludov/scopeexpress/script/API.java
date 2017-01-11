@@ -2,14 +2,19 @@ package fr.pludov.scopeexpress.script;
 
 import java.awt.event.*;
 import java.io.*;
+import java.util.*;
 
 import javax.swing.*;
+import javax.swing.Timer;
 
 import org.mozilla.javascript.*;
+
+import com.google.gson.*;
 
 import fr.pludov.scopeexpress.script.Task.*;
 import fr.pludov.scopeexpress.script.TaskGroup.*;
 import fr.pludov.scopeexpress.tasks.javascript.*;
+import fr.pludov.scopeexpress.ui.utils.*;
 
 public class API {
 
@@ -275,6 +280,30 @@ public class API {
 		};
 		
 		return JSTask.currentTask.get().blockWithCondition(resumeCondition);
+	}
+	
+	
+	/** Appelle initialement write pour pousser les valeur présentes en conf globale, puis read à chaque exec */ 
+	public void localStorageBind(String path, NativeFunction read, NativeFunction write)
+	{
+		taskGroup.globalBinders.add(new Binder() {
+			
+			@Override
+			public void perform() {
+				String newJsonContent = (String)read.call(Context.getCurrentContext(), read.getParentScope(), read.getParentScope(), new Object[0]);
+				
+				Object newValue = new Gson().fromJson(newJsonContent, Object.class);
+				if (Objects.equals(newValue, GlobalPreferences.getInstance().getCurrentStorageForPath(path))) {
+					return;
+				}
+				GlobalPreferences.getInstance().setCurrentStorageForPath(path, newValue);
+			}
+		});
+		
+		Object current = GlobalPreferences.getInstance().getCurrentStorageForPath(path);
+		if (current != null) {
+			write.call(Context.getCurrentContext(), write.getParentScope(), write.getParentScope(), new Object[]{new Gson().toJson(current)});
+		}
 	}
 	
 }

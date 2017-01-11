@@ -8,7 +8,7 @@ import org.mozilla.javascript.*;
  * Copie des données depuis le JS vers un display
  * Le push n'est fait que au changement (de representation json)
  */
-public class DataBinder {	
+public class DataBinder implements Binder {	
 	boolean first;
 	// JSON representation
 	String data;
@@ -24,7 +24,8 @@ public class DataBinder {
 		this.first = true;
 	}
 
-	void perform()
+	@Override
+	public void perform()
 	{
 		try {
 			Object oldData = data;
