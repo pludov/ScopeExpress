@@ -127,7 +127,7 @@ public class DecoratedFrameDisplay extends DecorableFrameDisplay {
 	public AffineTransform getImageToScreen()
 	{
 		AffineTransform imageToScreen = getBufferToScreen();
-		if (image != null && image.isCfa()) {
+		if (image != null /*&& image.isCfa()*/) {
 			imageToScreen.scale(0.5,0.5);
 		}
 		return imageToScreen;
