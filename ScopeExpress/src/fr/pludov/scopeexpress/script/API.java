@@ -39,6 +39,16 @@ public class API {
 		
 	}
 	
+	public Class<?> lookupClass(String clazz)
+	{
+		try {
+			return Class.forName(clazz);
+		} catch (ClassNotFoundException e) {
+			return null;
+		}
+		
+	}
+	
 	public void setCustomUiProvider(NativeFunction nf)
 	{
 		if (nf == null) {
@@ -172,8 +182,11 @@ public class API {
 		if (taskGroup.pendingEvents.isEmpty()) return false;
 		while(!taskGroup.pendingEvents.isEmpty()) {
 			Event todo = taskGroup.pendingEvents.remove(0);
-			
-			todo.toCall.call(Context.getCurrentContext(), todo.scope, todo.scope, todo.args);
+			try {
+				todo.toCall.call(Context.getCurrentContext(), todo.scope, todo.scope, todo.args);
+			}catch(Throwable t) {
+				t.printStackTrace();
+			}
 			if (maxCount != 0) {
 				maxCount--;
 				if (maxCount == 0) {
@@ -181,6 +194,7 @@ public class API {
 				}
 			}
 		}
+		taskGroup.performBinders();
 		return true;
 	}
 	

@@ -10,6 +10,8 @@ import javax.swing.*;
 
 import org.mozilla.javascript.*;
 
+import fr.pludov.scopeexpress.ui.utils.Utils;
+
 public final class UIElement {
 	final TaskGroup taskGroup;
 	/** Only during initialisation */
@@ -66,6 +68,20 @@ public final class UIElement {
 				});
 				return;
 			}
+		}
+		if ("change".equals(event)) {
+			if (component instanceof JTextField) {
+				JTextField textField = (JTextField) component;
+				Utils.addTextFieldChangeListener(textField, new Runnable() {
+					@Override
+					public void run() {
+						taskGroup.enqueueEvent(eventScope, evt, event, textField.getText());
+					}
+				});
+				return;
+			}
+			
+			
 		}
 		throw Context.reportRuntimeError("unsupported event for object");
 	}
