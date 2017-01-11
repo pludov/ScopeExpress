@@ -349,4 +349,9 @@ public class Image implements WorkStepResource {
 		}
 		return cfa;
 	}
+	
+	// FIXME: c'est un peu trivial
+	public String toJSON(String toto) {
+		return "" + path.toString();
+	}
 }

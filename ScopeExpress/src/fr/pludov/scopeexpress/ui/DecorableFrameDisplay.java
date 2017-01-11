@@ -326,4 +326,8 @@ public class DecorableFrameDisplay extends FrameDisplay {
 		refreshFrame(resetImagePosition, false, true);
 	}
 	
+	public void setImage(Image image) {
+		this.setImage(image, true);
+	}
+	
 }
