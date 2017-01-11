@@ -7,6 +7,7 @@ import fr.pludov.scopeexpress.async.*;
 import fr.pludov.scopeexpress.focus.*;
 import fr.pludov.scopeexpress.platform.windows.*;
 import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.utils.*;
 
@@ -105,6 +106,49 @@ public class AscomScope extends WorkThread implements Scope {
 		} catch(Throwable t) {
 			throw new ScopeException("Erreur de déplacement du téléscope", t);
 		}
+	}
+
+	@Override
+	public NativeTask coPulse(double ra, double dec) throws ScopeException {
+		logger.info("pulsing : ra=" + ra + ", dec=" + dec);
+		
+		AsyncOrder asyncO = new AsyncOrder() {
+
+			@Override
+			public Object run() throws Throwable {
+				long raMs = 0, decMs = 0;
+
+				if (ra != 0) {
+					int dir = ra > 0 ? 2 : 3;
+					scope.put("GuideRateRightAscension",360 / 3600.0);
+					double raSpeed = ((double)scope.get("GuideRateRightAscension"));
+					logger.info("raSpeed is " + raSpeed * 3600);
+					raMs = (long) Math.floor(1000 * Math.abs(ra) / raSpeed);
+					logger.info("ra pulse duration: " + raMs);
+					if (raMs > 15000) raMs = 15000;
+					scope.invoke("PulseGuide", dir, raMs);
+				}
+				if (dec != 0) {
+					int dir = dec > 0 ? 0 : 1;
+					scope.put("GuideRateDeclination",360 / 3600.0);
+					double decSpeed = ((double)scope.get("GuideRateDeclination"));
+					logger.info("decSpeed is " + decSpeed * 3600);
+					
+					decMs = (long) Math.floor(1000 * Math.abs(dec) / decSpeed);
+					if (decMs > 15000) decMs = 15000;
+					logger.info("dec pulse duration: " + decMs);
+					scope.invoke("PulseGuide", dir, decMs);
+				}
+
+				if ((Boolean)scope.get("IsPulseGuiding")) {
+					Thread.sleep(Math.max(raMs, decMs));
+				}
+
+				return null;
+			}
+		};
+
+		return execAsNativeTask(asyncO);
 	}
 	
 	@Override

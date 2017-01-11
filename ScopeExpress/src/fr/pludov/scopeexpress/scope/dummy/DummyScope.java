@@ -3,6 +3,7 @@ package fr.pludov.scopeexpress.scope.dummy;
 import javax.swing.*;
 
 import fr.pludov.scopeexpress.scope.*;
+import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.utils.*;
 
@@ -153,6 +154,11 @@ public class DummyScope implements Scope{
 			
 		}.start();
 		
+	}
+	
+	@Override
+	public NativeTask coPulse(double ra, double dec) throws ScopeException {
+		return null;
 	}
 
 	@Override

@@ -1,7 +1,10 @@
 package fr.pludov.scopeexpress.utils;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import javax.swing.*;
+
+import fr.pludov.scopeexpress.script.*;
 
 /**
  * Exécution de code dans un thread précis (pour ole32)
@@ -26,8 +29,23 @@ public abstract class WorkThread extends Thread {
 		private boolean done;
 		private Throwable error;
 		private Object result;
+		protected Runnable onDone;
 		
+		@Override
 		public abstract Object run() throws Throwable;
+
+		public void setOnDone(Runnable r) {
+			this.onDone = r;
+		}
+
+		public Throwable getError() {
+			assert(done);
+			return error;
+		}
+		public Object getResult() {
+			assert(done);
+			return result;
+		}
 	}
 	
 	LinkedList<AsyncOrder> todoList = new LinkedList<AsyncOrder>();
@@ -141,7 +159,45 @@ public abstract class WorkThread extends Thread {
 					order.error = error;
 					order.notifyAll();
 				}
+				
+				if (order.onDone != null) {
+					try {
+						order.onDone.run();
+					} catch(Throwable t) {
+						t.printStackTrace();
+					}
+				}
 			}
 		} 
+	}
+	
+	protected NativeTask execAsNativeTask(AsyncOrder as)
+	{
+		return new NativeTask() {
+			
+			@Override
+			protected void init() throws Throwable {
+				as.setOnDone(() -> {
+					// Il faut que ce soit dans le thread swing.
+					SwingUtilities.invokeLater(() -> {
+						if (as.getError() != null) {
+							failed(as.getError());
+						} else {
+							done(as.getResult());
+						}
+					});
+				}); 
+				execAsync(as);
+				setStatus(Status.Blocked);
+			}
+			
+			@Override
+			protected void cancel() {
+				// FIXME: pas moyen de supprimer l'async en cours... on peut au moins relacher la ref mémoire
+				as.setOnDone(null);
+				super.cancel();
+			}
+		};
+		
 	}
 }
