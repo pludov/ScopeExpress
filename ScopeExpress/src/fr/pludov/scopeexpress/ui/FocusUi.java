@@ -854,7 +854,7 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
-		String [] scripts = new String[]{"test.js", "colimation.js", "pulse.js"};
+		String [] scripts = new String[]{"test.js", "colimation.js", "focus.js", "pulse.js"};
 		for(String script : scripts)
 		{
 			JMenuItem testTask = new JMenuItem("start " + script + " script");
