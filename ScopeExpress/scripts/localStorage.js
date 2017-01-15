@@ -1,4 +1,5 @@
 
+// Synchronise un objet (ou des propriétés d'un objet) avec le registry
 function bind(path, object)
 {
 	var properties = [];
