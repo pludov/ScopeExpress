@@ -232,7 +232,7 @@ api.setCustomUiProvider(function(binder) {
 	
 	function addCircle(circle, color)
 	{
-		var item = new Packages.fr.pludov.scopeexpress.ui.DecoratedFrameDisplay.Item();
+		var item = new Packages.fr.pludov.scopeexpress.ui.vector.Item();
 		
 		item.getState().setColor(Packages.java.awt.Color[color]);
 		

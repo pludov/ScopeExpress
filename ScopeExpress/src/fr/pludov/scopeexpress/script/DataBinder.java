@@ -49,4 +49,9 @@ public class DataBinder implements Binder {
 		return;
 	}
 
+	public void forceUpdate() {
+		first = true;
+		data = null;
+		perform();
+	}
 }

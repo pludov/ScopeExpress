@@ -53,8 +53,17 @@ public final class UIElement {
 		}
 		return true;
 	}
+	
+	private void triggerEvent(Scriptable eventScope, Object target, String event, Object ... args)
+	{
+		if (target instanceof NativeFunction) {
+			taskGroup.enqueueEvent(eventScope, (NativeFunction)target, event, args);
+		} else if (target instanceof DataBinder){
+			((DataBinder)target).forceUpdate();
+		}
+	}
 
-	public void on(JComponent component, String event, NativeFunction evt)
+	public void on(JComponent component, String event, Object evt)
 	{
 		final Scriptable eventScope = task.scope;
 		// Ajoute un listener sur le component... Tant qu'il est là !
@@ -63,7 +72,7 @@ public final class UIElement {
 				((JButton)component).addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						taskGroup.enqueueEvent(eventScope, evt, event, component, e);
+						triggerEvent(eventScope, evt, event, component, e);
 					}
 				});
 				return;
@@ -75,20 +84,47 @@ public final class UIElement {
 				Utils.addTextFieldChangeListener(textField, new Runnable() {
 					@Override
 					public void run() {
-						taskGroup.enqueueEvent(eventScope, evt, event, textField.getText());
+						triggerEvent(eventScope, evt, event, textField.getText());
 					}
 				});
 				return;
 			}
-			
-			
+		}
+		if ("resize".equals(event)) {
+			component.addComponentListener(new ComponentListener() {
+				@Override
+				public void componentResized(ComponentEvent e) {
+					triggerEvent(eventScope, evt, event);
+				}
+
+				@Override
+				public void componentMoved(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void componentShown(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+			return;
 		}
 		throw Context.reportRuntimeError("unsupported event for object");
 	}
 
-	public void bind(NativeFunction load, NativeFunction write)
+	public DataBinder bind(NativeFunction load, NativeFunction write)
 	{
-		binders.add(new DataBinder(task, load, write));
+		DataBinder result; 
+		binders.add(result = new DataBinder(task, load, write));
+		return result;
 	}
 
 	public Component getComponent() {

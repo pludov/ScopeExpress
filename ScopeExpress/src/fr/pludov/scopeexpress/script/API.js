@@ -49,6 +49,25 @@ global.utils = {
 				return rslt;
 			}
 			return t;
+		},
+		javaListToArray: function(list)
+		{
+			var result = [];
+			for(var i = 0; i < list.size(); ++i) {
+				result.push(list.get(i));
+			}
+			return result;
+			
+		},
+		arrayToJavaList:function(arr, list)
+		{
+			if (list == undefined) {
+				list = new Packages.java.util.ArrayList();
+			}
+			for(var i = 0; i < arr.length; ++i) {
+				list.add(arr[i]);
+			}
+			return list;
 		}
 
 }
@@ -79,5 +98,6 @@ global.coroutine = {
 				unwind(api.waitOneUiEvents());
 			}
 		}
+		
 }
 
