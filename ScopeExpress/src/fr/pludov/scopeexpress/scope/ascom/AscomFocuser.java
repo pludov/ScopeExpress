@@ -102,7 +102,6 @@ public class AscomFocuser extends WorkThread implements Focuser {
 				if (connectStatus) {
 					moving = (Boolean)focuser.get("IsMoving");
 					position = (Integer)focuser.get("Position");
-					System.out.println("Position = " + position + "; moving: " + moving);
 					if (this.maxPosition == null) {
 						maxPosition = (Integer)focuser.get("MaxStep");
 					} else {
