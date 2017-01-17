@@ -313,7 +313,7 @@ function reuse()
 
 function shoot()
 {
-	var shoot = camera.shoot({exp: 1.0});
+	var shoot = camera.shoot({exp: 1.0, fileName: 'colimation'});
 	var fit = coroutine.join(shoot);
 	var image = scopeExpress.getApplication().getImage(fit);
 	setImage(image);
