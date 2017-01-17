@@ -350,6 +350,7 @@ function buildGraph(panel, status)
 		var best = new Packages.fr.pludov.scopeexpress.ui.vector.Item();
 		best.getState().setColor(status.resultAchieved ? Packages.java.awt.Color.green : Packages.java.awt.Color.orange);
 		best.getState().setStroke(new Packages.java.awt.BasicStroke(3.0));
+		best.getHover().setStroke(new Packages.java.awt.BasicStroke(6.0));
 		var line = new Packages.java.awt.geom.Line2D.Double(stepToX(step), marginTop, stepToX(step), height - marginBottom);
 		best.getShapes().add(line);
 		panel.addItem(best);
@@ -368,7 +369,8 @@ function buildGraph(panel, status)
 			
 			var image = new Packages.fr.pludov.scopeexpress.ui.vector.Item();
 			image.getState().setColor(Packages.java.awt.Color.blue);
-
+			image.getHover().setStroke(new Packages.java.awt.BasicStroke(6.0));
+			image.setToolTip("FWHM: " + fwhm.toFixed(2));
 			var circle = new Packages.java.awt.geom.Ellipse2D.Double(cx - r, cy - r, 2 * r, 2*r);
 			image.getShapes().add(circle);
 			panel.addItem(image);
@@ -531,7 +533,10 @@ function doFocus()
 					'Image')
 				+ ' à ' + posTitle;
 			
-			var shootParams = {exp: status.input.exposure};
+			var shootParams = {
+					exp: status.input.exposure,
+					fileName: 'focus'
+			};
 			var shoot = camera.shoot(shootParams)
 			var fit = coroutine.join(shoot);
 			

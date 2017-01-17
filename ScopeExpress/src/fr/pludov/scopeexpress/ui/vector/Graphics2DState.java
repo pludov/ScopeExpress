@@ -80,4 +80,12 @@ public class Graphics2DState
 	public void setFont(Font font) {
 		this.font = font;
 	}
+
+	public void merge(Graphics2DState apply) {
+		if (color == null) color = apply.color;
+		if (stroke == null) stroke = apply.stroke;
+		if (composite == null) composite = apply.composite;
+		if (background == null) background = apply.background;
+		if (font == null) font = apply.font;
+	}
 }

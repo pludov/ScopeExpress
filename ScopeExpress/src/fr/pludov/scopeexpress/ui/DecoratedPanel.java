@@ -1,37 +1,36 @@
 package fr.pludov.scopeexpress.ui;
 
 import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.awt.geom.*;
 
 import javax.swing.*;
 
 import fr.pludov.scopeexpress.ui.vector.*;;
 
 public class DecoratedPanel extends JPanel {
-	List<Item> items = new ArrayList<>();
-
+	final ItemStack itemStack;
+	
+	public DecoratedPanel()
+	{
+		super();
+		itemStack = new ItemStack(this, ()->(new AffineTransform()));
+	}
+	
 	public void clearItems()
 	{
-		this.items.clear();
-		// Trigger update.
-		repaint(50);
+		itemStack.clearItems();
 	}
 	
 	public void addItem(Item i)
 	{
-		this.items.add(i);
-		// Trigger update.
-		repaint(50);
+		itemStack.addItem(i);
 	}
 	
 	@Override
 	public void paint(Graphics gPaint) {
 		super.paint(gPaint);
-		
-		Graphics2D g2d = (Graphics2D)gPaint;
-    	
-    	Item.draw(g2d, items);
-
+		itemStack.paint((Graphics2D)gPaint);
 	}
+	
+	
 }

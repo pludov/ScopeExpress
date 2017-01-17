@@ -11,6 +11,7 @@ public class Item {
 	
 	final List<Shape> shapes;
 	final List<Text> texts;
+	String toolTip;
 	
 	public Item()
 	{
@@ -73,6 +74,14 @@ public class Item {
 
 	public List<Text> getTexts() {
 		return texts;
+	}
+
+	public String getToolTip() {
+		return toolTip;
+	}
+
+	public void setToolTip(String toolTip) {
+		this.toolTip = toolTip;
 	}
 	
 }
