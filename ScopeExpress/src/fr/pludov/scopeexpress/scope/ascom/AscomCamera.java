@@ -2,6 +2,7 @@ package fr.pludov.scopeexpress.scope.ascom;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.math.*;
 import java.util.*;
 
 import org.apache.log4j.*;
@@ -100,7 +101,15 @@ public class AscomCamera extends WorkThread implements Camera {
 		temps.setHeatSinkTemperature(getCapacity("HeatSinkTemperature", (Double)null));
 		temps.setSetCCDTemperature(getCapacity("SetCCDTemperature", (Double)null));
 
-		
+		RunningShootInfo rsi = currentShoot;
+		if (rsi != null) {
+			if (temps.getCCDTemperature() != null) {
+				rsi.addTemp(temps.getCCDTemperature());
+			}
+			if (temps.getSetCCDTemperature() != null) {
+				rsi.addTemp(temps.getSetCCDTemperature());
+			}
+		}
 //		if (this.temperatures != null && this.temperatures.equals(temp)) {
 //			return;
 //		}
@@ -198,10 +207,10 @@ public class AscomCamera extends WorkThread implements Camera {
 								imageHdu.addValue("DATE-OBS", lastExpStart, "Date of observation start");
 								imageHdu.addValue("EXPTIME", lastExp, "Exposure time (sec)");
 								if (pixSx != null) {
-									imageHdu.addValue("XPIXSZ", pixSx, "Pixel width in microns (after binning");
+									imageHdu.addValue("XPIXSZ", BigDecimal.valueOf(pixSx).round(new MathContext(4)), "Pixel width in microns (after binning");
 								}
 								if (pixSy != null) {
-									imageHdu.addValue("YPIXSZ", pixSy, "Pixel height in microns (after binning)");
+									imageHdu.addValue("YPIXSZ", BigDecimal.valueOf(pixSy).round(new MathContext(4)), "Pixel height in microns (after binning)");
 								}
 								if (xbinning != null) {
 									imageHdu.addValue("XBINNING", xbinning, "binning factor used on X axis");
@@ -209,6 +218,19 @@ public class AscomCamera extends WorkThread implements Camera {
 								if (ybinning != null) {
 									imageHdu.addValue("YBINNING", ybinning, "binning factor used on Y axis");
 								}
+								imageHdu.addValue("SWCREATE", "ScopeExpress (pludov@nnx.com)", "Software");
+								
+								BigDecimal temp = readyImageParameters.getCcdTemp();
+								if (temp != null) {
+									imageHdu.addValue("CCD-TEMP", temp, "Temperature of CCD when exposure taken");
+								}
+								
+								BigDecimal setTemp = readyImageParameters.getCcdTempSet();
+								if (setTemp != null) {
+									imageHdu.addValue("SET-TEMP", setTemp, "The setpoint of the cooling in C");
+								}
+								
+								
 								// FIXME : ce fits devrait encore être modifiés plusieurs fois par la suite
 								// Pour inclure plus de metadata...
 								// Comment supporter le focuser ? la roue à filtre ?
@@ -423,6 +445,17 @@ public class AscomCamera extends WorkThread implements Camera {
 					try {
 						currentShoot = rsi;
 						camera.invoke("StartExposure", rsi.getExp(), true);
+						
+						TemperatureParameters temps = temperatures;
+						if (temps != null) {
+							if (temps.getCCDTemperature() != null) {
+								rsi.addTemp(temps.getCCDTemperature());
+							}
+							if (temps.getSetCCDTemperature() != null) {
+								rsi.addTempSet(temps.getSetCCDTemperature());
+							}
+						}
+						
 					} catch(Throwable t) {
 						currentShoot = null;
 						listeners.getTarget().onShootDone(rsi, null);
