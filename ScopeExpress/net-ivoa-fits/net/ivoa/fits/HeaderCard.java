@@ -1,5 +1,7 @@
 package net.ivoa.fits;
 
+import java.math.*;
+
 /*
  * Copyright: Thomas McGlynn 1997-1999.
  * This code may be used for any purpose, non-commercial
@@ -53,6 +55,24 @@ public class HeaderCard {
 	 *                for any invalid keyword
 	 */
 	public HeaderCard(String key, double value, String comment)
+			throws HeaderCardException {
+		this(key, String.valueOf(value), comment);
+		isString = false;
+	}
+
+	/**
+	 * Create a HeaderCard from its component parts
+	 * 
+	 * @param key
+	 *            keyword (null for a comment)
+	 * @param value
+	 *            value (null for a comment or keyword without an '=')
+	 * @param comment
+	 *            comment
+	 * @exception HeaderCardException
+	 *                for any invalid keyword
+	 */
+	public HeaderCard(String key, BigDecimal value, String comment)
 			throws HeaderCardException {
 		this(key, String.valueOf(value), comment);
 		isString = false;
@@ -517,6 +537,7 @@ public class HeaderCard {
 	/**
 	 * Return the 80 character card image
 	 */
+	@Override
 	public String toString() {
 		StringBuffer buf = new StringBuffer(80);
 

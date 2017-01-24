@@ -10,24 +10,13 @@ package net.ivoa.fits.hdu;
  * Many thanks to David Glowacki (U. Wisconsin) for substantial
  * improvements, enhancements and bug fixes.
  */
+import java.io.*;
+import java.math.*;
+import java.util.*;
 
-import java.io.IOException;
-
-import net.ivoa.fits.FitsDate;
-import net.ivoa.fits.FitsElement;
-import net.ivoa.fits.FitsException;
-import net.ivoa.fits.FitsExceptionNoKey;
-import net.ivoa.fits.FitsFactory;
-import net.ivoa.fits.Header;
-import net.ivoa.fits.HeaderCard;
-import net.ivoa.fits.HeaderCardException;
-import net.ivoa.fits.data.Data;
-import net.ivoa.util.ArrayDataInput;
-import net.ivoa.util.ArrayDataOutput;
-
-import java.util.Iterator;
-
-import java.util.Date;
+import net.ivoa.fits.*;
+import net.ivoa.fits.data.*;
+import net.ivoa.util.*;
 
 /**
  * This abstract class is the parent of all HDU types. It provides basic
@@ -126,6 +115,7 @@ public abstract class BasicHDU implements FitsElement {
 	}
 
 	/** Get the starting offset of the HDU */
+	@Override
 	public long getFileOffset() {
 		return myHeader.getFileOffset();
 	}
@@ -149,6 +139,7 @@ public abstract class BasicHDU implements FitsElement {
 	 * 
 	 * @return The size in bytes.
 	 */
+	@Override
 	public long getSize() {
 		int size = 0;
 
@@ -193,6 +184,7 @@ public abstract class BasicHDU implements FitsElement {
 	 * Read out the HDU from the data stream. This will overwrite any existing
 	 * header and data components.
 	 */
+	@Override
 	public void read(ArrayDataInput stream) throws FitsException, IOException {
 		myHeader = Header.readHeader(stream);
 		myData = myHeader.makeData();
@@ -202,6 +194,7 @@ public abstract class BasicHDU implements FitsElement {
 	/*
 	 * Write out the HDU @param stream The data stream to be written to.
 	 */
+	@Override
 	public void write(ArrayDataOutput stream) throws FitsException {
 		if (myHeader != null) {
 			myHeader.write(stream);
@@ -218,11 +211,13 @@ public abstract class BasicHDU implements FitsElement {
 	}
 
 	/** Is the HDU rewriteable */
+	@Override
 	public boolean rewriteable() {
 		return myHeader.rewriteable() && myData.rewriteable();
 	}
 
 	/** Rewrite the HDU */
+	@Override
 	public void rewrite() throws FitsException, IOException {
 
 		if (rewriteable()) {
@@ -411,6 +406,7 @@ public abstract class BasicHDU implements FitsElement {
 	 * @deprecated Replaced by getEquinox
 	 * @see #getEquinox()
 	 */
+	@Deprecated
 	public double getEpoch() {
 		return myHeader.getDoubleValue("EPOCH", -1.0);
 	}
@@ -515,6 +511,11 @@ public abstract class BasicHDU implements FitsElement {
 	}
 
 	public void addValue(String key, double val, String comment)
+			throws HeaderCardException {
+		myHeader.addValue(key, val, comment);
+	}
+
+	public void addValue(String key, BigDecimal val, String comment)
 			throws HeaderCardException {
 		myHeader.addValue(key, val, comment);
 	}

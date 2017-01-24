@@ -12,11 +12,11 @@ package net.ivoa.fits;
  */
 
 import java.io.*;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.math.*;
+import java.text.*;
 import java.util.*;
 
-import net.ivoa.fits.data.Data;
+import net.ivoa.fits.data.*;
 import net.ivoa.util.*;
 
 /**
@@ -129,7 +129,8 @@ public class Header implements FitsElement {
     }
 
     /** Get the offset of this header */
-    public long getFileOffset() {
+    @Override
+	public long getFileOffset() {
         return fileOffset;
     }
 
@@ -197,7 +198,8 @@ public class Header implements FitsElement {
     }
 
     /** Get the size of the header in bytes */
-    public long getSize() {
+    @Override
+	public long getSize() {
         return headerSize();
     }
 
@@ -680,7 +682,8 @@ public class Header implements FitsElement {
      *         otherwise return the header read from the input stream.
      */
 
-    public void read(ArrayDataInput dis) throws TruncatedFileException,
+    @Override
+	public void read(ArrayDataInput dis) throws TruncatedFileException,
             IOException, FitsException {
         fileOffset = FitsUtil.findOffset(dis);
 
@@ -809,7 +812,8 @@ public class Header implements FitsElement {
      * @exception FitsException
      *                if the header could not be written.
      */
-    public void write(ArrayDataOutput dos) throws FitsException {
+    @Override
+	public void write(ArrayDataOutput dos) throws FitsException {
 
         fileOffset = FitsUtil.findOffset(dos);
 
@@ -840,7 +844,8 @@ public class Header implements FitsElement {
     }
 
     /** Rewrite the header. */
-    public void rewrite() throws FitsException, IOException {
+    @Override
+	public void rewrite() throws FitsException, IOException {
 
         ArrayDataOutput dos = (ArrayDataOutput) input;
 
@@ -854,7 +859,8 @@ public class Header implements FitsElement {
     }
 
     /** Can the header be rewritten without rewriting the entire file? */
-    public boolean rewriteable() {
+    @Override
+	public boolean rewriteable() {
 
         if (fileOffset >= 0 && input instanceof ArrayDataOutput
                 && (cards.size() + 35) / 36 == (oldSize + 35) / 36) {
@@ -896,6 +902,25 @@ public class Header implements FitsElement {
      *                If the parameters cannot build a valid FITS card.
      */
     public void addValue(String key, double val, String comment)
+            throws HeaderCardException {
+        removeCard(key);
+        iter.add(key, new HeaderCard(key, val, comment));
+    };
+
+    /**
+     * Add or replace a key with the given double value and comment. Note that
+     * float values will be promoted to doubles.
+     * 
+     * @param key
+     *            The header key.
+     * @param val
+     *            The double value.
+     * @param comment
+     *            A comment to append to the card.
+     * @exception HeaderCardException
+     *                If the parameters cannot build a valid FITS card.
+     */
+    public void addValue(String key, BigDecimal val, String comment)
             throws HeaderCardException {
         removeCard(key);
         iter.add(key, new HeaderCard(key, val, comment));
@@ -981,7 +1006,7 @@ public class Header implements FitsElement {
         // an exception...
 
         try {
-            iter.add(new HeaderCard(header, null, value));
+            iter.add(new HeaderCard(header, (String)null, value));
         } catch (HeaderCardException e) {
             System.err.println("Impossible Exception for comment style:"
                     + header + ":" + value);
@@ -1280,7 +1305,8 @@ public class Header implements FitsElement {
      * @deprecated see numberOfCards(). The units of the size of the header may
      *             be unclear.
      */
-    public int size() {
+    @Deprecated
+	public int size() {
         return cards.size();
     }
 
@@ -1292,7 +1318,8 @@ public class Header implements FitsElement {
      * @deprecated An iterator should be used for sequential access to the
      *             header.
      */
-    public String getCard(int n) {
+    @Deprecated
+	public String getCard(int n) {
         if (n >= 0 && n < cards.size()) {
             iter = cards.iterator(n);
             HeaderCard c = (HeaderCard) iter.next();
@@ -1309,7 +1336,8 @@ public class Header implements FitsElement {
      * @deprecated An iterator should be used for sequential access to the
      *             header.
      */
-    public String getKey(int n) {
+    @Deprecated
+	public String getKey(int n) {
 
         String card = getCard(n);
         if (card == null) {
@@ -1336,7 +1364,8 @@ public class Header implements FitsElement {
      *                if the data was not valid for this header.
      * @deprecated Use the appropriate Header constructor.
      */
-    public void pointToData(Data o) throws FitsException {
+    @Deprecated
+	public void pointToData(Data o) throws FitsException {
         o.fillHeader(this);
     }
 
