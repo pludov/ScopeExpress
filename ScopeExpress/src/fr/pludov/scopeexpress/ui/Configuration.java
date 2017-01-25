@@ -1,6 +1,6 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.io.File;
+import java.io.*;
 
 public class Configuration {
 
@@ -10,6 +10,10 @@ public class Configuration {
 	private double focal;
 	private double pixelSize;
 
+	/** Chemin par défaut des fichiers */
+	private String fitBase;
+	private String fitPattern;
+	
 	private String starCatalogPathTyc2;
 	/** Chemin des indexes */
 	private String astrometryNetPath;
@@ -146,5 +150,21 @@ public class Configuration {
 
 	public void setIrcEnabled(boolean ircEnabled) {
 		this.ircEnabled = ircEnabled;
+	}
+
+	public String getFitBase() {
+		return fitBase;
+	}
+
+	public void setFitBase(String fitBase) {
+		this.fitBase = fitBase;
+	}
+
+	public String getFitPattern() {
+		return fitPattern;
+	}
+
+	public void setFitPattern(String fitPattern) {
+		this.fitPattern = fitPattern;
 	}
 }

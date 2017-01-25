@@ -1,22 +1,11 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Window;
+import java.awt.*;
 
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JPanel;
-import javax.swing.border.EmptyBorder;
-import javax.swing.JTabbedPane;
-import net.miginfocom.swing.MigLayout;
-import javax.swing.BoxLayout;
-import javax.swing.JLabel;
-import java.awt.Font;
-import java.awt.Color;
-import javax.swing.JTextField;
-import java.awt.Insets;
-import javax.swing.JCheckBox;
+import javax.swing.*;
+import javax.swing.border.*;
+
+import net.miginfocom.swing.*;
 
 public class ConfigurationEditDesign extends JDialog {
 
@@ -51,6 +40,11 @@ public class ConfigurationEditDesign extends JDialog {
 	protected JPanel communicationPanel;
 	protected JCheckBox chckbxIrc;
 	protected JCheckBox chckbxHttp;
+	protected JLabel lblCheminDeBase;
+	protected JLabel lblNommageDesClichs;
+	protected JTextField fieldFitPattern;
+	protected JTextField fieldFitBase;
+	protected JButton btnBrowseFitBase;
 
 	/**
 	 * Launch the application.
@@ -84,7 +78,7 @@ public class ConfigurationEditDesign extends JDialog {
 		this.cameraPanel = new JPanel();
 		this.cameraPanel.setToolTipText("Param\u00E8tres de l'imageur");
 		this.tabbedPane.addTab("Imageur", null, this.cameraPanel, null);
-		this.cameraPanel.setLayout(new MigLayout("", "[grow][grow][]", "[][][grow]"));
+		this.cameraPanel.setLayout(new MigLayout("", "[grow][grow][]", "[][][][][][grow]"));
 		
 		this.lblPixSize = new JLabel("Taille des pixels");
 		this.lblPixSize.setToolTipText("Taille en um des pixels");
@@ -113,6 +107,21 @@ public class ConfigurationEditDesign extends JDialog {
 		this.fieldFocalErr.setForeground(Color.RED);
 		this.fieldFocalErr.setFont(new Font("Tahoma", Font.BOLD, 10));
 		this.cameraPanel.add(this.fieldFocalErr, "cell 2 1");
+		
+		this.lblCheminDeBase = new JLabel("Dossier de base des clich\u00E9s");
+		this.cameraPanel.add(this.lblCheminDeBase, "cell 0 2,alignx trailing");
+		
+		this.fieldFitBase = new JTextField();
+		this.cameraPanel.add(this.fieldFitBase, "flowx,cell 1 2,growx");
+		
+		this.lblNommageDesClichs = new JLabel("Nommage des clich\u00E9s");
+		this.cameraPanel.add(this.lblNommageDesClichs, "cell 0 3,alignx trailing");
+		
+		this.fieldFitPattern = new JTextField();
+		this.cameraPanel.add(this.fieldFitPattern, "cell 1 3,growx");
+		
+		this.btnBrowseFitBase = new JButton("...");
+		this.cameraPanel.add(this.btnBrowseFitBase, "cell 1 2");
 				
 		this.geoPanel = new JPanel();
 		this.tabbedPane.addTab("G\u00E9ographie", null, this.geoPanel, null);

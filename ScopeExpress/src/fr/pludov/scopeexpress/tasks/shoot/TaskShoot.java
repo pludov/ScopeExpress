@@ -116,16 +116,19 @@ public class TaskShoot extends BaseTask {
 					}
 				}
 			});
-			ShootParameters sp = new ShootParameters();
-			sp.setBinx(get(getDefinition().bin));
-			sp.setBiny(get(getDefinition().bin));
-			sp.setExp(get(getDefinition().exposure));
-			String path = get(getDefinition().path);
-			sp.setPath(path);
-			// Appliquer les paramètres
-			String fileName = get(getDefinition().fileName);
-			sp.setFileName(new FileNameGenerator(focusUi).performFileNameExpansion(path, fileName, this, getDefinition()));
+			
+			
 			try {
+				ShootParameters sp = new ShootParameters();
+				sp.setBinx(get(getDefinition().bin));
+				sp.setBiny(get(getDefinition().bin));
+				sp.setExp(get(getDefinition().exposure));
+				String path = get(getDefinition().path);
+				sp.setPath(path);
+				String fileName = get(getDefinition().fileName);
+				sp.setFileName(fileName);
+				
+				
 				camera.startShoot(sp);
 			} catch(CameraException ce) {
 				ce.printStackTrace();

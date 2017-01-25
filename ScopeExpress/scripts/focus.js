@@ -6,12 +6,12 @@ var localStorage = require('localStorage.js');
 
 var status = {
 		input: {
-			center : 40000,
+			center : 26700,
 			width: 2500,
 			backlash: 500,
 			steps: 10,
-			shootsPerStep: 1,
-			exposure: 1.0
+			shootsPerStep: 3,
+			exposure: 0.5
 		},
 		status: 'En attente',
 		// Step => tableau de image, fwhm
@@ -535,7 +535,8 @@ function doFocus()
 			
 			var shootParams = {
 					exp: status.input.exposure,
-					fileName: 'focus'
+					type: 'light',
+					phase: 'focus'
 			};
 			var shoot = camera.shoot(shootParams)
 			var fit = coroutine.join(shoot);

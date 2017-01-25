@@ -1,26 +1,19 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
 
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 
-import fr.pludov.astrometry.IndexesFetch;
-import fr.pludov.scopeexpress.catalogs.Tycho2Fetch;
-import fr.pludov.scopeexpress.focus.Application;
-import fr.pludov.scopeexpress.ui.joystick.JoystickConfPanel;
-import fr.pludov.scopeexpress.ui.preferences.StringConfigItem;
-import fr.pludov.scopeexpress.ui.utils.SyncTask;
-import fr.pludov.scopeexpress.ui.utils.Utils;
-import fr.pludov.scopeexpress.utils.EndUserException;
+import fr.pludov.astrometry.*;
+import fr.pludov.scopeexpress.catalogs.*;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.ui.joystick.*;
+import fr.pludov.scopeexpress.ui.preferences.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class ConfigurationEdit extends ConfigurationEditDesign {
 	static abstract class ConfigItem<DATA> {
@@ -414,6 +407,53 @@ public class ConfigurationEdit extends ConfigurationEditDesign {
 				return e.fieldPixSizeErr;
 			}
 		},
+		new ConfigItemString("fitBase", Utils.getUserDocumentFolder() + File.separator + "photos") {
+			
+			
+			@Override
+			void set(Configuration config, String o) {
+				config.setFitBase(o);
+			}
+			
+			@Override
+			String get(Configuration config) {
+				return config.getFitBase();
+			}
+			
+			@Override
+			JTextField getInputField(ConfigurationEdit e) {
+				return e.fieldFitBase;
+			}
+			
+			@Override
+			JLabel getErrorField(ConfigurationEdit e) {
+				return null;
+			}
+		},
+		// Voir FileNAmeGEnerator pour les patterns
+		new ConfigItemString("fitPattern", "$SESSIONyyyy-MM-dd$/img$-<TARGET$$-<PHASE$$-<TYPE$$-bin<BIN$$-<FILTER$$-<EXP$_$NOW$") {
+			
+			
+			@Override
+			void set(Configuration config, String o) {
+				config.setFitPattern(o);
+			}
+			
+			@Override
+			String get(Configuration config) {
+				return config.getFitPattern();
+			}
+			
+			@Override
+			JTextField getInputField(ConfigurationEdit e) {
+				return e.fieldFitPattern;
+			}
+			
+			@Override
+			JLabel getErrorField(ConfigurationEdit e) {
+				return null;
+			}
+		},	
 		new ConfigItemDouble("focal", 600) {
 
 			@Override

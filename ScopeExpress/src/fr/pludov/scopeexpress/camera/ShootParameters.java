@@ -14,6 +14,11 @@ public class ShootParameters {
 	String path;
 	String fileName;
 	
+	/** will go in fit header */	
+	ImageType type;
+	/** If type is not expressive enough */
+	String phase;
+	
 	public ShootParameters() {
 	}
 
@@ -25,6 +30,8 @@ public class ShootParameters {
 		this.biny = parameters.biny;
 		this.path = parameters.path;
 		this.fileName = parameters.fileName;
+		this.phase = parameters.phase;
+		this.type = parameters.type;
 	}
 
 	public double getExp() {
@@ -81,6 +88,22 @@ public class ShootParameters {
 
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
+	}
+
+	public ImageType getType() {
+		return type;
+	}
+
+	public void setType(ImageType type) {
+		this.type = type;
+	}
+
+	public String getPhase() {
+		return phase;
+	}
+
+	public void setPhase(String phase) {
+		this.phase = phase;
 	}
 
 }

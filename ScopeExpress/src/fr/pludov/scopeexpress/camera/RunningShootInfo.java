@@ -3,7 +3,11 @@ package fr.pludov.scopeexpress.camera;
 import java.io.*;
 import java.math.*;
 
+import javax.swing.*;
+
 import fr.pludov.scopeexpress.scope.ascom.*;
+import fr.pludov.scopeexpress.tasks.shoot.*;
+import fr.pludov.scopeexpress.ui.*;
 
 public class RunningShootInfo extends ShootParameters {
 	long startTime;
@@ -54,9 +58,38 @@ public class RunningShootInfo extends ShootParameters {
 
 	
 	public File createTargetFile(String ext) throws IOException {
-		File target = new File(this.getPath() + "/" + this.getFileName());
+		String path = getPath() != null ? getPath() : Configuration.getCurrentConfiguration().getFitBase();
+		String fileName = getFileName() != null ? getFileName() : Configuration.getCurrentConfiguration().getFitPattern();
+		
+		
+		if (!new File(path).isDirectory()) {
+			throw new IOException("Target directory not found : " + path);
+		}
+		
+		// Appliquer les paramètres
+		String [] newPath = new String[1];
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						newPath[0] = new FileNameGenerator(FocusUi.getInstance()).performFileNameExpansion(path, fileName, RunningShootInfo.this);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			});
+		} catch (Exception e) {
+			throw new IOException("Problem with file name expansion", e);
+		}
+		
+
+		File target = new File(path + File.separator + newPath[0]);
 		File parent = target.getParentFile();
 		parent.mkdirs();
+		if (!parent.isDirectory()) {
+			throw new IOException("Unable to create target directory: " + target);
+		}
 		
 		String baseName = target.getName();
 		File targetFile = null;

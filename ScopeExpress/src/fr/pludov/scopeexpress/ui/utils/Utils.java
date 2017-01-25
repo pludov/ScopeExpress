@@ -11,6 +11,7 @@ import java.util.regex.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.filechooser.*;
 
 public final class Utils {
 
@@ -508,6 +509,30 @@ public final class Utils {
 		File result = new File(workingDirectory);
 		result = new File(result, ".ScopeExpress");
 		return result;
+	}
+	
+	public static File getUserDocumentFolder()
+	{
+		String workingDirectory;
+		String OS = (System.getProperty("os.name")).toUpperCase();
+		//to determine what the workingDirectory is.
+		//if it is some version of Windows
+		if (OS.contains("WIN"))
+		{
+		    //it is simply the location of the "AppData" folder
+		    workingDirectory = FileSystemView.getFileSystemView().getDefaultDirectory().getPath();
+		}
+		//Otherwise, we assume Linux or Mac
+		else
+		{
+		    //in either case, we would start in the user's home directory
+		    workingDirectory = System.getProperty("user.home");
+		    //if we are on a Mac, we are not done, we look for "Application Support"
+		    // workingDirectory += "/Library/Application Support";
+		}
+		
+		return new File(workingDirectory);
+		
 	}
 
 	/** Crée un bouton qui annule (setVisible à false), et un autre qui applique */

@@ -313,7 +313,11 @@ function reuse()
 
 function shoot()
 {
-	var shoot = camera.shoot({exp: 1.0, fileName: 'colimation'});
+	var shoot = camera.shoot({
+			exp: 0.05,
+			type: 'light',
+			phase: 'colimation'
+	});
 	var fit = coroutine.join(shoot);
 	var image = scopeExpress.getApplication().getImage(fit);
 	setImage(image);
@@ -349,7 +353,7 @@ function center()
 	var dy = (center.y - position.y);
 	
 	// FIXME: les ratio ? a déduire de RA/DEC ? A rendre configurables ?
-	var ra = 1 * dy/3600;
+	var ra = -1 * dy/3600;
 	var dec = -1 * dx/3600;
 	api.print("moving scope : ra=" + ra + ", dec=" + dec);
 	

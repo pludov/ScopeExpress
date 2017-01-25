@@ -5,9 +5,7 @@ function defaultParameters()
 		// Not used
 		readoutMode: 0,
 		binx: 1,
-		biny: 1,
-		path: "c:/",
-		fileName: "capture"
+		biny: 1
 	});
 }
 
@@ -29,5 +27,6 @@ function shoot(params) {
 
 // Les exports:
 ({
-	shoot: shoot
+	shoot: shoot,
+	getDevice: getCamera
 })

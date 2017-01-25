@@ -94,7 +94,10 @@ public class FocusUi extends FocusUiDesign {
 	private JComboBox<Object> targetSelector;
 	final Database<Root> database;
 	
+	static FocusUi instance;
+	
 	public FocusUi(final Application application) {
+		instance = this;
 		this.database = application.getDatabase();
 		this.scopeManager = new FocusUiScopeManager(this);
 		this.focuserManager = new FocusUiFocuserManager(this);
@@ -854,7 +857,7 @@ public class FocusUi extends FocusUiDesign {
 		JMenu mnTests = new JMenu("Tests");
 		this.menuBar.add(mnTests);
 
-		String [] scripts = new String[]{"test.js", "colimation.js", "focus.js", "pulse.js"};
+		String [] scripts = new String[]{"test.js", "colimation.js", "focus.js", "sequence.js", "flat.js", "black.js", "pulse.js"};
 		for(String script : scripts)
 		{
 			JMenuItem testTask = new JMenuItem("start " + script + " script");
@@ -1329,6 +1332,10 @@ public class FocusUi extends FocusUiDesign {
 
 	public FocusUiScopeManager getScopeManager() {
 		return scopeManager;
+	}
+
+	public static FocusUi getInstance() {
+		return instance;
 	}
 	
 }
