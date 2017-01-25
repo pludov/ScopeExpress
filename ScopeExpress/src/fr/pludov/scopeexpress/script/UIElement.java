@@ -10,6 +10,7 @@ import javax.swing.*;
 
 import org.mozilla.javascript.*;
 
+import fr.pludov.scopeexpress.tasks.javascript.*;
 import fr.pludov.scopeexpress.ui.utils.Utils;
 
 public final class UIElement {
@@ -59,7 +60,10 @@ public final class UIElement {
 		if (target instanceof NativeFunction) {
 			taskGroup.enqueueEvent(eventScope, (NativeFunction)target, event, args);
 		} else if (target instanceof DataBinder){
-			((DataBinder)target).forceUpdate();
+			// On veut un scope javascript (neuf !)
+			try(JSContext jsc = JSContext.open(((DataBinder)target).jsTask.modules.getContextFactory())) {
+				((DataBinder)target).forceUpdate();
+			}
 		}
 	}
 
