@@ -240,9 +240,9 @@ public final class Utils {
 		raSec = (raHourDouble - raHour - raMin / 60.0) * 3600;
 		
 		if (negate) {
-			return String.format(Locale.US, "-%dh %02dm %02.2fs", raHour, raMin, raSec);
+			return String.format(Locale.US, "-%2dh %2dm %5.2fs", raHour, raMin, raSec);
 		} else {
-			return String.format(Locale.US, "%dh %02dm %02.2fs", raHour, raMin, raSec);
+			return String.format(Locale.US, " %2dh %2dm %5.2fs", raHour, raMin, raSec);
 		}
 	}
 
@@ -285,9 +285,9 @@ public final class Utils {
 		raSec = (deg - raHour - raMin / 60.0) * 3600;
 		
 		if (negate) {
-			return String.format(Locale.US, "-%d° %02d' %02.2f\"", raHour, raMin, raSec);
+			return String.format(Locale.US, "-%2d° %2d' %5.2f\"", raHour, raMin, raSec);
 		} else {
-			return String.format(Locale.US, "%d° %02d' %02.2f\"", raHour, raMin, raSec);
+			return String.format(Locale.US, " %2d° %2d' %5.2f\"", raHour, raMin, raSec);
 		}
 	}
 

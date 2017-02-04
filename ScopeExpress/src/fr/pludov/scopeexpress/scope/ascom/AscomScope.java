@@ -73,7 +73,7 @@ public class AscomScope extends WorkThread implements Scope {
 	/// Bloque l'appelant. ra en hms
 	@Override
 	public void sync(final double ra, final double dec) throws ScopeException {
-		logger.info("Sync to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
+		logger.info("Sync to ra=" + fr.pludov.scopeexpress.ui.utils.Utils.formatHourMinSec((ra - raBias) * 360.0/24) + ", dec=" + fr.pludov.scopeexpress.ui.utils.Utils.formatDegMinSec(dec - decBias) + " (jnow)");
 		try {
 			exec(new AsyncOrder() {
 				
@@ -93,7 +93,7 @@ public class AscomScope extends WorkThread implements Scope {
 	@Override
 	public void slew(final double ra, final double dec) throws ScopeException
 	{
-		logger.info("Slew to ra=" + (ra - raBias) + ", dec=" + (dec - decBias));
+		logger.info("Slew to ra=" + fr.pludov.scopeexpress.ui.utils.Utils.formatHourMinSec((ra - raBias) * 360.0/24) + ", dec=" + fr.pludov.scopeexpress.ui.utils.Utils.formatDegMinSec(dec - decBias) + " (jnow)");
 		try {
 			exec(new AsyncOrder() {
 				

@@ -1,17 +1,11 @@
 package fr.pludov.scopeexpress.ui;
 
-import javax.swing.JPanel;
-import net.miginfocom.swing.MigLayout;
-import javax.swing.BoxLayout;
-import java.awt.GridLayout;
-import java.awt.Color;
-import javax.swing.border.SoftBevelBorder;
-import javax.swing.border.BevelBorder;
-import java.awt.Dimension;
-import javax.swing.UIManager;
-import javax.swing.JSplitPane;
-import javax.swing.JLabel;
-import javax.swing.border.TitledBorder;
+import java.awt.*;
+
+import javax.swing.*;
+import javax.swing.border.*;
+
+import net.miginfocom.swing.*;
 
 public class MosaicImageListViewDesign extends JPanel {
 	protected JPanel imageViewPanel;
@@ -57,6 +51,7 @@ public class MosaicImageListViewDesign extends JPanel {
 		this.imageViewPanel.setLayout(new GridLayout(1, 0, 0, 0));
 		
 		this.lblStatus = new JLabel("");
+		this.lblStatus.setFont(new Font("Monospaced", Font.PLAIN, 11));
 		this.leftPanel.add(this.lblStatus, "cell 0 1 2 1,alignx left");
 		
 		this.viewParameterPanel = new JPanel();

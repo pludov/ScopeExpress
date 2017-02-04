@@ -36,7 +36,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	
 	Mosaic mosaic;
 
-
+	boolean jnow = false;
 	
 	public void setMosaic(final Mosaic mosaic)
 	{
@@ -132,6 +132,25 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		
 		principalMoveControler = new FrameDisplayMovementControler(principal);
 		principalMoveControler.setOnMousePositionChanged(this::updatePrincipalMousePos);
+		this.lblStatus.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				jnow = !jnow;
+				updatePrincipalMousePos();
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+
+			@Override
+			public void mouseExited(MouseEvent e) {}
+		});
 		
 		zoomed = new FrameDisplayWithStar(focusUi.application);
 		zoomed.setImageDisplayParameter(displayParameter);
@@ -224,7 +243,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			double imgX = tmp2[0];
 			double imgY = tmp2[1];
 		
-			String result = String.format(Locale.US, "X/Y: %.1f %.1f", imgX, imgY);
+			String result = String.format(Locale.US, "X/Y: %8.1f %8.1f", imgX, imgY);
 			
 			result += "    ";
 			
@@ -257,16 +276,24 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		        ( (double) hours );
 	
 		      
-			double [] raDecNow = SkyAlgorithms.raDecNowFromJ2000(ra * 24 / 360, dec, 32);
+			double [] raDecNow;
+			
+			if (jnow) {
+				raDecNow = SkyAlgorithms.raDecNowFromJ2000(ra * 24 / 360, dec, 32);	
+			} else {
+				raDecNow = new double[]{ra * 24 / 360, dec};
+			}
+			
+			
 			// return formatDegMinSec(ra * 24 / 360) + " " + formatDegMinSec(dec);
-			result =  result + "\nRA/DEC: " + Utils.formatHourMinSec(ra) + " " + Utils.formatDegMinSec(dec);
+			result =  result + "\nRA/DEC " + (jnow ? "(jnow)" : "(j2000)") + ": " + Utils.formatHourMinSec(ra) + "   " + Utils.formatDegMinSec(dec);
 			double [] azalt = SkyAlgorithms.CelestialToHorizontal(raDecNow[0], raDecNow[1], 
 					Configuration.getCurrentConfiguration().getLatitude(),
 					Configuration.getCurrentConfiguration().getLongitude(),
 					new double[] { year, month, day, ut },
 					32, false);
 			
-			result = result + "\nAlt/Az: " + Utils.formatDegMinSec(azalt[0])+" " + Utils.formatDegMinSec(azalt[1]);
+			result = result + "\n\n   Alt/Az: " + Utils.formatDegMinSec(azalt[0])+" " + Utils.formatDegMinSec(azalt[1]);
 			}
 			return result;
 		} catch(Exception e) {

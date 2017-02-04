@@ -509,18 +509,37 @@ public class MosaicImageList extends GenericList<MosaicImageParameter, MosaicIma
 					};
 					
 					message = "";
-					for(int i = 0; i < position.length; i += 2)
+					for(boolean toJNow : Arrays.asList(false, true))
 					{
-						String title = (String)position[i];
-						double [] imgPos = (double[])position[i + 1];
+						if (toJNow) {
+							message += "Position (JNOW) :\n";
+						} else {
+							message += "Position (J2000) :\n";
+						}
+						for(int i = 0; i < position.length; i += 2)
+						{
+							String title = (String)position[i];
+							double [] imgPos = (double[])position[i + 1];
+							
+							double [] sky3dPos = new double[3];
+							double [] raDec = new double[2];
+							
+							mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1]},
+									sky3dPos);
+							SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+							
+							// On veut des coordonnées Vraies, en H pour l'AD
+							if (toJNow) {
+								raDec[0] *= 24.0 / 360;
+								double [] coordVraies = SkyAlgorithms.raDecNowFromJ2000(raDec[0], raDec[1], 0);
+								raDec = coordVraies;
+								raDec[0] *= 360 / 24.0;
+							}
+							
+							
+							message += title + " = [" + Utils.formatHourMinSec(raDec[0]) +";" + Utils.formatDegMinSec(raDec[1])+"]\n";
+						}
 						
-						double [] sky3dPos = new double[3];
-						double [] raDec = new double[2];
-						
-						mip.getProjection().image2dToSky3d(new double[]{0.5 * image.getWidth() * imgPos[0], 0.5 * image.getHeight() * imgPos[1]},
-															sky3dPos);
-						SkyProjection.convert3DToRaDec(sky3dPos, raDec);
-						message += title + " = [" + Utils.formatHourMinSec(raDec[0]) +";" + Utils.formatDegMinSec(raDec[1])+"]\n";
 					}
 					
 					double [] upperLeft = new double [] { 0, 0 };
