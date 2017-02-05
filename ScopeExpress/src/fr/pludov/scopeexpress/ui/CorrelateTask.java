@@ -1,22 +1,14 @@
 package fr.pludov.scopeexpress.ui;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.log4j.*;
 
-import fr.pludov.astrometry.AstrometryProcess;
-import fr.pludov.scopeexpress.focus.AffineTransform3D;
-import fr.pludov.scopeexpress.focus.Image;
-import fr.pludov.scopeexpress.focus.Mosaic;
-import fr.pludov.scopeexpress.focus.MosaicImageParameter;
-import fr.pludov.scopeexpress.focus.SkyProjection;
-import fr.pludov.scopeexpress.focus.Star;
-import fr.pludov.scopeexpress.focus.StarOccurence;
-import fr.pludov.scopeexpress.ui.settings.AstrometryParameterPanel.AstrometryParameter;
-import fr.pludov.scopeexpress.ui.utils.BackgroundTask;
-import fr.pludov.scopeexpress.ui.utils.SwingThreadMonitor;
-import fr.pludov.scopeexpress.utils.DynamicGridPointWithAdu;
+import fr.pludov.astrometry.*;
+import fr.pludov.scopeexpress.focus.*;
+import fr.pludov.scopeexpress.ui.settings.AstrometryParameterPanel.*;
+import fr.pludov.scopeexpress.ui.utils.*;
+import fr.pludov.scopeexpress.utils.*;
 
 public class CorrelateTask extends BackgroundTask {
 	private static final Logger logger = Logger.getLogger(CorrelateTask.class);
@@ -216,6 +208,8 @@ public class CorrelateTask extends BackgroundTask {
 				// FIXME : rompre les associations éventuelles pour les StarOccurence source ou dest qui n'ont pas été trouvés
 				// pour tester avec une transfo orthogonale: 
 				mosaic.getMosaicImageParameter(this.image).setCorrelated(imageMosaicProjectionResult);
+				
+				mosaic.getApplication().getOrientationModel().astrometryDone(mosaic.getMosaicImageParameter(this.image));
 			} finally {
 				SwingThreadMonitor.release();
 			}

@@ -1,9 +1,9 @@
 package fr.pludov.scopeexpress.focus;
 
-import org.w3c.dom.Element;
+import org.w3c.dom.*;
 
-import fr.pludov.scopeexpress.utils.WeakListenerCollection;
-import fr.pludov.utils.XmlSerializationContext;
+import fr.pludov.scopeexpress.utils.*;
+import fr.pludov.utils.*;
 
 public class MosaicImageParameter {
 	public final WeakListenerCollection<MosaicImageParameterListener> listeners = new WeakListenerCollection<MosaicImageParameterListener>(MosaicImageParameterListener.class);
@@ -17,7 +17,7 @@ public class MosaicImageParameter {
 	/// Focale en mm
 	double focal;
 	
-	// Positionnement de l'image (mosaic 3D vers image)
+	// Positionnement de l'image (mosaic 3D vers image) J2000
 	private SkyProjection projection;
 	
 	// null : pas encore, false non applicable, true: ok.

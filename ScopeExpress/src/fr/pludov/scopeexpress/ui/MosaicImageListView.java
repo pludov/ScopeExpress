@@ -32,6 +32,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	final MosaicImageList focusImageList;
 	final ImageDisplayParameterPanel displayParameterPanel;
 	final AstrometryParameterPanel astrometryParameterPanel;
+	
+	final OrientationModelPanel orientationPanel;
+	
 	Image currentImage = null;
 	
 	Mosaic mosaic;
@@ -158,6 +161,8 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		displayParameterPanel = new ImageDisplayParameterPanel(focusUi.application, true);
 		displayParameterPanel.loadParameters(displayParameter);
 		
+		this.orientationPanel = new OrientationModelPanel(focusUi.orientationModel);
+		
 		this.astrometryParameterPanel = new AstrometryParameterPanel();
 		this.astrometryParameterPanel.setScopeManager(focusUi.scopeManager);
 		
@@ -174,7 +179,7 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		super.imageListPanel.add(imageListScrollPane);
 		super.viewParameterPanel.add(displayParameterPanel);
 		super.astrometryParameterPanel.add(this.astrometryParameterPanel);
-		
+		super.orientationPanel.add(this.orientationPanel);
 		
 		displayParameter.listeners.addListener(this.listenerOwner, new ImageDisplayParameterListener() {
 			
@@ -225,9 +230,9 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 	
 	String getPositionLabel(FrameDisplayWithStar display, int x, int y)
 	{
-		if (display == null) return "";
+		if (display == null) return "(Pas d'image)";
 		Image image = display.getImage();
-		if (image == null) return "";
+		if (image == null) return "(Pas d'image)";
 		
 		try {
 			double [] tmp1 = new double[2];
@@ -249,15 +254,14 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 			
 			MosaicImageParameter mip = mosaic.getMosaicImageParameter(display.getImage());
 			if (mip == null || !mip.isCorrelated()) return result + "pas de correlation";
-			
-			double[] sky3dPos = new double[3];
-			mip.getProjection().image2dToSky3d(new double[]{imgX, imgY}, sky3dPos);
-			double[] raDec = new double[2];
-			SkyProjection.convert3DToRaDec(sky3dPos, raDec);
-			double ra = raDec[0];
-			double dec = raDec[1];
-			
-			{
+//			double[] sky3dPos = new double[3];
+//			mip.getProjection().image2dToSky3d(new double[]{imgX, imgY}, sky3dPos);
+//			double[] raDec = new double[2];
+//			SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+//			double ra = raDec[0];
+//			double dec = raDec[1];
+//			
+//			{
 			  Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 	
 		      int year = now.get(Calendar.YEAR);
@@ -274,27 +278,34 @@ public class MosaicImageListView extends MosaicImageListViewDesign {
 		        ( (double) seconds )/3600. +
 		        ( (double) minutes )/60. +
 		        ( (double) hours );
-	
-		      
-			double [] raDecNow;
-			
-			if (jnow) {
-				raDecNow = SkyAlgorithms.raDecNowFromJ2000(ra * 24 / 360, dec, 32);	
-			} else {
-				raDecNow = new double[]{ra * 24 / 360, dec};
-			}
+//	
+//		      
+//			double [] raDecNow;
+//			
+//			if (jnow) {
+//				raDecNow = SkyAlgorithms.raDecNowFromJ2000(ra * 24 / 360, dec, 32);	
+//			} else {
+//				raDecNow = new double[]{ra * 24 / 360, dec};
+//			}
 			
 			
 			// return formatDegMinSec(ra * 24 / 360) + " " + formatDegMinSec(dec);
-			result =  result + "\nRA/DEC " + (jnow ? "(jnow)" : "(j2000)") + ": " + Utils.formatHourMinSec(ra) + "   " + Utils.formatDegMinSec(dec);
-			double [] azalt = SkyAlgorithms.CelestialToHorizontal(raDecNow[0], raDecNow[1], 
+			double [] raDecNow = mip.getProjection().getRaDec(imgX, imgY, jnow ? now : null);
+
+			result =  result + "\nRA/DEC " + (jnow ? "(jnow)" : "(j2000)") + ": " + Utils.formatHourMinSec((raDecNow[0])) + "   " + Utils.formatDegMinSec(raDecNow[1]);
+			
+			if (!jnow) {
+				raDecNow = mip.getProjection().getRaDec(imgX, imgY, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+			}
+			
+			double [] azalt = SkyAlgorithms.CelestialToHorizontal(24 * raDecNow[0] / 360, raDecNow[1], 
 					Configuration.getCurrentConfiguration().getLatitude(),
 					Configuration.getCurrentConfiguration().getLongitude(),
 					new double[] { year, month, day, ut },
 					32, false);
 			
 			result = result + "\n\n   Alt/Az: " + Utils.formatDegMinSec(azalt[0])+" " + Utils.formatDegMinSec(azalt[1]);
-			}
+			
 			return result;
 		} catch(Exception e) {
 			logger.warn("unable to find coord for screen: " , e);

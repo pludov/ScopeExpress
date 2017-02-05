@@ -4,6 +4,7 @@ import java.io.*;
 import java.lang.ref.*;
 import java.util.*;
 
+import fr.pludov.scopeexpress.*;
 import fr.pludov.scopeexpress.async.*;
 import fr.pludov.scopeexpress.database.*;
 import fr.pludov.scopeexpress.database.content.*;
@@ -37,6 +38,8 @@ public class Application {
 	final ITaskOptionalParameterView lastUsedTaskValues; 
 
 	private final Database<Root> database;
+
+	private OrientationModel orientationModel;
 	
 	int starRay;
 	
@@ -136,6 +139,14 @@ public class Application {
 
 	public TaskManager2 getTaskManager2() {
 		return taskManager2;
+	}
+
+	public OrientationModel getOrientationModel() {
+		return orientationModel;
+	}
+
+	public void setOrientationModel(OrientationModel orientationModel) {
+		this.orientationModel = orientationModel;
 	}
 
 }

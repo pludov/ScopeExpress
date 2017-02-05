@@ -15,6 +15,7 @@ import org.w3c.dom.*;
 
 import fr.pludov.astrometry.*;
 import fr.pludov.external.apt.*;
+import fr.pludov.scopeexpress.*;
 import fr.pludov.scopeexpress.camera.*;
 import fr.pludov.scopeexpress.catalogs.*;
 import fr.pludov.scopeexpress.database.*;
@@ -106,7 +107,8 @@ public class FocusUi extends FocusUiDesign {
 		this.filterWheelManager = new FocusUiFilterWheelManager(this);
 		this.joystickHandler = new JoystickHandler(this);
 		this.application = application;
-		
+		this.orientationModel = new OrientationModel(this);
+		application.setOrientationModel(this.orientationModel);
 		this.focusMosaic = new Mosaic(application);
 		this.alignMosaic = new Mosaic(application);
 		this.imagingMosaic = new Mosaic(application);
@@ -1036,7 +1038,7 @@ public class FocusUi extends FocusUiDesign {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				setScript(new LoadImagesScript(actionMonitor, 
-						"C:\\APT_Images\\Camera_1\\2013-05-03", 
+						"Z:\\photos\\2013\\2013-05-03", 
 						"l_2013-05-.*_m101_...._iso800_240s.cr2"));	
 			}
 		});
@@ -1239,6 +1241,8 @@ public class FocusUi extends FocusUiDesign {
 	private FWHMEvolutionGraphPanel graph;
 
 	private TaskManagerView taskManagerView;
+
+	public final OrientationModel orientationModel;
 	
 	public void shoot()
 	{

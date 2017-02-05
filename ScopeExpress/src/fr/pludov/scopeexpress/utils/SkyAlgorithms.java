@@ -978,6 +978,16 @@ public static double[] J2000RaDecFromNow(double ra, double dec, double leapSecs)
     return radec;
     }
 
+public static double[] J2000RaDecDegFromEpoch(double ra, double dec, long epoch)
+{
+	
+	ra /= (360 / 24);
+	double [] result = J2000RaDecFromEpoch(ra, dec, epoch);
+	result[0] *= 360 / 24;
+	return result;
+}
+
+
 public static double[] J2000RaDecFromEpoch(double ra, double dec, long epoch)
 {
 

@@ -100,10 +100,12 @@ public class SkyProjection {
 		}
 
 	}
-	
-	// Projette une étoile sur la sphere 3D.
-	// Dans cette projectino le pole nord pointe vers z (0,0,1). et ra=0 pointe vers x
-	// ra et dec sont en degrés
+
+	/**
+	 * Projette une étoile sur la sphere 3D.
+	 * Dans cette projectino le pole nord pointe vers z (0,0,1). et ra=0 pointe vers x
+	 * @param ra et dec sont en degrés
+	 */
 	public static void convertRaDecTo3D(double [] i_radec, double [] o_rslt3d)
 	{
 		double ra = i_radec[0];
@@ -121,6 +123,7 @@ public class SkyProjection {
 		o_rslt3d[2] = z;
 	}
 	
+	/** Retournes des coordonnées °/° */
 	public static void convert3DToRaDec(double [] i_pt3d, double [] o_radec)
 	{
 		double x = i_pt3d[0];
@@ -229,7 +232,7 @@ public class SkyProjection {
 	}
 	
 	/**
-	 * Convertir ra/dec en coordonnées sur la mosaic
+	 * Convertir ra/dec (°/°) en coordonnées sur la mosaic
 	 * 
 	 * x = cos(raToRad * ra) * tan((90 - dec) *decToRad) / pixelRad
 	 * y = sin(raToRad * ra) * tan((90 - dec) *decToRad) / pixelRad
@@ -435,6 +438,51 @@ public class SkyProjection {
 		this.centery = centery;
 	}
 
+	/**
+	 * Retourne les coordonnées d'un point de l'image
+	 * Si now est null retourne en J2000
+	 * Sinon, il faut un calendar dans le timezone utc (@see SkyProjection.JNow())
+	 *  	
+	 *  @param imgX, imgY: demi pixel (max = getWidth() / 2)
+	 *  @return {ra°, dec°}
+	 */
+	public double [] getRaDec(double imgX, double imgY, Calendar now)
+	{
+		double[] sky3dPos = new double[3];
+		image2dToSky3d(new double[]{imgX, imgY}, sky3dPos);
+		double[] raDec = new double[2];
+		SkyProjection.convert3DToRaDec(sky3dPos, raDec);
+		double ra = raDec[0];
+		double dec = raDec[1];
+	      
+		double [] raDecNow;
+		
+		if (now != null) {
+			int year = now.get(Calendar.YEAR);
+			int month = now.get(Calendar.MONTH) + 1;
+			int day = now.get(Calendar.DAY_OF_MONTH);
+			int hours = now.get(Calendar.HOUR_OF_DAY);
+			int minutes = now.get(Calendar.MINUTE);
+			int seconds = now.get(Calendar.SECOND);
+			int milliseconds = now.get(Calendar.MILLISECOND);
+
+			/* Calculate floating point ut in hours */
+
+			double ut = ( (double) milliseconds )/3600000. +
+					( (double) seconds )/3600. +
+					( (double) minutes )/60. +
+					( (double) hours );
+
+			raDecNow = SkyAlgorithms.raDecEpochFromJ2000(ra * 24 / 360, dec, now.getTimeInMillis());
+			raDecNow[0] *= 360 / 24;
+		} else {
+			raDecNow = new double[]{ra, dec};
+		}
+		
+		return raDecNow;
+		
+	}
+
 	public static double [] convertSky3dToAltAz(double [] skyCoord3d, long photoTime)
 	{
 		double [] coordJ2000 = new double[2];
@@ -467,5 +515,81 @@ public class SkyProjection {
 	
 		coordJ2000[0] *= 15;
 		return coordJ2000;
+	}
+
+	/** 
+	 * 
+	 * @param px 1/2 pixels
+	 * @param py 1/2 pixels
+	 * @param epoch coordonnées polaire à considérer (J2000 = null)
+	 * @return degres
+	 */
+	public Double getNorthAngle(double px, double py, Calendar epoch)
+	{
+		double [] center = new double[]{ px, py };
+		
+		// Trouver le centre en JNOW
+		double [] raDecCenterJnow = getRaDec(center[0], center[1], epoch);
+		
+		// Projetter en 3D
+		double [] sky3dPos = new double[3];
+		SkyProjection.convertRaDecTo3D(raDecCenterJnow, sky3dPos);
+		
+		
+		
+		double delta = 0.0001;
+		
+		// Monter au nord...
+		// Normaliser (remarque: si on est déjà 100% au nord, ça ne changera rien)
+		// FIXME: c'est quoi cette echelle ?
+		double [] north3dPos = new double[]{sky3dPos[0],sky3dPos[1],sky3dPos[2] + delta};
+		north3dPos = VecUtils.normalize(north3dPos);
+
+		// Arbitrairement, on échoue si le pole est à trés près du point de référence
+		double move = VecUtils.norm(VecUtils.sub(north3dPos, sky3dPos));
+		if (move < delta * 0.00001)
+		{
+			return null;
+		}
+		
+		double [] northRaDecJnow = new double[2];
+		SkyProjection.convert3DToRaDec(north3dPos, northRaDecJnow);
+		
+		// On a les nouvelle coordonnées jnow.
+		// Maintenant, on veut la convertion en j2000
+		double [] northJ2000 = 
+				epoch != null ? 
+						SkyAlgorithms.J2000RaDecDegFromEpoch(northRaDecJnow[0], northRaDecJnow[1], epoch.getTimeInMillis())
+						: northRaDecJnow;
+		
+		double [] north;
+		if (!project(northJ2000)) {
+			// Ne se projette pas... Qu'est qu'on fait ?
+			return null;
+		} else {
+			north = northJ2000;
+		}
+
+		// Maintenant, calculer l'angle des vecteurs...
+		double [] dir = VecUtils.sub(north, center);
+		double norm = VecUtils.norm(dir);
+		
+		double aRad = Math.atan2(-dir[0], -dir[1]);
+		return aRad * 180.0 / Math.PI;
+	}
+
+	
+	public static Calendar jNow()	{
+		return Calendar.getInstance(TimeZone.getTimeZone("UTC"));		
+	}
+
+	// Assure qu'un degres est entre 0 et 360°
+	public static double deg360(double d) {
+		if (d >= 0 && d < 360) return d;
+		d = d % 360;
+		if (d < 0) {
+			d += 360;
+		}
+		return d;
 	}
 }
