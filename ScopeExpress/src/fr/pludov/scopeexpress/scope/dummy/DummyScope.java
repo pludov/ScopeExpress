@@ -30,6 +30,11 @@ public class DummyScope implements Scope{
 		return connectionStatus;
 	}
 
+	@Override
+	public ScopeProperties getProperties() {
+		return new ScopeProperties();
+	}
+	
 	private void fireCoordChanged()
 	{
 		SwingUtilities.invokeLater(new Runnable() {

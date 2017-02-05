@@ -11,7 +11,7 @@ import fr.pludov.scopeexpress.script.*;
 import fr.pludov.scopeexpress.ui.*;
 import fr.pludov.scopeexpress.utils.*;
 
-public class AscomScope extends WorkThread implements Scope {
+public class AscomScope extends BaseAscomDevice implements Scope {
 	private static final Logger logger = Logger.getLogger(AscomScope.class);
 	
 //	static StringConfigItem lastUsedScope = new StringConfigItem(AscomScope.class, "previousScope", "");
@@ -43,7 +43,8 @@ public class AscomScope extends WorkThread implements Scope {
 	
 	
 	final String driver;
-	DispatchPtr scope;
+	DispatchPtr devicePtr;
+	ScopeProperties properties = new ScopeProperties();
 	
 	// On n'emet pas de notification pour moins de 0,1 arcsec
 	double lastNotifiedRa, lastNotifiedDec;
@@ -79,7 +80,8 @@ public class AscomScope extends WorkThread implements Scope {
 				
 				@Override
 				public Object run() throws Throwable {
-					scope.invoke("SyncToCoordinates", ra - raBias, dec - decBias);
+					devicePtr.invoke("SyncToCoordinates", ra - raBias, dec - decBias);
+					refreshParameters();
 					return null;
 				}
 			});
@@ -99,7 +101,7 @@ public class AscomScope extends WorkThread implements Scope {
 				
 				@Override
 				public Object run() throws Throwable {
-					scope.invoke("SlewToCoordinatesAsync", ra - raBias, dec - decBias);
+					devicePtr.invoke("SlewToCoordinatesAsync", ra - raBias, dec - decBias);
 					return null;
 				}
 			});
@@ -120,27 +122,27 @@ public class AscomScope extends WorkThread implements Scope {
 
 				if (ra != 0) {
 					int dir = ra > 0 ? 2 : 3;
-					scope.put("GuideRateRightAscension",360 / 3600.0);
-					double raSpeed = ((double)scope.get("GuideRateRightAscension"));
+					devicePtr.put("GuideRateRightAscension",360 / 3600.0);
+					double raSpeed = ((double)devicePtr.get("GuideRateRightAscension"));
 					logger.info("raSpeed is " + raSpeed * 3600);
 					raMs = (long) Math.floor(1000 * Math.abs(ra) / raSpeed);
 					logger.info("ra pulse duration: " + raMs);
 					if (raMs > 15000) raMs = 15000;
-					scope.invoke("PulseGuide", dir, raMs);
+					devicePtr.invoke("PulseGuide", dir, raMs);
 				}
 				if (dec != 0) {
 					int dir = dec > 0 ? 0 : 1;
-					scope.put("GuideRateDeclination",360 / 3600.0);
-					double decSpeed = ((double)scope.get("GuideRateDeclination"));
+					devicePtr.put("GuideRateDeclination",360 / 3600.0);
+					double decSpeed = ((double)devicePtr.get("GuideRateDeclination"));
 					logger.info("decSpeed is " + decSpeed * 3600);
 					
 					decMs = (long) Math.floor(1000 * Math.abs(dec) / decSpeed);
 					if (decMs > 15000) decMs = 15000;
 					logger.info("dec pulse duration: " + decMs);
-					scope.invoke("PulseGuide", dir, decMs);
+					devicePtr.invoke("PulseGuide", dir, decMs);
 				}
 
-				if ((Boolean)scope.get("IsPulseGuiding")) {
+				if ((Boolean)devicePtr.get("IsPulseGuiding")) {
 					Thread.sleep(Math.max(raMs, decMs));
 				}
 
@@ -177,20 +179,27 @@ public class AscomScope extends WorkThread implements Scope {
 		this.listeners.getTarget().onConnectionStateChanged();
 	}
 	
+	@Override
+	public ScopeProperties getProperties() {
+		return properties;
+	}
+	
 	private void refreshParameters() throws Throwable
 	{
 		double ra, declination;
 		boolean connectStatus;
-		if (scope != null) {
-			ra = (Double)scope.get("RightAscension");
-			declination = (Double)scope.get("Declination");
-			connectStatus = (Boolean)scope.get("Connected");
+		if (devicePtr != null) {
+			ra = (Double)devicePtr.get("RightAscension");
+			declination = (Double)devicePtr.get("Declination");
+			connectStatus = (Boolean)devicePtr.get("Connected");
 		} else {
 			connectStatus = false;
 			ra = 0;
 			declination = 0;
 			this.lastNotifiedDec = Double.NaN;
 			this.lastNotifiedRa = Double.NaN;
+			clearSupportedProperties();
+			
 		}
 		
 		boolean fireConnectionChanged = false;
@@ -240,9 +249,10 @@ public class AscomScope extends WorkThread implements Scope {
 
 			logger.debug("driver : " + driver);
 			
-			scope = new DispatchPtr(driver);
+			devicePtr = new DispatchPtr(driver);
 			
-			scope.put("Connected", true);
+			clearSupportedProperties();
+			devicePtr.put("Connected", true);
 			
 			refreshParameters();
 			
@@ -263,7 +273,8 @@ public class AscomScope extends WorkThread implements Scope {
 //		  DispatchPtr range = frame.getObject("TextRange");
 //		  range.put("Text", "Using Jawin to call COM objects");
 		} catch (Throwable e) {
-			scope = null;
+			devicePtr = null;
+			clearSupportedProperties();
 //			releaseOle();
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();

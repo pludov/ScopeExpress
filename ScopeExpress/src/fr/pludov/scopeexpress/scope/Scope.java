@@ -9,6 +9,7 @@ public interface Scope extends IDeviceBase {
 	/** Les notifications ne sont pas reçues dans le thread swing */
 	public static interface Listener extends IDriverStatusListener{
 		void onCoordinateChanged();
+		default void onPropertyChanged() {};
 	}
 	
 	WeakListenerCollection<Listener> getListeners();
@@ -24,6 +25,8 @@ public interface Scope extends IDeviceBase {
 	
 	double getRightAscension();
 	double getDeclination();
+	
+	ScopeProperties getProperties();
 	
 	// Bloque l'appelant
 	void slew(double ra, double dec) throws ScopeException;

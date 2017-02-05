@@ -25,6 +25,8 @@ public interface Camera extends IDeviceBase {
 		default void onShootDone(RunningShootInfo shootInfo, File generatedFits) {};
 		
 		default void onTempeatureUpdated() {};
+		
+		default void onPropertyChanged() {};
 	}
 
 	WeakListenerCollection<Listener> getListeners();

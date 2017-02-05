@@ -16,14 +16,13 @@ import fr.pludov.scopeexpress.utils.*;
 import net.ivoa.fits.*;
 import net.ivoa.fits.hdu.*;
 
-public class AscomCamera extends WorkThread implements Camera {
+public class AscomCamera extends BaseAscomDevice implements Camera {
 	public static final Logger logger = Logger.getLogger(AscomCamera.class);
 
 	final WeakListenerCollection<Camera.Listener> listeners = new WeakListenerCollection<Camera.Listener>(Camera.Listener.class, true);
 	final IWeakListenerCollection<IDriverStatusListener> statusListeners;
 
 	final String driver;
-	DispatchPtr camera;
 	boolean lastConnected;
 	int cameraInterfaceVersion;
 
@@ -34,12 +33,6 @@ public class AscomCamera extends WorkThread implements Camera {
 	
 	String connectedPropertyName;
 	
-	/**
-	 *  Liste des propriétés qui ont déclenché une erreur en lecture
-	 *  (pour ne pas boucler sur les erreurs. Réinitialisé à la connection)
-	 */
-	
-	Map<String, Boolean> cameraSupportedProperties = new HashMap<>();
 
 	public AscomCamera(String driver) {
 		super();
@@ -47,31 +40,7 @@ public class AscomCamera extends WorkThread implements Camera {
 		this.driver = driver;
 		this.lastConnected = false;
 	}
-	
-	private <T> T getCapacity(String name, T defaultValue)
-	{
-		Boolean supported = cameraSupportedProperties.get(name);
-		if (supported != null && !supported.booleanValue()) {
-			return defaultValue;
-		}
-		
-		try {
-			T result = (T)camera.get(name);
-			if (supported == null) {
-				cameraSupportedProperties.put(name, Boolean.TRUE);
-			}
-			return result;
-		} catch(COMException  t) {
-			if (supported == null) {
-				logger.info("Property not supported: " + name, t);
-				cameraSupportedProperties.put(name, Boolean.FALSE);
-			} else {
-				logger.error("Error getting property: " + name, t);
-			}
-			return defaultValue;
-		}
-	}
-	
+
 	// La caméra est connectée, détermine ce qu'elle peut faire
 	private void refreshCapacity() throws Throwable
 	{
@@ -86,12 +55,21 @@ public class AscomCamera extends WorkThread implements Camera {
 		cp.setPixelSizeY(getCapacity("PixelSizeY", (Double)null));
 		cp.setSensorName(getCapacity("SensorName", (String)null));
 		cp.setMaxBin(Math.max(1, Math.min(getCapacity("MaxBinX", (short) 1), getCapacity("MaxBinY", (short) 1))));
+		
+		
+		if (Objects.equals(this.cameraProperties, cp)) {
+			return;
+		}
+		
 		this.cameraProperties = cp;
+		this.listeners.getTarget().onPropertyChanged();;
 		
 	}
 	
 	private void refreshTemperatures() throws Throwable
 	{
+		// les capacités changent en cours de route :-(
+		refreshCapacity();
 		TemperatureParameters temps = new TemperatureParameters();
 		temps.setCoolerOn(getCapacity("CoolerOn", false));
 		if (temps.isCoolerOn()) {
@@ -124,21 +102,21 @@ public class AscomCamera extends WorkThread implements Camera {
 		boolean imageReady = false;
 		RunningShootInfo readyImageParameters = null;
 		File imageFits = null;
-		if (camera != null) {
-			connectStatus = (Boolean)camera.get(connectedPropertyName);
+		if (devicePtr != null) {
+			connectStatus = (Boolean)devicePtr.get(connectedPropertyName);
 			if (!connectStatus) {
-				cameraSupportedProperties.clear();
+				clearSupportedProperties();
 			}
 			if (currentShoot != null) {
-				imageReady = (Boolean)camera.get("ImageReady");
+				imageReady = (Boolean)devicePtr.get("ImageReady");
 				if (imageReady) {
 					readyImageParameters = currentShoot;
 					logger.info("Image ready");
 					
-					Object data0 = camera.get("ImageArray");
+					Object data0 = devicePtr.get("ImageArray");
 					logger.info("Got datas");
-					int width = (int)camera.get("NumX");
-					int height = (int)camera.get("NumY");
+					int width = (int)devicePtr.get("NumX");
+					int height = (int)devicePtr.get("NumY");
 					logger.debug("Image ready:" + data0);
 					
 					int arrayLen = Array.getLength(data0);
@@ -146,19 +124,19 @@ public class AscomCamera extends WorkThread implements Camera {
 						throw new Exception("data size mismatch");
 					}
 					
-					int maxADU = (int)camera.get("MaxADU");
+					int maxADU = (int)devicePtr.get("MaxADU");
 					// FIXME: Pour l'instant on fait comme si on avait un maxADU systématiquement à 65535
 					if (maxADU > 65535) {
 						logger.warn("Max ADU is > 65535. 32 bits fits is not supported");
 					}
 					
-					double lastExp = (double)camera.get("LastExposureDuration");
-					String lastExpStart = (String)camera.get("LastExposureStartTime");
+					double lastExp = (double)devicePtr.get("LastExposureDuration");
+					String lastExpStart = (String)devicePtr.get("LastExposureStartTime");
 					
 					Integer xbinning, ybinning;
 					try {
-						xbinning = (int)(Short)camera.get("BinX");
-						ybinning = (int)(Short)camera.get("BinY");
+						xbinning = (int)(Short)devicePtr.get("BinX");
+						ybinning = (int)(Short)devicePtr.get("BinY");
 					} catch(COMException e) {
 						logger.warn("Could not retrieve pixel binning", e);
 						xbinning = null;
@@ -167,8 +145,8 @@ public class AscomCamera extends WorkThread implements Camera {
 					
 					Double pixSx, pixSy;
 					try {
-						pixSx = (double)camera.get("PixelSizeX");
-						pixSy = (double)camera.get("PixelSizeY");
+						pixSx = (double)devicePtr.get("PixelSizeX");
+						pixSy = (double)devicePtr.get("PixelSizeY");
 						if (xbinning != null) pixSx *= xbinning;
 						if (ybinning != null) pixSy *= ybinning;
 					} catch(COMException e) {
@@ -305,22 +283,23 @@ public class AscomCamera extends WorkThread implements Camera {
 
 			logger.debug("driver : " + driver);
 			
-			camera = new DispatchPtr(driver);
+			devicePtr = new DispatchPtr(driver);
 			
 			try {
-				cameraInterfaceVersion = (Short)camera.get("InterfaceVersion");
+				cameraInterfaceVersion = (Short)devicePtr.get("InterfaceVersion");
 			} catch(COMException  t) {
 				logger.info("Could not get InterfaceVersion", t);
 				cameraInterfaceVersion = 1;
 			}
 			connectedPropertyName = "Connected";
-			camera.put(connectedPropertyName, true);
-			this.cameraSupportedProperties.clear();
+			devicePtr.put(connectedPropertyName, true);
+			clearSupportedProperties();
 			refreshCapacity();
 			refreshParameters();
 			refreshTemperatures();
 		} catch (Throwable e) {
-			camera = null;
+			devicePtr = null;
+			clearSupportedProperties();
 			if (e instanceof CancelationException) throw (CancelationException)e;
 			e.printStackTrace();
 			throw e;
@@ -402,14 +381,14 @@ public class AscomCamera extends WorkThread implements Camera {
 					try {
 						if (!onOff) {
 							// on le coupe avant
-							camera.put("CoolerOn", onOff);
+							devicePtr.put("CoolerOn", onOff);
 						}
 						if (setTemp != null) {
-							camera.put("SetCCDTemperature", setTemp.doubleValue());
+							devicePtr.put("SetCCDTemperature", setTemp.doubleValue());
 						}
 						if (onOff) {
 							// On l'active après avoir mis la température
-							camera.put("CoolerOn", onOff);
+							devicePtr.put("CoolerOn", onOff);
 						}
 					} catch(Throwable t) {
 						throw t;
@@ -444,7 +423,7 @@ public class AscomCamera extends WorkThread implements Camera {
 					listeners.getTarget().onShootStarted(rsi);
 					try {
 						currentShoot = rsi;
-						camera.invoke("StartExposure", rsi.getExp(), true);
+						devicePtr.invoke("StartExposure", rsi.getExp(), true);
 						
 						TemperatureParameters temps = temperatures;
 						if (temps != null) {
@@ -483,7 +462,7 @@ public class AscomCamera extends WorkThread implements Camera {
 					if (currentShoot == null) {
 						return null;
 					}
-					camera.invoke("StopExposure");
+					devicePtr.invoke("StopExposure");
 					currentShoot = null;
 					listeners.getTarget().onShootInterrupted();
 					return null;

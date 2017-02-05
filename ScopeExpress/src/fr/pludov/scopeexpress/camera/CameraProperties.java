@@ -117,4 +117,67 @@ public class CameraProperties {
 		this.gains = gains != null ? new ArrayList<>(gains): null;
 	}
 
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (canAbortExposure ? 1231 : 1237);
+		result = prime * result + (canFastReadout ? 1231 : 1237);
+		result = prime * result + (canGetCoolerPower ? 1231 : 1237);
+		result = prime * result + (canSetCCDTemperature ? 1231 : 1237);
+		result = prime * result + (canStopExposure ? 1231 : 1237);
+		result = prime * result + ((gains == null) ? 0 : gains.hashCode());
+		result = prime * result + maxBin;
+		result = prime * result + ((pixelSizeX == null) ? 0 : pixelSizeX.hashCode());
+		result = prime * result + ((pixelSizeY == null) ? 0 : pixelSizeY.hashCode());
+		result = prime * result + ((sensorName == null) ? 0 : sensorName.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		CameraProperties other = (CameraProperties) obj;
+		if (canAbortExposure != other.canAbortExposure)
+			return false;
+		if (canFastReadout != other.canFastReadout)
+			return false;
+		if (canGetCoolerPower != other.canGetCoolerPower)
+			return false;
+		if (canSetCCDTemperature != other.canSetCCDTemperature)
+			return false;
+		if (canStopExposure != other.canStopExposure)
+			return false;
+		if (gains == null) {
+			if (other.gains != null)
+				return false;
+		} else if (!gains.equals(other.gains))
+			return false;
+		if (maxBin != other.maxBin)
+			return false;
+		if (pixelSizeX == null) {
+			if (other.pixelSizeX != null)
+				return false;
+		} else if (!pixelSizeX.equals(other.pixelSizeX))
+			return false;
+		if (pixelSizeY == null) {
+			if (other.pixelSizeY != null)
+				return false;
+		} else if (!pixelSizeY.equals(other.pixelSizeY))
+			return false;
+		if (sensorName == null) {
+			if (other.sensorName != null)
+				return false;
+		} else if (!sensorName.equals(other.sensorName))
+			return false;
+		return true;
+	}
+
 }
