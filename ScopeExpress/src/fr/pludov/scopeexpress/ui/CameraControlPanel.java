@@ -54,12 +54,13 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 	final Color btnTempDefaultBackground;
 	
 	boolean saveNextShoot = false;
-	ShootParameters parameters;
+	final ShootParameters parameters;
 	
 	CameraControlPanel(FocusUiCameraManager cameraManager)
 	{
 		this.cameraManager = cameraManager;
 		this.parameters = new ShootParameters();
+		this.parameters.setCorrelator(parameters);
 		loadParameters(this.parameters);
 		
 
@@ -562,8 +563,10 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				@Override
 				public void onShootDone(RunningShootInfo shootInfo, File generatedFits) {
 					if (saveNextShoot && generatedFits != null) {
-						NotificationChannel.Photo.emit("Chargement de " + generatedFits.getName());
-						addImage(generatedFits);
+						if (shootInfo.getCorrelator() == parameters) {
+							NotificationChannel.Photo.emit("Chargement de " + generatedFits.getName());
+							addImage(generatedFits);
+						}
 					}
 					loadParameters(parameters);
 					refresh();
@@ -582,6 +585,11 @@ public class CameraControlPanel extends CameraControlPanelDesign {
 				
 				@Override
 				public void onTempeatureUpdated() {
+					refresh();
+				}
+				
+				@Override
+				public void onPropertyChanged() {
 					refresh();
 				}
 			});

@@ -19,6 +19,8 @@ public class ShootParameters {
 	/** If type is not expressive enough */
 	String phase;
 	
+	Object correlator;
+	
 	public ShootParameters() {
 	}
 
@@ -32,6 +34,7 @@ public class ShootParameters {
 		this.fileName = parameters.fileName;
 		this.phase = parameters.phase;
 		this.type = parameters.type;
+		this.correlator = parameters.correlator;
 	}
 
 	public double getExp() {
@@ -104,6 +107,14 @@ public class ShootParameters {
 
 	public void setPhase(String phase) {
 		this.phase = phase;
+	}
+
+	public Object getCorrelator() {
+		return correlator;
+	}
+
+	public void setCorrelator(Object correlator) {
+		this.correlator = correlator;
 	}
 
 }
